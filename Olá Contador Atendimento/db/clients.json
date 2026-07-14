@@ -1,0 +1,190 @@
+{
+  "ana-silva": {
+    "id": "ana-silva",
+    "name": "Ana Silva",
+    "avatar": "AS",
+    "taxType": "Malha Fina IR2025",
+    "cpf": "123.456.789-00",
+    "status": "waiting",
+    "scheduledTime": "07:30",
+    "diagnosis": "Malha Fina - Omissão de Rendimentos de Trabalho",
+    "honorarios": 150,
+    "evidences": [
+      {
+        "id": "omissao",
+        "text": "Rendimentos recebidos acumuladamente não declarados",
+        "selected": true
+      },
+      {
+        "id": "dif-dirf",
+        "text": "Divergência entre DIRF da empresa e Declaração do contribuinte",
+        "selected": true
+      },
+      {
+        "id": "falta-recibo",
+        "text": "Falta de comprovantes de despesas dedutíveis",
+        "selected": false
+      },
+      {
+        "id": "prev-dupla",
+        "text": "Duplicidade de dependentes declarados por cônjuges",
+        "selected": false
+      }
+    ],
+    "treatment": "1. Retificar a Declaração de Ajuste Anual de IR do ano-calendário correspondente.\n2. Incluir a fonte pagadora de rendimentos tributáveis omitida.\n3. Emitir a guia complementar de imposto de renda (DARF cod 0211) com multa e juros de mora acumulados.\n4. Enviar o comprovante de pagamento ao chat para baixa fiscal.",
+    "messages": [
+      {
+        "sender": "client",
+        "text": "Olá! Recebi uma intimação da Receita Federal sobre o meu Imposto de Renda do ano passado. Estou muito preocupada, diz que caí em malha fina.",
+        "time": "16:45"
+      },
+      {
+        "sender": "agent",
+        "text": "Olá Ana, tudo bem? Sou o Felipe, vou te ajudar a resolver isso. Você pode me mandar uma foto ou o arquivo dessa intimação para eu dar uma olhada?",
+        "time": "16:47"
+      },
+      {
+        "sender": "client",
+        "text": "Sim! Vou mandar aqui o PDF que baixei no e-CAC da Receita.",
+        "time": "16:48"
+      },
+      {
+        "sender": "system",
+        "text": "Atendimento Encerrado. O chat foi bloqueado e movido para finalizados.",
+        "time": "18:53"
+      },
+      {
+        "sender": "agent",
+        "text": "oi",
+        "time": "09:08"
+      },
+      {
+        "sender": "agent",
+        "text": "oi",
+        "time": "09:14"
+      },
+      {
+        "sender": "agent",
+        "text": "ola",
+        "time": "09:14"
+      }
+    ],
+    "checklist": {
+      "CPF e RG": false,
+      "Notificação da Receita": false,
+      "Comprovante de Rendimentos": false
+    }
+  },
+  "carlos-santos": {
+    "id": "carlos-santos",
+    "name": "Carlos Santos",
+    "avatar": "CS",
+    "taxType": "MEI Pendente",
+    "cpf": "987.654.321-11",
+    "status": "docs",
+    "scheduledTime": "08:00",
+    "diagnosis": "Desenquadramento e Débitos retroativos do MEI",
+    "honorarios": 290,
+    "evidences": [
+      {
+        "id": "falta-dasn",
+        "text": "Falta de envio da declaração anual DASN-SIMEI",
+        "selected": true
+      },
+      {
+        "id": "das-aberto",
+        "text": "Guias mensais DAS em aberto de múltiplos meses",
+        "selected": true
+      },
+      {
+        "id": "faturamento-estouro",
+        "text": "Faturamento anual superior a R$ 81.000,00",
+        "selected": false
+      },
+      {
+        "id": "cadastro-irregular",
+        "text": "Cadastro de atividade econômica em desacordo",
+        "selected": false
+      }
+    ],
+    "treatment": "1. Transmitir a declaração anual DASN-SIMEI em atraso referente ao exercício em aberto.\n2. Gerar o boleto de multa por atraso na entrega da declaração (MAED).\n3. Consolidar os débitos mensais das guias DAS e propor o parcelamento ordinário em até 60 vezes pelo portal do e-CAC.\n4. Emitir a primeira guia de parcelamento e enviar ao cliente.",
+    "messages": [
+      {
+        "sender": "client",
+        "text": "Boa tarde Felipe, estou precisando regularizar o meu MEI de 2024. Não declarei nada e acho que foi cancelado.",
+        "time": "14:10"
+      },
+      {
+        "sender": "agent",
+        "text": "Boa tarde Carlos, sem pânico, isso é comum. Vamos precisar emitir as declarações anuais (DASN-SIMEI) em atraso e ver a situação das guias mensais (DAS).",
+        "time": "14:15"
+      },
+      {
+        "sender": "client",
+        "text": "Certo. Como faço para ver isso? Consigo parcelar o que estou devendo?",
+        "time": "14:18"
+      }
+    ],
+    "checklist": {
+      "CPF e RG": true,
+      "Notificação da Receita": false,
+      "Comprovante de Rendimentos": false
+    }
+  },
+  "mariana-costa": {
+    "id": "mariana-costa",
+    "name": "Mariana Costa",
+    "avatar": "MC",
+    "taxType": "Ganho de Capital Imóvel",
+    "cpf": "456.789.123-22",
+    "status": "active",
+    "scheduledTime": "09:15",
+    "diagnosis": "Ganho de Capital - Venda de Imóvel sem Recolhimento de ITBI/IR",
+    "honorarios": 290,
+    "evidences": [
+      {
+        "id": "lucro-imob",
+        "text": "Venda de bem imóvel com lucro imobiliário",
+        "selected": true
+      },
+      {
+        "id": "falta-gcap",
+        "text": "Não preenchimento do programa GCAP no mês da venda",
+        "selected": true
+      },
+      {
+        "id": "prazo-estouro",
+        "text": "Estouro do prazo de 180 dias para isenção residencial",
+        "selected": true
+      },
+      {
+        "id": "venda-superior",
+        "text": "Valor da venda superior a R$ 440.000,00",
+        "selected": false
+      }
+    ],
+    "treatment": "1. Preencher o programa GCAP (Ganho de Capital) relativo ao ano-calendário correspondente.\n2. Lançar o valor de aquisição histórico e valor de alienação, deduzindo corretagem paga.\n3. Aplicar os fatores de redução FR1 e FR2 caso aplicáveis.\n4. Emitir o DARF código 4600 para recolhimento com os acréscimos legais.\n5. Importar o arquivo do GCAP na Declaração Anual de Ajuste.",
+    "messages": [
+      {
+        "sender": "client",
+        "text": "Oi, vendi meu apartamento em novembro de 2025 e quero saber se preciso pagar algum imposto sobre a venda. O corretor falou em Ganho de Capital.",
+        "time": "15:30"
+      },
+      {
+        "sender": "agent",
+        "text": "Olá Mariana, sim, precisamos calcular. Você comprou outro imóvel residencial em até 180 dias ou é seu único imóvel?",
+        "time": "15:35"
+      },
+      {
+        "sender": "client",
+        "text": "Não comprei outro imóvel ainda, usei o dinheiro para pagar dívidas e investir em renda fixa.",
+        "time": "15:40"
+      }
+    ],
+    "checklist": {
+      "CPF e RG": true,
+      "Notificação da Receita": true,
+      "Comprovante de Rendimentos": false
+    }
+  }
+}

@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Portal do Cliente - Olá Contador</title>
+  
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="cliente.css">
+  
+  <!-- FontAwesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+
+  <!-- App Header -->
+  <header class="app-header">
+    <div class="logo-container">
+      <i class="fa-solid fa-calculator" style="color: var(--color-coral); font-size: 24px; margin-right: 8px;"></i>
+      <h1 class="logo-text">Olá, Contador<span>.</span></h1>
+    </div>
+
+    <div class="header-right">
+      <div class="agent-profile">
+        <div class="agent-avatar" style="background: var(--color-coral);">AS</div>
+        <div class="agent-info">
+          <h4>Ana Silva</h4>
+          <span>123.456.789-00</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Global Dashboard Layout Container -->
+  <div class="dashboard-container">
+    
+    <!-- Global App Sidebar Menu (Left Navigation) -->
+    <aside class="app-sidebar-nav">
+      <div class="nav-section-title" style="display: flex; justify-content: space-between; align-items: center;">
+        <span>Área do Cliente</span>
+      </div>
+
+      <button class="nav-item active" data-target="section-chat" title="Chat de Atendimento">
+        <i class="fa-solid fa-comments"></i> <span class="nav-label">Atendimento</span>
+      </button>
+      <button class="nav-item" data-target="section-agendamento" title="Agendar Horário">
+        <i class="fa-solid fa-calendar-plus"></i> <span class="nav-label">Agendamento</span>
+      </button>
+      <button class="nav-item" data-target="section-acompanhamento" title="Rastreador do Serviço">
+        <i class="fa-solid fa-list-check"></i> <span class="nav-label">Meu Serviço</span>
+      </button>
+      <button class="nav-item" data-target="section-documentos" title="Meus Documentos">
+        <i class="fa-solid fa-folder-open"></i> <span class="nav-label">Documentos</span>
+      </button>
+      <button class="nav-item" data-target="section-historico" title="Histórico">
+        <i class="fa-solid fa-clock-rotate-left"></i> <span class="nav-label">Histórico</span>
+      </button>
+      
+      <div style="flex: 1;"></div>
+      
+      <button class="nav-item" title="Sair do Sistema" onclick="alert('Saindo...')">
+        <i class="fa-solid fa-arrow-right-from-bracket"></i> <span class="nav-label">Sair</span>
+      </button>
+    </aside>
+
+    <!-- Main Content Panels -->
+    <main class="main-content-panels">
+
+      <!-- SECTION 1: Chat de Atendimento -->
+      <section class="content-panel active" id="section-chat">
+        <div class="panel-header-desc">
+          <h2>Central de Atendimento</h2>
+          <p>Seu atendimento é realizado exclusivamente por agendamento.</p>
+        </div>
+
+        <div class="chat-container" style="position: relative;">
+          <!-- Locked Overlay (Hidden by default, shown by JS) -->
+          <div id="chat-locked-overlay" style="display: none; position: absolute; inset: 0; background: rgba(255, 255, 255, 0.9); z-index: 10; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 24px;">
+            <i class="fa-solid fa-lock" style="font-size: 48px; color: var(--color-pine); margin-bottom: 16px;"></i>
+            <h3 style="color: var(--color-pine); margin-bottom: 8px;">Atendimento Bloqueado</h3>
+            <p style="color: var(--color-text-secondary); margin-bottom: 16px;">Seu chat será liberado no momento da sua reunião.</p>
+            <div style="background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 8px; padding: 12px 24px;">
+              <span style="font-size: 12px; color: var(--color-text-secondary); display: block; margin-bottom: 4px;">Seu agendamento:</span>
+              <strong style="color: var(--color-coral); font-size: 16px;"><i class="fa-solid fa-calendar"></i> 14 de Julho às 14:00</strong>
+            </div>
+          </div>
+          <!-- Chat Header -->
+          <div class="chat-header">
+            <div class="chat-header-avatar">
+              <i class="fa-solid fa-user-tie"></i>
+            </div>
+            <div class="chat-header-info">
+              <h3>Contador Felipe</h3>
+              <p>CRC SP-123456/O-7</p>
+            </div>
+            <div style="flex: 1; text-align: right;">
+              <span class="status-online"></span>
+              <span style="font-size: 11px; margin-left: 4px; color: white;">Online</span>
+            </div>
+          </div>
+
+          <!-- Chat History -->
+          <div class="chat-history" id="client-chat-history">
+            <div class="chat-bubble contador">
+              Olá, Ana! A sua Malha Fina IR2025 já está em andamento. Qualquer dúvida, estou por aqui!
+              <span class="chat-time">10:00</span>
+            </div>
+          </div>
+
+          <!-- Chat Input -->
+          <div class="chat-input-area">
+            <form class="chat-form" id="client-chat-form">
+              <button type="button" class="btn-attach" title="Anexar Arquivo" onclick="document.querySelector('[data-target=\'section-documentos\']').click()"><i class="fa-solid fa-paperclip"></i></button>
+              <input type="text" id="client-chat-input" placeholder="Digite sua mensagem..." autocomplete="off">
+              <button type="submit" class="btn-send"><i class="fa-solid fa-paper-plane"></i></button>
+            </form>
+          </div>
+        </div>
+      </section>
+
+      <!-- SECTION 2: Agendamento -->
+      <section class="content-panel" id="section-agendamento">
+        <div class="panel-header-desc">
+          <h2>Agendamento de Horário</h2>
+          <p>Escolha um dia e horário disponível para falar com seu contador.</p>
+        </div>
+
+        <div class="agendamento-card" style="background: white; border: 1px solid var(--color-border); border-radius: var(--border-radius); padding: 32px; max-width: 600px;">
+          <h3 style="color: var(--color-pine); font-size: 16px; margin-bottom: 24px;">Datas Disponíveis (Julho)</h3>
+          
+          <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 24px;">
+            <div style="border: 1px solid var(--color-coral); background: rgba(255,127,80,0.1); border-radius: 8px; padding: 12px; text-align: center; cursor: pointer; color: var(--color-coral); font-weight: 600;">14<br><span style="font-size: 11px; font-weight: 400;">Seg</span></div>
+            <div style="border: 1px solid var(--color-border); border-radius: 8px; padding: 12px; text-align: center; cursor: pointer;">15<br><span style="font-size: 11px; color: var(--color-text-secondary);">Ter</span></div>
+            <div style="border: 1px solid var(--color-border); border-radius: 8px; padding: 12px; text-align: center; cursor: pointer;">16<br><span style="font-size: 11px; color: var(--color-text-secondary);">Qua</span></div>
+            <div style="border: 1px solid var(--color-border); border-radius: 8px; padding: 12px; text-align: center; cursor: pointer;">17<br><span style="font-size: 11px; color: var(--color-text-secondary);">Qui</span></div>
+          </div>
+
+          <h3 style="color: var(--color-pine); font-size: 16px; margin-bottom: 16px;">Horários Disponíveis</h3>
+          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 32px;">
+            <button style="padding: 10px; border: 1px solid var(--color-border); background: white; border-radius: 6px; cursor: pointer; color: var(--color-text-secondary);">10:00</button>
+            <button style="padding: 10px; border: 1px solid var(--color-coral); background: var(--color-coral); color: white; font-weight: 600; border-radius: 6px; cursor: pointer;">14:00</button>
+            <button style="padding: 10px; border: 1px solid var(--color-border); background: white; border-radius: 6px; cursor: pointer; color: var(--color-text-secondary);">16:30</button>
+          </div>
+
+          <button class="btn-utility primary" style="width: 100%; justify-content: center;" onclick="alert('Horário reagendado com sucesso!')"><i class="fa-solid fa-calendar-check"></i> Confirmar Agendamento</button>
+        </div>
+      </section>
+
+      <!-- SECTION 3: Acompanhamento -->
+      <section class="content-panel" id="section-acompanhamento">
+        <div class="panel-header-desc">
+          <h2>Acompanhamento do Serviço</h2>
+          <p>Rastreie em tempo real o andamento do seu processo.</p>
+        </div>
+
+        <div class="tracking-card">
+          <div class="tracking-header">
+            <h3>Malha Fina IR2025</h3>
+            <span class="status-badge" style="background: var(--color-pine); color: white;">Em Andamento</span>
+          </div>
+
+          <div class="tracker-stepper">
+            <div class="tracker-step completed">
+              <div class="step-indicator"><i class="fa-solid fa-check"></i></div>
+              <div class="step-content">
+                <h4>Pagamento e Contratação</h4>
+                <p>Serviço contratado e pagamento confirmado.</p>
+              </div>
+            </div>
+            <div class="tracker-step completed">
+              <div class="step-indicator"><i class="fa-solid fa-check"></i></div>
+              <div class="step-content">
+                <h4>Recepção de Documentos</h4>
+                <p>Recebemos as matrículas e contratos.</p>
+              </div>
+            </div>
+            <div class="tracker-step active">
+              <div class="step-indicator"><i class="fa-solid fa-circle"></i></div>
+              <div class="step-content">
+                <h4>Em Análise Fiscal</h4>
+                <p>O contador está apurando os cálculos e deduções.</p>
+              </div>
+            </div>
+            <div class="tracker-step">
+              <div class="step-indicator"><i class="fa-solid fa-circle"></i></div>
+              <div class="step-content">
+                <h4>Pronto para Envio</h4>
+                <p>A declaração será enviada à Receita Federal.</p>
+              </div>
+            </div>
+            <div class="tracker-step">
+              <div class="step-indicator"><i class="fa-solid fa-circle"></i></div>
+              <div class="step-content">
+                <h4>Concluído</h4>
+                <p>Processo finalizado com sucesso.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SECTION 3: Documentos -->
+      <section class="content-panel" id="section-documentos">
+        <div class="panel-header-desc">
+          <h2>Seus Documentos</h2>
+          <p>Faça upload de recibos, RGs e baixe as guias enviadas pelo contador.</p>
+        </div>
+
+        <div class="docs-layout">
+          <!-- Upload Zone -->
+          <div class="upload-zone" onclick="document.getElementById('file-upload').click()">
+            <i class="fa-solid fa-cloud-arrow-up"></i>
+            <h4>Clique ou arraste arquivos aqui</h4>
+            <p>Envie PDFs, Imagens (JPG/PNG). Máx: 10MB.</p>
+            <input type="file" id="file-upload" hidden>
+          </div>
+
+          <!-- Document List -->
+          <div class="doc-list-container" style="display: flex; flex-direction: column; gap: 24px;">
+            
+            <div>
+              <h3 class="section-subtitle">Meus Arquivos (Enviados)</h3>
+              <div class="doc-list" id="client-doc-list">
+                <div class="doc-item">
+                  <div class="doc-info">
+                    <i class="fa-solid fa-file-pdf"></i>
+                    <div>
+                      <div class="doc-name">Contrato_Compra_Venda.pdf</div>
+                      <div class="doc-meta">Enviado por você • 11/Jul</div>
+                    </div>
+                  </div>
+                  <button class="btn-attach" title="Baixar"><i class="fa-solid fa-download"></i></button>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <h3 class="section-subtitle">Documentos Recebidos (Contador)</h3>
+              <div class="doc-list" id="contador-doc-list">
+                <div class="doc-item" style="border-left: 3px solid var(--color-pine);">
+                  <div class="doc-info">
+                    <i class="fa-solid fa-file-pdf" style="color: var(--color-pine);"></i>
+                    <div>
+                      <div class="doc-name">Receita_Pos_Atendimento_Assinada.pdf</div>
+                      <div class="doc-meta">Enviado pelo Contador • 12/Jul</div>
+                    </div>
+                  </div>
+                  <button class="btn-attach" title="Baixar"><i class="fa-solid fa-download"></i></button>
+                </div>
+                <div class="doc-item">
+                  <div class="doc-info">
+                    <i class="fa-solid fa-file-pdf"></i>
+                    <div>
+                      <div class="doc-name">Recibo_Pagamento.pdf</div>
+                      <div class="doc-meta">Gerado pelo sistema • 12/Jul</div>
+                    </div>
+                  </div>
+                  <button class="btn-attach" title="Baixar"><i class="fa-solid fa-download"></i></button>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
+      <!-- SECTION 4: Histórico -->
+      <section class="content-panel" id="section-historico">
+        <div class="panel-header-desc">
+          <h2>Histórico de Atendimentos</h2>
+          <p>Consulte serviços anteriores realizados com o escritório.</p>
+        </div>
+
+        <div class="history-list">
+          <div class="history-card">
+            <div class="history-icon"><i class="fa-solid fa-file-invoice-dollar"></i></div>
+            <div class="history-details">
+              <h4>Declaração IRPF 2026</h4>
+              <p>Concluído em 15 de Abril, 2026</p>
+            </div>
+            <span class="status-badge success">Concluído</span>
+            <div style="margin-left: auto; display: flex; gap: 8px;">
+              <button class="btn-utility"><i class="fa-solid fa-file-invoice" style="margin-right: 4px;"></i> Nota Fiscal</button>
+              <button class="btn-utility primary">Ver Detalhes</button>
+            </div>
+          </div>
+          
+          <div class="history-card">
+            <div class="history-icon"><i class="fa-solid fa-building"></i></div>
+            <div class="history-details">
+              <h4>Abertura de Empresa (MEI)</h4>
+              <p>Concluído em 10 de Janeiro, 2025</p>
+            </div>
+            <span class="status-badge success">Concluído</span>
+            <div style="margin-left: auto; display: flex; gap: 8px;">
+              <button class="btn-utility"><i class="fa-solid fa-file-invoice" style="margin-right: 4px;"></i> Nota Fiscal</button>
+              <button class="btn-utility primary">Ver Detalhes</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="cliente.js"></script>
+</body>
+</html>

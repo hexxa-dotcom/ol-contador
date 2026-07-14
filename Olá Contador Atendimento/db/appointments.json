@@ -1,0 +1,6 @@
+[
+  { "id": 1, "clientName": "Ana Silva", "date": "Hoje", "time": "09:00", "taxType": "Malha Fina IR", "status": "done", "clientRef": "ana-silva" },
+  { "id": 2, "clientName": "Mariana Costa", "date": "Hoje", "time": "14:00", "taxType": "Ganho de Capital", "status": "active", "clientRef": "mariana-costa" },
+  { "id": 3, "clientName": "Carlos Santos", "date": "Hoje", "time": "16:30", "taxType": "Regularização MEI", "status": "pending", "clientRef": "carlos-santos" },
+  { "id": 4, "clientName": "Lucas Pires", "date": "Amanhã", "time": "10:00", "taxType": "Dúvidas Gerais", "status": "pending" }
+]
