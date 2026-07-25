@@ -86,8 +86,16 @@ document.addEventListener('DOMContentLoaded', () => {
     column.addEventListener('drop', (e) => {
       e.preventDefault();
       column.classList.remove('drag-over');
-      // A própria inserção já ocorreu no dragover, mas se for necessário lógica final:
+      // A própria inserção já ocorreu no dragover, agora disparamos a atualização no banco
       updateKanbanCounts();
+      
+      if (draggedCard) {
+        const clientId = draggedCard.getAttribute('data-client-id');
+        const newStatus = column.getAttribute('data-kanban-status');
+        if (clientId && newStatus && typeof window.updateClientKanbanStatus === 'function') {
+          window.updateClientKanbanStatus(clientId, newStatus);
+        }
+      }
     });
   });
 

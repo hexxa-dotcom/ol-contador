@@ -1014,8 +1014,14 @@ window.OCRealtime = {
         p => onMessageUpdate(p.new.cliente_id, mapMessage(p.new)));
     }
     if (onData) {
-      ['notificacoes', 'agendamentos', 'documentos'].forEach(t => {
-        ch = ch.on('postgres_changes', { event: '*', schema: 'public', table: t }, () => onData(t));
+      ['notificacoes', 'agendamentos', 'documentos', 'clientes'].forEach(t => {
+        ch = ch.on('postgres_changes', { event: '*', schema: 'public', table: t }, (payload) => {
+          onData(t);
+          // Se for um novo cliente, dispara a notificação no navegador
+          if (t === 'clientes' && payload.eventType === 'INSERT' && typeof window.notifyNewLead === 'function') {
+            window.notifyNewLead(payload.new.name || 'Desconhecido');
+          }
+        });
       });
     }
     ch.subscribe();

@@ -4629,3 +4629,34 @@ async function consultarRadarFiscalDossie() {
   }
 }
 
+
+// ==== Kanban Drag & Drop Backend Sync ====
+window.updateClientKanbanStatus = async function(clientId, status) {
+  if (clientsData[clientId]) {
+    clientsData[clientId].status = status;
+    kanbanEtapas[clientId] = status;
+    renderKanban();
+  }
+  if (window.sb) {
+    try {
+      await window.sb.from('clientes').update({ status }).eq('id', clientId);
+      console.log('Kanban status updated in DB', clientId, status);
+    } catch(e) {
+      console.error('Error updating Kanban status', e);
+    }
+  }
+};
+
+// ==== Push Notifications (Browser) ====
+if ("Notification" in window) {
+  Notification.requestPermission();
+}
+
+window.notifyNewLead = function(clientName) {
+  if ("Notification" in window && Notification.permission === "granted") {
+    new Notification("Novo Cliente na Triagem!", {
+      body: `O cliente ${clientName} pagou o PIX e está aguardando atendimento.`,
+      icon: "https://olacontador.com.br/favicon.ico"
+    });
+  }
+};
