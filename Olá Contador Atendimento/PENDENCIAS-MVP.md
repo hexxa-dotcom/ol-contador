@@ -118,23 +118,9 @@ formato novo nesse endpoint específico. Não mexi na chave — é conteúdo sec
 
 - **[FINAL/VOCÊ]** Conectar domínio próprio (Registro.br, apex + www) ao projeto Vercel.
 - **[FINAL]** E-mail (Resend) e WhatsApp (Twilio) — chaves vazias, integrações "Em breve".
-- **[FINAL]** Integração com a API oficial **Integra Contador** (Serpro), usando o
-  certificado digital e a chave de API que o usuário já possui e usa em outro
-  sistema (mesmo modelo: certificado + API key fazem a ponte com o e-CAC/Receita).
-  Não é gambiarra de navegador nem precisa de contrato/homologação novos — é
-  reaproveitar acesso já pago. Caso de uso definido (2026-07-24): cliente recorrente
-  que fez parcelamento no atendimento; depois de assinar procuração eletrônica
-  (passo manual, fora do sistema), o "Olá, Contador" consulta mensalmente/sob
-  demanda os parcelamentos dele via API e mostra numa aba "Guias" no dossiê do
-  contador e no portal do cliente — isso vira o gancho pra cobrar a mensalidade
-  de acompanhamento recorrente (mesmo mecanismo do MEI mensal já citado no site).
-  Custo por requisição é baixo (centavos), volume baixo (1 cliente = poucas
-  chamadas/mês), então não é bloqueio de custo. **[VOCÊ]** precisa fornecer o
-  certificado `.pfx` (arquivo + senha, tratado como segredo, nunca em texto no
-  chat) e a chave de API do Integra Contador (mesmo fluxo do .env: abro no
-  TextEdit, você cola). **[EU]** construo a function de consulta depois disso.
-  Fica atrás de login real + Asaas testado na fila, mas é o próximo passo natural
-  de valor depois que o MVP básico estiver rodando com clientes de verdade.
+- **[FINAL]** Integração com a API oficial **Integra Contador** (Serpro) — **✅ UI e Backend Mock Construídos (2026-07-25)**.
+  O sistema "Radar Fiscal" já está no código (tanto para o cliente quanto para o contador).
+  Para finalizar de verdade: **[VOCÊ]** precisa fornecer o certificado `.pfx` e a chave de API do Integra Contador em uma etapa final de chaves. O arquivo `api/_lib/serpro.js` está preparado para receber a lógica de mTLS. Até lá, roda em Modo Simulação.
 - **[FINAL]** Múltiplos contadores atendendo (perfil de convidado com acesso limitado).
   Objetivo: suprir a demanda da agenda trazendo outros contadores, cada um com uma
   área própria e permissões reduzidas (não é o mesmo nível de acesso do admin).
