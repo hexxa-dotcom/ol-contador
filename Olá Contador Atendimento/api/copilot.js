@@ -17,8 +17,8 @@ module.exports = async (req, res) => {
 
   try {
     if (mode === 'resumo') return res.json({ text: await ia.resumirCaso(cliente) });
-    if (mode === 'rascunho') return res.json({ text: await ia.rascunharResposta(cliente, prompt) });
-    if (mode === 'pergunta') return res.json({ text: await ia.perguntaLivre(cliente, prompt || '', skill) });
+    if (mode === 'rascunho') return res.json({ text: await ia.rascunharResposta(cliente, prompt, auth.sb) });
+    if (mode === 'pergunta') return res.json({ text: await ia.perguntaLivre(cliente, prompt || '', skill, auth.sb) });
     if (mode === 'diagnostico') return res.json(await ia.sugerirDiagnostico(cliente));
     if (mode === 'relatorio') return res.json(await ia.gerarRelatorioCliente(cliente));
     return res.status(400).json({ error: 'invalid_mode' });

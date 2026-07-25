@@ -84,30 +84,78 @@ async function resumirCaso(cliente) {
   ], { maxTokens: 250 });
 }
 
+async function generateEmbeddingForQuery(text) {
+  const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+  if (!OPENAI_API_KEY) return null;
+  try {
+    const res = await fetch('https://api.openai.com/v1/embeddings', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${OPENAI_API_KEY}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model: 'text-embedding-3-small', input: text })
+    });
+    const data = await res.json();
+    return data.data?.[0]?.embedding || null;
+  } catch(e) {
+    console.error('Embedding error', e);
+    return null;
+  }
+}
+
+async function getRagContext(skillName, query, sb) {
+  if (!skillName || !sb) return '';
+  const embedding = await generateEmbeddingForQuery(query);
+  if (!embedding) return '';
+  
+  const { data, error } = await sb.rpc('match_skills', {
+    query_embedding: embedding,
+    match_threshold: 0.1, // Aceita resultados menos similares se for necessário
+    match_count: 5,
+    skill_filter: skillName
+  });
+  
+  if (error || !data || data.length === 0) return '';
+  
+  return data.map(d => d.chunk_text).join('\n\n');
+}
+
 // Rascunho de resposta para o contador enviar ao cliente.
-async function rascunharResposta(cliente, pedido) {
+async function rascunharResposta(cliente, pedido, sb) {
+  const ragContext = await getRagContext(cliente.taxType, pedido || 'Qual a orientação geral?', sb);
+  
   return chatCompletion([
     { role: 'system', content: PERSONA },
     { role: 'user', content:
       `Escreva uma resposta pronta para o contador ENVIAR ao cliente no chat. Tom profissional e acolhedor, ` +
       `linguagem acessível (o cliente é leigo). ${pedido ? 'Pedido específico: ' + pedido : ''}\n\n` +
+      (ragContext ? `ATENÇÃO: Utilize este conhecimento extraído da legislação/manuais da base de conhecimento "${cliente.taxType}" para embasar a resposta:\n${ragContext}\n\n` : '') +
       `Cliente: ${cliente.name} | Tipo: ${cliente.taxType || '-'}\n` +
       `Conversa até agora:\n${historyToText(cliente.messages)}`
     }
   ], { maxTokens: 400 });
 }
 
-// Pergunta livre do contador, com o contexto do cliente. Se uma Skill (base de
-// conhecimento configurada em Configurações → IA) estiver ativa no painel, ela
-// entra como instrução extra — assim a mesma pergunta muda de resposta conforme
-// a especialidade escolhida, em vez de a skill ficar solta sem efeito nenhum.
-async function perguntaLivre(cliente, pergunta, skill) {
+// Pergunta livre do contador, com o contexto do cliente.
+async function perguntaLivre(cliente, pergunta, skill, sb) {
   const messages = [{ role: 'system', content: PERSONA }];
+  
+  // Tenta buscar no vector database se o nome da skill estiver definido
+  let ragContext = '';
+  if (skill && skill.name) {
+    ragContext = await getRagContext(skill.name, pergunta, sb);
+  }
+
   if (skill && skill.content) {
     messages.push({ role: 'system', content:
       `Conhecimento específico ativado pelo contador ("${skill.name}"). Priorize estas instruções ao responder:\n${skill.content}`
     });
   }
+  
+  if (ragContext) {
+    messages.push({ role: 'system', content: 
+      `Resultados da busca na Base de Conhecimento ("${skill.name}") para a pergunta atual:\n${ragContext}`
+    });
+  }
+
   messages.push({ role: 'user', content:
     `Contexto do cliente ${cliente.name} (${cliente.taxType || '-'}):\n` +
     `Diagnóstico: ${cliente.diagnosis || '(vazio)'}\n` +
