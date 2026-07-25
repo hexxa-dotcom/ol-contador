@@ -4298,10 +4298,10 @@ if (formSkill) {
       btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Vetorizando PDF (Isso pode demorar)...';
       try {
         const base64 = await lerImagemComoDataUrl(fileInput); // Lê o arquivo como base64 (funciona pra PDF também)
-        const res = await fetch(API_BASE + '/api/skills/upload', {
+        const res = await fetch(API_BASE + '/api/copilot', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ skillName: name, base64 })
+          body: JSON.stringify({ mode: 'skill_upload', skillName: name, base64 })
         });
         
         if (res.status === 503) {
