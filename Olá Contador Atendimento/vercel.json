@@ -1,0 +1,11 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": null,
+  "buildCommand": null,
+  "outputDirectory": ".",
+  "cleanUrls": true,
+  "trailingSlash": false,
+  "crons": [
+    { "path": "/api/agenda-fiscal/run-reminders", "schedule": "0 12 * * *" }
+  ]
+}

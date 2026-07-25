@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Agendar atendimento — Olá, Contador</title>
+<meta name="description" content="Escolha um horário disponível para falar com um contador especialista e iniciar seu atendimento pelo Olá, Contador." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Hanken+Grotesk:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<style>
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:#F4EEE1;font-family:'Hanken Grotesk',sans-serif;color:#17231C;-webkit-font-smoothing:antialiased}
+  a{text-decoration:none;color:inherit}
+  button,input,select,textarea{font:inherit}
+  :root{--pinho:#093726;--verde:#0E5C43;--coral:#FF6A45;--coral-claro:#FF9C7E;--creme:#F7F1E6;--texto:#17231C;--muted:#3A463F;--borda:rgba(23,35,28,.1);--card:#FFFDF8}
+  .lk:hover{color:var(--verde)!important}
+  .btnp,.btng{transition:transform .15s ease,box-shadow .15s ease}
+  .btnp:hover,.btng:hover{transform:translateY(-2px)}
+  .btnp:hover{box-shadow:0 16px 30px -14px rgba(255,106,69,.6)}
+  .btng:hover{box-shadow:0 16px 30px -14px rgba(14,92,67,.5)}
+  .nav-wrap{position:sticky;top:0;z-index:50;background:rgba(244,238,225,.86);backdrop-filter:blur(12px);border-bottom:1px solid rgba(23,35,28,.07)}
+  .nav-container{max-width:1200px;margin:0 auto;padding:16px 32px;display:flex;align-items:center;justify-content:space-between;gap:24px}
+  .brand{display:flex;align-items:center;gap:12px;font-family:'Bricolage Grotesque',sans-serif;font-weight:800;color:var(--pinho);font-size:21px;letter-spacing:-.03em}
+  .brand-mark{width:34px;height:34px;border-radius:12px;background:var(--pinho);color:var(--creme);display:grid;place-items:center;font-weight:800;box-shadow:inset 0 -8px 16px rgba(255,255,255,.08)}
+  .nav-links{display:flex;align-items:center;gap:26px;color:var(--muted);font-weight:600;font-size:15px}
+  .shell{max-width:1200px;margin:0 auto;padding:72px 32px 64px}
+  .booking-grid{display:grid;grid-template-columns:minmax(0,1fr) 430px;gap:44px;align-items:start}
+  .hero-copy h1{font-family:'Bricolage Grotesque',sans-serif;font-size:66px;line-height:.94;letter-spacing:-.055em;color:var(--pinho);margin:0;max-width:680px}
+  .hero-copy p{font-size:20px;line-height:1.55;color:var(--muted);margin:24px 0 0;max-width:590px}
+  .steps{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:38px;max-width:760px}
+  .step{background:rgba(255,253,248,.56);border:1px solid var(--borda);border-radius:18px;padding:18px;min-height:132px}
+  .step span{display:inline-flex;width:30px;height:30px;border-radius:11px;align-items:center;justify-content:center;background:#EAF1EC;color:var(--verde);font-weight:800;margin-bottom:14px}
+  .step strong{display:block;font-family:'Bricolage Grotesque',sans-serif;font-size:18px;color:var(--pinho);line-height:1.1}
+  .step small{display:block;margin-top:8px;color:var(--muted);font-size:14px;line-height:1.4}
+  .booking-card{background:var(--card);border:1px solid var(--borda);border-radius:28px;padding:28px;box-shadow:0 24px 58px -40px rgba(23,35,28,.65);position:relative;overflow:hidden}
+  .booking-card::before{content:'';position:absolute;inset:0 0 auto;height:7px;background:linear-gradient(90deg,var(--coral),var(--coral-claro));}
+  .booking-card h2{font-family:'Bricolage Grotesque',sans-serif;font-size:32px;letter-spacing:-.035em;line-height:1.05;color:var(--pinho);margin:4px 0 10px}
+  .booking-card>p{color:var(--muted);font-size:15px;line-height:1.45;margin:0 0 22px}
+  .selected-plan{display:flex;justify-content:space-between;gap:14px;align-items:center;background:#EAF1EC;border:1px solid rgba(14,92,67,.18);border-radius:18px;padding:14px 15px;margin:0 0 18px;color:var(--pinho)}
+  .selected-plan span{display:block;font-size:12px;text-transform:uppercase;letter-spacing:.08em;font-weight:800;color:var(--verde);margin-bottom:3px}
+  .selected-plan strong{font-family:'Bricolage Grotesque',sans-serif;font-size:20px;letter-spacing:-.02em}
+  .selected-plan b{white-space:nowrap;color:var(--coral);font-family:'Bricolage Grotesque',sans-serif;font-size:22px}
+  .field{display:flex;flex-direction:column;gap:7px;margin-bottom:15px}
+  .field label{font-weight:700;color:var(--pinho);font-size:13px}
+  .field input,.field select,.field textarea{width:100%;border:1px solid rgba(23,35,28,.14);background:#fff;border-radius:14px;padding:13px 14px;color:var(--texto);outline:none;transition:border-color .15s ease,box-shadow .15s ease}
+  .field textarea{min-height:88px;resize:vertical}
+  .field input:focus,.field select:focus,.field textarea:focus{border-color:rgba(255,106,69,.75);box-shadow:0 0 0 4px rgba(255,106,69,.12)}
+  .day-strip{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin:8px 0 14px}
+  .day-btn{border:1px solid var(--borda);background:#fff;border-radius:15px;padding:10px 7px;cursor:pointer;color:var(--muted);font-weight:700}
+  .day-btn small{display:block;font-weight:700;font-size:11px;opacity:.68;text-transform:uppercase;letter-spacing:.04em}
+  .day-btn.active{background:#EAF1EC;border-color:rgba(14,92,67,.34);color:var(--verde);box-shadow:inset 0 0 0 1px rgba(14,92,67,.08)}
+  .slot-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+  .slot-btn{border:1px solid var(--borda);background:#fff;border-radius:13px;padding:11px 8px;cursor:pointer;font-weight:800;color:var(--pinho)}
+  .slot-btn:hover{border-color:rgba(255,106,69,.55)}
+  .slot-btn.active{background:var(--coral);border-color:var(--coral);color:#fff}
+  .slot-btn:disabled{opacity:.35;text-decoration:line-through;cursor:not-allowed;background:#f3eee5}
+  .submit{width:100%;border:0;border-radius:15px;background:var(--coral);color:#fff;font-weight:800;padding:16px;margin-top:18px;cursor:pointer;box-shadow:0 15px 30px -18px rgba(255,106,69,.8)}
+  .submit:disabled{opacity:.62;cursor:wait}
+  .note{font-size:12.5px;line-height:1.45;color:var(--muted);margin-top:14px}
+  .summary{display:none;margin-top:18px;padding:18px;border-radius:18px;background:#EAF1EC;border:1px solid rgba(14,92,67,.18);color:var(--pinho)}
+  .summary.active{display:block}
+  .summary strong{font-family:'Bricolage Grotesque',sans-serif;font-size:20px;display:block;margin-bottom:6px}
+  .summary p{margin:0;color:var(--muted);line-height:1.45}
+  .summary-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+  .summary-actions a{border-radius:12px;padding:11px 14px;font-weight:800;font-size:14px}
+  .summary-actions .primary{background:var(--verde);color:var(--creme)}
+  .summary-actions .secondary{background:#fff;color:var(--verde);border:1px solid rgba(14,92,67,.22)}
+  .trust-box{margin-top:42px;background:var(--pinho);color:var(--creme);border-radius:28px;padding:34px;display:flex;align-items:center;justify-content:space-between;gap:24px;box-shadow:0 24px 50px -34px rgba(9,55,38,.75)}
+  .trust-box h3{font-family:'Bricolage Grotesque',sans-serif;margin:0;font-size:30px;letter-spacing:-.035em;line-height:1.05}
+  .trust-box p{margin:8px 0 0;color:#CFE0D4;line-height:1.45;max-width:640px}
+  .trust-price{font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:34px;color:var(--coral-claro);white-space:nowrap}
+  footer{text-align:center;padding:34px 20px 44px;font-size:13.5px;color:var(--muted)}
+  @media(max-width:960px){
+    .nav-links .hide-mobile{display:none}
+    .booking-grid{grid-template-columns:1fr}
+    .hero-copy h1{font-size:50px;text-align:center;margin:auto}
+    .hero-copy p{text-align:center;margin-left:auto;margin-right:auto}
+    .steps{grid-template-columns:1fr;max-width:520px;margin-left:auto;margin-right:auto}
+    .booking-card{max-width:520px;margin:auto}
+    .trust-box{align-items:flex-start;flex-direction:column}
+  }
+  @media(max-width:600px){
+    .nav-container{padding:12px 18px}
+    .shell{padding:44px 18px 48px}
+    .hero-copy h1{font-size:40px}
+    .hero-copy p{font-size:18px}
+    .booking-card{padding:24px 18px;border-radius:24px}
+    .day-strip{grid-template-columns:repeat(3,1fr)}
+    .slot-grid{grid-template-columns:repeat(2,1fr)}
+    .trust-box{padding:28px 22px}
+  }
+</style>
+</head>
+<body>
+  <header class="nav-wrap">
+    <div class="nav-container">
+      <a class="brand" href="index.html" aria-label="Voltar para a página inicial">
+        <span class="brand-mark">OC</span>
+        <span>Olá, Contador</span>
+      </a>
+      <nav class="nav-links" aria-label="Navegação principal">
+        <a class="lk hide-mobile" href="index.html#como-funciona">Como funciona</a>
+        <a class="lk hide-mobile" href="precos.html">Preços</a>
+        <a class="lk" href="cliente.html">Área do cliente</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="shell">
+    <section class="booking-grid">
+      <div class="hero-copy">
+        <h1>Escolha o horário e entre com o caso pronto.</h1>
+        <p>O atendimento acontece no chat do cliente, no horário marcado. Antes disso, você informa o básico do problema para o contador chegar preparado — sem triagem infinita, sem empurra-empurra.</p>
+        <div class="steps" aria-label="Etapas do agendamento">
+          <div class="step"><span>1</span><strong>Escolha o tipo de caso</strong><small>IRPF, MEI, empresa ou uma situação sob demanda.</small></div>
+          <div class="step"><span>2</span><strong>Reserve um horário real</strong><small>Os horários vêm da disponibilidade configurada pelo contador.</small></div>
+          <div class="step"><span>3</span><strong>Acompanhe pelo portal</strong><small>O caso entra no painel do contador e na sua área do cliente.</small></div>
+        </div>
+      </div>
+
+      <form class="booking-card" id="booking-form">
+        <h2>Agendar atendimento</h2>
+        <p>Preencha seus dados e selecione um horário disponível. Nesta fase de testes, o agendamento já aparece no painel do contador.</p>
+
+        <div class="field" id="credito-toggle-wrap" style="margin-bottom:15px;">
+          <button type="button" id="btn-toggle-credito" style="background:none;border:none;padding:0;color:var(--verde);font-weight:700;font-size:13px;cursor:pointer;text-decoration:underline;">Tenho um código de crédito de atendimento</button>
+        </div>
+        <div class="field" id="credito-input-wrap" style="display:none;">
+          <label for="credito-codigo">Código do crédito</label>
+          <div style="display:flex;gap:8px;">
+            <input id="credito-codigo" placeholder="OC-XXXXXXXX" style="flex:1;text-transform:uppercase;" />
+            <button type="button" id="btn-aplicar-credito" class="submit btnp" style="width:auto;margin:0;padding:13px 18px;font-size:14px;">Aplicar</button>
+          </div>
+          <div id="credito-feedback" style="font-size:12.5px;margin-top:6px;"></div>
+        </div>
+
+        <div class="selected-plan" id="selected-plan-card">
+          <div><span>Plano escolhido</span><strong>Pessoa Física</strong></div>
+          <b>R$ 199</b>
+        </div>
+
+        <div class="field">
+          <label for="client-name">Nome completo</label>
+          <input id="client-name" autocomplete="name" required placeholder="Ex.: Ana Silva" />
+        </div>
+        <div class="field">
+          <label for="client-cpf">CPF ou CNPJ</label>
+          <input id="client-cpf" inputmode="numeric" required placeholder="000.000.000-00" />
+        </div>
+        <div class="field">
+          <label for="client-email">E-mail</label>
+          <input id="client-email" type="email" autocomplete="email" required placeholder="voce@email.com" />
+        </div>
+        <div class="field">
+          <label for="client-phone">WhatsApp</label>
+          <input id="client-phone" autocomplete="tel" required placeholder="(51) 99999-9999" />
+        </div>
+        <div class="field">
+          <label for="client-sexo">Sexo</label>
+          <select id="client-sexo">
+            <option value="">Prefiro não informar</option>
+            <option value="feminino">Feminino</option>
+            <option value="masculino">Masculino</option>
+            <option value="outro">Outro</option>
+          </select>
+        </div>
+        <div class="field" style="display:flex;gap:10px;">
+          <div style="flex:2;">
+            <label for="client-cidade">Cidade</label>
+            <input id="client-cidade" autocomplete="address-level2" placeholder="Ex.: Porto Alegre" />
+          </div>
+          <div style="flex:1;">
+            <label for="client-estado">UF</label>
+            <input id="client-estado" autocomplete="address-level1" maxlength="2" placeholder="RS" style="text-transform:uppercase" />
+          </div>
+        </div>
+        <div class="field">
+          <label for="tax-type">Tipo de atendimento</label>
+          <select id="tax-type" required>
+            <option value="Regularização Malha Fina" data-plan="pf" data-price="199" data-servico-id="malha-fina">Pessoa Física — IRPF / Malha Fina · R$ 199</option>
+            <option value="Atendimento Pessoa Jurídica" data-plan="pj" data-price="399" data-servico-id="pj-atendimento">Pessoa Jurídica — MEI / Simples · R$ 399</option>
+            <option value="Consulta Avulsa" data-plan="sob-demanda" data-price="199" data-servico-id="consulta">Sob demanda — diagnóstico inicial · R$ 199</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="case-summary">Resumo do caso</label>
+          <textarea id="case-summary" placeholder="Conte em poucas linhas o que aconteceu: carta da Receita, DAS atrasado, declaração pendente..." required></textarea>
+        </div>
+
+        <div class="field">
+          <label>Dia disponível</label>
+          <div class="day-strip" id="day-strip"></div>
+        </div>
+        <div class="field">
+          <label>Horário</label>
+          <div class="slot-grid" id="slot-grid"></div>
+        </div>
+
+        <button class="submit btnp" id="submit-booking" type="submit">Continuar para pagamento</button>
+        <div class="note">Você escolhe o horário antes de pagar para saber exatamente quando será atendido. O horário só é confirmado após o pagamento; se o pagamento não for concluído, ele continua disponível.</div>
+
+        <div class="summary" id="booking-summary" aria-live="polite"></div>
+      </form>
+    </section>
+
+    <section class="trust-box">
+      <div>
+        <h3>Preço fixo antes de começar.</h3>
+        <p>Você sabe o valor, o horário e o próximo passo. O atendimento é único: depois de encerrado, o acompanhamento continua pela área do cliente.</p>
+      </div>
+      <div class="trust-price" id="price-preview">R$ 199</div>
+    </section>
+  </main>
+
+  <footer>
+    © 2026 Olá, Contador · Contadores com registro CRC · <a href="mailto:ola@olacontador.com.br" style="color:#0E5C43;font-weight:700;">ola@olacontador.com.br</a>
+  </footer>
+
+<script>
+(function(){
+  const FALLBACK_SLOTS = ['09:00','10:00','11:00','14:00','15:00','16:30'];
+  // Só sobrou a agenda (pra saber quais horários mostrar como ocupados) —
+  // cliente/agendamento/notificação de verdade agora vêm do backend real
+  // (/api/signup-checkout), não mais de localStorage.
+  const STORE = {
+    appointments: 'oc_demo_appointments',
+    config: 'oc_demo_config'
+  };
+  let selectedDate = null;
+  let selectedTime = null;
+  let slots = FALLBACK_SLOTS.slice();
+  let appointments = [];
+  let creditoAtivo = null; // { codigo, valorCents, valor }
+  const PLAN_ALIASES = {
+    pf: 'pf',
+    pessoa_fisica: 'pf',
+    'pessoa-fisica': 'pf',
+    pj: 'pj',
+    pessoa_juridica: 'pj',
+    'pessoa-juridica': 'pj',
+    empresa: 'pj',
+    mei: 'pj',
+    sob: 'sob-demanda',
+    sob_demanda: 'sob-demanda',
+    'sob-demanda': 'sob-demanda'
+  };
+
+  const $ = id => document.getElementById(id);
+  const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const money = n => new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(n);
+  function load(key, fallback){ try{ const raw = localStorage.getItem(key); return raw ? JSON.parse(raw) : fallback; }catch(_){ return fallback; } }
+  function iso(d){ const p=n=>String(n).padStart(2,'0'); return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate()); }
+  function labelDay(isoDate){
+    const [y,m,d] = isoDate.split('-').map(Number);
+    return new Date(y,m-1,d).toLocaleDateString('pt-BR',{weekday:'short',day:'2-digit',month:'2-digit'}).replace('.', '');
+  }
+  function businessDays(count){
+    const out = [], d = new Date();
+    d.setDate(d.getDate() + 1);
+    while(out.length < count){
+      if(d.getDay() !== 0 && d.getDay() !== 6) out.push(iso(d));
+      d.setDate(d.getDate() + 1);
+    }
+    return out;
+  }
+  function normalizeDate(v){
+    if(v === 'Hoje') return iso(new Date());
+    if(v === 'Amanhã'){ const d = new Date(); d.setDate(d.getDate()+1); return iso(d); }
+    return v;
+  }
+  async function loadAvailability(){
+    const cfg = load(STORE.config, {});
+    if(Array.isArray(cfg.agenda_disponibilidade) && cfg.agenda_disponibilidade.length) slots = cfg.agenda_disponibilidade;
+
+    appointments = load(STORE.appointments, []);
+  }
+  function renderDays(){
+    const days = businessDays(5);
+    if(!selectedDate) selectedDate = days[0];
+    $('day-strip').innerHTML = days.map(d => {
+      const [week, date] = labelDay(d).split(', ');
+      return `<button type="button" class="day-btn ${d===selectedDate?'active':''}" data-date="${d}"><small>${esc(week || '')}</small>${esc(date || labelDay(d))}</button>`;
+    }).join('');
+    document.querySelectorAll('[data-date]').forEach(btn => btn.addEventListener('click', () => {
+      selectedDate = btn.dataset.date; selectedTime = null; renderDays(); renderSlots();
+    }));
+  }
+  function renderSlots(){
+    const taken = new Set((appointments || [])
+      .filter(a => normalizeDate(a.date) === selectedDate && a.status !== 'done')
+      .map(a => a.time));
+    $('slot-grid').innerHTML = slots.map(h => `<button type="button" class="slot-btn ${h===selectedTime?'active':''}" data-time="${esc(h)}" ${taken.has(h)?'disabled':''}>${esc(h)}</button>`).join('');
+    document.querySelectorAll('[data-time]').forEach(btn => btn.addEventListener('click', () => {
+      selectedTime = btn.dataset.time; renderSlots();
+    }));
+  }
+  function selectedPlanKey(){
+    return $('tax-type').selectedOptions[0]?.dataset.plan || 'pf';
+  }
+  function setPlan(plan){
+    const select = $('tax-type');
+    const option = Array.from(select.options).find(opt => opt.dataset.plan === plan);
+    if (option) select.value = option.value;
+  }
+  function applyPlanFromUrl(){
+    const raw = new URLSearchParams(location.search).get('plano') || new URLSearchParams(location.search).get('servico') || '';
+    const plan = PLAN_ALIASES[String(raw).toLowerCase()] || 'pf';
+    setPlan(plan);
+  }
+  function updatePrice(){
+    const opt = $('tax-type').selectedOptions[0];
+    const price = Number(opt?.dataset.price || 199);
+    const label = opt?.textContent?.replace(/\s·\sR\$.+$/, '') || 'Pessoa Física';
+    $('price-preview').textContent = money(price);
+    const card = $('selected-plan-card');
+    if (card) {
+      if (creditoAtivo) {
+        card.innerHTML = `<div><span>Plano escolhido</span><strong>${esc(label)}</strong></div><b style="color:var(--verde)">Coberto pelo crédito</b>`;
+      } else {
+        card.innerHTML = `<div><span>Plano escolhido</span><strong>${esc(label)}</strong></div><b>${money(price)}</b>`;
+      }
+    }
+  }
+  function aplicarFiltroCredito(){
+    const select = $('tax-type');
+    let precisouTrocar = false;
+    Array.from(select.options).forEach(opt => {
+      const preco = Number(opt.dataset.price || 0);
+      const excede = creditoAtivo && (preco * 100) > creditoAtivo.valorCents;
+      opt.disabled = !!excede;
+      if (excede && opt.textContent.indexOf('(crédito insuficiente)') === -1) opt.textContent += ' (crédito insuficiente)';
+      if (!excede) opt.textContent = opt.textContent.replace(' (crédito insuficiente)', '');
+      if (excede && opt.selected) precisouTrocar = true;
+    });
+    if (precisouTrocar) {
+      const primeiraOk = Array.from(select.options).find(o => !o.disabled);
+      if (primeiraOk) select.value = primeiraOk.value;
+    }
+    updatePrice();
+    const btn = $('submit-booking');
+    if (btn) btn.textContent = creditoAtivo ? 'Confirmar atendimento com o crédito' : 'Continuar para pagamento';
+  }
+  async function validarCredito(codigoBruto){
+    const codigo = String(codigoBruto || '').trim().toUpperCase();
+    const feedback = $('credito-feedback');
+    if (!codigo) { feedback.textContent = ''; return; }
+    feedback.style.color = 'var(--muted)';
+    feedback.textContent = 'Verificando código…';
+    try {
+      const res = await fetch('/api/credito-status?codigo=' + encodeURIComponent(codigo));
+      const data = await res.json();
+      if (!res.ok || !data.valido) {
+        creditoAtivo = null;
+        feedback.style.color = '#B32620';
+        feedback.textContent = data.error === 'credito_indisponivel' ? 'Este crédito já foi usado ou cancelado.' : 'Código inválido — confira e tente de novo.';
+        aplicarFiltroCredito();
+        return;
+      }
+      creditoAtivo = { codigo, valorCents: data.valorCents, valor: data.valor };
+      feedback.style.color = 'var(--verde)';
+      feedback.innerHTML = `<i class="fa-solid fa-circle-check"></i> Crédito de ${esc(money(data.valor))} aplicado — escolha um serviço dentro desse valor.`;
+      aplicarFiltroCredito();
+    } catch (_) {
+      creditoAtivo = null;
+      feedback.style.color = '#B32620';
+      feedback.textContent = 'Falha de conexão ao verificar o código.';
+      aplicarFiltroCredito();
+    }
+  }
+  let pollTimer = null;
+  async function submit(e){
+    e.preventDefault();
+    if(!selectedDate || !selectedTime){ alert('Escolha um dia e horário para continuar.'); return; }
+    const opt = $('tax-type').selectedOptions[0];
+    const payload = {
+      name: $('client-name').value.trim(),
+      cpfCnpj: $('client-cpf').value.trim(),
+      email: $('client-email').value.trim(),
+      phone: $('client-phone').value.trim(),
+      sexo: $('client-sexo').value,
+      cidade: $('client-cidade').value.trim(),
+      estado: $('client-estado').value.trim().toUpperCase(),
+      servicoId: opt?.dataset.servicoId || 'consulta',
+      taxType: $('tax-type').value,
+      plan: selectedPlanKey(),
+      summary: $('case-summary').value.trim(),
+      date: selectedDate,
+      time: selectedTime
+    };
+    const btn = $('submit-booking');
+    btn.disabled = true;
+
+    if (creditoAtivo) {
+      btn.textContent = 'Confirmando com o crédito...';
+      try {
+        const res = await fetch('/api/resgatar-credito', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ...payload, codigo: creditoAtivo.codigo })
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          const msgs = {
+            cpf_cnpj_invalido: 'CPF/CNPJ inválido — confira os números digitados.',
+            invalid_params: 'Preencha nome, e-mail, telefone e CPF/CNPJ para continuar.',
+            credito_not_found: 'Código de crédito não encontrado.',
+            credito_indisponivel: 'Este crédito já foi usado ou cancelado.',
+            credito_insuficiente: 'O valor do crédito não cobre esse serviço — escolha outro.',
+            servico_not_found: 'Esse serviço está indisponível no momento.'
+          };
+          alert(msgs[data.error] || 'Não foi possível confirmar com o crédito. Tente novamente.');
+          btn.disabled = false; btn.textContent = 'Confirmar atendimento com o crédito';
+          return;
+        }
+        mostrarConfirmacaoCredito(data, payload);
+      } catch (err) {
+        alert('Falha de conexão. Tente novamente.');
+        btn.disabled = false; btn.textContent = 'Confirmar atendimento com o crédito';
+      }
+      return;
+    }
+
+    btn.textContent = 'Gerando cobrança Pix...';
+    try {
+      const res = await fetch('/api/signup-checkout', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        const msgs = {
+          cpf_cnpj_invalido: 'CPF/CNPJ inválido — confira os números digitados.',
+          invalid_params: 'Preencha nome, e-mail, telefone e CPF/CNPJ para continuar.',
+          asaas_not_configured: 'Pagamentos temporariamente indisponíveis. Tente novamente em instantes.',
+          servico_not_found: 'Esse serviço está indisponível no momento.'
+        };
+        alert(msgs[data.error] || 'Não foi possível gerar a cobrança. Tente novamente.');
+        btn.disabled = false; btn.textContent = 'Continuar para pagamento';
+        return;
+      }
+      mostrarPagamentoPix(data, payload);
+    } catch (err) {
+      alert('Falha de conexão. Tente novamente.');
+      btn.disabled = false; btn.textContent = 'Continuar para pagamento';
+    }
+  }
+  function mostrarConfirmacaoCredito(data, payload){
+    $('booking-form').querySelectorAll('.field, #submit-booking, .note').forEach(el => el.style.display = 'none');
+    $('booking-summary').classList.add('active');
+    $('booking-summary').innerHTML = `
+      <strong>Atendimento confirmado com o crédito!</strong>
+      <p>${esc(payload.name)}, seu atendimento de <b>${esc(data.servico.name)}</b> está agendado para ${labelDay(payload.date)} às ${esc(payload.time)}. Criamos seu acesso — entre com o e-mail <b>${esc(payload.email)}</b> para acompanhar tudo pela área do cliente.</p>
+      <div class="summary-actions"><a class="primary" href="login.html">Entrar na área do cliente</a></div>`;
+  }
+  function mostrarPagamentoPix(data, payload){
+    $('booking-form').querySelectorAll('.field, #submit-booking, .note').forEach(el => el.style.display = 'none');
+    $('booking-summary').classList.add('active');
+    $('booking-summary').innerHTML = `
+      <strong>Escaneie o QR code para pagar via Pix</strong>
+      <p>${esc(payload.name)}, o valor é <b>${money(data.valor)}</b> para <b>${esc(data.servico.name)}</b> — horário reservado para ${labelDay(payload.date)} às ${esc(payload.time)}.</p>
+      <img src="data:image/png;base64,${data.pixImage}" alt="QR Code Pix" style="width:200px;height:200px;display:block;margin:16px auto;border-radius:8px;" />
+      <p style="font-size:11px;word-break:break-all;background:#f5f5f5;padding:8px;border-radius:6px;">${esc(data.pixPayload)}</p>
+      <p id="pagamento-status" style="font-weight:700;text-align:center;">Aguardando confirmação do pagamento…</p>`;
+    if (pollTimer) clearInterval(pollTimer);
+    pollTimer = setInterval(async () => {
+      try {
+        const res = await fetch('/api/signup-status?cobrancaId=' + data.cobrancaId);
+        if (!res.ok) return;
+        const status = await res.json();
+        if (status.status === 'paid') {
+          clearInterval(pollTimer);
+          $('booking-summary').innerHTML = `<strong>Pagamento confirmado!</strong><p>Seu atendimento está agendado. Criamos seu acesso — entre com o e-mail <b>${esc(payload.email)}</b> para acompanhar tudo pela área do cliente.</p><div class="summary-actions"><a class="primary" href="login.html">Entrar na área do cliente</a></div>`;
+        }
+      } catch (_) { /* segue tentando */ }
+    }, 4000);
+  }
+  document.addEventListener('DOMContentLoaded', async () => {
+    await loadAvailability();
+    applyPlanFromUrl();
+    renderDays();
+    renderSlots();
+    updatePrice();
+    $('tax-type').addEventListener('change', updatePrice);
+    $('booking-form').addEventListener('submit', submit);
+
+    $('btn-toggle-credito').addEventListener('click', () => {
+      const wrap = $('credito-input-wrap');
+      wrap.style.display = wrap.style.display === 'none' ? 'block' : 'none';
+      if (wrap.style.display === 'block') $('credito-codigo').focus();
+    });
+    $('btn-aplicar-credito').addEventListener('click', () => validarCredito($('credito-codigo').value));
+    $('credito-codigo').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); validarCredito($('credito-codigo').value); } });
+
+    const credDaUrl = new URLSearchParams(location.search).get('credito');
+    if (credDaUrl) {
+      $('credito-input-wrap').style.display = 'block';
+      $('credito-codigo').value = credDaUrl.toUpperCase();
+      validarCredito(credDaUrl);
+    }
+  });
+})();
+</script>
+</body>
+</html>

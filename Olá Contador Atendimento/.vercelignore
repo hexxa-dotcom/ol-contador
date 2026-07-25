@@ -1,0 +1,13 @@
+# Arquitetura antiga (substituída por Supabase Realtime + funções /api). Não vai pro deploy.
+# IMPORTANTE: barra no início ancora na RAIZ — não afeta as cópias em api/_lib/.
+/server.js
+/supabase.js
+/ia.js
+/asaas.js
+/notify.js
+/agenda.js
+
+# Backups/seed e caches
+/db/
+/.npm-cache/
+.DS_Store

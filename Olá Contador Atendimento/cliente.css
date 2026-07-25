@@ -36,15 +36,285 @@
 }
 
 /* Chat Layout Override */
+#section-chat {
+  padding: 0 !important;
+  overflow: hidden;
+}
+
+.cliente-chat-shell {
+  display: grid;
+  grid-template-columns: 248px minmax(0, 1fr);
+  gap: 12px;
+  height: 100%;
+  min-height: 0;
+  padding: 12px;
+  transition: grid-template-columns 0.22s ease;
+}
+
+.cliente-chat-shell.central-collapsed {
+  grid-template-columns: 58px minmax(0, 1fr);
+}
+
+.cliente-chat-sidebar {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px;
+  border-right: 1px solid var(--color-border);
+  background: var(--color-card);
+  overflow: hidden;
+}
+
+.cliente-chat-sidebar-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 8px;
+  color: var(--color-text-secondary);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.cliente-chat-sidebar-toggle {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+
+.cliente-chat-sidebar-toggle > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cliente-chat-sidebar-toggle > i:first-child {
+  width: 18px;
+  color: var(--color-coral);
+  text-align: center;
+  font-size: 14px;
+}
+
+.cliente-chat-sidebar-toggle-arrow {
+  margin-left: auto;
+  color: var(--color-text-secondary);
+  font-size: 10px;
+}
+
+.cliente-chat-sidebar-toggle:hover {
+  color: var(--color-pine);
+}
+
+.cliente-chat-sidebar-toggle:focus-visible {
+  outline: 2px solid rgba(255, 106, 69, 0.35);
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+
+.cliente-chat-sidebar-head strong {
+  justify-self: start;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: var(--color-pine-ultra-light);
+  color: var(--color-pine);
+  font-size: 10px;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.cliente-chat-shell.central-collapsed .cliente-chat-sidebar {
+  align-items: center;
+  padding: 14px 8px;
+}
+
+.cliente-chat-shell.central-collapsed .cliente-chat-sidebar-head {
+  width: 100%;
+  justify-content: center;
+}
+
+.cliente-chat-shell.central-collapsed .cliente-chat-sidebar-toggle {
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  flex: 0 0 auto;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: var(--color-coral-light);
+  color: var(--color-coral);
+}
+
+.cliente-chat-shell.central-collapsed .cliente-chat-sidebar-toggle > i:first-child {
+  width: auto;
+  font-size: 17px;
+}
+
+.cliente-chat-shell.central-collapsed .cliente-chat-sidebar-toggle > span,
+.cliente-chat-shell.central-collapsed .cliente-chat-sidebar-toggle-arrow,
+.cliente-chat-shell.central-collapsed .cliente-chat-sidebar-head strong,
+.cliente-chat-shell.central-collapsed .cliente-case-card,
+.cliente-chat-shell.central-collapsed .cliente-case-metrics,
+.cliente-chat-shell.central-collapsed .cliente-case-actions,
+.cliente-chat-shell.central-collapsed .cliente-chat-sidebar-foot {
+  display: none;
+}
+
+.cliente-case-card {
+  padding: 14px;
+  border: 1px solid rgba(255, 106, 69, 0.24);
+  border-radius: 16px;
+  background: linear-gradient(135deg, rgba(255, 106, 69, 0.08), rgba(10, 49, 33, 0.04));
+}
+
+.cliente-case-eyebrow {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--color-coral);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.cliente-case-card h3 {
+  margin: 0;
+  color: var(--color-pine);
+  font-size: 15px;
+  line-height: 1.25;
+}
+
+.cliente-case-card p {
+  margin: 7px 0 0;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.cliente-case-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.cliente-case-metrics div {
+  min-width: 0;
+  padding: 10px 8px;
+  text-align: center;
+  background: #fff;
+}
+
+.cliente-case-metrics div + div { border-left: 1px solid var(--color-border); }
+
+.cliente-case-metrics strong {
+  display: block;
+  color: var(--color-pine);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 16px;
+  line-height: 1;
+}
+
+#chat-side-report-state { font-size: 12px; }
+
+.cliente-case-metrics span {
+  display: block;
+  margin-top: 5px;
+  color: var(--color-text-secondary);
+  font-size: 10px;
+  line-height: 1.15;
+}
+
+.cliente-case-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.cliente-case-actions button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 38px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--color-text-primary);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+
+.cliente-case-actions button:hover {
+  background: var(--color-bg);
+  border-color: var(--color-border);
+}
+
+.cliente-case-actions i {
+  width: 28px;
+  color: var(--color-coral);
+  text-align: center;
+}
+
+.cliente-chat-sidebar-foot {
+  margin-top: auto;
+  padding-top: 12px;
+  border-top: 1px solid var(--color-border);
+}
+
+.cliente-chat-sidebar-foot p {
+  margin: 0 0 10px;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.cliente-chat-sidebar-foot .btn-utility {
+  width: 100%;
+  justify-content: center;
+}
+
+.cliente-chat-main {
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+}
+
 .chat-container {
   display: flex;
   flex-direction: column;
-  height: calc(100vh - 180px);
-  border: 1px solid var(--color-border);
-  border-radius: var(--border-radius);
+  flex: 1;
+  min-height: 0;
+  border-radius: 24px 24px 0 0 !important; /* Arredondamento ajustado no topo */
+  box-shadow: 0 -4px 32px rgba(10, 49, 33, 0.08) !important; 
+  border: 3px solid var(--color-coral) !important;
+  border-bottom: none !important;
+  margin-top: 4px; /* Menos espaçamento */
   overflow: hidden;
   background: var(--color-card);
+  -webkit-mask-image: -webkit-radial-gradient(white, black);
+  transform: translateZ(0);
 }
+
+#section-chat .panel-header-desc { display: none; }
 
 .chat-header {
   padding: 16px 24px;
@@ -67,16 +337,104 @@
   font-size: 18px;
 }
 
+.chat-header-nome {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-bottom: 2px;
+}
+
 .chat-header-info h3 {
   font-size: 15px;
   font-weight: 600;
-  margin-bottom: 2px;
+  margin: 0;
+}
+
+/* Selo inspirado no WhatsApp: aparece junto ao nome, sem competir com o CRC
+   ou com o status de presença. O title e o rótulo ARIA explicam o significado
+   também para quem não reconhece o ícone. */
+.chat-verificado {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  color: #53bdeb;
+  width: 16px;
+  height: 16px;
+  line-height: 1;
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.25));
+}
+
+.chat-verificado-selo {
+  font-size: 16px;
+}
+
+.chat-verificado-check {
+  position: absolute;
+  color: #fff;
+  font-size: 8px;
+  font-weight: 900;
+  transform: translateY(0.25px);
 }
 
 .chat-header-info p {
   font-size: 12px;
   opacity: 0.8;
   margin: 0;
+}
+
+.case-next-action {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  margin: 0 0 24px;
+  padding: 16px 18px;
+  border: 1px solid rgba(242, 108, 88, 0.25);
+  border-left: 4px solid var(--color-coral);
+  border-radius: 16px;
+  background: linear-gradient(120deg, rgba(242, 108, 88, 0.08), rgba(255, 255, 255, 0.88));
+}
+
+.case-next-action-icon {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: var(--color-pine);
+  color: #fff;
+  font-size: 17px;
+}
+
+.case-next-action-eyebrow {
+  display: block;
+  margin-bottom: 2px;
+  color: var(--color-coral);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.case-next-action h3 {
+  margin: 0;
+  color: var(--color-pine);
+  font-size: 15px;
+}
+
+.case-next-action p {
+  margin: 3px 0 0;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+}
+
+#chat-locked-overlay.is-finished #chat-lock-icon { color: #1F8A5F; }
+#chat-locked-overlay.is-finished #chat-lock-schedule { display: none; }
+#chat-lock-action { margin-top: 14px; }
+
+@media (max-width: 640px) {
+  .case-next-action { grid-template-columns: auto minmax(0, 1fr); }
+  .case-next-action .btn-utility { grid-column: 1 / -1; width: 100%; }
 }
 
 .status-online {
@@ -90,44 +448,174 @@
 
 .chat-history {
   flex: 1;
-  padding: 24px;
+  /* Mantém o mesmo encaixe próximo às bordas usado no chat do contador. */
+  padding: 12px 10px;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 6px;
   background: var(--color-bg);
 }
 
+/* Com poucas mensagens elas ficavam grudadas no topo, sobrando meia tela vazia.
+   A margem automática no primeiro item empurra tudo para baixo quando há folga
+   e vira zero quando não há — ao contrário de justify-content:flex-end, que corta
+   o início da conversa quando ela cresce e passa a rolar. */
+.chat-history > *:first-child { margin-top: auto; }
+
+/* Balão no padrão do WhatsApp — de propósito. Quem vai usar isto acabou de sair
+   de uma conversa no WhatsApp; quanto menos o chat exigir aprendizado, melhor.
+   O que faz a semelhança:
+   - largura maior (85%) e respiro menor: antes o texto quebrava cedo demais
+   - horário DENTRO do balão, no canto inferior direito, e não numa linha só dele
+   - canto "rabinho" (3px) do lado de quem falou
+   - cantos de 8px, próximos dos 7.5px do original */
 .chat-bubble {
-  max-width: 80%;
-  padding: 14px 18px;
-  border-radius: 12px;
-  font-size: 13px;
-  line-height: 1.5;
+  max-width: 85%;
+  min-width: 92px;
+  padding: 6px 9px 7px;
+  border-radius: 8px;
+  font-size: 14.5px;
+  line-height: 1.4;
   position: relative;
+  animation: chat-entra 0.18s ease-out;
+  word-wrap: break-word;
+  overflow-wrap: anywhere;
 }
 
+/* O espaçador reserva, na ÚLTIMA linha, o lugar exato do horário. É o truque
+   que faz a hora caber ao lado do texto em vez de empurrar uma linha nova —
+   se a última linha estiver cheia, ela quebra sozinha e a hora desce junto. */
+.chat-bubble .bolha-texto { display: inline; }
+.chat-bubble .bolha-texto::after {
+  content: '';
+  display: inline-block;
+  width: 54px;
+  height: 1px;
+}
+
+/* Balão sem texto (card de relatório) não tem onde reservar espaço: abre lugar
+   embaixo para a hora não montar por cima do card. */
+.chat-bubble:not(:has(.bolha-texto)) { padding-bottom: 22px; }
+
+@keyframes chat-entra {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* Enviando: a bolha já está na tela, só ainda não confirmou. */
+.chat-bubble.pendente { opacity: 0.65; }
+
+.chat-bubble.falhou {
+  background: #fdecec !important;
+  border: 1px solid #f3b4b0 !important;
+  color: #8c1d18 !important;
+}
+
+.chat-retry {
+  display: block;
+  margin-top: 8px;
+  width: 100%;
+  border: none;
+  background: rgba(179, 38, 30, 0.1);
+  color: #b3261e;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 7px 10px;
+  border-radius: 7px;
+  cursor: pointer;
+  text-align: left;
+}
+.chat-retry:hover { background: rgba(179, 38, 30, 0.18); }
+
+/* Separador de dia ("Hoje", "Ontem", "12 de julho de 2026"). */
+.chat-dia {
+  align-self: center;
+  margin: 4px 0;
+}
+.chat-dia span {
+  background: rgba(9, 55, 38, 0.06);
+  color: var(--color-text-secondary);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  padding: 4px 12px;
+  border-radius: 20px;
+}
+
+/* "Contador Felipe está digitando" — fica entre o histórico e o campo de texto,
+   e só ocupa espaço quando está ativo. */
+.chat-digitando {
+  display: none;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 24px 4px;
+  background: var(--color-bg);
+}
+.chat-digitando.ativo { display: flex; }
+.chat-digitando em {
+  font-style: normal;
+  font-size: 11px;
+  color: var(--color-text-secondary);
+  margin-left: 6px;
+}
+.chat-digitando .ponto {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--color-text-secondary);
+  animation: chat-pulo 1.2s infinite ease-in-out;
+}
+.chat-digitando .ponto:nth-child(2) { animation-delay: 0.15s; }
+.chat-digitando .ponto:nth-child(3) { animation-delay: 0.3s; }
+
+@keyframes chat-pulo {
+  0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+  30%           { transform: translateY(-4px); opacity: 1; }
+}
+
+/* Quem prefere menos movimento não perde informação: os estados continuam
+   visíveis pelo ícone e pela cor. */
+@media (prefers-reduced-motion: reduce) {
+  .chat-bubble { animation: none; }
+  .chat-digitando .ponto { animation: none; }
+}
+
+/* O "rabinho" vai embaixo, do lado de quem falou — como no WhatsApp. Antes
+   ficava em cima, o que dava a leitura invertida de quem enviou. */
 .chat-bubble.contador {
   background: white;
   border: 1px solid var(--color-border);
   color: var(--color-text-primary);
   align-self: flex-start;
-  border-top-left-radius: 4px;
+  border-radius: 8px 8px 8px 2px;
 }
 
 .chat-bubble.cliente {
   background: var(--color-pine);
   color: white;
   align-self: flex-end;
-  border-top-right-radius: 4px;
+  border-radius: 8px 8px 2px 8px;
 }
 
+/* Ancorado no canto inferior direito, dentro do balão. */
 .chat-time {
-  font-size: 10px;
-  margin-top: 6px;
-  display: block;
-  text-align: right;
+  position: absolute;
+  right: 10px;
+  bottom: 6px;
+  font-size: 11px;
+  line-height: 1;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 2px;
 }
+
+/* ✓ entregue · ✓✓ o contador leu */
+.chat-time i { margin-left: 3px; font-size: 10px; }
+.chat-bubble.cliente .chat-time i.lida { color: #7FD1AE; }
 
 .chat-bubble.contador .chat-time {
   color: var(--color-text-secondary);
@@ -195,9 +683,9 @@
 .tracking-card {
   background: white;
   border: 1px solid var(--color-border);
-  border-radius: var(--border-radius);
+  border-radius: 24px;
   padding: 32px;
-  max-width: 600px;
+  width: 100%;
 }
 
 .tracking-header {
@@ -282,6 +770,140 @@
   margin: 0;
 }
 
+/* Agenda de atendimento */
+.agendamento-card {
+  width: min(100%, 980px);
+  padding: 28px;
+  border: 1px solid var(--color-border);
+  border-radius: 18px;
+  background: #fff;
+}
+
+.agenda-cliente-wrap {
+  margin-bottom: 28px;
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+  overflow: hidden;
+  background: var(--color-bg);
+}
+
+.agenda-cliente-toolbar {
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr) 36px;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  border-bottom: 1px solid var(--color-border);
+  background: #fff;
+}
+
+.agenda-cliente-toolbar strong {
+  color: var(--color-pine);
+  font-size: 14px;
+  text-align: center;
+}
+
+.agenda-nav {
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  background: #fff;
+  color: var(--color-pine);
+  cursor: pointer;
+}
+
+.agenda-nav:hover:not(:disabled) {
+  border-color: var(--color-coral);
+  color: var(--color-coral);
+}
+
+.agenda-nav:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.agenda-cliente-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(118px, 1fr));
+  gap: 1px;
+  background: var(--color-border);
+}
+
+.agenda-dia {
+  min-width: 0;
+  background: #fff;
+}
+
+.agenda-dia-head {
+  padding: 12px 10px;
+  border-bottom: 1px solid var(--color-border);
+  text-align: center;
+}
+
+.agenda-dia-head strong {
+  display: block;
+  color: var(--color-pine);
+  font-size: 13px;
+}
+
+.agenda-dia-head span {
+  display: block;
+  margin-top: 2px;
+  color: var(--color-text-secondary);
+  font-size: 11px;
+}
+
+.agenda-slots {
+  display: grid;
+  gap: 7px;
+  padding: 10px;
+}
+
+.agenda-slot {
+  min-height: 36px;
+  border: 1px solid var(--color-border);
+  border-radius: 9px;
+  background: #fff;
+  color: var(--color-pine);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.agenda-slot:hover:not(:disabled) {
+  border-color: var(--color-coral);
+  background: var(--color-coral-light);
+}
+
+.agenda-slot.selecionado {
+  border-color: var(--color-pine);
+  background: var(--color-pine);
+  color: #fff;
+}
+
+.agenda-slot.ocupado,
+.agenda-slot.passado,
+.agenda-slot:disabled {
+  cursor: not-allowed;
+  background: #f5f2ec;
+  color: var(--color-text-secondary);
+  opacity: 0.62;
+  text-decoration: line-through;
+}
+
+.agenda-cliente-dica {
+  margin: 0;
+  padding: 10px 12px;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  line-height: 1.4;
+  background: #fff;
+  border-top: 1px solid var(--color-border);
+}
+
 /* Documents Layout */
 .docs-layout {
   display: grid;
@@ -305,6 +927,16 @@
   background: var(--color-bg);
 }
 
+.upload-zone:focus-visible {
+  outline: 3px solid rgba(255, 106, 69, 0.32);
+  outline-offset: 3px;
+}
+
+.upload-zone.arrastando {
+  border-color: var(--color-coral);
+  background: var(--color-coral-light);
+}
+
 .upload-zone i {
   font-size: 40px;
   color: var(--color-coral);
@@ -320,6 +952,30 @@
 .upload-zone p {
   font-size: 12px;
   color: var(--color-text-secondary);
+}
+
+.upload-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 26px;
+  margin-top: 14px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: var(--color-bg);
+  color: var(--color-text-secondary);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.upload-status.ok {
+  background: rgba(31, 138, 95, 0.12);
+  color: #1F8A5F;
+}
+
+.upload-status.erro {
+  background: #fdecec;
+  color: #b3261e;
 }
 
 .section-subtitle {
@@ -373,7 +1029,7 @@
   display: flex;
   flex-direction: column;
   gap: 16px;
-  max-width: 800px;
+  max-width: 920px;
 }
 
 .history-card {
@@ -404,13 +1060,797 @@
   margin: 0 0 4px 0;
 }
 
+.history-details span {
+  display: block;
+  margin-bottom: 3px;
+  color: var(--color-coral);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
 .history-details p {
   font-size: 12px;
   color: var(--color-text-secondary);
   margin: 0;
 }
 
+.history-actions {
+  margin-left: auto;
+  display: flex;
+  gap: 8px;
+}
+
+.history-empty {
+  padding: 32px;
+  border: 1px dashed var(--color-border);
+  border-radius: 14px;
+  background: #fff;
+  text-align: center;
+}
+
+.history-empty i {
+  display: block;
+  margin-bottom: 12px;
+  color: var(--color-coral);
+  font-size: 26px;
+}
+
+.history-empty h3 {
+  color: var(--color-pine);
+  font-size: 16px;
+  margin-bottom: 6px;
+}
+
+.history-empty p {
+  color: var(--color-text-secondary);
+  font-size: 13px;
+}
+
+/* Só existia o modificador .success — a classe base não tinha regra nenhuma,
+   então o selo saía sem padding nem canto e parecia texto grifado em vez de
+   etiqueta. Aqui vai a forma; os modificadores só trocam a cor. */
+.status-badge {
+  display: inline-block;
+  flex-shrink: 0;
+  align-self: flex-start;
+  padding: 5px 12px;
+  border-radius: 20px;
+  font-family: var(--font-title);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.3;
+  white-space: nowrap;
+  background: var(--color-pine-ultra-light);
+  color: var(--color-pine);
+}
+
 .status-badge.success {
-  background: rgba(46, 204, 113, 0.1);
-  color: #2ECC71;
+  background: rgba(46, 204, 113, 0.12);
+  color: #1E8F53;
+}
+
+/* ==========================================================================
+   TRIAGEM / PRÉ-ATENDIMENTO
+   O tom aqui é diferente do resto do portal de propósito: quem preenche isto
+   normalmente está assustado com a Receita. Espaço para respirar, sem cara de
+   formulário de repartição.
+   ========================================================================== */
+
+.triagem-wrap {
+  flex: 1;
+  overflow-y: auto;
+  padding-bottom: 8px;
+}
+
+.triagem-bloco {
+  background: white;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  padding: 22px 24px;
+  margin-bottom: 16px;
+}
+
+.triagem-bloco-topo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.triagem-bloco-topo h3 {
+  font-size: 16px;
+  color: var(--color-pine);
+}
+
+.triagem-passo {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--color-pine);
+  color: white;
+  font-size: 11px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* ---- passo 1: os assuntos ---- */
+.triagem-assuntos {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 10px;
+}
+
+.triagem-assunto {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  text-align: left;
+  padding: 16px;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  background: var(--color-bg);
+  cursor: pointer;
+  font-family: inherit;
+  transition: border-color .15s, background .15s, transform .1s;
+}
+.triagem-assunto:hover { border-color: var(--color-pine); transform: translateY(-1px); }
+.triagem-assunto i { font-size: 18px; color: var(--color-coral); margin-bottom: 4px; }
+
+.triagem-assunto.escolhido {
+  border-color: var(--color-pine);
+  border-width: 2px;
+  background: white;
+  padding: 15px;   /* compensa a borda de 2px: o card não pode "pular" ao escolher */
+}
+
+.triagem-assunto-titulo {
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--color-pine);
+  line-height: 1.35;
+}
+.triagem-assunto-resumo {
+  font-size: 11px;
+  color: var(--color-text-secondary);
+  line-height: 1.4;
+}
+
+/* ---- passo 2: perguntas ---- */
+.triagem-campo { margin-bottom: 18px; }
+
+.triagem-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-pine);
+  margin-bottom: 4px;
+}
+
+.triagem-obrig, .triagem-opcional {
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .4px;
+  padding: 2px 6px;
+  border-radius: 10px;
+  vertical-align: middle;
+}
+.triagem-obrig { background: rgba(255,106,69,.12); color: var(--color-coral); }
+.triagem-opcional { background: rgba(9,55,38,.07); color: var(--color-text-secondary); }
+
+.triagem-dica {
+  font-size: 11px;
+  color: var(--color-text-secondary);
+  line-height: 1.45;
+  margin-bottom: 8px;
+}
+
+.triagem-input, .triagem-textarea {
+  width: 100%;
+  padding: 11px 13px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 13px;
+  outline: none;
+  background: var(--color-bg);
+  transition: border-color .15s;
+}
+.triagem-input:focus, .triagem-textarea:focus { border-color: var(--color-pine); background: white; }
+.triagem-textarea { resize: vertical; line-height: 1.5; }
+
+.triagem-opcoes { display: flex; flex-wrap: wrap; gap: 7px; }
+
+.triagem-opcao {
+  padding: 8px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: 20px;
+  background: var(--color-bg);
+  font-family: inherit;
+  font-size: 12px;
+  color: var(--color-text-primary);
+  cursor: pointer;
+  transition: all .15s;
+}
+.triagem-opcao:hover { border-color: var(--color-pine); }
+.triagem-opcao.escolhido {
+  background: var(--color-pine);
+  border-color: var(--color-pine);
+  color: white;
+  font-weight: 600;
+}
+
+/* ---- passo 3: documentos ---- */
+.triagem-doc {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: 9px;
+  margin-bottom: 8px;
+  background: var(--color-bg);
+}
+.triagem-doc > i { color: var(--color-text-secondary); font-size: 15px; }
+.triagem-doc.pronto { border-color: #7FD1AE; background: rgba(127,209,174,.08); }
+.triagem-doc.pronto > i { color: #1F8A5F; }
+
+.triagem-doc-nome {
+  flex: 1;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text-primary);
+}
+.triagem-doc-arquivo {
+  display: block;
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--color-text-secondary);
+  margin-top: 2px;
+}
+
+.triagem-doc-btn {
+  border: 1px solid var(--color-border);
+  background: white;
+  border-radius: 7px;
+  padding: 6px 14px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-pine);
+  cursor: pointer;
+  transition: all .15s;
+}
+.triagem-doc-btn:hover:not(:disabled) { border-color: var(--color-pine); background: var(--color-bg); }
+.triagem-doc-btn:disabled { opacity: .5; cursor: default; }
+
+/* ---- sala de espera ---- */
+.triagem-espera {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 20px;
+  border-radius: 12px;
+  margin-bottom: 16px;
+  background: var(--color-pine);
+  color: white;
+}
+.triagem-espera i { font-size: 22px; color: var(--color-coral); }
+.triagem-espera.pronto i { color: #7FD1AE; }
+.triagem-espera strong { display: block; font-size: 14px; margin-bottom: 2px; }
+.triagem-espera p { font-size: 12px; opacity: .85; line-height: 1.4; }
+
+/* ---- barra de envio ---- */
+.triagem-barra {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 14px 20px;
+  background: white;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  margin-top: 4px;
+}
+
+.triagem-medidor { flex: 1; min-width: 0; }
+.triagem-medidor-topo {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: 11px;
+  color: var(--color-text-secondary);
+  margin-bottom: 6px;
+}
+.triagem-medidor-topo strong { font-size: 13px; color: var(--color-pine); }
+
+.triagem-medidor-trilho {
+  height: 5px;
+  background: var(--color-border);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.triagem-medidor-barra {
+  height: 100%;
+  width: 0;
+  background: var(--color-coral);
+  border-radius: 3px;
+  transition: width .3s ease-out;
+}
+
+.triagem-acoes { display: flex; align-items: center; gap: 12px; }
+
+.triagem-salvo { font-size: 11px; line-height: 1.4; max-width: 260px; }
+.triagem-salvo.ok { color: #1F8A5F; }
+.triagem-salvo.erro { color: #b3261e; }
+
+@media (prefers-reduced-motion: reduce) {
+  .triagem-assunto, .triagem-medidor-barra { transition: none; }
+}
+
+/* O atributo hidden vale display:none na folha do navegador, mas QUALQUER regra
+   display do autor ganha dela. Como .triagem-espera e .triagem-barra declaram
+   display:flex, elas apareciam mesmo com hidden — a barra de envio surgia antes
+   de o cliente escolher o assunto, e a sala de espera vazia virava um tarjão
+   verde sem texto. Estes dois seletores devolvem o sentido do hidden. */
+.triagem-espera[hidden],
+.triagem-barra[hidden] { display: none; }
+
+/* Card do relatório entregue, dentro do chat */
+.relatorio-card-chat {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+.relatorio-card-chat > i { font-size: 18px; color: var(--color-coral, #FF6A45); }
+.relatorio-card-chat .btn-baixar-rel {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--color-coral, #FF6A45);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 14px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.relatorio-card-chat .btn-baixar-rel:hover { filter: brightness(0.95); }
+
+/* Avaliação pós-atendimento */
+.aval-estrelas { display: flex; gap: 6px; }
+.aval-estrelas button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 26px;
+  color: var(--color-coral, #FF6A45);
+  padding: 2px 4px;
+  line-height: 1;
+}
+.aval-estrelas button:hover { transform: scale(1.12); }
+#btn-enviar-avaliacao:disabled { opacity: .5; cursor: not-allowed; }
+
+
+/* ==========================================================================
+   MOBILE — Portal do Cliente
+   --------------------------------------------------------------------------
+   O cliente pessoa física acessa quase sempre pelo celular, então aqui o
+   layout não é uma "adaptação" do desktop: a navegação vira barra inferior
+   (padrão de app) e o chat ocupa a tela inteira.
+
+   Três armadilhas de mobile tratadas de propósito:
+   - 100vh no Safari inclui a barra de endereço, então o rodapé fica escondido
+     atrás dela. Usamos 100dvh com 100vh de reserva para navegador antigo.
+   - input com font-size < 16px faz o iOS dar zoom sozinho ao focar e a página
+     nunca mais volta ao lugar. Por isso o campo de mensagem é 16px.
+   - iPhone com barra de gestos come a faixa de baixo: env(safe-area-inset-bottom).
+   ========================================================================== */
+
+/* O botão de sair do cabeçalho existe só no celular; no desktop o menu lateral
+   já tem o "Sair" e dois botões iguais seria ruído. Precisa vir ANTES do
+   @media, senão vence por ordem e esconde o botão também no celular. */
+.hdr-sair { display: none; }
+
+@media (max-width: 768px) {
+
+  :root {
+    --oc-header-h: 56px;
+    --oc-nav-h: 60px;
+    --oc-safe-b: env(safe-area-inset-bottom, 0px);
+  }
+
+  /* ---- Altura real da janela (ver nota sobre 100vh acima) ---- */
+  html, body { height: 100vh; height: 100dvh; overflow: hidden; }
+
+  /* ---- Cabeçalho enxuto ---- */
+  .app-header {
+    height: var(--oc-header-h);
+    padding: 0 14px;
+    border-bottom-width: 2px;
+  }
+  .logo-text { font-size: 17px; }
+  .logo-container i { font-size: 19px !important; margin-right: 5px !important; }
+
+  /* O CPF é dado sensível e não ajuda em nada ficar exposto no topo o tempo
+     todo — some no celular, onde o espaço é disputado. */
+  .header-right .agent-info span { display: none; }
+  .header-right .agent-info h4 {
+    font-size: 13px;
+    max-width: 34vw;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .header-right .agent-avatar { width: 32px; height: 32px; font-size: 12px; }
+  .header-right { gap: 8px; }
+
+  .hdr-sair {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
+    cursor: pointer;
+  }
+
+  /* ---- Corpo ---- */
+  .dashboard-container {
+    height: calc(100vh - var(--oc-header-h));
+    height: calc(100dvh - var(--oc-header-h));
+    flex-direction: column;
+  }
+
+  /* ---- Menu lateral vira barra inferior ---- */
+  .app-sidebar-nav,
+  .app-sidebar-nav.collapsed {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 60;
+    width: 100%;
+    height: calc(var(--oc-nav-h) + var(--oc-safe-b));
+    padding: 0 0 var(--oc-safe-b) 0;
+    flex-direction: row;
+    align-items: stretch;
+    border-right: none;
+    border-top: 1px solid var(--color-border);
+    box-shadow: 0 -2px 12px rgba(10, 49, 33, 0.07);
+    transition: none;
+  }
+
+  /* Título da seção, espaçador e o "Sair" (que foi para o cabeçalho) não
+     fazem sentido numa barra horizontal. */
+  .app-sidebar-nav .nav-section-title,
+  .app-sidebar-nav > div[style*="flex: 1"],
+  .app-sidebar-nav > div[style*="flex:1"],
+  .app-sidebar-nav [data-logout] { display: none !important; }
+
+  .app-sidebar-nav .nav-item,
+  .app-sidebar-nav.collapsed .nav-item {
+    flex: 1 1 0;
+    min-width: 0;
+    flex-direction: column;
+    justify-content: center;
+    gap: 3px;
+    padding: 6px 2px;
+    border-left: none;
+    border-top: 3px solid transparent;
+    font-size: 9px;
+    line-height: 1.15;
+    text-align: center;
+  }
+
+  .app-sidebar-nav .nav-item i,
+  .app-sidebar-nav.collapsed .nav-item i {
+    font-size: 17px;
+    width: auto;
+    margin: 0;
+  }
+
+  /* O rótulo é o que evita o menu virar adivinhação de ícone, então ele fica.
+     Quebra em até duas linhas em vez de truncar: "Pré-atendi..." não diz nada,
+     "Pré-/atendimento" em duas linhas diz tudo. */
+  .app-sidebar-nav .nav-label,
+  .app-sidebar-nav.collapsed .nav-label {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    width: 100%;
+    white-space: normal;
+    word-break: break-word;
+    hyphens: auto;
+  }
+
+  .app-sidebar-nav .nav-item.active {
+    border-top: 3px solid var(--color-coral);
+    background-color: var(--color-pine-ultra-light);
+  }
+
+  /* O aviso vermelho de modo dev fica fixo no rodapé e cobriria a barra.
+     No celular ele é encurtado (só "MODO DEV") para caber numa linha de 24px —
+     medir a altura real importa: com o texto completo ele quebrava em duas
+     linhas, dava 40px e comia os rótulos da navegação. */
+  #oc-teste-aviso {
+    font-size: 10px !important;
+    padding: 5px 8px !important;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  body.oc-teste-on .app-sidebar-nav { bottom: 24px; }
+
+  /* O badge é um marcador, não um rótulo: vira bolinha sobre o ícone. Sem isto
+     ele esticava como uma pílula rosa e cobria metade do item. */
+  .chat-unread-badge {
+    top: 4px !important;
+    left: 50% !important;
+    right: auto !important;
+    margin-left: 4px;
+    min-width: 16px;
+    width: auto;
+    height: 16px;
+    padding: 0 4px;
+    font-size: 9px;
+    line-height: 16px;
+  }
+
+  /* ---- Área de conteúdo ---- */
+  .main-content-panels { padding-bottom: calc(var(--oc-nav-h) + var(--oc-safe-b)); }
+  body.oc-teste-on .main-content-panels { padding-bottom: calc(var(--oc-nav-h) + var(--oc-safe-b) + 26px); }
+
+  .content-panel { padding: 16px 14px 20px; }
+  .panel-header-desc { margin-bottom: 16px; }
+  .panel-header-desc h2 { font-size: 20px; }
+  .panel-header-desc p { font-size: 13px; }
+
+  /* ---- Chat em tela cheia ----
+     Sem título, sem margem e sem moldura: no celular a conversa É a tela. */
+  #section-chat.content-panel { padding: 0; overflow: hidden; }
+  #section-chat .panel-header-desc { display: none; }
+
+  .cliente-chat-shell {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto minmax(0, 1fr);
+    gap: 0;
+    padding: 0;
+  }
+
+  .cliente-chat-sidebar {
+    max-height: 138px;
+    gap: 8px;
+    padding: 10px 10px 8px;
+    border-right: none;
+    border-bottom: 1px solid var(--color-border);
+    overflow: hidden;
+  }
+
+  .cliente-chat-sidebar-head,
+  .cliente-case-card,
+  .cliente-case-metrics,
+  .cliente-chat-sidebar-foot p {
+    display: none;
+  }
+
+  .cliente-chat-shell.central-collapsed .cliente-chat-sidebar {
+    align-items: stretch;
+    padding: 10px 10px 8px;
+  }
+
+  .cliente-chat-shell.central-collapsed .cliente-case-actions { display: grid; }
+  .cliente-chat-shell.central-collapsed .cliente-chat-sidebar-foot { display: block; }
+
+  .cliente-case-actions {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 6px;
+  }
+
+  .cliente-case-actions button {
+    min-height: 48px;
+    justify-content: center;
+    gap: 4px;
+    padding: 6px 4px;
+    border-color: var(--color-border);
+    background: #fff;
+    font-size: 10px;
+    line-height: 1.1;
+    text-align: center;
+  }
+
+  .cliente-case-actions button,
+  .cliente-case-actions button span {
+    flex-direction: column;
+  }
+
+  .cliente-case-actions i {
+    width: auto;
+    font-size: 15px;
+  }
+
+  .cliente-chat-sidebar-foot {
+    margin-top: 0;
+    padding-top: 8px;
+  }
+
+  .cliente-chat-sidebar-foot .btn-utility {
+    min-height: 36px;
+    font-size: 12px;
+  }
+
+  .cliente-chat-main { min-height: 0; }
+
+  .chat-container {
+    height: 100%;
+    border: none;
+    border-radius: 0;
+  }
+
+  .chat-header {
+    padding: 10px 14px;
+    gap: 10px;
+    flex-shrink: 0;
+  }
+  .chat-header-avatar { width: 34px; height: 34px; font-size: 15px; }
+  .chat-header-info h3 { font-size: 14px; }
+  .chat-header-info p { font-size: 11px; }
+
+  .chat-history { padding: 10px 8px; gap: 6px; }
+
+  /* Bolha mais larga e fonte maior: 13px em tela de celular é leitura de bula. */
+  .chat-bubble {
+    max-width: 85%;
+    font-size: 15px;
+    padding: 7px 10px 8px;
+    line-height: 1.45;
+  }
+
+  .chat-input-area {
+    padding: 8px 10px calc(8px + var(--oc-safe-b));
+    flex-shrink: 0;
+  }
+  .chat-form { gap: 6px; padding: 5px 5px 5px 12px; }
+
+  /* 16px obrigatório — abaixo disso o iOS dá zoom ao focar (ver nota do topo). */
+  .chat-form input { font-size: 16px; min-width: 0; }
+
+  .btn-send { width: 40px; height: 40px; flex-shrink: 0; }
+  .btn-attach { padding: 0 6px; font-size: 17px; }
+
+  /* ---- Cartões e formulários em coluna única ---- */
+  .tracking-card { padding: 18px 16px; max-width: none; }
+
+  .agendamento-card {
+    width: 100%;
+    padding: 18px 14px;
+    border-radius: 14px;
+  }
+
+  .agenda-cliente-toolbar {
+    grid-template-columns: 34px minmax(0, 1fr) 34px;
+    padding: 10px;
+  }
+
+  .agenda-cliente-toolbar strong {
+    font-size: 13px;
+  }
+
+  .agenda-cliente-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .agenda-dia-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    text-align: left;
+  }
+
+  .agenda-slots {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .history-card {
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 12px;
+    padding: 16px;
+  }
+
+  .history-details {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .history-actions {
+    width: 100%;
+    margin-left: 0;
+  }
+
+  .history-actions .btn-utility {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .triagem-wrap { max-width: none; }
+  .triagem-bloco { padding: 16px 14px; }
+  .triagem-textarea { font-size: 16px; }
+
+  /* Grades do portal em coluna única. Listadas pelo nome de propósito: um
+     seletor genérico por "grid" no nome não pega .docs-layout, que é justamente
+     a que quebrava a página de Documentos em duas colunas espremidas.
+     (.triagem-assuntos já usa auto-fill/minmax e se resolve sozinha.) */
+  .docs-layout,
+  .content-panel [class*="grid"] {
+    grid-template-columns: 1fr !important;
+    gap: 20px;
+  }
+
+  .upload-zone { padding: 22px 16px; }
+  .doc-item { gap: 10px; }
+
+  /* Histórico: o card é uma linha só, com os botões empurrados para a direita
+     por margin-left:auto. Em tela estreita não cabia e vazava ~120px para fora.
+     Deixando quebrar, os botões descem para a linha de baixo e ocupam a largura. */
+  .history-card {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .history-card > div[style*="margin-left"] {
+    margin-left: 0 !important;
+    width: 100%;
+  }
+  .history-card .btn-utility { flex: 1 1 0; justify-content: center; }
+
+  /* Campos de formulário: 16px pelo mesmo motivo do input do chat. */
+  .content-panel input,
+  .content-panel select,
+  .content-panel textarea { font-size: 16px; }
+
+  /* Alvos de toque com pelo menos 44px, como manda o guia da Apple. */
+  .content-panel button,
+  .content-panel .btn { min-height: 44px; }
+
+  /* ---- Modais ocupam a tela ---- */
+  .modal-container {
+    width: 100%;
+    max-width: none;
+    max-height: 92dvh;
+    border-radius: 12px 12px 0 0;
+    margin-top: auto;
+  }
+  .modal-overlay { align-items: flex-end; }
+}
+
+/* Telas bem estreitas (iPhone SE e similares) */
+@media (max-width: 360px) {
+  .app-sidebar-nav .nav-item { font-size: 8px; }
+  .app-sidebar-nav .nav-item i { font-size: 16px; }
+  .logo-text { font-size: 15px; }
+}
+
+/* ==================================================
+   ROUNDED OVERRIDES (Global Client specific)
+   ================================================== */
+.chat-container, .checkout-container {
+  border-radius: var(--radius-lg, 24px) !important;
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+.plan-card, .pix-box {
+  border-radius: var(--radius-lg, 24px) !important;
+}
+
+.chat-input-container {
+  border-radius: 50px !important;
+  margin-bottom: 8px;
 }

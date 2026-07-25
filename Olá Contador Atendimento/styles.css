@@ -14,7 +14,90 @@
   --color-border: #DCD8D0;
   --color-shadow: rgba(10, 49, 33, 0.06);
   --font-title: 'Outfit', sans-serif;
-  --font-body: 'Inter', sans-serif;
+  --font-body: 'Outfit', sans-serif; /* Changed to Outfit for fluidity */
+  
+  /* Chat Customization Variables */
+  --chat-bg-color: #FFFFFF;
+  --chat-bubble-contador-bg: var(--color-pine-light);
+  --chat-bubble-cliente-bg: var(--color-bg);
+  /* Fundo do Copiloto IA — separado do chat principal de propósito, pra nunca
+     dar a impressão de que a mensagem apareceu na conversa com o cliente. Tom
+     azulado de propósito: o resto do app é bege/verde, então mesmo o padrão
+     (antes de o contador customizar) já se destaca visualmente. */
+  --copilot-bg-color: #EAF1F6;
+}
+
+body.dark-mode {
+  --color-pine: #1A3A2C;
+  --color-pine-light: #24523F;
+  --color-pine-ultra-light: #16261F;
+  --color-coral: #FF7B5C;
+  --color-coral-dark: #E05330;
+  --color-coral-light: #2A1713;
+  --color-bg: #121413;
+  --color-card: #1C201E;
+  --color-text-primary: #EAECEA;
+  --color-text-secondary: #8CA095;
+  --color-border: #2A332E;
+  --color-shadow: rgba(0, 0, 0, 0.5);
+  
+  --chat-bg-color: #121413;
+  --chat-bubble-contador-bg: var(--color-pine-light);
+  --chat-bubble-cliente-bg: #272C29;
+  --copilot-bg-color: #16202B;
+}
+
+body.dark-mode .sla-green { color: #2ECC71; }
+body.dark-mode .sla-yellow { color: #F1C40F; }
+body.dark-mode .sla-red { color: #E74C3C; }
+
+/* UI Switch */
+.theme-switch {
+  position: relative;
+  display: inline-block;
+  width: 44px;
+  height: 24px;
+}
+.theme-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+.theme-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-color: var(--color-border);
+  transition: .3s;
+  border-radius: 24px;
+}
+.theme-slider:before {
+  position: absolute;
+  content: "";
+  height: 18px;
+  width: 18px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  transition: .3s;
+  border-radius: 50%;
+}
+input:checked + .theme-slider {
+  background-color: var(--color-coral);
+}
+input:checked + .theme-slider:before {
+  transform: translateX(20px);
+}
+
+/* ==================================================
+   FLUID & ROUNDED DESIGN OVERRIDES (Global)
+   ================================================== */
+:root {
+  --radius-sm: 12px;
+  --radius-md: 16px;
+  --radius-lg: 24px;
+  --radius-pill: 50px;
+  --transition-fluid: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
 }
 
 * {
@@ -167,29 +250,37 @@ body {
   padding: 10px 0;
   height: 100%;
   transition: width 0.3s ease;
+  overflow: hidden; /* Important for smooth collapsing without text wrap */
 }
 
 .app-sidebar-nav.collapsed {
   width: 76px;
 }
 
+.nav-label {
+  white-space: nowrap;
+  transition: opacity 0.2s ease;
+}
+
 .app-sidebar-nav.collapsed .nav-label {
-  display: none;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.nav-section-title span {
+  white-space: nowrap;
+  transition: opacity 0.2s ease;
+  flex: 1; /* Permite encolher */
+  min-width: 0;
+  overflow: hidden;
 }
 
 .app-sidebar-nav.collapsed .nav-section-title span {
-  display: none;
+  opacity: 0;
+  pointer-events: none;
 }
 
-.app-sidebar-nav.collapsed .nav-item {
-  justify-content: center;
-  padding: 14px 0;
-}
-
-.app-sidebar-nav.collapsed .nav-item i {
-  margin: 0;
-  font-size: 20px;
-}
+/* Removed collapsed nav-item overrides to prevent icon jumping */
 
 .nav-section-title {
   font-family: var(--font-title);
@@ -232,9 +323,15 @@ body {
 }
 
 .nav-item i {
-  font-size: 16px;
+  font-size: 18px; /* Standardized size to prevent jump */
   width: 20px;
   text-align: center;
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Micro-animação do ícone quando a sidebar está recolhida */
+.app-sidebar-nav.collapsed .nav-item:hover i {
+  transform: scale(1.2);
 }
 
 /* Main Content Panels routing area */
@@ -366,6 +463,77 @@ body {
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+.dashboard-alerts-strip {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  padding: 16px 2px 4px;
+  scroll-snap-type: x proximity;
+}
+
+.dashboard-alert-card {
+  min-width: 250px;
+  flex: 0 0 250px;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 12px;
+  scroll-snap-align: start;
+}
+
+.dashboard-alert-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.dashboard-alert-card-top span:first-child {
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--color-pine);
+}
+
+.dashboard-alert-card p {
+  font-size: 11px;
+  line-height: 1.45;
+  margin: 0 0 10px;
+  color: var(--color-text-secondary);
+}
+
+.dashboard-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.dashboard-empty-state {
+  width: 100%;
+  text-align: center;
+  padding: 24px 12px;
+  color: var(--color-text-secondary);
+}
+
+.dashboard-empty-state i {
+  font-size: 24px;
+  opacity: .35;
+  margin-bottom: 8px;
+  display: block;
+}
+
+.dashboard-empty-state p {
+  font-size: 13px;
+  margin: 0;
+  color: var(--color-text-secondary);
+}
+
+.dashboard-empty-state span {
+  display: block;
+  font-size: 11px;
+  margin-top: 4px;
 }
 
 /* CSS-based Bar Chart widget */
@@ -641,6 +809,101 @@ body {
   text-transform: uppercase;
 }
 
+/* Marcador de mensagem não lida.
+   Piscava (blink-badge, 1.5s em loop infinito). Foi removido de propósito: uma
+   coisa piscando sem parar puxa o olho o tempo todo e não acrescenta nada —
+   o número já diz que há mensagem esperando. Marcador é para ser NOTADO quando
+   se olha, não para disputar atenção enquanto se trabalha.
+   Em troca, ficou mais legível parado: um pouco maior, contorno claro para
+   separar do fundo e altura fixa para o número centralizar. */
+.chat-unread-badge {
+  display: none;
+  position: absolute;
+  top: 6px;
+  left: 14px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  background: var(--color-coral);
+  color: white;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 18px;
+  text-align: center;
+  border-radius: 9px;
+  border: 2px solid var(--color-card);
+  box-shadow: 0 1px 3px rgba(10, 49, 33, 0.25);
+  z-index: 2;
+}
+
+/* Perfil Profissional */
+.profile-header {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  background: var(--color-bg);
+  padding: 32px;
+  border-radius: 12px;
+  border: 1px solid var(--color-border);
+}
+
+.profile-avatar {
+  width: 100px;
+  height: 100px;
+  background: var(--color-pine-light);
+  color: var(--color-pine);
+  font-size: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(16, 55, 60, 0.1);
+}
+
+.specialty-tag {
+  background: var(--color-pine-ultra-light);
+  color: var(--color-pine);
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  border: 1px solid rgba(16, 55, 60, 0.2);
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+}
+
+.stat-card {
+  background: var(--color-bg);
+  padding: 24px;
+  border-radius: 12px;
+  border: 1px solid var(--color-border);
+  text-align: center;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+}
+
+.stat-card i {
+  font-size: 24px;
+  color: var(--color-coral);
+  margin-bottom: 12px;
+}
+
+.stat-card h3 {
+  font-size: 28px;
+  color: var(--color-pine);
+  margin-bottom: 4px;
+}
+
+.stat-card p {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  font-weight: 500;
+  text-transform: uppercase;
+}
+
 .calendar-days-grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
@@ -727,6 +990,79 @@ body {
   background-color: rgba(230, 126, 34, 0.1);
   color: #D35400;
   border-left-color: #E67E22;
+}
+
+.calendar-loading {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 280px;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+}
+
+.calendar-more-events {
+  font-size: 10px;
+  color: var(--color-text-secondary);
+  font-weight: 600;
+  padding-left: 4px;
+}
+
+.calendar-view-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.availability-note {
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--color-text-secondary);
+  background: var(--color-pine-ultra-light);
+  border: 1px solid rgba(16, 55, 60, 0.12);
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-bottom: 12px;
+}
+
+.availability-slots {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.availability-slot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 12px;
+  background: var(--color-bg);
+  padding: 9px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--color-border);
+}
+
+.availability-slot span {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--color-text-primary);
+}
+
+.availability-slot i {
+  color: var(--color-text-secondary);
+}
+
+.availability-slot input {
+  accent-color: var(--color-pine);
+}
+
+.availability-status {
+  min-height: 16px;
+  margin-top: 8px;
+  font-size: 11px;
+  color: var(--color-text-secondary);
 }
 
 .sidebar-section-title {
@@ -1369,6 +1705,258 @@ body {
   text-overflow: ellipsis;
 }
 
+/* ---------------------------------------------------------------------------
+   Linha da fila de atendimento
+   ---------------------------------------------------------------------------
+   A hierarquia antiga era invertida: o status ("Aguardando") vinha em corpo
+   grande e o NOME do cliente em cinza pequeno. Numa fila você procura pessoa,
+   não estado — então aqui o nome manda e o status virou etiqueta.
+   Estas classes existiam no HTML sem regra nenhuma de CSS; o visual vinha de
+   style inline espalhado pelo template. --------------------------------------- */
+
+.chat-item-content {
+  flex: 1;
+  min-width: 0;   /* deixa o texto encolher e reticenciar em vez de esticar a linha */
+}
+
+.chat-item-name {
+  font-family: var(--font-title);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-pine);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.chat-item-time {
+  font-size: 11px;
+  color: var(--color-text-secondary);
+  flex-shrink: 0;
+  margin-left: 8px;
+}
+
+/* Uma linha só, sem quebrar: com flex-wrap a bolinha de não lidas era empurrada
+   para uma linha própria e perdia o sentido de "resumo da conversa". Quem cede
+   espaço é a etiqueta do assunto, que reticencia — o contador reconhece o caso
+   pelo começo, e o número precisa estar visível. */
+.chat-item-footer {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  flex-wrap: nowrap;
+  min-width: 0;
+}
+
+.chat-item-tag {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--color-pine);
+  border: 1px solid var(--color-pine-ultra-light);
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: white;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chat-item-footer .status-badge { flex-shrink: 0; }
+
+/* ---------------------------------------------------------------------------
+   Painel lateral: abas Fila / Agenda do dia
+   ---------------------------------------------------------------------------
+   Duas listas alternadas em vez de empilhadas: num painel estreito, empilhar
+   deixaria as duas pela metade. Abas com rótulo (e não ícones) porque "agenda"
+   e "fila" são fáceis de confundir por desenho. ------------------------------ */
+
+.painel-abas {
+  display: flex;
+  border-bottom: 1px solid var(--color-border);
+  flex-shrink: 0;
+}
+
+.painel-aba {
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 14px 8px;
+  background: none;
+  border: none;
+  border-bottom: 3px solid transparent;
+  font-family: var(--font-title);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.painel-aba:hover { color: var(--color-pine); }
+
+.painel-aba.ativa {
+  color: var(--color-pine);
+  border-bottom-color: var(--color-coral);
+}
+
+.painel-lista { display: none; flex: 1; min-height: 0; flex-direction: column; }
+.painel-lista.ativa { display: flex; }
+
+/* Cabeçalho do dia: data por extenso + quanto já saiu do caminho. */
+.agenda-dia-cabecalho {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--color-border);
+  flex-shrink: 0;
+}
+
+.agenda-dia-data {
+  font-family: var(--font-title);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-pine);
+  /* Sem text-transform: capitalize — ele maiúscula TODA palavra e vira
+     "18 De Julho". Quem capitaliza só a primeira letra é o JS. */
+}
+
+.agenda-dia-resumo {
+  font-size: 11px;
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+}
+
+.agenda-vazia {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  text-align: center;
+  padding: 34px 20px;
+}
+
+/* Um compromisso da agenda. O HORÁRIO manda: é por ele que se lê uma agenda. */
+.agenda-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 16px;
+  border-bottom: 1px solid rgba(232, 228, 222, 0.5);
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.agenda-item:hover { background-color: var(--color-card); }
+
+/* Marcação sem cliente vinculado não abre conversa nenhuma — então não finge
+   ser clicável. */
+.agenda-item.sem-chat { cursor: default; }
+.agenda-item.sem-chat:hover { background: none; }
+
+.agenda-item-hora {
+  font-family: var(--font-title);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--color-pine);
+  min-width: 46px;
+  flex-shrink: 0;
+  padding-top: 1px;
+  font-variant-numeric: tabular-nums;   /* horários alinham em coluna */
+}
+
+.agenda-item.atrasado .agenda-item-hora { color: var(--color-coral); }
+
+.agenda-item-corpo { flex: 1; min-width: 0; }
+
+.agenda-item-nome {
+  font-family: var(--font-title);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-pine);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* O tema do atendimento: o que a pessoa vem tratar. */
+.agenda-item-tema {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  margin: 2px 0 6px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.agenda-item-seta {
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  align-self: center;
+  flex-shrink: 0;
+}
+
+.status-badge.status-done     { background: rgba(46, 204, 113, 0.14); color: #1E8F53; }
+.status-badge.status-atrasado { background: rgba(214, 48, 49, 0.12); color: #B32620; }
+
+/* .status-badge não tinha regra NENHUMA neste arquivo — cada lugar que usava
+   improvisava padding e cor por style inline, e onde ninguém improvisou (a
+   fila) o status saía como texto corrido em corpo grande, maior que o nome do
+   cliente. Aqui vai a forma; as variantes só trocam a cor. Onde já existe
+   style inline, ele continua vencendo — nada muda. */
+.status-badge {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: 12px;
+  font-family: var(--font-title);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.4;
+  white-space: nowrap;
+  background: var(--color-bg);
+  color: var(--color-text-secondary);
+}
+
+.status-badge.status-waiting { background: rgba(230, 126, 34, 0.12); color: #B35309; }
+.status-badge.status-active  { background: rgba(46, 204, 113, 0.14); color: #1E8F53; }
+.status-badge.status-docs    { background: rgba(241, 196, 15, 0.18); color: #8A6D08; }
+.status-badge.pending        { background: rgba(52, 152, 219, 0.12); color: #1F6FA5; }
+
+/* Contador de não lidas na própria linha do cliente — o padrão do WhatsApp.
+   Antes só existia um ponto no menu lateral dizendo "há mensagens em algum
+   lugar"; isto responde a pergunta que o contador realmente tem: QUEM está
+   esperando. Fica encostado à direita, longe das etiquetas. */
+.chat-item-nao-lidas {
+  margin-left: auto;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  background: var(--color-coral);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 20px;
+  text-align: center;
+  border-radius: 10px;
+  flex-shrink: 0;
+}
+
+/* Conversa com mensagem esperando: nome e prévia ganham peso. O destaque é
+   estático de propósito — nada pisca (ver nota em .chat-unread-badge). */
+.chat-item.tem-nao-lidas .chat-item-name { font-weight: 700; }
+.chat-item.tem-nao-lidas .chat-item-preview {
+  color: var(--color-text-primary);
+  font-weight: 600;
+}
+.chat-item.tem-nao-lidas .chat-item-time {
+  color: var(--color-coral);
+  font-weight: 700;
+}
+
 .chat-item-status {
   font-size: 10px;
   color: white;
@@ -1422,38 +2010,161 @@ body {
 
 .messages-history {
   flex: 1;
-  padding: 24px;
+  /* No WhatsApp as mensagens acompanham de perto as laterais da conversa.
+     24px deixava os balões visualmente "soltos" no centro do painel. */
+  padding: 12px 10px;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 6px;
   background-color: #F8F9FA;
 }
 
+/* Com poucas mensagens elas ficavam no topo e sobrava meia tela vazia. A margem
+   automática no primeiro item empurra tudo pra baixo quando há folga e some
+   quando não há — justify-content:flex-end cortaria o começo da conversa longa. */
+.messages-history > *:first-child { margin-top: auto; }
+
+/* Mesmo padrão WhatsApp do portal do cliente (ver nota em cliente.css): os dois
+   lados da conversa precisam parecer a mesma conversa.
+   Saiu o flex-column: o horário agora é posicionado dentro do balão, e float/
+   posicionamento não funcionam em filho de flex. */
 .message-bubble {
-  max-width: 70%;
-  padding: 12px 16px;
-  border-radius: 12px;
-  font-size: 14px;
-  line-height: 1.5;
+  max-width: 78%;
+  min-width: 96px;
+  padding: 6px 9px 7px;
+  border-radius: 8px;
+  font-size: 14.5px;
+  line-height: 1.4;
   position: relative;
-  display: flex;
-  flex-direction: column;
+  display: block;
+  animation: chat-entra 0.18s ease-out;
+  word-wrap: break-word;
+  overflow-wrap: anywhere;
+}
+
+/* O texto vira inline e ganha o espaçador que reserva o lugar do horário na
+   última linha — mesmo truque do lado do cliente. */
+.message-bubble > p {
+  display: inline;
+  margin: 0;
+}
+.message-bubble > p::after {
+  content: '';
+  display: inline-block;
+  width: 58px;
+  height: 1px;
+}
+
+/* Balão que é só card de documento não tem texto para reservar o espaço. */
+.message-bubble:not(:has(> p)) { padding-bottom: 24px; }
+
+@keyframes chat-entra {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* Enviando: já está na tela, só ainda não confirmou. */
+.message-bubble.pendente { opacity: 0.65; }
+
+.message-bubble.falhou {
+  background-color: #fdecec !important;
+  border: 1px solid #f3b4b0 !important;
+  color: #8c1d18 !important;
+}
+
+/* O rodapé da bolha (horário + ✓). Existia no HTML desde sempre, mas sem regra
+   de CSS: herdava os 14px do texto e competia com a mensagem. */
+.message-meta {
+  position: absolute;
+  right: 10px;
+  bottom: 6px;
+  font-size: 11px;
+  line-height: 1;
+  white-space: nowrap;
+  color: var(--color-text-secondary);
+  opacity: 0.9;
+}
+.message-meta i { margin-left: 3px; font-size: 10px; }
+.message-meta i.lida { color: #1F8A5F; }
+
+.chat-retry {
+  margin-top: 6px;
+  border: none;
+  background: rgba(179, 38, 30, 0.1);
+  color: #b3261e;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 7px 10px;
+  border-radius: 7px;
+  cursor: pointer;
+  text-align: left;
+}
+.chat-retry:hover { background: rgba(179, 38, 30, 0.18); }
+
+/* Separador de dia ("Hoje", "Ontem", "12 de julho de 2026"). */
+.chat-dia { align-self: center; margin: 4px 0; }
+.chat-dia span {
+  background: rgba(10, 49, 33, 0.06);
+  color: var(--color-text-secondary);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  padding: 4px 12px;
+  border-radius: 20px;
+}
+
+/* "O cliente está digitando" — entre o histórico e o campo de texto. */
+.chat-digitando {
+  display: none;
+  align-items: center;
   gap: 4px;
+  padding: 8px 24px 4px;
+  background-color: #F8F9FA;
+}
+.chat-digitando.ativo { display: flex; }
+.chat-digitando em {
+  font-style: normal;
+  font-size: 11px;
+  color: var(--color-text-secondary);
+  margin-left: 6px;
+}
+.chat-digitando .ponto {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--color-text-secondary);
+  animation: chat-pulo 1.2s infinite ease-in-out;
+}
+.chat-digitando .ponto:nth-child(2) { animation-delay: 0.15s; }
+.chat-digitando .ponto:nth-child(3) { animation-delay: 0.3s; }
+
+@keyframes chat-pulo {
+  0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+  30%           { transform: translateY(-4px); opacity: 1; }
+}
+
+/* Quem prefere menos movimento não perde informação: o estado continua legível
+   pelo ícone e pela cor. */
+@media (prefers-reduced-motion: reduce) {
+  .message-bubble { animation: none; }
+  .chat-digitando .ponto { animation: none; }
 }
 
 .message-bubble.received {
   align-self: flex-start;
   background-color: white;
   border: 1px solid var(--color-border);
-  border-bottom-left-radius: 2px;
+  border-radius: 8px 8px 8px 2px;
 }
 
 .message-bubble.sent {
   align-self: flex-end;
   background-color: var(--color-pine-ultra-light);
   border: 1px solid rgba(10, 49, 33, 0.1);
-  border-bottom-right-radius: 2px;
+  border-radius: 8px 8px 2px 8px;
   color: var(--color-pine);
 }
 
@@ -1504,6 +2215,12 @@ body {
   display: flex;
   align-items: center;
   gap: 6px;
+}
+
+.btn-shortcut-tag.active {
+  background-color: var(--color-pine);
+  color: #fff;
+  border-color: var(--color-pine);
 }
 
 .btn-shortcut-tag:hover {
@@ -2052,6 +2769,11 @@ body {
   display: flex;
   flex-direction: column;
   gap: 12px;
+  transition: background-color 0.2s ease;
+}
+
+.kanban-col-body.drag-over {
+  background-color: rgba(9, 55, 38, 0.05);
 }
 
 .kanban-card {
@@ -2061,12 +2783,52 @@ body {
   padding: 12px;
   box-shadow: 0 2px 4px rgba(0,0,0,0.02);
   cursor: grab;
-  transition: transform 0.2s, box-shadow 0.2s;
+  transition: transform 0.2s, box-shadow 0.2s, opacity 0.2s;
+}
+
+.kanban-card.dragging {
+  opacity: 0.5;
+  border: 2px dashed var(--color-pine);
+  cursor: grabbing;
 }
 
 .kanban-card:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+}
+
+/* SLA Badges */
+.sla-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 10px;
+  font-weight: 600;
+  margin-top: 8px;
+  width: fit-content;
+}
+.sla-green {
+  background-color: rgba(46, 204, 113, 0.1);
+  color: #27AE60;
+  border: 1px solid rgba(46, 204, 113, 0.3);
+}
+.sla-yellow {
+  background-color: rgba(241, 196, 15, 0.1);
+  color: #D4AC0D;
+  border: 1px solid rgba(241, 196, 15, 0.3);
+}
+.sla-red {
+  background-color: rgba(231, 76, 60, 0.1);
+  color: #C0392B;
+  border: 1px solid rgba(231, 76, 60, 0.3);
+  animation: pulse-sla 2s infinite;
+}
+@keyframes pulse-sla {
+  0% { box-shadow: 0 0 0 0 rgba(231, 76, 60, 0.4); }
+  70% { box-shadow: 0 0 0 4px rgba(231, 76, 60, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(231, 76, 60, 0); }
 }
 
 .kanban-card.done {
@@ -2276,14 +3038,14 @@ body {
 
 /* Atendimento Refactored Toolbar and Side Panels */
 .atendimento-toolbar-left {
-  width: 50px;
+  width: 64px;
   background-color: var(--color-bg);
   border-right: 1px solid var(--color-border);
   display: flex;
   flex-direction: column;
   align-items: center;
   padding: 16px 0;
-  gap: 16px;
+  gap: 12px;
   flex-shrink: 0;
 }
 
@@ -2293,8 +3055,13 @@ body {
   color: var(--color-text-secondary);
   font-size: 18px;
   cursor: pointer;
-  padding: 10px;
-  border-radius: 8px;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border-radius: 24px; /* Estilo pílula / circular */
   transition: all 0.2s ease;
 }
 
@@ -2318,6 +3085,85 @@ body {
   border: none;
 }
 
+/* Copiloto precisa de mais espaço que fila/dossiê: atalhos, seletor de skill e
+   campo de digitar ficavam espremidos nos 300px padrão. */
+.atendimento-side-panel[data-panel="copilot"] {
+  width: 380px;
+}
+
+/* Fundo próprio, diferente do chat principal — sinaliza visualmente que aqui
+   é a conversa com a IA, não com o cliente. Cor ajustável em Configurações. */
+#panel-content-copilot .prontuario-content,
+#panel-content-copilot .copilot-chat-history {
+  background-color: var(--copilot-bg-color);
+}
+
+.copilot-context-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  font-size: 11.5px;
+  color: var(--color-text-secondary);
+  background-color: var(--color-pine-ultra-light);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.copilot-context-bar strong {
+  color: var(--color-pine);
+  font-weight: 700;
+}
+
+.copilot-context-bar.sem-atendimento strong {
+  color: var(--color-text-secondary);
+  font-weight: 600;
+  font-style: italic;
+}
+
+/* Atalhos do Copiloto — reaproveita o mesmo chip (.btn-shortcut-tag) que os
+   atalhos de mensagem do chat principal já usam, numa única linha rolável no
+   lugar da grade de botões grandes que empurrava o campo de digitar pra baixo. */
+.copilot-prompts {
+  display: flex;
+  gap: 6px;
+  padding: 8px 12px;
+  border-top: 1px solid var(--color-border);
+  background: var(--color-bg);
+  overflow-x: auto;
+  scrollbar-width: thin;
+  margin-bottom: 0;
+}
+
+.copilot-prompts .btn-shortcut-tag {
+  flex: 0 0 auto;
+}
+
+/* Skill = lente de conhecimento aplicada à conversa toda (afeta os atalhos
+   acima também); fica num bloco próprio pra não parecer só mais um atalho. */
+.copilot-skill-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: var(--color-pine-ultra-light);
+  border-bottom: 1px solid var(--color-border);
+  color: var(--color-pine);
+}
+
+#active-skill-selector {
+  flex: 1;
+  border-radius: 8px;
+  font-size: 12px;
+  background-color: white;
+  color: var(--color-pine);
+  border: 1px solid var(--color-pine-light);
+  padding: 5px 10px;
+  height: 30px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
 .side-panel-content {
   display: none;
   flex-direction: column;
@@ -2329,13 +3175,30 @@ body {
 }
 
 .sidebar-copiloto {
-  width: 320px;
+  width: 450px;
   background-color: var(--color-bg);
   border-left: 1px solid var(--color-border);
   display: flex;
   flex-direction: column;
   transition: width 0.3s ease, border 0.3s ease;
   overflow: hidden;
+}
+
+.status-indicator {
+  font-size: 11px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.status-indicator.online {
+  color: #2ECC71;
+}
+.status-indicator.offline {
+  color: var(--color-text-secondary);
+}
+.status-indicator .dot {
+  font-size: 8px;
 }
 
 .sidebar-copiloto.collapsed {
@@ -2441,4 +3304,1121 @@ input:checked + .slider:before {
   border-radius: 8px;
   font-size: 13px;
   line-height: 1.4;
+}
+
+/* ==========================================================================
+   CARD DA TRIAGEM no dossiê — o que o cliente contou antes de entrar.
+   Fica no topo porque é a primeira coisa que o contador deve ler ao abrir
+   um atendimento: é o que ele não sabia até agora.
+   ========================================================================== */
+.triagem-card {
+  border: 1px solid var(--color-border);
+  border-left: 3px solid var(--color-coral);
+  border-radius: 10px;
+  padding: 14px 16px;
+  margin-bottom: 20px;
+  background: var(--color-pine-ultra-light);
+}
+
+.triagem-card.vazio {
+  border-left-color: var(--color-border);
+  background: #F8F9FA;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  color: var(--color-text-secondary);
+}
+.triagem-card.vazio i { font-size: 14px; }
+
+.triagem-card-topo {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.triagem-card-topo > i { font-size: 16px; color: var(--color-coral); margin-top: 2px; }
+.triagem-card-topo > div { flex: 1; min-width: 0; }
+.triagem-card-topo strong {
+  display: block;
+  font-size: 13px;
+  color: var(--color-pine);
+  line-height: 1.35;
+}
+
+.triagem-card-rotulo {
+  display: block;
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .5px;
+  color: var(--color-text-secondary);
+  margin-bottom: 2px;
+}
+
+.triagem-card-pct {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-pine);
+  background: white;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  padding: 2px 8px;
+  flex-shrink: 0;
+}
+
+/* O relato do cliente, com as palavras dele. Citação e não parágrafo comum:
+   é a voz de outra pessoa dentro da tela do contador. */
+.triagem-card-relato {
+  border-left: 2px solid rgba(10, 49, 33, 0.15);
+  padding: 2px 0 2px 12px;
+  margin: 0 0 10px;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--color-text-primary);
+  font-style: italic;
+  white-space: pre-wrap;
+}
+
+.triagem-card-respostas {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-bottom: 10px;
+}
+.triagem-card-resp {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 12px;
+  padding-bottom: 5px;
+  border-bottom: 1px dashed var(--color-border);
+}
+.triagem-card-resp span { color: var(--color-text-secondary); }
+.triagem-card-resp strong { color: var(--color-pine); text-align: right; }
+
+/* Empilhado, não lado a lado: o dossiê é uma coluna estreita, e o rótulo da
+   hipótese virava uma palavra por linha ao dividir espaço com o botão. */
+.triagem-card-sugestao {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+  background: white;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+.triagem-card-sugestao strong {
+  display: block;
+  font-size: 12px;
+  color: var(--color-pine);
+  line-height: 1.35;
+}
+.triagem-card-sugestao .btn-doc-action { width: 100%; justify-content: center; }
+
+/* Pergunta e resposta uma sobre a outra, pelo mesmo motivo. */
+.triagem-card-resp {
+  display: block;
+  border-bottom: 1px dashed var(--color-border);
+  padding-bottom: 5px;
+}
+.triagem-card-resp span { display: block; font-size: 11px; }
+.triagem-card-resp strong { display: block; text-align: left; font-size: 12px; }
+
+/* ==========================================================================
+   CONFIGURAÇÕES → ÁREA DO CLIENTE
+   ========================================================================== */
+.cfg-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-pine);
+  margin: 10px 0 4px;
+}
+
+.cfg-input {
+  width: 100%;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  padding: 8px 10px;
+  font-family: inherit;
+  font-size: 13px;
+  background: white;
+  outline: none;
+  transition: border-color .15s;
+}
+.cfg-input:focus { border-color: var(--color-pine); }
+.cfg-input-fraco { font-size: 12px; color: var(--color-text-secondary); margin-top: 6px; }
+
+.cfg-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+
+.cfg-linha {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+  padding: 12px 0;
+  border-top: 1px solid var(--color-border);
+}
+.cfg-linha:first-of-type { border-top: none; }
+.cfg-linha-titulo { display: block; font-size: 13px; color: var(--color-pine); margin-bottom: 2px; }
+.cfg-linha-nota { display: block; font-size: 11px; color: var(--color-text-secondary); line-height: 1.45; }
+
+.cfg-vazio {
+  font-size: 12px;
+  color: var(--color-coral);
+  background: var(--color-coral-light);
+  border-radius: 6px;
+  padding: 10px 12px;
+}
+
+/* ---- cartões de assunto (sanfona) ---- */
+.cfg-assunto {
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  margin-bottom: 8px;
+  background: white;
+  overflow: hidden;
+}
+
+.cfg-assunto-cabeca {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  cursor: pointer;
+  user-select: none;
+}
+.cfg-assunto-cabeca:hover { background: var(--color-pine-ultra-light); }
+.cfg-seta { font-size: 10px; color: var(--color-text-secondary); width: 10px; }
+
+.cfg-assunto-resumo { flex: 1; min-width: 0; }
+.cfg-assunto-resumo strong {
+  display: block;
+  font-size: 13px;
+  color: var(--color-pine);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cfg-assunto-resumo span { font-size: 11px; color: var(--color-text-secondary); }
+
+.cfg-assunto-acoes { display: flex; gap: 2px; flex-shrink: 0; }
+
+.cfg-btn-icone {
+  border: none;
+  background: none;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  padding: 5px 7px;
+  border-radius: 5px;
+  font-size: 12px;
+}
+.cfg-btn-icone:hover { background: var(--color-bg); color: var(--color-pine); }
+.cfg-btn-icone.perigo:hover { background: #fdecec; color: #b3261e; }
+
+.cfg-assunto-corpo {
+  padding: 4px 14px 16px;
+  border-top: 1px solid var(--color-border);
+  background: #FBFBFA;
+}
+
+/* ---- listas de chips (documentos, opções) ---- */
+.cfg-lista { margin-top: 14px; }
+.cfg-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+
+.cfg-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--color-pine-ultra-light);
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+  padding: 4px 6px 4px 11px;
+  font-size: 12px;
+  color: var(--color-pine);
+}
+.cfg-chip button {
+  border: none;
+  background: none;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  font-size: 15px;
+  line-height: 1;
+  padding: 0 3px;
+  border-radius: 50%;
+}
+.cfg-chip button:hover { color: #b3261e; }
+
+.cfg-add-linha { display: flex; gap: 6px; }
+
+.cfg-btn-add {
+  border: 1px dashed var(--color-border);
+  background: white;
+  border-radius: 6px;
+  padding: 7px 12px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-pine);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.cfg-btn-add:hover { border-color: var(--color-pine); background: var(--color-pine-ultra-light); }
+
+/* ---- perguntas ---- */
+.cfg-pergunta {
+  border: 1px solid var(--color-border);
+  border-radius: 7px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  background: white;
+}
+.cfg-pergunta-topo { display: flex; gap: 6px; align-items: center; }
+
+.cfg-check {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--color-text-secondary);
+  margin-top: 8px;
+  cursor: pointer;
+}
+
+/* ---- rodapé ---- */
+.cfg-rodape {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  padding-top: 16px;
+  border-top: 1px solid var(--color-border);
+  margin-top: 20px;
+}
+.cfg-aviso { flex: 1; font-size: 12px; line-height: 1.4; }
+.cfg-aviso.ok { color: #1F8A5F; }
+.cfg-aviso.erro { color: #b3261e; }
+
+/* "Em breve": abas de configuração cujo backend ainda não existe.
+   Honesto em vez de fingir que salva — banner + controles travados. */
+.em-breve-banner {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding: 12px 16px;
+  margin-bottom: 20px;
+  border: 1px solid var(--color-border);
+  border-left: 3px solid var(--color-pine);
+  border-radius: 8px;
+  background: var(--color-pine-ultra-light);
+}
+.em-breve-banner i { font-size: 16px; color: var(--color-pine); }
+.em-breve-banner strong {
+  display: block;
+  font-size: 13px;
+  color: var(--color-pine);
+  margin-bottom: 2px;
+}
+.em-breve-banner span {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  line-height: 1.4;
+}
+.em-breve-lock {
+  opacity: 0.55;
+  pointer-events: none;
+  user-select: none;
+}
+
+
+/* ==========================================================================
+   MOBILE — Painel do Contador
+   --------------------------------------------------------------------------
+   Acompanha o contador-mobile.js. O JS cuida do estado (qual vista está aberta,
+   o que vai na folha "Mais"); aqui é só a forma.
+
+   TUDO aqui é escopado em body.pagina-contador. Este arquivo é compartilhado
+   com o portal do cliente, que tem o próprio layout mobile no cliente.css —
+   sem o escopo, a regra que esconde os itens não-primários da barra apagava a
+   navegação inteira do cliente.
+
+   Mesmas três armadilhas tratadas no portal do cliente e pelo mesmo motivo:
+   100dvh (a barra do Safari engole o rodapé), input em 16px (abaixo disso o
+   iOS dá zoom sozinho ao focar) e safe-area (barra de gestos do iPhone).
+   ========================================================================== */
+
+@media (max-width: 768px) {
+
+  body.pagina-contador {
+    --oc-header-h: 56px;
+    --oc-nav-h: 60px;
+    --oc-safe-b: env(safe-area-inset-bottom, 0px);
+    --oc-rodape: calc(var(--oc-nav-h) + var(--oc-safe-b));
+    height: 100vh;
+    height: 100dvh;
+    overflow: hidden;
+  }
+
+  /* ---- Cabeçalho ---- */
+  body.pagina-contador .app-header {
+    height: var(--oc-header-h);
+    padding: 0 12px;
+    border-bottom-width: 2px;
+  }
+  body.pagina-contador .logo-text { font-size: 16px; }
+  body.pagina-contador .logo-container { gap: 7px; }
+  body.pagina-contador .logo-icon { width: 28px; height: 28px; }
+
+  /* O nome e o "Online" do próprio contador não ajudam no celular — ele sabe
+     quem é. O sino e o sair, sim. */
+  body.pagina-contador .app-header .agent-info { display: none; }
+  body.pagina-contador .app-header .agent-avatar { width: 32px; height: 32px; font-size: 12px; }
+  body.pagina-contador .header-right { gap: 10px; }
+
+  body.pagina-contador .dashboard-container {
+    height: calc(100vh - var(--oc-header-h));
+    height: calc(100dvh - var(--oc-header-h));
+    flex-direction: column;
+  }
+
+  /* ---- Barra inferior ---- */
+  body.pagina-contador .app-sidebar-nav,
+  body.pagina-contador .app-sidebar-nav.collapsed {
+    position: fixed;
+    left: 0; right: 0; bottom: 0;
+    z-index: 60;
+    width: 100%;
+    height: var(--oc-rodape);
+    padding: 0 0 var(--oc-safe-b) 0;
+    flex-direction: row;
+    align-items: stretch;
+    border-right: none;
+    border-top: 1px solid var(--color-border);
+    box-shadow: 0 -2px 12px rgba(10, 49, 33, 0.07);
+    transition: none;
+  }
+
+  /* Só as 4 do dia a dia + o "Mais". As outras 5 continuam no DOM e continuam
+     funcionando — quem as alcança é a folha "Mais". */
+  body.pagina-contador .app-sidebar-nav .nav-item:not(.mob-primaria),
+  body.pagina-contador .app-sidebar-nav .nav-section-title,
+  body.pagina-contador .app-sidebar-nav [data-logout],
+  body.pagina-contador .app-sidebar-nav > div:not([class]) { display: none !important; }
+
+  body.pagina-contador .app-sidebar-nav .nav-item.mob-primaria {
+    display: flex;
+    flex: 1 1 0;
+    min-width: 0;
+    flex-direction: column;
+    justify-content: center;
+    gap: 3px;
+    padding: 6px 2px;
+    border-left: none;
+    border-top: 3px solid transparent;
+    font-size: 9.5px;
+    line-height: 1.15;
+    text-align: center;
+  }
+  body.pagina-contador .app-sidebar-nav .nav-item.mob-primaria i {
+    font-size: 17px; width: auto; margin: 0;
+  }
+  body.pagina-contador .app-sidebar-nav .nav-item.mob-primaria .nav-label {
+    display: block; width: 100%;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  body.pagina-contador .app-sidebar-nav .nav-item.mob-primaria.active {
+    border-top: 3px solid var(--color-coral);
+    background-color: var(--color-pine-ultra-light);
+  }
+
+  body.pagina-contador #oc-dev-aviso {
+    font-size: 10px !important;
+    padding: 5px 8px !important;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  body.pagina-contador.oc-dev-on .app-sidebar-nav { bottom: 24px; }
+
+  /* ---- Folha "Mais" ---- */
+  body.pagina-contador #mob-folha-fundo {
+    position: fixed; inset: 0; z-index: 200;
+    background: rgba(10, 49, 33, 0.45);
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.2s ease;
+  }
+  body.pagina-contador.mob-folha-aberta #mob-folha-fundo { opacity: 1; pointer-events: auto; }
+
+  body.pagina-contador #mob-folha {
+    position: fixed; left: 0; right: 0; bottom: 0;
+    z-index: 201;
+    background: var(--color-card);
+    border-radius: 16px 16px 0 0;
+    padding: 8px 0 calc(12px + var(--oc-safe-b));
+    box-shadow: 0 -8px 30px rgba(10, 49, 33, 0.2);
+    transform: translateY(100%);
+    transition: transform 0.22s ease;
+    max-height: 80dvh; overflow-y: auto;
+  }
+  body.pagina-contador.mob-folha-aberta #mob-folha { transform: translateY(0); }
+  /* A tarja de modo dev é fixa no rodapé e cobria o último item da folha. */
+  body.pagina-contador.oc-dev-on #mob-folha { padding-bottom: calc(36px + var(--oc-safe-b)); }
+
+  /* Alça visual: sinaliza "isto desliza/fecha" sem precisar de instrução. */
+  body.pagina-contador .mob-folha-titulo {
+    font-family: var(--font-title);
+    font-size: 12px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 1px; color: var(--color-text-secondary);
+    padding: 14px 20px 8px; position: relative;
+  }
+  body.pagina-contador .mob-folha-titulo::before {
+    content: ''; position: absolute; top: 6px; left: 50%;
+    transform: translateX(-50%);
+    width: 36px; height: 4px; border-radius: 2px;
+    background: var(--color-border);
+  }
+
+  body.pagina-contador .mob-folha-item {
+    display: flex; align-items: center; gap: 14px;
+    width: 100%; min-height: 52px;
+    padding: 12px 20px;
+    background: none; border: none;
+    font-family: var(--font-title); font-size: 15px; font-weight: 500;
+    color: var(--color-text-primary); text-align: left; cursor: pointer;
+  }
+  body.pagina-contador .mob-folha-item i {
+    font-size: 17px; width: 24px; text-align: center; color: var(--color-pine);
+  }
+  body.pagina-contador .mob-folha-item:active { background: var(--color-bg); }
+  body.pagina-contador .mob-folha-sair { border-top: 1px solid var(--color-border); margin-top: 6px; }
+  body.pagina-contador .mob-folha-sair i,
+  body.pagina-contador .mob-folha-sair span { color: #b91c1c; }
+
+  /* ---- Conteúdo ---- */
+  body.pagina-contador .main-content-panels { padding-bottom: var(--oc-rodape); }
+  body.pagina-contador.oc-dev-on .main-content-panels { padding-bottom: calc(var(--oc-rodape) + 24px); }
+
+  body.pagina-contador .content-panel { padding: 16px 14px 20px; }
+  /* A seção "Relatório" (dossiê reformado) traz padding de 40px inline no HTML,
+     que ganharia da regra acima; em 375px isso come um quinto da tela. */
+  body.pagina-contador #section-dossie { padding: 16px 14px 20px !important; }
+  body.pagina-contador .panel-header-desc { margin-bottom: 16px; }
+  body.pagina-contador .panel-header-desc h2 { font-size: 20px; }
+
+  body.pagina-contador .kpi-cards-grid,
+  body.pagina-contador .dashboard-split-grid,
+  body.pagina-contador .agendamentos-two-columns,
+  body.pagina-contador .responsive-grid,
+  body.pagina-contador .financeiro-grid,
+  body.pagina-contador .content-panel [class*="grid"] {
+    grid-template-columns: 1fr !important;
+    gap: 14px;
+  }
+
+  /* Armadilha clássica de CSS grid: o filho nasce com min-width:auto e se
+     RECUSA a encolher abaixo do próprio conteúdo — a coluna vira 1fr, o card
+     continua 382px e vaza. O min-width:0 é o que autoriza o encolhimento. */
+  body.pagina-contador .kpi-cards-grid > *,
+  body.pagina-contador .dashboard-split-grid > *,
+  body.pagina-contador .agendamentos-two-columns > *,
+  body.pagina-contador .responsive-grid > *,
+  body.pagina-contador .financeiro-grid > *,
+  body.pagina-contador .content-panel [class*="grid"] > * { min-width: 0; }
+  
+  body.pagina-contador .calendar-dashboard-layout,
+  body.pagina-contador .settings-layout { flex-direction: column; }
+
+  /* Cabeçalho do card em linha rígida: no dashboard o título "Remarketing:
+     Carrinhos Abandonados" chegava a montar por cima do texto ao lado. */
+  body.pagina-contador .dash-card-header { flex-wrap: wrap; gap: 8px; }
+  body.pagina-contador .dash-card-header h3 { font-size: 15px; }
+
+  body.pagina-contador .content-panel input,
+  body.pagina-contador .content-panel select,
+  body.pagina-contador .content-panel textarea { font-size: 16px; }
+  body.pagina-contador .content-panel button,
+  body.pagina-contador .content-panel .btn { min-height: 44px; }
+
+  /* Tabela e calendário não colapsam — não existe calendário de 7 colunas em
+     375px que se leia. Eles rolam DENTRO da própria caixa, para a página nunca
+     rolar de lado. O container que rola tem que ser o pai real: sem isto o
+     min-width abaixo só faz o conteúdo ser CORTADO (a .calendar-main tem
+     overflow:hidden) — pior que não ter feito nada. */
+  body.pagina-contador .financeiro-table,
+  body.pagina-contador .calendar-grid { min-width: 560px; }
+  body.pagina-contador .financeiro-card,
+  body.pagina-contador .calendar-main {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+  }
+  body.pagina-contador .kanban-board { -webkit-overflow-scrolling: touch; }
+
+  /* Cabeçalho do cliente (avatar · nome · "cliente desde") numa linha rígida de
+     446px. Deixando quebrar, os dados descem em vez de sair da tela. */
+  body.pagina-contador #section-clientes div[style*="display: flex"] { flex-wrap: wrap; }
+
+  /* ======================================================================
+     ATENDIMENTO — três vistas, uma de cada vez
+     Fila → Conversa → Dossiê. O data-mob é escrito pelo contador-mobile.js.
+     ====================================================================== */
+
+  body.pagina-contador #section-atendimento.content-panel { padding: 0; overflow: hidden; }
+  body.pagina-contador #section-atendimento .panel-header-desc { display: none; }
+
+  body.pagina-contador .atendimento-module-container {
+    display: block; height: 100%; position: relative;
+  }
+
+  /* A trilha de ícones vertical não existe no celular: quem troca de vista são
+     o voltar, o botão de dossiê e o toque na fila. */
+  body.pagina-contador .atendimento-toolbar-left { display: none; }
+
+  body.pagina-contador .atendimento-side-panel,
+  body.pagina-contador .chat-area,
+  body.pagina-contador .sidebar-copiloto {
+    position: absolute; inset: 0;
+    width: 100% !important; max-width: none !important;
+    border: none; border-radius: 0;
+    transition: none;
+  }
+
+  /* Uma vista visível por vez. */
+  body.pagina-contador .atendimento-side-panel,
+  body.pagina-contador .chat-area { display: none; }
+
+  body.pagina-contador .atendimento-module-container[data-mob="fila"] .atendimento-side-panel,
+  body.pagina-contador .atendimento-module-container[data-mob="dossie"] .atendimento-side-panel {
+    display: flex; flex-direction: column;
+  }
+  body.pagina-contador .atendimento-module-container[data-mob="chat"] .chat-area {
+    display: flex; flex-direction: column;
+  }
+
+  /* O painel lateral é compartilhado por Fila e Dossiê; o data-mob decide qual
+     conteúdo aparece, ignorando o .active que a trilha do desktop controla. */
+  body.pagina-contador .atendimento-module-container[data-mob="fila"] #panel-content-fila {
+    display: flex !important; flex-direction: column;
+  }
+  body.pagina-contador .atendimento-module-container[data-mob="fila"] #panel-content-dossie {
+    display: none !important;
+  }
+  body.pagina-contador .atendimento-module-container[data-mob="dossie"] #panel-content-dossie {
+    display: flex !important; flex-direction: column;
+  }
+  body.pagina-contador .atendimento-module-container[data-mob="dossie"] #panel-content-fila {
+    display: none !important;
+  }
+
+  /* Copiloto vira a 4ª vista no celular — a aba "Agenda do dia" (redundante:
+     já existe a seção Agendamentos na barra de baixo) abre isto no lugar. */
+  body.pagina-contador .atendimento-module-container[data-mob="copilot"] .atendimento-side-panel {
+    display: flex; flex-direction: column;
+  }
+  body.pagina-contador .atendimento-module-container[data-mob="copilot"] #panel-content-copilot {
+    display: flex !important; flex-direction: column;
+  }
+  body.pagina-contador .atendimento-module-container[data-mob="copilot"] #panel-content-fila,
+  body.pagina-contador .atendimento-module-container[data-mob="copilot"] #panel-content-dossie {
+    display: none !important;
+  }
+  body.pagina-contador .atendimento-module-container:not([data-mob="copilot"]) #panel-content-copilot {
+    display: none !important;
+  }
+
+  #mob-copilot-voltar {
+    display: flex; align-items: center; gap: 8px;
+    padding: 12px 16px; border-bottom: 1px solid var(--color-border);
+    background: white; color: var(--color-pine); font-weight: 600; font-size: 14px;
+    cursor: pointer;
+  }
+
+  /* O painel lateral vem "collapsed" do desktop; no celular ele é a tela toda. */
+  body.pagina-contador .atendimento-side-panel.collapsed { width: 100% !important; }
+  body.pagina-contador .side-panel-content { height: 100%; overflow-y: auto; }
+
+  /* --- Fila --- */
+  body.pagina-contador #panel-content-fila .sidebar-title { padding: 14px 16px 8px; }
+  body.pagina-contador #panel-content-fila .search-chat { padding: 0 16px 10px; }
+  body.pagina-contador #panel-content-fila .search-chat input { font-size: 16px; }
+
+  /* O nome do cliente é o que se procura numa fila — no desktop ele saía menor
+     que o status. Aqui o nome manda e o status vira etiqueta. */
+  body.pagina-contador .chat-item { padding: 14px 16px; min-height: 64px; }
+  body.pagina-contador .chat-item .chat-item-name,
+  body.pagina-contador .chat-item h4 {
+    font-size: 15px !important;
+    font-weight: 600 !important;
+    color: var(--color-pine) !important;
+  }
+
+  /* --- Conversa --- */
+  body.pagina-contador .chat-area-header {
+    padding: 8px 10px; gap: 8px;
+    flex-shrink: 0; flex-wrap: wrap;
+    align-items: center;
+  }
+
+  body.pagina-contador #mob-btn-voltar,
+  body.pagina-contador #mob-btn-dossie {
+    display: flex; align-items: center; justify-content: center;
+    width: 38px; height: 38px; flex-shrink: 0;
+    background: var(--color-bg);
+    border: 1px solid var(--color-border);
+    border-radius: 50%;
+    color: var(--color-pine); font-size: 15px; cursor: pointer;
+  }
+  body.pagina-contador #mob-btn-dossie { margin-left: auto; }
+
+  /* O min-width:0 é o que permite o bloco do meio encolher — sem ele o flex
+     respeita o conteúdo, estoura a largura e o resto cai para a linha de baixo. */
+  body.pagina-contador .chat-area-header .active-client-info {
+    flex: 1 1 auto; min-width: 0; gap: 8px; align-items: center;
+  }
+  body.pagina-contador .chat-area-header .active-client-details { min-width: 0; }
+  body.pagina-contador .chat-area-header .active-client-details > div {
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  body.pagina-contador .chat-area-header .active-client-details h3 {
+    font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  body.pagina-contador .chat-area-header .chat-item-avatar {
+    width: 34px; height: 34px; font-size: 12px; flex-shrink: 0;
+  }
+
+  /* As ações descem para a própria linha. Espremidas no cabeçalho brigavam
+     com o nome do cliente. */
+  body.pagina-contador .chat-actions-top {
+    order: 3; width: 100%;
+    display: flex; gap: 6px;
+    overflow-x: auto; -webkit-overflow-scrolling: touch;
+    padding-bottom: 2px;
+    scrollbar-width: none;
+  }
+  body.pagina-contador .chat-actions-top::-webkit-scrollbar { display: none; }
+  body.pagina-contador .chat-actions-top > * { flex-shrink: 0; font-size: 12px !important; }
+
+  /* Tudo isto somado pedia 732px numa linha de 353 — e o que sobrava de fora
+     era justamente o "Encerrar", o botão que mais importa no celular. Cada peça
+     foi encolhida até o conjunto caber. O !important não é preguiça: o select e
+     o cronômetro carregam largura por estilo inline no HTML. */
+  body.pagina-contador .chat-actions-top select {
+    width: 96px !important; min-width: 96px !important; max-width: 96px !important;
+    height: auto !important; min-height: 38px;
+    align-self: center;
+    font-size: 13px !important;
+    padding: 6px 8px !important;
+  }
+  body.pagina-contador .chat-actions-top #chat-timer-container {
+    width: 84px !important; min-width: 84px !important;
+    height: 38px !important; padding: 0 6px !important;
+    align-self: center; justify-content: center;
+  }
+  body.pagina-contador .chat-actions-top #chat-timer-container * { font-size: 12px !important; }
+
+  /* "Bloquear Chat" vira só o cadeado: o ícone já diz, e o texto custava 129px.
+     "Encerrar" mantém a palavra — encerrar atendimento por engano é caro. */
+  body.pagina-contador #btn-toggle-lock {
+    font-size: 0 !important;
+    width: 44px; padding: 0; height: 38px;
+    justify-content: center; align-self: center;
+  }
+  body.pagina-contador #btn-toggle-lock i { font-size: 15px !important; margin: 0 !important; }
+  body.pagina-contador #btn-finish-chat { height: 38px; align-self: center; padding: 0 12px; }
+
+  body.pagina-contador .messages-history { padding: 10px 8px; gap: 6px; }
+  body.pagina-contador .message-bubble { max-width: 85%; padding: 7px 10px 8px; }
+
+  /* --- Compositor --- */
+  body.pagina-contador .chat-area-footer {
+    padding: 8px 10px calc(8px + var(--oc-safe-b));
+    flex-shrink: 0;
+  }
+
+  /* Os atalhos ficam numa gaveta: sete chips em fila cortavam palavra no meio
+     e roubavam a altura que a conversa precisa. */
+  body.pagina-contador .chat-area-footer .shortcuts-bar {
+    display: none;
+    flex-wrap: wrap; gap: 6px;
+    margin-bottom: 8px;
+    max-height: 33dvh; overflow-y: auto;
+  }
+  body.pagina-contador .mob-atalhos-abertos .chat-area-footer .shortcuts-bar { display: flex; }
+  body.pagina-contador .chat-area-footer .btn-shortcut-tag { font-size: 12px; }
+
+  body.pagina-contador #mob-btn-atalhos {
+    display: flex; align-items: center; justify-content: center;
+    width: 38px; height: 38px; flex-shrink: 0; margin-right: 6px;
+    background: var(--color-bg);
+    border: 1px solid var(--color-border);
+    border-radius: 50%;
+    color: var(--color-pine); font-size: 15px; cursor: pointer;
+  }
+  body.pagina-contador .mob-atalhos-abertos #mob-btn-atalhos {
+    background: var(--color-coral); border-color: var(--color-coral); color: #fff;
+  }
+
+  /* O seletor de skill divide a linha com o formulário por estilo inline no
+     HTML. Em 375px sobravam 42px para o campo de mensagem — literalmente sem
+     onde escrever. Aqui a linha quebra: skill em cima, compositor embaixo. */
+  body.pagina-contador .chat-area-footer > div[style*="display: flex"] { flex-wrap: wrap; }
+  body.pagina-contador .chat-area-footer #active-skill-selector {
+    flex: 1 0 100%;
+    max-width: none !important;
+    font-size: 16px !important;
+    margin-bottom: 8px;
+  }
+  body.pagina-contador .chat-area-footer #chat-form { flex: 1 0 100%; min-width: 0; }
+  body.pagina-contador .chat-area-footer .input-message { flex: 1 1 auto; font-size: 16px; min-width: 0; }
+  body.pagina-contador .chat-area-footer .btn-send { width: 40px; height: 40px; flex-shrink: 0; }
+  body.pagina-contador .chat-area-footer #btn-inline-ai { margin-right: 6px !important; }
+
+  /* Barra de teste: some junto com o modo dev. */
+  body.pagina-contador .sim-client-actions { flex-wrap: wrap; gap: 6px; font-size: 11px; }
+
+  /* --- Dossiê --- */
+  body.pagina-contador #mob-dossie-voltar {
+    display: flex; align-items: center; gap: 8px;
+    width: 100%; padding: 12px 16px;
+    background: var(--color-bg);
+    border: none; border-bottom: 1px solid var(--color-border);
+    font-family: var(--font-title); font-size: 14px; font-weight: 600;
+    color: var(--color-pine); cursor: pointer;
+  }
+  body.pagina-contador #panel-content-dossie .prontuario-content { padding: 14px 16px; }
+  body.pagina-contador #panel-content-dossie .prontuario-footer {
+    padding: 12px 16px calc(12px + var(--oc-safe-b));
+  }
+
+  /* --- Copiloto: sobrepõe a conversa em vez de disputar largura --- */
+  body.pagina-contador .sidebar-copiloto { z-index: 40; }
+  body.pagina-contador .sidebar-copiloto.collapsed { display: none; }
+
+  /* ---- Modais ---- */
+  body.pagina-contador .modal-overlay { align-items: flex-end; }
+  body.pagina-contador .modal-container,
+  body.pagina-contador .receita-modal-container {
+    width: 100%; max-width: none; max-height: 92dvh;
+    border-radius: 12px 12px 0 0;
+  }
+
+  /* Relatório do Cliente: editor e prévia empilhados, nesta ordem — preenche em
+     cima, confere embaixo. Lado a lado em 375px sobravam ~150px para cada um: o
+     formulário ficava sem onde escrever e a prévia (um documento de 720px
+     reduzido) virava uma miniatura ilegível.
+     As duas colunas são um div SEM CLASSE com display:flex inline, daí o
+     seletor pelo filho e o !important. */
+  body.pagina-contador #modal-relatorio-overlay .modal-container {
+    max-width: none !important; width: 100% !important;
+  }
+  body.pagina-contador #modal-relatorio-overlay .modal-body { overflow-y: auto; }
+  body.pagina-contador #modal-relatorio-overlay .modal-body > div {
+    display: flex !important;
+    flex-direction: column !important;
+    max-height: none !important;
+  }
+  body.pagina-contador #modal-relatorio-overlay .modal-body > div > * {
+    width: 100% !important;
+    max-width: none !important;
+    border-left: none !important;
+    border-right: none !important;
+  }
+  body.pagina-contador #modal-relatorio-overlay #rel-previa-wrap {
+    border-top: 1px solid var(--color-border);
+    padding-top: 14px;
+  }
+  body.pagina-contador #modal-relatorio-overlay textarea { min-height: 84px; font-size: 16px; }
+  body.pagina-contador #modal-relatorio-overlay .modal-footer { flex-wrap: wrap; gap: 8px; }
+  body.pagina-contador #modal-relatorio-overlay .modal-footer button { flex: 1 1 140px; }
+}
+
+@media (max-width: 360px) {
+  body.pagina-contador .app-sidebar-nav .nav-item.mob-primaria { font-size: 8.5px; }
+  body.pagina-contador .app-sidebar-nav .nav-item.mob-primaria i { font-size: 16px; }
+  body.pagina-contador .logo-text { font-size: 14px; }
+}
+
+/* ==================================================
+   ROUNDED OVERRIDES CLASSES
+   ================================================== */
+.content-panel, .dash-card, .kpi-card, .financeiro-card, .side-panel-content, .modal-container, .triagem-card {
+  border-radius: var(--radius-lg) !important;
+  transition: var(--transition-fluid);
+}
+
+.kpi-card:hover, .dash-card:hover, .financeiro-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 24px rgba(10, 49, 33, 0.08);
+}
+
+.btn-utility, .btn-primary, .btn-generate-report, .chat-card, .btn-doc-action, .btn-shortcut-tag, .evidence-tag {
+  border-radius: var(--radius-pill) !important;
+  transition: var(--transition-fluid);
+}
+
+.settings-tab, .btn-toolbar, .cliente-option-card {
+  border-radius: var(--radius-md) !important;
+  transition: var(--transition-fluid);
+}
+
+.form-input, .form-select, .form-textarea, .input-message, .search-chat input {
+  border-radius: var(--radius-md) !important;
+  transition: var(--transition-fluid);
+}
+
+
+/* Buttons contrast inside chat */
+.chat-area-footer .btn-shortcut-tag {
+  background-color: white !important;
+  color: var(--color-text-secondary) !important;
+  border: 1px solid var(--color-border) !important; /* Linha de separação / contorno original */
+}
+.chat-area-footer .btn-shortcut-tag:hover {
+  background-color: var(--color-coral-light) !important;
+  color: var(--color-coral) !important;
+  border-color: var(--color-coral) !important;
+}
+
+#active-skill-selector {
+  border-radius: var(--radius-pill) !important;
+  background-color: white !important;
+  color: var(--color-text-secondary) !important;
+  border: 1px solid var(--color-border) !important;
+  padding: 4px 32px 4px 12px !important; /* space for arrow */
+  transition: var(--transition-fluid);
+  cursor: pointer;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%236C8578%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E") !important;
+  background-repeat: no-repeat !important;
+  background-position: right 10px top 50% !important;
+  background-size: 10px auto !important;
+}
+#active-skill-selector:hover, #active-skill-selector:focus {
+  border-color: var(--color-coral) !important;
+  outline: none;
+}
+
+#btn-inline-ai {
+  background-color: var(--color-coral-light) !important;
+  color: var(--color-coral) !important;
+  border: none !important;
+}
+
+/* Soften the input container */
+.input-container {
+  border-radius: var(--radius-pill) !important;
+  padding: 4px 8px !important;
+}
+.input-container .input-message {
+  border-radius: var(--radius-pill) !important;
+}
+.btn-send {
+  border-radius: 50% !important;
+}
+
+/* Navbar smooth borders */
+.app-sidebar-nav {
+  border-radius: 0 var(--radius-lg) var(--radius-lg) 0;
+}
+
+/* Submenu/Sidebar floating integration */
+.atendimento-side-panel {
+  border-right: none !important;
+  background-color: var(--color-bg) !important; /* Blend with system background for contrast */
+  box-shadow: none !important; /* Remove shadow to let chat float */
+  margin-right: 0px; /* Zero margin here so chat area margin dictates the uniform gap */
+  z-index: 5;
+}
+.atendimento-toolbar-left {
+  border-right: none !important;
+  background-color: var(--color-bg) !important;
+  box-shadow: none !important;
+  z-index: 6;
+}
+
+/* Chat area popping out with orange frame */
+.chat-area {
+  border-radius: 24px 24px 0 0 !important; /* Arredondado apenas em cima */
+  box-shadow: 0 -4px 32px rgba(10, 49, 33, 0.08) !important; 
+  border: 3px solid var(--color-coral) !important; /* Moldura laranja */
+  border-bottom: none !important; /* Colado ao rodapé */
+  margin: 16px 16px 0 16px !important; /* Uniform margin on top, right, and left */
+  background-color: var(--chat-bg-color) !important;
+  overflow: hidden; 
+  -webkit-mask-image: -webkit-radial-gradient(white, black);
+  transform: translateZ(0);
+}
+
+/* Chat bubble contrast fixes */
+.message-bubble.received {
+  background-color: var(--chat-bubble-cliente-bg) !important; /* Cliente */
+  border-color: transparent !important;
+}
+.message-bubble.sent {
+  background-color: var(--chat-bubble-contador-bg) !important; /* Contador */
+  color: white !important;
+  border-color: transparent !important;
+}
+.message-bubble.sent .message-meta {
+  color: rgba(255, 255, 255, 0.8) !important; /* Meta data readable on green */
+}
+.message-bubble.sent .message-meta i.lida {
+  color: #fff !important; /* Checkmark clearly visible on green */
+}
+
+
+/* ==========================================================================
+   Cartões dentro do balão do chat (contador) — documento e áudio
+   --------------------------------------------------------------------------
+   Nenhuma destas classes tinha regra de CSS: o botão de ação saía como botão
+   NATIVO do navegador (borda outset preta, fundo cinza) e a forma de onda do
+   áudio eram divs invisíveis. Padrão WhatsApp, funcionando nos dois fundos:
+   balão enviado (verde escuro, conteúdo branco) e recebido (claro).
+   ========================================================================== */
+
+.message-card-doc {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 2px 0 10px;
+  min-width: 230px;
+}
+
+.doc-info { display: flex; gap: 10px; align-items: flex-start; }
+.doc-icon { font-size: 20px; margin-top: 1px; flex-shrink: 0; }
+
+.doc-title {
+  font-weight: 700;
+  font-size: 13.5px;
+  line-height: 1.35;
+  display: block;
+}
+
+.doc-subtitle {
+  font-size: 11.5px;
+  opacity: 0.75;
+  margin: 2px 0 0;
+  line-height: 1.4;
+}
+
+/* Botão claro sobre balão escuro; invertido no balão recebido. */
+.btn-doc-action {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: none;
+  background: #fff;
+  color: var(--color-pine);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 7px 14px;
+  border-radius: 20px;
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(10, 49, 33, 0.18);
+}
+.btn-doc-action:hover { transform: translateY(-1px); }
+.message-bubble.received .btn-doc-action { background: var(--color-pine); color: #fff; }
+
+/* ---- Áudio: play redondo + forma de onda + duração ---- */
+.audio-player-bubble {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 200px;
+  padding: 2px 0 12px;
+}
+
+.btn-play-audio {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: none;
+  background: #fff;
+  color: var(--color-pine);
+  cursor: pointer;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  box-shadow: 0 1px 3px rgba(10, 49, 33, 0.18);
+}
+.message-bubble.received .btn-play-audio { background: var(--color-pine); color: #fff; }
+
+.audio-waveform {
+  display: flex;
+  align-items: center;
+  gap: 2.5px;
+  height: 26px;
+  flex: 1;
+}
+
+/* currentColor: as barras herdam branco no balão escuro e o tom do texto no claro. */
+.wave-bar {
+  width: 3px;
+  border-radius: 2px;
+  background: currentColor;
+  opacity: 0.5;
+  min-height: 4px;
+}
+
+.audio-duration {
+  font-size: 11px;
+  opacity: 0.85;
+  font-variant-numeric: tabular-nums;
+}
+
+
+/* Os elementos que o contador-mobile.js injeta (botão "Mais", folha, botões de
+   voltar/dossiê/atalhos) só ganham forma DENTRO do media query de 768px. Se a
+   janela nasce estreita e depois cresce — girar o tablet, soltar o snap —, eles
+   ficavam CRUS no desktop: um "Mais" perdido no menu, a folha aberta no fim da
+   página, um botão nativo no compositor. Fora do mobile, somem. */
+@media (min-width: 769px) {
+  body.pagina-contador #mob-btn-mais,
+  body.pagina-contador #mob-folha,
+  body.pagina-contador #mob-folha-fundo,
+  body.pagina-contador #mob-btn-atalhos,
+  body.pagina-contador #mob-btn-voltar,
+  body.pagina-contador #mob-btn-dossie,
+  body.pagina-contador #mob-dossie-voltar { display: none !important; }
+}
+
+
+/* O bloco de identificação do cliente no cabeçalho do chat (nome, CPF, tag)
+   quebrava em três linhas quando as ações da direita apertavam o espaço —
+   "123.456.789-" numa linha e "00" na outra. Uma linha só, com reticências
+   se realmente faltar lugar. */
+.chat-area-header .active-client-info { flex: 1 1 auto; min-width: 0; }
+.chat-area-header .active-client-details { min-width: 0; }
+.chat-area-header .active-client-details h3,
+.chat-area-header .active-client-details p {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+
+/* A moldura laranja do chat (reforma de design) fica ótima no desktop, mas no
+   celular os 3px de borda estouravam a largura da tela — TUDO no chat ficava
+   2px cortado à direita, inclusive o Encerrar. Em tela cheia, sem moldura;
+   o !important é para vencer o !important da própria regra da moldura. */
+@media (max-width: 768px) {
+  body.pagina-contador .chat-area {
+    border: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    margin: 0 !important;
+  }
+  /* Com o novo cabeçalho, a linha de ações precisa de uns px a menos para o
+     Encerrar caber sem rolagem: cronômetro e tag um passo mais enxutos. */
+  body.pagina-contador .chat-actions-top select {
+    width: 88px !important; min-width: 88px !important; max-width: 88px !important;
+  }
+  body.pagina-contador .chat-actions-top #chat-timer-container {
+    width: 76px !important; min-width: 76px !important;
+  }
 }

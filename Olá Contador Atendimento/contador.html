@@ -9,14 +9,24 @@
   <!-- FontAwesome for icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
-<body>
+<!-- A classe marca a página para o CSS. O styles.css é compartilhado com o
+     portal do cliente, então o bloco mobile do PAINEL precisa ficar preso aqui —
+     sem isso ele vaza e apaga a navegação do cliente. -->
+<body class="pagina-contador">
+  <!-- Símbolo da marca (mesmo traço do logo do cabeçalho), reaproveitado onde
+       for preciso identificar visualmente "isso é a IA da Olá, Contador". -->
+  <svg style="display:none" aria-hidden="true">
+    <symbol id="oc-logo-mark" viewBox="0 0 616 640">
+      <path fill="#FF6A45" d="M287 64.93C289.21 64.66 293.62 64.17 296.94 64.02C300.27 63.86 303.61 64 306.94 64C310.28 64 313.61 64 316.94 64C320.28 64 323.61 64 326.94 64C330.28 64 333.61 64 336.94 64C340.28 64 343.62 63.84 346.94 64.02C350.27 64.19 353.59 64.51 356.87 65.06C360.15 65.61 363.34 66.69 366.61 67.32C369.88 67.95 373.24 68.15 376.5 68.83C379.75 69.51 382.94 70.52 386.15 71.4C389.37 72.29 392.57 73.22 395.77 74.17C398.96 75.12 402.16 76.05 405.32 77.11C408.48 78.17 411.62 79.3 414.73 80.51C417.83 81.71 420.93 82.97 423.97 84.32C427.02 85.67 430.02 87.13 433 88.61C435.98 90.1 438.94 91.65 441.87 93.22C444.81 94.79 447.75 96.38 450.62 98.06C453.5 99.74 456.33 101.5 459.14 103.3C461.94 105.11 464.71 106.97 467.44 108.88C470.17 110.79 472.85 112.78 475.52 114.77C478.19 116.76 480.8 118.83 483.46 120.85C486.12 122.86 488.88 124.74 491.45 126.86C494.02 128.97 496.48 131.24 498.9 133.52C501.32 135.81 503.65 138.2 505.99 140.58C508.32 142.96 510.72 145.29 512.9 147.8C515.08 150.31 517.05 153.01 519.09 155.65C521.12 158.29 523.1 160.97 525.11 163.63C527.12 166.29 529.21 168.89 531.13 171.62C533.04 174.34 534.84 177.16 536.61 179.98C538.38 182.8 540.17 185.63 541.75 188.56C543.34 191.48 544.86 194.47 546.12 197.54C547.38 200.62 548.52 203.79 549.32 207.01C550.12 210.23 550.69 213.56 550.92 216.86C551.14 220.17 551.09 223.56 550.68 226.85C550.27 230.14 549.39 233.39 548.46 236.58C547.52 239.77 546.42 242.95 545.07 245.98C543.71 249.02 542.19 252.03 540.34 254.78C538.5 257.53 536.28 260.08 534 262.5C531.71 264.91 529.26 267.21 526.65 269.27C524.04 271.32 521.26 273.24 518.35 274.83C515.44 276.41 512.31 277.65 509.19 278.79C506.06 279.93 502.86 280.99 499.61 281.67C496.37 282.36 493.01 282.91 489.71 282.89C486.42 282.86 483.08 282.21 479.83 281.53C476.58 280.85 473.35 279.89 470.21 278.8C467.07 277.72 463.91 276.55 460.98 275C458.05 273.45 455.26 271.54 452.64 269.51C450.02 267.47 447.56 265.17 445.26 262.77C442.96 260.37 440.83 257.78 438.84 255.11C436.84 252.45 435.15 249.56 433.3 246.79C431.45 244.02 429.73 241.14 427.74 238.48C425.75 235.82 423.58 233.27 421.33 230.81C419.09 228.35 416.68 226.04 414.27 223.73C411.87 221.42 409.45 219.12 406.9 216.97C404.36 214.83 401.7 212.8 399 210.86C396.29 208.92 393.5 207.09 390.65 205.35C387.8 203.62 384.89 201.98 381.92 200.47C378.95 198.96 375.92 197.56 372.84 196.29C369.76 195.03 366.61 193.91 363.45 192.87C360.28 191.83 357.06 190.95 353.84 190.08C350.63 189.21 347.43 188.16 344.15 187.64C340.88 187.13 337.51 187.11 334.19 187C330.86 186.89 327.52 187 324.19 187C320.85 187 317.52 186.99 314.19 187C310.85 187.01 307.5 186.8 304.19 187.08C300.88 187.35 297.59 187.95 294.33 188.64C291.08 189.33 287.87 190.29 284.67 191.22C281.47 192.14 278.25 193.03 275.12 194.17C272 195.31 268.94 196.67 265.92 198.08C262.9 199.48 259.89 200.93 257.01 202.59C254.12 204.25 251.36 206.14 248.62 208.03C245.88 209.92 243.22 211.93 240.56 213.95C237.91 215.96 235.23 217.95 232.71 220.13C230.19 222.31 227.77 224.62 225.44 227C223.12 229.39 220.87 231.86 218.76 234.43C216.64 237 214.69 239.72 212.76 242.43C210.83 245.14 208.87 247.86 207.16 250.71C205.44 253.56 203.94 256.55 202.45 259.53C200.96 262.51 199.53 265.52 198.22 268.59C196.92 271.65 195.7 274.76 194.64 277.92C193.57 281.07 192.54 284.26 191.83 287.5C191.11 290.75 190.95 294.12 190.34 297.39C189.72 300.66 188.69 303.86 188.14 307.14C187.58 310.42 187.19 313.75 187.03 317.07C186.88 320.38 186.86 323.76 187.21 327.06C187.55 330.36 188.46 333.6 189.09 336.86C189.73 340.13 190.34 343.41 191.01 346.67C191.68 349.93 192.21 353.23 193.1 356.44C193.98 359.64 195.15 362.79 196.34 365.9C197.53 369.01 198.85 372.08 200.26 375.09C201.68 378.11 203.2 381.08 204.82 383.99C206.44 386.9 208.18 389.75 209.99 392.55C211.81 395.34 213.7 398.1 215.71 400.75C217.72 403.4 219.84 405.99 222.07 408.46C224.29 410.94 226.84 413.14 229.07 415.6C231.29 418.07 234.24 420.36 235.44 423.26C236.64 426.15 236.53 429.76 236.25 433C235.97 436.23 234.64 439.46 233.78 442.68C232.92 445.9 231.99 449.11 231.11 452.32C230.22 455.53 229.06 458.71 228.46 461.97C227.87 465.22 226.54 469.23 227.51 471.85C228.49 474.46 231.62 477.29 234.29 477.66C236.97 478.03 240.54 475.43 243.57 474.07C246.6 472.71 249.51 471.03 252.47 469.51C255.43 467.99 258.41 466.48 261.35 464.92C264.3 463.36 267.2 461.72 270.14 460.15C273.08 458.59 275.98 456.91 279.01 455.53C282.03 454.15 285.09 452.55 288.29 451.88C291.49 451.2 294.91 451.45 298.23 451.47C301.55 451.49 304.88 451.91 308.21 452C311.54 452.08 314.88 452 318.21 452C321.55 452 324.88 452.01 328.21 452C331.55 451.99 334.9 452.21 338.21 451.93C341.52 451.65 344.81 451.04 348.06 450.33C351.31 449.62 354.5 448.61 357.7 447.67C360.9 446.74 364.11 445.83 367.25 444.71C370.38 443.58 373.48 442.33 376.5 440.93C379.52 439.53 382.47 437.95 385.37 436.33C388.28 434.7 391.13 432.97 393.95 431.18C396.76 429.39 399.58 427.6 402.24 425.6C404.9 423.6 407.43 421.41 409.92 419.2C412.41 416.98 414.84 414.69 417.17 412.31C419.5 409.94 421.81 407.51 423.92 404.94C426.03 402.37 427.91 399.6 429.85 396.89C431.79 394.18 433.61 391.39 435.55 388.67C437.48 385.96 433.61 391.39 435.55 388.67C437.48 385.96 439.31 383.15 441.46 380.61C443.61 378.08 445.96 375.68 448.44 373.47C450.92 371.26 453.58 369.2 456.35 367.36C459.12 365.53 462.03 363.83 465.05 362.45C468.07 361.08 471.28 360.09 474.47 359.13C477.65 358.16 480.88 357.1 484.15 356.65C487.42 356.2 490.82 356.12 494.11 356.44C497.39 356.76 500.65 357.72 503.86 358.59C507.07 359.47 510.32 360.39 513.36 361.69C516.41 363 519.38 364.61 522.16 366.43C524.93 368.25 527.54 370.38 530.01 372.61C532.47 374.83 534.83 377.23 536.96 379.78C539.09 382.33 541.11 385.03 542.78 387.89C544.46 390.75 545.8 393.85 547 396.95C548.2 400.05 549.31 403.24 549.98 406.48C550.64 409.73 550.86 413.09 550.99 416.41C551.11 419.73 551.16 423.12 550.72 426.4C550.29 429.69 549.4 432.94 548.4 436.1C547.39 439.27 546.1 442.37 544.68 445.38C543.26 448.39 541.59 451.29 539.89 454.15C538.19 457.01 536.34 459.79 534.47 462.55C532.6 465.31 530.69 468.05 528.68 470.71C526.68 473.37 524.51 475.9 522.44 478.51C520.36 481.12 518.33 483.76 516.25 486.37C514.17 488.97 512.15 491.63 509.95 494.13C507.75 496.63 505.39 499 503.04 501.36C500.69 503.72 498.33 506.09 495.84 508.3C493.34 510.5 490.68 512.51 488.07 514.59C485.47 516.67 482.84 518.71 480.23 520.79C477.61 522.86 475.1 525.06 472.41 527.02C469.72 528.99 469.72 528.99 472.41 527.02C469.72 528.99 466.9 530.77 464.11 532.59C461.31 534.4 458.48 536.17 455.64 537.91C452.79 539.64 449.93 541.35 447.02 542.98C444.11 544.61 441.16 546.15 438.2 547.68C435.24 549.22 432.29 550.78 429.28 552.19C426.26 553.6 423.18 554.88 420.1 556.14C417.01 557.41 413.91 558.62 410.78 559.77C407.65 560.92 404.5 562.01 401.33 563.05C398.17 564.09 394.98 565.06 391.78 566.02C388.59 566.97 385.41 568 382.18 568.81C378.95 569.61 375.68 570.24 372.41 570.85C369.13 571.46 365.82 571.85 362.55 572.47C359.28 573.1 356.08 574.19 352.79 574.61C349.5 575.03 346.13 574.94 342.8 575C339.47 575.06 336.13 575 332.8 575C329.47 575 326.13 575 322.8 575C319.47 575 316.13 575 312.8 575C309.47 575 306.13 575.02 302.8 575C299.47 574.98 296.11 575.15 292.8 574.86C289.5 574.56 286.23 573.82 282.96 573.22C279.68 572.62 276.43 571.88 273.16 571.25C269.89 570.62 266.58 570.17 263.33 569.43C260.09 568.7 256.89 567.73 253.67 566.85C250.46 565.98 247.22 565.17 244.04 564.17C240.86 563.18 237.74 562 234.6 560.87C231.47 559.74 228.33 558.62 225.23 557.38C222.14 556.15 219.06 554.85 216.03 553.47C213 552.08 210.03 550.58 207.05 549.07C204.08 547.56 201.13 546.02 198.2 544.42C195.28 542.82 192.36 541.2 189.5 539.48C186.65 537.77 183.84 535.97 181.05 534.15C178.26 532.32 175.49 530.46 172.78 528.53C170.06 526.59 167.42 524.56 164.77 522.55C162.11 520.53 159.47 518.49 156.86 516.42C154.25 514.35 151.59 512.34 149.08 510.14C146.58 507.94 144.21 505.59 141.84 503.24C139.48 500.9 137.11 498.54 134.88 496.07C132.64 493.6 130.56 491 128.46 488.41C126.36 485.82 124.36 483.15 122.28 480.55C120.19 477.95 117.98 475.45 115.94 472.81C113.9 470.18 111.94 467.48 110.03 464.75C108.12 462.02 106.27 459.24 104.48 456.43C102.69 453.62 100.96 450.77 99.28 447.89C97.6 445.01 95.94 442.12 94.4 439.16C92.85 436.21 91.44 433.19 90.03 430.17C88.61 427.15 87.23 424.12 85.91 421.06C84.6 418 83.37 414.9 82.14 411.8C80.92 408.7 79.67 405.6 78.56 402.46C77.46 399.32 76.47 396.13 75.52 392.94C74.57 389.74 73.61 386.55 72.84 383.31C72.07 380.07 71.61 376.75 70.9 373.5C70.19 370.24 69.11 367.05 68.58 363.77C68.05 360.49 68.13 357.12 67.72 353.82C67.31 350.51 66.64 347.24 66.12 343.95C65.6 340.66 64.95 337.38 64.61 334.07C64.26 330.76 64.14 327.42 64.04 324.09C63.94 320.76 63.93 317.42 64.01 314.09C64.08 310.76 64.11 307.41 64.5 304.11C64.89 300.81 65.8 297.57 66.36 294.29C66.91 291 67.47 287.71 67.83 284.41C68.19 281.1 68.04 277.72 68.53 274.44C69.02 271.15 70.04 267.95 70.78 264.7C71.53 261.45 72.16 258.17 73.01 254.95C73.86 251.73 74.89 248.56 75.88 245.37C76.87 242.19 77.9 239.02 78.98 235.87C80.06 232.71 81.16 229.57 82.37 226.46C83.58 223.36 84.9 220.3 86.23 217.24C87.55 214.18 88.86 211.11 90.29 208.1C91.72 205.09 93.25 202.13 94.83 199.19C96.41 196.26 98.04 193.35 99.75 190.49C101.47 187.64 103.32 184.86 105.12 182.06C106.93 179.25 108.71 176.43 110.57 173.67C112.44 170.91 114.36 168.18 116.32 165.49C118.29 162.8 120.33 160.16 122.36 157.52C124.4 154.88 126.37 152.19 128.53 149.65C130.69 147.11 133 144.71 135.31 142.31C137.62 139.9 139.99 137.55 142.38 135.23C144.77 132.91 147.15 130.56 149.67 128.39C152.18 126.21 154.87 124.22 157.49 122.16C160.11 120.1 162.73 118.04 165.39 116.04C168.06 114.03 170.75 112.07 173.47 110.14C176.18 108.21 178.92 106.31 181.7 104.46C184.48 102.62 187.27 100.79 190.13 99.09C192.99 97.38 195.95 95.83 198.88 94.25C201.82 92.67 204.75 91.09 207.74 89.61C210.72 88.13 213.75 86.73 216.79 85.37C219.83 84.01 222.91 82.72 226 81.47C229.09 80.22 232.21 79.04 235.32 77.86C238.44 76.69 241.53 75.41 244.71 74.41C247.89 73.42 251.15 72.72 254.38 71.89C257.61 71.06 260.82 70.15 264.08 69.45C267.33 68.74 270.64 68.3 273.91 67.66C277.18 67.03 281.52 66.11 283.7 65.66C285.88 65.2 284.79 65.2 287 64.93Z"/>
+    </symbol>
+  </svg>
 
   <!-- App Header -->
   <header class="app-header">
     <div class="logo-container">
       <!-- Inline official SVG Coral logo -->
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 616 640" class="logo-icon">
-        <path fill="#FF6A45" d="M287 64.93C289.21 64.66 293.62 64.17 296.94 64.02C300.27 63.86 303.61 64 306.94 64C310.28 64 313.61 64 316.94 64C320.28 64 323.61 64 326.94 64C330.28 64 333.61 64 336.94 64C340.28 64 343.62 63.84 346.94 64.02C350.27 64.19 353.59 64.51 356.87 65.06C360.15 65.61 363.34 66.69 366.61 67.32C369.88 67.95 373.24 68.15 376.5 68.83C379.75 69.51 382.94 70.52 386.15 71.4C389.37 72.29 392.57 73.22 395.77 74.17C398.96 75.12 402.16 76.05 405.32 77.11C408.48 78.17 411.62 79.3 414.73 80.51C417.83 81.71 420.93 82.97 423.97 84.32C427.02 85.67 430.02 87.13 433 88.61C435.98 90.1 438.94 91.65 441.87 93.22C444.81 94.79 447.75 96.38 450.62 98.06C453.5 99.74 456.33 101.5 459.14 103.3C461.94 105.11 464.71 106.97 467.44 108.88C470.17 110.79 472.85 112.78 475.52 114.77C478.19 116.76 480.8 118.83 483.46 120.85C486.12 122.86 488.88 124.74 491.45 126.86C494.02 128.97 496.48 131.24 498.9 133.52C501.32 135.81 503.65 138.2 505.99 140.58C508.32 142.96 510.72 145.29 512.9 147.8C515.08 150.31 517.05 153.01 519.09 155.65C521.12 158.29 523.1 160.97 525.11 163.63C527.12 166.29 529.21 168.89 531.13 171.62C533.04 174.34 534.84 177.16 536.61 179.98C538.38 182.8 540.17 185.63 541.75 188.56C543.34 191.48 544.86 194.47 546.12 197.54C547.38 200.62 548.52 203.79 549.32 207.01C550.12 210.23 550.69 213.56 550.92 216.86C551.14 220.17 551.09 223.56 550.68 226.85C550.27 230.14 549.39 233.39 548.46 236.58C547.52 239.77 546.42 242.95 545.07 245.98C543.71 249.02 542.19 252.03 540.34 254.78C538.5 257.53 536.28 260.08 534 262.5C531.71 264.91 529.26 267.21 526.65 269.27C524.04 271.32 521.26 273.24 518.35 274.83C515.44 276.41 512.31 277.65 509.19 278.79C506.06 279.93 502.86 280.99 499.61 281.67C496.37 282.36 493.01 282.91 489.71 282.89C486.42 282.86 483.08 282.21 479.83 281.53C476.58 280.85 473.35 279.89 470.21 278.8C467.07 277.72 463.91 276.55 460.98 275C458.05 273.45 455.26 271.54 452.64 269.51C450.02 267.47 447.56 265.17 445.26 262.77C442.96 260.37 440.83 257.78 438.84 255.11C436.84 252.45 435.15 249.56 433.3 246.79C431.45 244.02 429.73 241.14 427.74 238.48C425.75 235.82 423.58 233.27 421.33 230.81C419.09 228.35 416.68 226.04 414.27 223.73C411.87 221.42 409.45 219.12 406.9 216.97C404.36 214.83 401.7 212.8 399 210.86C396.29 208.92 393.5 207.09 390.65 205.35C387.8 203.62 384.89 201.98 381.92 200.47C378.95 198.96 375.92 197.56 372.84 196.29C369.76 195.03 366.61 193.91 363.45 192.87C360.28 191.83 357.06 190.95 353.84 190.08C350.63 189.21 347.43 188.16 344.15 187.64C340.88 187.13 337.51 187.11 334.19 187C330.86 186.89 327.52 187 324.19 187C320.85 187 317.52 186.99 314.19 187C310.85 187.01 307.5 186.8 304.19 187.08C300.88 187.35 297.59 187.95 294.33 188.64C291.08 189.33 287.87 190.29 284.67 191.22C281.47 192.14 278.25 193.03 275.12 194.17C272 195.31 268.94 196.67 265.92 198.08C262.9 199.48 259.89 200.93 257.01 202.59C254.12 204.25 251.36 206.14 248.62 208.03C245.88 209.92 243.22 211.93 240.56 213.95C237.91 215.96 235.23 217.95 232.71 220.13C230.19 222.31 227.77 224.62 225.44 227C223.12 229.39 220.87 231.86 218.76 234.43C216.64 237 214.69 239.72 212.76 242.43C210.83 245.14 208.87 247.86 207.16 250.71C205.44 253.56 203.94 256.55 202.45 259.53C200.96 262.51 199.53 265.52 198.22 268.59C196.92 271.65 195.7 274.76 194.64 277.92C193.57 281.07 192.54 284.26 191.83 287.5C191.11 290.75 190.95 294.12 190.34 297.39C189.72 300.66 188.69 303.86 188.14 307.14C187.58 310.42 187.19 313.75 187.03 317.07C186.88 320.38 186.86 323.76 187.21 327.06C187.55 330.36 188.46 333.6 189.09 336.86C189.73 340.13 190.34 343.41 191.01 346.67C191.68 349.93 192.21 353.23 193.1 356.44C193.98 359.64 195.15 362.79 196.34 365.9C197.53 369.01 198.85 372.08 200.26 375.09C201.68 378.11 203.2 381.08 204.82 383.99C206.44 386.9 208.18 389.75 209.99 392.55C211.81 395.34 213.7 398.1 215.71 400.75C217.72 403.4 219.84 405.99 222.07 408.46C224.29 410.94 226.84 413.14 229.07 415.6C231.29 418.07 234.24 420.36 235.44 423.26C236.64 426.15 236.53 429.76 236.25 433C235.97 436.23 234.64 439.46 233.78 442.68C232.92 445.9 231.99 449.11 231.11 452.32C230.22 455.53 229.06 458.71 228.46 461.97C227.87 465.22 226.54 469.23 227.51 471.85C228.49 474.46 231.62 477.29 234.29 477.66C236.97 478.03 240.54 475.43 243.57 474.07C246.6 472.71 249.51 471.03 252.47 469.51C255.43 467.99 258.41 466.48 261.35 464.92C264.3 463.36 267.2 461.72 270.14 460.15C273.08 458.59 275.98 456.91 279.01 455.53C282.03 454.15 285.09 452.55 288.29 451.88C291.49 451.2 294.91 451.45 298.23 451.47C301.55 451.49 304.88 451.91 308.21 452C311.54 452.08 314.88 452 318.21 452C321.55 452 324.88 452.01 328.21 452C331.55 451.99 334.9 452.21 338.21 451.93C341.52 451.65 344.81 451.04 348.06 450.33C351.31 449.62 354.5 448.61 357.7 447.67C360.9 446.74 364.11 445.83 367.25 444.71C370.38 443.58 373.48 442.33 376.5 440.93C379.52 439.53 382.47 437.95 385.37 436.33C388.28 434.7 391.13 432.97 393.95 431.18C396.76 429.39 399.58 427.6 402.24 425.6C404.9 423.6 407.43 421.41 409.92 419.2C412.41 416.98 414.84 414.69 417.17 412.31C419.5 409.94 421.81 407.51 423.92 404.94C426.03 402.37 427.91 399.6 429.85 396.89C431.79 394.18 433.61 391.39 435.55 388.67C437.48 385.96 433.61 391.39 435.55 388.67C437.48 385.96 439.31 383.15 441.46 380.61C443.61 378.08 445.96 375.68 448.44 373.47C450.92 371.26 453.58 369.2 456.35 367.36C459.12 365.53 462.03 363.83 465.05 362.45C468.07 361.08 471.28 360.09 474.47 359.13C477.65 358.16 480.88 357.1 484.15 356.65C487.42 356.2 490.82 356.12 494.11 356.44C497.39 356.76 500.65 357.72 503.86 358.59C507.07 359.47 510.32 360.39 513.36 361.69C516.41 363 519.38 364.61 522.16 366.43C524.93 368.25 527.54 370.38 530.01 372.61C532.47 374.83 534.83 377.23 536.96 379.78C539.09 382.33 541.11 385.03 542.78 387.89C544.46 390.75 545.8 393.85 547 396.95C548.2 400.05 549.31 403.24 549.98 406.48C550.64 409.73 550.86 413.09 550.99 416.41C551.11 419.73 551.16 423.12 550.72 426.4C550.29 429.69 549.4 432.94 548.4 436.1C547.39 439.27 546.1 442.37 544.68 445.38C543.26 448.39 541.59 451.29 539.89 454.15C538.19 457.01 536.34 459.79 534.47 462.55C532.6 465.31 530.69 468.05 528.68 470.71C526.68 473.37 524.51 475.9 522.44 478.51C520.36 481.12 518.33 483.76 516.25 486.37C514.17 488.97 512.15 491.63 509.95 494.13C507.75 496.63 505.39 499 503.04 501.36C500.69 503.72 498.33 506.09 495.84 508.3C493.34 510.5 490.68 512.51 488.07 514.59C485.47 516.67 482.84 518.71 480.23 520.79C477.61 522.86 475.1 525.06 472.41 527.02C469.72 528.99 469.72 528.99 472.41 527.02C469.72 528.99 466.9 530.77 464.11 532.59C461.31 534.4 458.48 536.17 455.64 537.91C452.79 539.64 449.93 541.35 447.02 542.98C444.11 544.61 441.16 546.15 438.2 547.68C435.24 549.22 432.29 550.78 429.28 552.19C426.26 553.6 423.18 554.88 420.1 556.14C417.01 557.41 413.91 558.62 410.78 559.77C407.65 560.92 404.5 562.01 401.33 563.05C398.17 564.09 394.98 565.06 391.78 566.02C388.59 566.97 385.41 568 382.18 568.81C378.95 569.61 375.68 570.24 372.41 570.85C369.13 571.46 365.82 571.85 362.55 572.47C359.28 573.1 356.08 574.19 352.79 574.61C349.5 575.03 346.13 574.94 342.8 575C339.47 575.06 336.13 575 332.8 575C329.47 575 326.13 575 322.8 575C319.47 575 316.13 575 312.8 575C309.47 575 306.13 575.02 302.8 575C299.47 574.98 296.11 575.15 292.8 574.86C289.5 574.56 286.23 573.82 282.96 573.22C279.68 572.62 276.43 571.88 273.16 571.25C269.89 570.62 266.58 570.17 263.33 569.43C260.09 568.7 256.89 567.73 253.67 566.85C250.46 565.98 247.22 565.17 244.04 564.17C240.86 563.18 237.74 562 234.6 560.87C231.47 559.74 228.33 558.62 225.23 557.38C222.14 556.15 219.06 554.85 216.03 553.47C213 552.08 210.03 550.58 207.05 549.07C204.08 547.56 201.13 546.02 198.2 544.42C195.28 542.82 192.36 541.2 189.5 539.48C186.65 537.77 183.84 535.97 181.05 534.15C178.26 532.32 175.49 530.46 172.78 528.53C170.06 526.59 167.42 524.56 164.77 522.55C162.11 520.53 159.47 518.49 156.86 516.42C154.25 514.35 151.59 512.34 149.08 510.14C146.58 507.94 144.21 505.59 141.84 503.24C139.48 500.9 137.11 498.54 134.88 496.07C132.64 493.6 130.56 491 128.46 488.41C126.36 485.82 124.36 483.15 122.28 480.55C120.19 477.95 117.98 475.45 115.94 472.81C113.9 470.18 111.94 467.48 110.03 464.75C108.12 462.02 106.27 459.24 104.48 456.43C102.69 453.62 100.96 450.77 99.28 447.89C97.6 445.01 95.94 442.12 94.4 439.16C92.85 436.21 91.44 433.19 90.03 430.17C88.61 427.15 87.23 424.12 85.91 421.06C84.6 418 83.37 414.9 82.14 411.8C80.92 408.7 79.67 405.6 78.56 402.46C77.46 399.32 76.47 396.13 75.52 392.94C74.57 389.74 73.61 386.55 72.84 383.31C72.07 380.07 71.61 376.75 70.9 373.5C70.19 370.24 69.11 367.05 68.58 363.77C68.05 360.49 68.13 357.12 67.72 353.82C67.31 350.51 66.64 347.24 66.12 343.95C65.6 340.66 64.95 337.38 64.61 334.07C64.26 330.76 64.14 327.42 64.04 324.09C63.94 320.76 63.93 317.42 64.01 314.09C64.08 310.76 64.11 307.41 64.5 304.11C64.89 300.81 65.8 297.57 66.36 294.29C66.91 291 67.47 287.71 67.83 284.41C68.19 281.1 68.04 277.72 68.53 274.44C69.02 271.15 70.04 267.95 70.78 264.7C71.53 261.45 72.16 258.17 73.01 254.95C73.86 251.73 74.89 248.56 75.88 245.37C76.87 242.19 77.9 239.02 78.98 235.87C80.06 232.71 81.16 229.57 82.37 226.46C83.58 223.36 84.9 220.3 86.23 217.24C87.55 214.18 88.86 211.11 90.29 208.1C91.72 205.09 93.25 202.13 94.83 199.19C96.41 196.26 98.04 193.35 99.75 190.49C101.47 187.64 103.32 184.86 105.12 182.06C106.93 179.25 108.71 176.43 110.57 173.67C112.44 170.91 114.36 168.18 116.32 165.49C118.29 162.8 120.33 160.16 122.36 157.52C124.4 154.88 126.37 152.19 128.53 149.65C130.69 147.11 133 144.71 135.31 142.31C137.62 139.9 139.99 137.55 142.38 135.23C144.77 132.91 147.15 130.56 149.67 128.39C152.18 126.21 154.87 124.22 157.49 122.16C160.11 120.1 162.73 118.04 165.39 116.04C168.06 114.03 170.75 112.07 173.47 110.14C176.18 108.21 178.92 106.31 181.7 104.46C184.48 102.62 187.27 100.79 190.13 99.09C192.99 97.38 195.95 95.83 198.88 94.25C201.82 92.67 204.75 91.09 207.74 89.61C210.72 88.13 213.75 86.73 216.79 85.37C219.83 84.01 222.91 82.72 226 81.47C229.09 80.22 232.21 79.04 235.32 77.86C238.44 76.69 241.53 75.41 244.71 74.41C247.89 73.42 251.15 72.72 254.38 71.89C257.61 71.06 260.82 70.15 264.08 69.45C267.33 68.74 270.64 68.3 273.91 67.66C277.18 67.03 281.52 66.11 283.7 65.66C285.88 65.2 284.79 65.2 287 64.93Z"/>
+        <use href="#oc-logo-mark"></use>
       </svg>
       <h1 class="logo-text">Olá, Contador<span>.</span></h1>
     </div>
@@ -27,13 +37,16 @@
         <i class="fa-solid fa-bell"></i>
         <span class="notification-badge" id="noti-badge-count">3</span>
       </div>
-      <div class="agent-profile">
+      <div class="agent-profile" id="header-agent-profile" style="cursor: pointer; transition: opacity 0.2s;" title="Acessar Meu Perfil" onmouseover="this.style.opacity=0.8" onmouseout="this.style.opacity=1">
         <div class="agent-avatar">CF</div>
         <div class="agent-info">
           <h4>Contador Felipe</h4>
           <span>Online</span>
         </div>
       </div>
+      <button class="notification-trigger" title="Sair" data-logout style="cursor:pointer;background:none;border:none;font-size:16px;color:var(--color-text-secondary);">
+        <i class="fa-solid fa-arrow-right-from-bracket"></i>
+      </button>
     </div>
   </header>
 
@@ -43,7 +56,7 @@
     <!-- Global App Sidebar Menu (Left Navigation) -->
     <aside class="app-sidebar-nav">
       <div class="nav-section-title" style="display: flex; justify-content: space-between; align-items: center;">
-        <span>Navegação</span>
+        <span>Menu do Contador</span>
         <button id="btn-toggle-sidebar" class="btn-sidebar-collapse" title="Recolher Menu">
           <i class="fa-solid fa-chevron-left" id="icon-toggle-sidebar"></i>
         </button>
@@ -51,8 +64,9 @@
       <button class="nav-item active" data-target="section-dashboard" title="Dashboard">
         <i class="fa-solid fa-chart-simple"></i> <span class="nav-label">Dashboard</span>
       </button>
-      <button class="nav-item" data-target="section-atendimento" id="nav-btn-atendimento" title="Atendimentos">
+      <button class="nav-item" data-target="section-atendimento" id="nav-btn-atendimento" title="Atendimentos" style="position: relative;">
         <i class="fa-solid fa-comments"></i> <span class="nav-label">Atendimentos</span>
+        <span class="chat-unread-badge" id="badge-atendimentos-contador">0</span>
       </button>
       <button class="nav-item" data-target="section-clientes" title="Clientes (CRM)">
         <i class="fa-solid fa-users"></i> <span class="nav-label">Clientes</span>
@@ -60,11 +74,20 @@
       <button class="nav-item" data-target="section-acompanhamento" title="Acompanhamento">
         <i class="fa-solid fa-list-check"></i> <span class="nav-label">Acompanhamento</span>
       </button>
+      <button class="nav-item" data-target="section-recorrentes" title="Clientes Recorrentes">
+        <i class="fa-solid fa-arrows-rotate"></i> <span class="nav-label">Recorrentes</span>
+      </button>
+      <button class="nav-item" data-target="section-dossie" title="Relatório de Atendimento">
+        <i class="fa-solid fa-clipboard-list"></i> <span class="nav-label">Relatório</span>
+      </button>
       <button class="nav-item" data-target="section-agendamentos" title="Agendamentos">
         <i class="fa-solid fa-calendar-days"></i> <span class="nav-label">Agendamentos</span>
       </button>
       <button class="nav-item" data-target="section-financeiro" title="Financeiro">
         <i class="fa-solid fa-money-bill-wave"></i> <span class="nav-label">Financeiro</span>
+      </button>
+      <button class="nav-item" data-target="section-insights" title="Insights">
+        <i class="fa-solid fa-chart-pie"></i> <span class="nav-label">Insights</span>
       </button>
       <button class="nav-item" data-target="section-notificacoes" title="Notificações">
         <i class="fa-solid fa-bell"></i> <span class="nav-label">Notificações</span>
@@ -72,6 +95,9 @@
       
       <div style="flex: 1;"></div>
       
+      <button class="nav-item" data-target="section-perfil" id="nav-btn-perfil" title="Meu Perfil Profissional">
+        <i class="fa-solid fa-id-badge"></i> <span class="nav-label">Meu Perfil</span>
+      </button>
       <button class="nav-item" data-target="section-config" title="Configurações">
         <i class="fa-solid fa-gear"></i> <span class="nav-label">Configurações</span>
       </button>
@@ -83,7 +109,7 @@
       <!-- SECTION 1: Painel Geral (Dashboard) -->
       <section class="content-panel active" id="section-dashboard">
         <div class="panel-header-desc">
-          <h2>Dashboard Executivo</h2>
+          <h2>Meu Dashboard</h2>
           <p>Visão geral do faturamento, produtividade semanal e atividades agendadas.</p>
         </div>
 
@@ -118,8 +144,19 @@
               <span>NPS / Satisfação</span>
               <i class="fa-solid fa-star" style="color: #F1C40F"></i>
             </div>
-            <h3>9.8 / 10</h3>
-            <p class="kpi-trend positive"><i class="fa-solid fa-heart"></i> 100% de retornos avaliados com 5 estrelas</p>
+            <h3 id="kpi-nps">—</h3>
+            <p class="kpi-trend positive" id="kpi-nps-detalhe"><i class="fa-solid fa-heart"></i> Sem avaliações ainda</p>
+          </div>
+        </div>
+
+        <!-- SLA Alerts Row -->
+        <div class="dash-card dashboard-sla-card" id="sla-alerts-card" style="margin-bottom: 24px; border-left: 4px solid var(--color-coral);">
+          <div class="dash-card-header">
+            <h3><i class="fa-solid fa-stopwatch" style="color: var(--color-coral)"></i> Alertas de Prazos (SLA)</h3>
+            <span class="chat-count-badge" id="sla-alerts-badge" style="background: var(--color-coral);">0 alertas</span>
+          </div>
+          <div class="dashboard-alerts-strip" id="sla-alerts-list">
+            <!-- Alertas renderizados pelo app.js com dados reais/demo -->
           </div>
         </div>
 
@@ -137,56 +174,52 @@
             </div>
           </div>
 
-          <!-- Center: Revenue Chart -->
+          <!-- Center: Tarefas Pendentes -->
           <div class="dash-card">
             <div class="dash-card-header" style="justify-content: space-between; align-items: flex-start;">
               <div>
-                <h3><i class="fa-solid fa-chart-line" style="color: var(--color-pine)"></i> Receita e Faturamento Mensal</h3>
-                <p style="font-size: 11px; color: var(--color-text-secondary); margin-top: 4px;">Comparativo de vendas concluídas via portal</p>
+                <h3><i class="fa-solid fa-list-check" style="color: var(--color-pine)"></i> Tarefas Pendentes</h3>
+                <p style="font-size: 11px; color: var(--color-text-secondary); margin-top: 4px;">Ações pós-atendimento e compromissos internos</p>
               </div>
-              <select style="font-size: 11px; padding: 4px; border-radius: 4px; border: 1px solid var(--color-border); background: white;"><option>Últimos 30 dias</option></select>
+              <button class="btn-utility" id="btn-nova-tarefa" style="font-size: 11px; padding: 4px 8px;"><i class="fa-solid fa-plus"></i> Nova</button>
             </div>
-            <div style="padding: 16px; height: 300px; display: flex; align-items: center; justify-content: center;">
-              <canvas id="dashboardRevenueChart"></canvas>
-            </div>
+
+            <!-- Tarefas renderizadas pelo app.js (localStorage oc_tarefas) — os cards demo fixos saíram -->
+            <div id="tarefas-lista" style="padding: 16px; display: flex; flex-direction: column; gap: 12px; max-height: 300px; overflow-y: auto;"></div>
           </div>
 
           <!-- Right: Remarketing (Abandonos de Carrinho) -->
           <div class="dash-card">
             <div class="dash-card-header">
-              <h3><i class="fa-solid fa-cart-arrow-down" style="color: var(--color-coral)"></i> Remarketing: Carrinhos Abandonados</h3>
-              <p style="font-size: 11px; color: var(--color-text-secondary); margin-top: 4px;">Leads quentes que iniciaram o checkout mas não pagaram</p>
+              <div>
+                <h3><i class="fa-solid fa-cart-arrow-down" style="color: var(--color-coral)"></i> Remarketing: Carrinhos Abandonados</h3>
+                <p style="font-size: 11px; color: var(--color-text-secondary); margin-top: 4px;">Leads quentes que iniciaram o checkout mas não pagaram</p>
+              </div>
             </div>
             
-            <div style="padding: 16px; display: flex; flex-direction: column; gap: 12px; max-height: 300px; overflow-y: auto;">
-              
-              <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; border: 1px solid var(--color-border); border-radius: 8px; background: white;">
-                <div>
-                  <h4 style="font-size: 13px; color: var(--color-pine); margin: 0 0 4px 0;">Roberto Almeida</h4>
-                  <p style="font-size: 11px; color: var(--color-text-secondary); margin: 0;">Regularização MEI • <span style="color: var(--color-coral); font-weight: 600;">Há 2 horas</span></p>
-                </div>
-                <button class="btn-utility" style="font-size: 11px; padding: 6px 10px;" onclick="window.open('https://wa.me/5511999999999', '_blank')"><i class="fa-brands fa-whatsapp" style="color: #25D366; font-size: 14px;"></i> Chamar</button>
+            <!-- Sem rastreio de checkout abandonado ainda (Asaas pendente) — lista vazia honesta, sem leads fictícios -->
+            <div id="remarketing-lista" style="padding: 16px; display: flex; flex-direction: column; gap: 12px; max-height: 300px; overflow-y: auto;">
+              <div style="text-align: center; padding: 24px 12px; color: var(--color-text-secondary);">
+                <i class="fa-solid fa-cart-shopping" style="font-size: 24px; opacity: .35; margin-bottom: 8px; display: block;"></i>
+                <p style="font-size: 13px; margin: 0;">Nenhum carrinho abandonado no momento.</p>
+                <p style="font-size: 11px; margin: 4px 0 0;">Quando alguém iniciar o checkout e não concluir o pagamento, o lead aparece aqui.</p>
               </div>
-
-              <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; border: 1px solid var(--color-border); border-radius: 8px; background: white;">
-                <div>
-                  <h4 style="font-size: 13px; color: var(--color-pine); margin: 0 0 4px 0;">Juliana Martins</h4>
-                  <p style="font-size: 11px; color: var(--color-text-secondary); margin: 0;">Malha Fina IRPF • <span style="color: var(--color-text-secondary);">Ontem</span></p>
-                </div>
-                <button class="btn-utility" style="font-size: 11px; padding: 6px 10px;" onclick="window.open('https://wa.me/5511999999999', '_blank')"><i class="fa-brands fa-whatsapp" style="color: #25D366; font-size: 14px;"></i> Chamar</button>
-              </div>
-
-              <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; border: 1px solid var(--color-border); border-radius: 8px; background: white;">
-                <div>
-                  <h4 style="font-size: 13px; color: var(--color-pine); margin: 0 0 4px 0;">Carlos Eduardo</h4>
-                  <p style="font-size: 11px; color: var(--color-text-secondary); margin: 0;">Ganho de Capital • <span style="color: var(--color-text-secondary);">Há 3 dias</span></p>
-                </div>
-                <button class="btn-utility" style="font-size: 11px; padding: 6px 10px;" onclick="window.open('https://wa.me/5511999999999', '_blank')"><i class="fa-brands fa-whatsapp" style="color: #25D366; font-size: 14px;"></i> Chamar</button>
-              </div>
-
             </div>
           </div>
 
+        </div>
+
+        <!-- Guias Mensais: clientes recorrentes (parcelamento/obrigação mensal)
+             que vencem este mês. Sem certificado do Integra Contador ainda, a
+             geração é manual — isto é só o lembrete + checklist. -->
+        <div class="dash-card" style="margin-top: 20px;">
+          <div class="dash-card-header" style="justify-content: space-between; align-items: flex-start;">
+            <div>
+              <h3><i class="fa-solid fa-file-invoice" style="color: var(--color-pine)"></i> Guias Mensais</h3>
+              <p style="font-size: 11px; color: var(--color-text-secondary); margin-top: 4px;">Clientes recorrentes com guia/parcelamento a gerar este mês</p>
+            </div>
+          </div>
+          <div id="guias-mensais-lista" style="padding: 16px; display: flex; flex-direction: column; gap: 12px; max-height: 300px; overflow-y: auto;"></div>
         </div>
       </section>
 
@@ -196,12 +229,10 @@
           
           <!-- NEW: Toolbar Esquerda -->
           <div class="atendimento-toolbar-left">
-            <button class="btn-toolbar active" id="btn-tool-fila" title="Fila de Atendimento"><i class="fa-solid fa-list-ul"></i></button>
-            <button class="btn-toolbar" id="btn-tool-dossie" title="Dossiê do Atendimento"><i class="fa-solid fa-notes-medical"></i></button>
-            <div style="flex-grow: 1;"></div>
-            <button class="btn-toolbar" id="btn-calc-gain" title="Ganho de Capital"><i class="fa-solid fa-calculator"></i></button>
-            <button class="btn-toolbar" id="btn-simples-sim" title="Simples Nacional"><i class="fa-solid fa-chart-line"></i></button>
-            <button class="btn-toolbar" id="btn-toggle-copilot" title="Copiloto IA" style="color: var(--color-coral);"><i class="fa-solid fa-robot"></i></button>
+            <button class="btn-toolbar active" id="btn-tool-fila" title="Fila de Atendimento"><i class="fa-solid fa-comment-dots"></i></button>
+            <button class="btn-toolbar" id="btn-tool-copilot" title="Copiloto IA" style="color: var(--color-text-primary);">
+              <span style="font-weight: 800; font-family: var(--font-title); font-size: 14px; letter-spacing: -0.5px;">Olá<span style="color: var(--color-coral);">.</span></span>
+            </button>
           </div>
 
           <!-- NEW: Painel Lateral Esquerdo (Dinâmico) -->
@@ -209,80 +240,103 @@
             
             <!-- Conteúdo: Fila -->
             <div class="side-panel-content active" id="panel-content-fila">
-              <div class="sidebar-title" style="display: flex; justify-content: space-between; align-items: center;">
-                <div>
-                  <span>Fila de Atendimento</span>
-                  <span class="chat-count-badge" id="chat-count-tab">3</span>
+              <!-- Duas listas no mesmo painel, alternadas por aba: quem está em
+                   conversa (Fila) e o que está marcado para hoje (Agenda). Como
+                   o atendimento é por agendamento, a agenda do dia é o plano de
+                   trabalho — mas ficava numa seção separada, longe daqui. -->
+              <div class="painel-abas" role="tablist">
+                <button class="painel-aba ativa" role="tab" aria-selected="true"
+                        data-lista="fila" id="aba-fila">
+                  Chats <span class="chat-count-badge" id="chat-count-tab">0</span>
+                </button>
+                <button class="painel-aba" role="tab" aria-selected="false"
+                        data-lista="agenda" id="aba-agenda">
+                  Agenda do dia <span class="chat-count-badge" id="agenda-count-tab">0</span>
+                </button>
+              </div>
+
+              <div class="painel-lista ativa" id="lista-fila">
+                <div class="search-chat">
+                  <input type="text" id="search-input-tab" placeholder="Buscar cliente por nome...">
+                </div>
+                <div class="chat-list" id="client-list-tab">
+                  <!-- Populated by JS -->
                 </div>
               </div>
-              <div class="search-chat">
-                <input type="text" id="search-input-tab" placeholder="Buscar cliente por nome...">
-              </div>
-              <div class="chat-list" id="client-list-tab">
-                <!-- Populated by JS -->
+
+              <div class="painel-lista" id="lista-agenda">
+                <div class="agenda-dia-cabecalho" id="agenda-dia-cabecalho"></div>
+                <div class="chat-list" id="agenda-do-dia-list">
+                  <!-- Populated by JS -->
+                </div>
               </div>
             </div>
 
             <!-- Conteúdo: Dossiê -->
-            <div class="side-panel-content" id="panel-content-dossie">
+            <!-- Conteúdo: Copiloto -->
+            <div class="side-panel-content" id="panel-content-copilot">
               <div class="prontuario-header">
                 <div>
-                  <h2 style="font-size: 16px;"><i class="fa-solid fa-notes-medical" style="color: var(--color-coral)"></i> Dossiê do Atendimento</h2>
+                  <h2 style="font-size: 16px;">
+                    <span style="font-weight: 800; font-family: var(--font-title); font-size: 18px; letter-spacing: -0.5px; margin-right: 6px;">Olá<span style="color: var(--color-coral);">.</span></span> Copiloto IA
+                  </h2>
                 </div>
               </div>
-              <div class="prontuario-content">
-                <div class="form-group">
-                  <label class="form-label" for="prontuario-diagnostico">Diagnóstico Fiscal</label>
-                  <select class="form-select" id="prontuario-diagnostico">
-                    <option value="Malha Fina - Omissão de Rendimentos de Trabalho">Malha Fina - Omissão de Rendimentos</option>
-                    <option value="Malha Fina - Glosa de Despesas Médicas sem Comprovante">Malha Fina - Glosa de Despesas Médicas</option>
-                    <option value="Ganho de Capital - Venda de Imóvel sem Recolhimento de ITBI/IR">Ganho de Capital - Imóvel não Declarado</option>
-                    <option value="Desenquadramento e Débitos retroativos do MEI">Débitos Retroativos do MEI</option>
-                    <option value="Carnê-Leão - Falta de Recolhimento Mensal de Autônomo">Carnê-Leão - Falta de Recolhimento</option>
-                  </select>
-                </div>
-                <div class="form-group">
-                  <label class="form-label">Evidências Coletadas (Adicionar)</label>
-                  <div class="evidence-tag-selector">
-                    <div class="tag-pool" id="tag-pool-evidences">
-                      <!-- Populated by JS -->
-                    </div>
+              <!-- Contexto: qual atendimento o Copiloto está acompanhando agora.
+                   Sem isso, trocar de cliente na fila deixava a conversa antiga do
+                   copiloto na tela, parecendo que a IA ainda falava do caso anterior. -->
+              <div class="copilot-context-bar" id="copilot-context-bar">
+                <i class="fa-solid fa-comment-dots"></i>
+                <span>Falando sobre: <strong id="copilot-context-nome">nenhum atendimento aberto</strong></span>
+              </div>
+              <div class="prontuario-content" style="display: flex; flex-direction: column; height: 100%; padding: 0;">
+                <div class="copilot-chat-history" id="copilot-chat" style="flex: 1; padding: 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 16px;">
+                <!-- Copilot Welcome -->
+                <div style="display: flex; gap: 12px; max-width: 90%;">
+                  <div style="width: 28px; height: 28px; border-radius: 50%; background: var(--color-pine); color: white; display: flex; align-items: center; justify-content: center; font-size: 12px; flex-shrink: 0;"><i class="fa-solid fa-robot"></i></div>
+                  <div style="background: white; border: 1px solid var(--color-border); padding: 12px; border-radius: 8px; font-size: 13px; color: var(--color-text); line-height: 1.4;">
+                    Olá, contador! Estou acompanhando o chat em tempo real.<br><br>Selecione um comando rápido abaixo ou me pergunte o que precisar.
                   </div>
                 </div>
-                <div class="form-group">
-                  <label class="form-label">Documentação Pendente</label>
-                  <div class="checklist-docs" id="checklist-documents-prontuario">
-                    <!-- Populated by JS -->
-                  </div>
-                </div>
-                <div class="form-group">
-                  <label class="form-label" for="prontuario-tratamento">Tratamento Recomendado (Passos)</label>
-                  <textarea class="form-textarea" id="prontuario-tratamento" rows="4"></textarea>
-                </div>
-                <div class="form-group">
-                  <label class="form-label" for="prontuario-honorarios">Valor dos Honorários (R$)</label>
-                  <input type="number" class="form-select" id="prontuario-honorarios" value="150" min="0">
-                </div>
               </div>
-              <div class="prontuario-footer">
-                <button class="btn-generate-report" id="btn-generate-prontuario">
-                  <i class="fa-solid fa-file-contract"></i> Gerar Receita
-                </button>
+
+              <!-- Skill = lente de conhecimento aplicada a TODA a conversa (afeta também
+                   os atalhos abaixo); antes ficava solta, sem ligação nenhuma com o
+                   chat — agora entra em toda pergunta feita por aqui. -->
+              <div class="copilot-skill-row">
+                <i class="fa-solid fa-brain"></i>
+                <select class="form-select" id="active-skill-selector">
+                  <option value="">Sem skill ativa — resposta padrão</option>
+                  <!-- Populated by JS -->
+                </select>
               </div>
-            </div>
 
-          </div>
+              <!-- Preenchido por renderCopilotPrompts(), a partir de copilotShortcuts
+                   (localStorage) — editável/ligável em Configurações → Aparência do Chat. -->
+              <div class="copilot-prompts" id="copilot-prompts-container"></div>
 
-          <!-- Column 2.2: Active Chat Area -->
-          <div class="chat-area">
+              <div class="copilot-input-area" style="padding: 12px; background: white; border-top: 1px solid var(--color-border); display: flex; flex-direction: column; gap: 8px;">
+                <form id="form-copilot" style="display: flex; gap: 8px;" onsubmit="event.preventDefault(); submitCopilotMessage();">
+                  <input type="text" id="copilot-input" placeholder="Pergunte algo à IA sobre este atendimento..." style="flex: 1; border: 1px solid var(--color-border); border-radius: 20px; padding: 8px 16px; font-size: 12px; outline: none; font-family: inherit;">
+                  <button type="submit" style="width: 34px; height: 34px; border-radius: 50%; border: none; background: var(--color-coral); color: white; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0;"><i class="fa-solid fa-arrow-up"></i></button>
+                </form>
+              </div>
+
+            </div> <!-- Closes prontuario-content -->
+          </div> <!-- Closes panel-content-copilot -->
+        </div> <!-- Closes side-panel-left (THIS WAS MISSING!) -->
+
+        <!-- Column 2.2: Active Chat Area -->
+        <div class="chat-area">
             <div class="chat-area-header">
-              <div class="active-client-info">
+              <div class="active-client-info" style="display: flex; gap: 12px; align-items: flex-start;">
                 <div class="chat-item-avatar" id="active-client-avatar">AS</div>
-                <div class="active-client-details">
-                  <h3 id="active-client-name" style="margin-bottom: 2px;">Ana Silva</h3>
-                  <div style="display: flex; align-items: center; gap: 8px;">
-                    <p id="active-client-tax-type" style="font-size: 11px; margin: 0; padding: 2px 6px; background-color: var(--color-pine-ultra-light); color: var(--color-pine); border-radius: 4px; font-weight: 600;">Processo: 123.456.789-00</p>
-                    <select class="form-select" style="padding: 2px 24px 2px 8px; font-size: 11px; height: 20px; min-width: 130px; background-color: var(--color-bg); border-color: transparent; border-radius: 4px;">
+                <div class="active-client-details" style="display: flex; flex-direction: column; gap: 2px;">
+                  <h3 id="active-client-name" style="margin: 0; font-size: 16px; color: var(--color-pine);">Ana Silva</h3>
+                  <div style="display: flex; align-items: center; gap: 6px;">
+                    <p id="active-client-tax-type" style="font-size: 13px; margin: 0; color: var(--color-text-secondary); font-weight: 500;">CPF: 123.456.789-00</p>
+                    <span style="color: var(--color-border); font-size: 12px;">•</span>
+                    <select class="form-select" id="active-client-tag-select" style="padding: 0; font-size: 13px; margin: 0; color: var(--color-text-secondary); background-color: transparent; border: none; cursor: pointer; outline: none; font-weight: 500;">
                       <option>Tag: Sem Tema</option>
                       <option selected>Tag: Malha Fina</option>
                       <option>Tag: Ganho de Capital</option>
@@ -290,18 +344,27 @@
                       <option>Tag: Assessoria MEI</option>
                     </select>
                   </div>
+                  <div class="status-indicator offline" id="active-client-status" style="margin: 0; background: none; padding: 0; gap: 4px; display: flex; align-items: center;">
+                    <i class="fa-solid fa-circle dot" style="font-size: 8px;"></i> <span class="status-text" style="font-size: 12px; color: var(--color-text-secondary);">Offline</span>
+                  </div>
                 </div>
               </div>
               <div class="chat-actions-top" style="display: flex; align-items: center;">
                 
                 <!-- NEW: Chat Timer -->
-                <div class="chat-timer" id="chat-timer-container" style="display: flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 6px; background-color: var(--color-bg); font-family: monospace; font-size: 14px; font-weight: bold; border: 1px solid var(--color-border); margin-right: 8px; color: var(--color-text);">
-                  <i class="fa-solid fa-stopwatch" id="chat-timer-icon" style="color: var(--color-pine);"></i>
+                <div class="chat-timer" id="chat-timer-container" style="display: flex; align-items: center; gap: 6px; height: 32px; padding: 0 16px; border-radius: 24px; background-color: var(--color-bg); font-family: var(--font-body); font-size: 13px; font-weight: 600; border: 1px solid var(--color-border); margin-right: 8px; color: var(--color-pine); font-variant-numeric: tabular-nums;">
+                  <i class="fa-solid fa-stopwatch"></i>
                   <span id="timer-minutes">00</span>:<span id="timer-seconds">00</span>
-                  <button id="btn-start-timer" title="Iniciar Atendimento" style="background: none; border: none; cursor: pointer; color: #2ECC71; margin-left: 4px; padding: 0;"><i class="fa-solid fa-play"></i></button>
-                  <button id="btn-stop-timer" title="Pausar Atendimento" style="background: none; border: none; cursor: pointer; color: var(--color-coral); margin-left: 4px; padding: 0; display: none;"><i class="fa-solid fa-pause"></i></button>
+                  <button id="btn-start-timer" title="Iniciar Atendimento" style="background: none; border: none; cursor: pointer; color: #2ECC71; margin-left: 2px; padding: 0; font-size: 13px; display: flex; align-items: center;"><i class="fa-solid fa-play"></i></button>
+                  <button id="btn-stop-timer" title="Pausar Atendimento" style="background: none; border: none; cursor: pointer; color: var(--color-coral); margin-left: 2px; padding: 0; display: none; font-size: 13px; align-items: center;"><i class="fa-solid fa-pause"></i></button>
                 </div>
-                <button class="btn-utility" id="btn-finish-chat" style="color: white; background-color: var(--color-coral); border-color: var(--color-coral); margin-right: 12px;">
+                <button class="btn-utility" id="btn-toggle-lock" onclick="toggleChatLock()" style="height: 32px; padding: 0 16px; border-radius: 24px; color: var(--color-text-primary); border-color: var(--color-border); margin-right: 8px; font-size: 12px; font-weight: 500; display: flex; align-items: center; gap: 6px; background-color: white;">
+                  <i class="fa-solid fa-lock"></i> Bloquear Chat
+                </button>
+                <button class="btn-utility" id="btn-send-acompanhamento" title="Encaminhar para o quadro de Acompanhamento — use quando o caso precisa de uma ação sua depois (declaração, parcelamento etc.)." style="height: 32px; padding: 0 16px; border-radius: 24px; color: var(--color-text-primary); border-color: var(--color-border); margin-right: 8px; font-size: 12px; font-weight: 500; display: flex; align-items: center; gap: 6px; background-color: white;">
+                  <i class="fa-solid fa-list-check"></i> Acompanhamento
+                </button>
+                <button class="btn-utility" id="btn-finish-chat" style="height: 32px; padding: 0 16px; border-radius: 24px; color: white; background-color: var(--color-coral); border-color: var(--color-coral); margin-right: 12px; font-size: 12px; font-weight: 500; display: flex; align-items: center; gap: 6px;">
                   <i class="fa-solid fa-check-double"></i> Encerrar
                 </button>
               </div>
@@ -315,24 +378,28 @@
             <!-- Chat Area Footer -->
             <div class="chat-area-footer">
               <!-- Shortcuts tags -->
-              <div class="shortcuts-bar">
-                <button class="btn-shortcut-tag" data-action="reply" data-text="/boasvindas"><i class="fa-solid fa-hand-holding-hand"></i> /boasvindas</button>
-                <button class="btn-shortcut-tag" data-action="reply" data-text="/doc-malha"><i class="fa-solid fa-file-invoice"></i> /doc-malha</button>
-                <button class="btn-shortcut-tag" data-action="reply" data-text="/honorarios"><i class="fa-solid fa-dollar-sign"></i> /honorarios</button>
-                <button class="btn-shortcut-tag" data-action="doc" data-doc="CPF e RG"><i class="fa-solid fa-id-card"></i> Pedir CPF/RG</button>
-                <button class="btn-shortcut-tag" data-action="doc" data-doc="Notificação da Receita"><i class="fa-solid fa-triangle-exclamation"></i> Pedir Notificação</button>
-                <button class="btn-shortcut-tag" data-action="doc" data-doc="Comprovante de Rendimentos"><i class="fa-solid fa-building-columns"></i> Pedir Rendimentos</button>
-                <button class="btn-shortcut-tag" id="btn-send-audio-shortcut"><i class="fa-solid fa-microphone"></i> Enviar Áudio</button>
+              <div class="shortcuts-bar" id="chat-shortcuts-container">
+                <!-- Populated by JS -->
               </div>
 
               <!-- Input form -->
-              <form class="input-container" id="chat-form">
-                <input type="text" class="input-message" id="message-input" placeholder="Digite uma mensagem ou '/'..." autocomplete="off">
-                <button type="submit" class="btn-send" id="btn-send-message"><i class="fa-solid fa-paper-plane"></i></button>
-              </form>
+              <div style="display: flex; gap: 8px; align-items: stretch; margin-bottom: 8px;">
 
-              <!-- Simulated client actions -->
-              <div class="sim-client-actions">
+                
+                <form class="input-container" id="chat-form" style="flex: 1; margin-bottom: 0;">
+                  <button type="button" class="btn-send" id="btn-inline-ai" title="A IA assume e sugere a resposta — você revisa antes de enviar" onclick="triggerInlineCopilot()" style="background-color: var(--color-bg); border: 1px solid var(--color-border); margin-right: 8px;">
+                    <svg viewBox="0 0 616 640" style="width: 16px; height: 16px;"><use href="#oc-logo-mark"></use></svg>
+                  </button>
+                  <input type="text" class="input-message" id="message-input" placeholder="Digite uma mensagem ou '/'..." autocomplete="off">
+                  <button type="submit" class="btn-send" id="btn-send-message"><i class="fa-solid fa-paper-plane"></i></button>
+                </form>
+              </div>
+
+              <!-- Ferramenta de TESTE, não de produção: finge que o cliente
+                   mandou mensagem/arquivo/áudio. Nasce escondida e só o modo dev
+                   revela (ver oc-data.js). Antes ficava à mostra no painel real —
+                   se o contador abre a tela na frente de alguém, entrega o jogo. -->
+              <div class="sim-client-actions" hidden>
                 <span>Simular Cliente:</span>
                 <button class="btn-sim-action" id="btn-sim-reply">Mandar Dúvida</button>
                 <button class="btn-sim-action" id="btn-sim-upload">Enviar Arquivo</button>
@@ -341,42 +408,70 @@
             </div>
           </div>
 
-          <!-- Column 2.3: Copiloto IA (Right Sidebar) -->
-          <div class="sidebar-copiloto collapsed" id="side-panel-copilot">
-            <div class="prontuario-header" style="display: flex; justify-content: space-between; align-items: center;">
-              <h2 style="font-size: 16px;"><i class="fa-solid fa-robot" style="color: var(--color-coral)"></i> Copiloto IA</h2>
-              <button class="btn-sidebar-collapse" id="btn-close-copilot" title="Fechar Copiloto">
-                <i class="fa-solid fa-xmark"></i>
-              </button>
-            </div>
-            <div class="prontuario-content" style="display: flex; flex-direction: column; height: calc(100% - 60px); padding: 0;">
-              
-              <div class="copilot-chat-history" id="copilot-chat" style="flex: 1; padding: 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 16px;">
-                <!-- Copilot Welcome -->
-                <div style="display: flex; gap: 12px; max-width: 90%;">
-                  <div style="width: 28px; height: 28px; border-radius: 50%; background: var(--color-pine); color: white; display: flex; align-items: center; justify-content: center; font-size: 12px; flex-shrink: 0;"><i class="fa-solid fa-robot"></i></div>
-                  <div style="background: white; border: 1px solid var(--color-border); padding: 12px; border-radius: 8px; font-size: 13px; color: var(--color-text); line-height: 1.4;">
-                    Olá, contador! Estou acompanhando o chat em tempo real.<br><br>Selecione um comando rápido abaixo ou me pergunte o que precisar.
-                  </div>
-                </div>
-              </div>
+        </div>
+      </section>
 
-              <div class="copilot-prompts" style="padding: 12px; display: flex; gap: 8px; overflow-x: auto; border-top: 1px solid var(--color-border); background: var(--color-bg);">
-                <button class="btn-utility" style="font-size: 11px; white-space: nowrap;" onclick="triggerCopilot('Faça um resumo rápido do que o cliente pediu.')"><i class="fa-solid fa-bolt" style="color: #F1C40F"></i> Resumir Chat</button>
-                <button class="btn-utility" style="font-size: 11px; white-space: nowrap;" onclick="triggerCopilot('O cliente já enviou todos os documentos necessários?')"><i class="fa-solid fa-file-circle-question"></i> Auditar Docs</button>
-                <button class="btn-utility" style="font-size: 11px; white-space: nowrap;" onclick="triggerCopilot('Gere uma resposta pedindo para ele enviar o extrato em PDF.')"><i class="fa-solid fa-pen-nib"></i> Rascunhar Pedido</button>
-              </div>
-
-              <div class="copilot-input-area" style="padding: 12px; background: white; border-top: 1px solid var(--color-border);">
-                <form id="form-copilot" style="display: flex; gap: 8px;" onsubmit="event.preventDefault(); submitCopilotMessage();">
-                  <input type="text" id="copilot-input" placeholder="Peça algo à IA..." style="flex: 1; border: 1px solid var(--color-border); border-radius: 20px; padding: 8px 16px; font-size: 12px; outline: none; font-family: inherit;">
-                  <button type="submit" style="width: 34px; height: 34px; border-radius: 50%; border: none; background: var(--color-coral); color: white; cursor: pointer; display: flex; align-items: center; justify-content: center;"><i class="fa-solid fa-arrow-up"></i></button>
-                </form>
-              </div>
-
+      <!-- SECTION: Relatório Exclusivo -->
+      <section class="content-panel" id="section-dossie" style="padding: 40px; overflow-y: auto; background-color: var(--color-bg);">
+        <div style="max-width: 900px; margin: 0 auto; background-color: var(--color-card); border-radius: var(--radius-lg); border: 1px solid var(--color-border); display: flex; flex-direction: column; box-shadow: 0 4px 32px rgba(10, 49, 33, 0.08); min-height: 80vh;">
+          <div class="prontuario-header" style="padding: 32px 32px 24px 32px; border-bottom: 1px solid var(--color-border); background-color: #FAFAFA; border-radius: var(--radius-lg) var(--radius-lg) 0 0;">
+            <div>
+              <h2 style="font-size: 24px;"><i class="fa-solid fa-clipboard-list" style="color: var(--color-coral); margin-right: 8px;"></i> Relatório de Atendimento</h2>
+              <p style="font-size: 14px; color: var(--color-text-secondary); margin-top: 8px;">Diagnóstico, informações e resumo das ações aplicadas ao caso do cliente atual.</p>
             </div>
           </div>
+          <div class="prontuario-content responsive-grid" style="padding: 32px; flex: 1; display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+            <!-- O que o cliente contou antes de entrar. Montado por app.js a
+                 partir da triagem; fica escondido quando não há nenhuma. -->
+            <div id="triagem-card" class="triagem-card" style="grid-column: 1 / -1;" hidden></div>
 
+            <div class="form-group" style="margin-bottom: 0; grid-column: 1 / -1;">
+              <label class="form-label" for="prontuario-diagnostico">Diagnóstico Fiscal</label>
+              <select class="form-select" id="prontuario-diagnostico" style="font-size: 15px; padding: 12px;">
+                <option value="Malha Fina - Omissão de Rendimentos de Trabalho">Malha Fina - Omissão de Rendimentos</option>
+                <option value="Malha Fina - Glosa de Despesas Médicas sem Comprovante">Malha Fina - Glosa de Despesas Médicas</option>
+                <option value="Ganho de Capital - Venda de Imóvel sem Recolhimento de ITBI/IR">Ganho de Capital - Imóvel não Declarado</option>
+                <option value="Desenquadramento e Débitos retroativos do MEI">Débitos Retroativos do MEI</option>
+                <option value="Carnê-Leão - Falta de Recolhimento Mensal de Autônomo">Carnê-Leão - Falta de Recolhimento</option>
+              </select>
+            </div>
+            <div class="form-group" style="margin-bottom: 0;">
+              <label class="form-label">Evidências Coletadas (Adicionar)</label>
+              <div class="evidence-tag-selector">
+                <div class="tag-pool" id="tag-pool-evidences">
+                  <!-- Populated by JS -->
+                </div>
+              </div>
+            </div>
+            <div class="form-group" style="margin-bottom: 0;">
+              <label class="form-label">Documentação Pendente</label>
+              <div class="checklist-docs" id="checklist-documents-prontuario" style="background: white; border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 12px; min-height: 120px;">
+                <!-- Populated by JS -->
+              </div>
+            </div>
+            <div class="form-group" style="margin-bottom: 0;">
+              <label class="form-label">Documentos Enviados</label>
+              <div id="prontuario-documentos" style="display: flex; flex-direction: column; gap: 8px; background: white; border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 12px; min-height: 120px;">
+                <!-- Populated by JS -->
+              </div>
+            </div>
+            <div class="form-group" style="margin-bottom: 0; grid-column: 1 / -1;">
+              <label class="form-label" for="prontuario-tratamento">Tratamento Recomendado (Passos)</label>
+              <textarea class="form-textarea" id="prontuario-tratamento" rows="5"></textarea>
+            </div>
+            <div class="form-group" style="margin-bottom: 0;">
+              <label class="form-label" for="prontuario-honorarios">Valor dos Honorários (R$)</label>
+              <input type="number" class="form-select" id="prontuario-honorarios" value="150" min="0" style="max-width: 200px;">
+            </div>
+          </div>
+          <div class="prontuario-footer" style="display: flex; gap: 16px; padding: 24px; border-top: 1px solid var(--color-border); background-color: var(--color-bg); border-radius: 0 0 var(--radius-lg) var(--radius-lg);">
+            <button class="btn-utility" id="btn-sugerir-ia" title="A IA lê a conversa e sugere diagnóstico e tratamento" style="flex: 1; justify-content: center; padding: 14px; font-size: 14px;">
+              <i class="fa-solid fa-wand-magic-sparkles"></i> Preencher com IA
+            </button>
+            <button class="btn-generate-report" id="btn-generate-prontuario" style="flex: 2; justify-content: center; padding: 14px; font-size: 14px;">
+              <i class="fa-solid fa-file-contract"></i> Gerar Relatório Final
+            </button>
+          </div>
         </div>
       </section>
 
@@ -389,18 +484,18 @@
             <!-- Calendar Header -->
             <div class="calendar-header-controls">
               <div style="display: flex; align-items: center; gap: 16px;">
-                <button class="btn-utility" style="padding: 4px 12px;">Hoje</button>
+                <button class="btn-utility" id="calendar-today" style="padding: 4px 12px;">Hoje</button>
                 <div style="display: flex; gap: 4px;">
-                  <button class="calendar-nav-btn"><i class="fa-solid fa-chevron-left"></i></button>
-                  <button class="calendar-nav-btn"><i class="fa-solid fa-chevron-right"></i></button>
+                  <button class="calendar-nav-btn" id="calendar-prev" type="button" aria-label="Mês anterior"><i class="fa-solid fa-chevron-left"></i></button>
+                  <button class="calendar-nav-btn" id="calendar-next" type="button" aria-label="Próximo mês"><i class="fa-solid fa-chevron-right"></i></button>
                 </div>
-                <h2 class="calendar-title">Julho de 2026</h2>
+                <h2 class="calendar-title" id="calendar-title">Agenda</h2>
               </div>
               
               <div class="calendar-view-toggles">
-                <button class="calendar-view-btn active">Mês</button>
-                <button class="calendar-view-btn">Semana</button>
-                <button class="calendar-view-btn">Dia</button>
+                <button class="calendar-view-btn active" type="button">Mês</button>
+                <button class="calendar-view-btn" type="button" disabled title="Visão semanal entra na próxima etapa">Semana</button>
+                <button class="calendar-view-btn" type="button" disabled title="Visão diária entra na próxima etapa">Dia</button>
               </div>
             </div>
 
@@ -416,62 +511,7 @@
                 <div class="calendar-day-name">Sáb</div>
               </div>
               <div class="calendar-days-grid" id="calendar-days-grid-container">
-                <!-- Days injected via JS, but we put a few mocked ones for immediate visual feedback -->
-                <!-- Week 1 -->
-                <div class="calendar-day-cell other-month"><span class="calendar-day-number">28</span></div>
-                <div class="calendar-day-cell other-month"><span class="calendar-day-number">29</span></div>
-                <div class="calendar-day-cell other-month"><span class="calendar-day-number">30</span></div>
-                <div class="calendar-day-cell"><span class="calendar-day-number">1</span>
-                  <div class="calendar-events-container">
-                    <div class="calendar-event type-imposto">09:00 - Malha Fina</div>
-                  </div>
-                </div>
-                <div class="calendar-day-cell"><span class="calendar-day-number">2</span></div>
-                <div class="calendar-day-cell"><span class="calendar-day-number">3</span></div>
-                <div class="calendar-day-cell"><span class="calendar-day-number">4</span></div>
-                <!-- Week 2 -->
-                <div class="calendar-day-cell"><span class="calendar-day-number">5</span></div>
-                <div class="calendar-day-cell"><span class="calendar-day-number">6</span></div>
-                <div class="calendar-day-cell"><span class="calendar-day-number">7</span>
-                  <div class="calendar-events-container">
-                    <div class="calendar-event type-ganho">14:00 - Ganho de Cap.</div>
-                    <div class="calendar-event type-simples">16:00 - Simples Nac.</div>
-                  </div>
-                </div>
-                <div class="calendar-day-cell"><span class="calendar-day-number">8</span></div>
-                <div class="calendar-day-cell"><span class="calendar-day-number">9</span></div>
-                <div class="calendar-day-cell"><span class="calendar-day-number">10</span></div>
-                <div class="calendar-day-cell"><span class="calendar-day-number">11</span>
-                  <div class="calendar-events-container">
-                    <div class="calendar-event type-imposto">08:00 - IRPF</div>
-                    <div class="calendar-event type-imposto">10:00 - IRPF</div>
-                    <div class="calendar-event type-imposto">11:00 - Malha Fina</div>
-                  </div>
-                </div>
-                <!-- Week 3 -->
-                <div class="calendar-day-cell"><span class="calendar-day-number">12</span></div>
-                <div class="calendar-day-cell"><span class="calendar-day-number">13</span></div>
-                <div class="calendar-day-cell"><span class="calendar-day-number">14</span></div>
-                <div class="calendar-day-cell"><span class="calendar-day-number">15</span></div>
-                <div class="calendar-day-cell"><span class="calendar-day-number">16</span></div>
-                <div class="calendar-day-cell"><span class="calendar-day-number">17</span></div>
-                <div class="calendar-day-cell"><span class="calendar-day-number">18</span></div>
-                <!-- Week 4 -->
-                <div class="calendar-day-cell"><span class="calendar-day-number">19</span></div>
-                <div class="calendar-day-cell"><span class="calendar-day-number">20</span></div>
-                <div class="calendar-day-cell"><span class="calendar-day-number">21</span></div>
-                <div class="calendar-day-cell"><span class="calendar-day-number">22</span></div>
-                <div class="calendar-day-cell"><span class="calendar-day-number">23</span></div>
-                <div class="calendar-day-cell"><span class="calendar-day-number">24</span></div>
-                <div class="calendar-day-cell"><span class="calendar-day-number">25</span></div>
-                <!-- Week 5 -->
-                <div class="calendar-day-cell"><span class="calendar-day-number">26</span></div>
-                <div class="calendar-day-cell"><span class="calendar-day-number">27</span></div>
-                <div class="calendar-day-cell"><span class="calendar-day-number">28</span></div>
-                <div class="calendar-day-cell"><span class="calendar-day-number">29</span></div>
-                <div class="calendar-day-cell"><span class="calendar-day-number">30</span></div>
-                <div class="calendar-day-cell"><span class="calendar-day-number">31</span></div>
-                <div class="calendar-day-cell other-month"><span class="calendar-day-number">1</span></div>
+                <div class="calendar-loading">Carregando agenda...</div>
               </div>
             </div>
           </div>
@@ -485,19 +525,9 @@
                 <h3><i class="fa-solid fa-list-check" style="color: var(--color-pine)"></i> Agenda do Dia</h3>
               </div>
               <div style="padding: 16px;">
-                <p style="font-size: 13px; color: var(--color-text-secondary); margin-bottom: 12px; font-weight: 500;">Sábado, 11 de Julho</p>
+                <p id="appointments-day-label" style="font-size: 13px; color: var(--color-text-secondary); margin-bottom: 12px; font-weight: 500;">Hoje</p>
                 <div class="appointments-list-wrapper" id="appointments-cards-container" style="max-height: 250px; overflow-y: auto;">
-                  <!-- Scheduled cards populated by JS -->
-                  <div class="appointment-card" style="padding: 12px; flex-direction: column; align-items: flex-start; gap: 8px;">
-                    <div style="display: flex; justify-content: space-between; width: 100%;">
-                      <span style="font-size: 13px; font-weight: 600; color: var(--color-pine);"><i class="fa-regular fa-clock"></i> 08:00</span>
-                      <span class="status-badge pending" style="font-size: 10px;">Agendado</span>
-                    </div>
-                    <div>
-                      <h4 style="font-size: 14px; margin: 0;">Pedro Santos</h4>
-                      <p style="font-size: 11px; color: var(--color-text-secondary); margin: 0;">IRPF Anual</p>
-                    </div>
-                  </div>
+                  <p style="font-size:13px; color:var(--color-text-secondary); text-align:center; padding:30px 0;">Carregando atendimentos...</p>
                 </div>
               </div>
             </div>
@@ -506,27 +536,17 @@
             <div class="dash-card">
               <div class="dash-card-header" style="display: flex; justify-content: space-between; align-items: center;">
                 <h3><i class="fa-solid fa-clock-rotate-left" style="color: var(--color-pine)"></i> Disponibilidade</h3>
-                <button style="border: none; background: var(--color-pine-ultra-light); color: var(--color-pine); border-radius: 4px; padding: 4px 8px; font-size: 10px; cursor: pointer; font-weight: 600;"><i class="fa-brands fa-google"></i> Sinc.</button>
+                <span style="background: var(--color-pine-ultra-light); color: var(--color-pine); border-radius: 4px; padding: 4px 8px; font-size: 10px; font-weight: 600;"><i class="fa-brands fa-google"></i> em breve</span>
               </div>
               <div style="padding: 16px;">
-                <div style="display: flex; flex-direction: column; gap: 8px;">
-                  <label style="display: flex; align-items: center; justify-content: space-between; font-size: 12px; background: var(--color-bg); padding: 8px 12px; border-radius: 6px; border: 1px solid var(--color-border);">
-                    <div><i class="fa-regular fa-clock" style="color: var(--color-text-secondary); margin-right: 6px;"></i> 08:00 - 08:45</div>
-                    <input type="checkbox" checked>
-                  </label>
-                  <label style="display: flex; align-items: center; justify-content: space-between; font-size: 12px; background: var(--color-bg); padding: 8px 12px; border-radius: 6px; border: 1px solid var(--color-border);">
-                    <div><i class="fa-regular fa-clock" style="color: var(--color-text-secondary); margin-right: 6px;"></i> 09:00 - 09:45</div>
-                    <input type="checkbox" checked>
-                  </label>
-                  <label style="display: flex; align-items: center; justify-content: space-between; font-size: 12px; background: var(--color-bg); padding: 8px 12px; border-radius: 6px; border: 1px solid var(--color-border);">
-                    <div><i class="fa-regular fa-clock" style="color: var(--color-text-secondary); margin-right: 6px;"></i> 10:00 - 10:45</div>
-                    <input type="checkbox">
-                  </label>
-                  <label style="display: flex; align-items: center; justify-content: space-between; font-size: 12px; background: var(--color-bg); padding: 8px 12px; border-radius: 6px; border: 1px solid var(--color-border);">
-                    <div><i class="fa-regular fa-clock" style="color: var(--color-text-secondary); margin-right: 6px;"></i> 14:00 - 14:45</div>
-                    <input type="checkbox" checked>
-                  </label>
+                <div class="availability-note">Horários marcados aparecem para o cliente e serão usados no agendamento do site.</div>
+                <div class="availability-slots" id="availability-slots-container">
+                  <p style="font-size:13px; color:var(--color-text-secondary);">Carregando disponibilidade...</p>
                 </div>
+                <button type="button" class="btn-generate-report" id="btn-save-availability" style="margin-top: 12px; font-size: 12px; padding: 10px;">
+                  <i class="fa-solid fa-floppy-disk"></i> Salvar Disponibilidade
+                </button>
+                <p class="availability-status" id="availability-status" aria-live="polite"></p>
               </div>
             </div>
 
@@ -574,7 +594,7 @@
 
       <!-- SECTION 4: Notificações (Notificações Log) -->
       <section class="content-panel" id="section-notificacoes">
-        <div class="panel-header-desc" style="display: flex; justify-content: space-between; align-items: center;">
+        <div class="panel-header-desc" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
           <div>
             <h2>Central de Notificações</h2>
             <p>Log em tempo real de eventos, transações e uploads de arquivos de clientes.</p>
@@ -597,10 +617,11 @@
         <div class="settings-layout">
           <div class="settings-sidebar">
             <button class="settings-tab active" data-tab="tab-geral"><i class="fa-solid fa-sliders"></i> Geral & Notificações</button>
-            <button class="settings-tab" data-tab="tab-perfil"><i class="fa-solid fa-id-badge"></i> Perfil do Contador</button>
+            <button class="settings-tab" data-tab="tab-cliente"><i class="fa-solid fa-user-gear"></i> Área do Cliente</button>
             <button class="settings-tab" data-tab="tab-acessos"><i class="fa-solid fa-users"></i> Acessos e Equipe</button>
             <button class="settings-tab" data-tab="tab-integracoes"><i class="fa-solid fa-link"></i> Integrações</button>
             <button class="settings-tab" data-tab="tab-ia"><i class="fa-solid fa-robot"></i> Inteligência Artificial (AIA)</button>
+            <button class="settings-tab" data-tab="tab-chat-ui"><i class="fa-solid fa-palette"></i> Aparência do Chat</button>
           </div>
 
           <div class="settings-content">
@@ -623,72 +644,101 @@
               </div>
             </div>
 
-            <!-- TAB: Perfil -->
-            <div class="settings-pane" id="tab-perfil">
-              <h3>Perfil do Contador</h3>
-              <p style="font-size: 13px; color: var(--color-text-secondary); margin-bottom: 20px;">Defina os dados públicos que o cliente verá na tela de chat dele.</p>
-              
-              <div class="setting-block" style="display: flex; flex-direction: column; gap: 16px;">
-                <div style="display: flex; gap: 16px; align-items: center;">
-                  <div style="width: 80px; height: 80px; border-radius: 50%; background: var(--color-border); display: flex; align-items: center; justify-content: center; font-size: 24px; color: var(--color-text-secondary); overflow: hidden;">
-                    <i class="fa-solid fa-user"></i>
+            <!-- TAB: Área do Cliente — as configurações que o cliente sente.
+                 Tudo aqui é gravado na tabela `configuracoes` por app.js. -->
+            <div class="settings-pane" id="tab-cliente">
+              <h3>Área do Cliente</h3>
+              <p style="font-size: 13px; color: var(--color-text-secondary); margin-bottom: 20px;">
+                O que o cliente vê e responde antes de falar com você. Muda aqui, muda na hora no portal dele.
+              </p>
+
+              <!-- Perfil visível ao cliente -->
+              <div class="setting-block">
+                <h4 style="font-size: 14px; color: var(--color-pine); margin-bottom: 4px;">Como o cliente te vê</h4>
+                <p style="font-size: 12px; color: var(--color-text-secondary); margin-bottom: 14px;">Aparece no topo do chat dele e no aviso de "está digitando".</p>
+                <div class="cfg-grid">
+                  <div>
+                    <label class="cfg-label" for="cfg-contador-nome">Nome de exibição</label>
+                    <input type="text" class="cfg-input" id="cfg-contador-nome" placeholder="Contador Felipe">
                   </div>
                   <div>
-                    <button class="btn-utility"><i class="fa-solid fa-upload"></i> Alterar Foto</button>
-                    <p style="font-size: 11px; color: var(--color-text-secondary); margin-top: 4px;">JPG ou PNG. Tamanho ideal 200x200px.</p>
+                    <label class="cfg-label" for="cfg-contador-crc">Registro CRC</label>
+                    <input type="text" class="cfg-input" id="cfg-contador-crc" placeholder="CRC SP-123456/O-7">
                   </div>
                 </div>
+                <label class="cfg-label" for="cfg-contador-espec" style="margin-top: 12px;">Especialidade</label>
+                <input type="text" class="cfg-input" id="cfg-contador-espec" placeholder="Especialista em Imposto de Renda e MEI">
+              </div>
 
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+              <!-- Regras da triagem -->
+              <div class="setting-block">
+                <h4 style="font-size: 14px; color: var(--color-pine); margin-bottom: 4px;">Regras do pré-atendimento</h4>
+                <p style="font-size: 12px; color: var(--color-text-secondary); margin-bottom: 14px;">O quanto você exige antes de atender.</p>
+
+                <div class="cfg-linha">
                   <div>
-                    <label style="display: block; font-size: 12px; font-weight: 600; margin-bottom: 4px; color: var(--color-pine)">Nome de Exibição</label>
-                    <input type="text" class="input-light" value="Contador Felipe" style="width: 100%; border: 1px solid var(--color-border); border-radius: 6px; padding: 8px; font-family: inherit;">
+                    <strong class="cfg-linha-titulo">Exigir a triagem para liberar o chat</strong>
+                    <span class="cfg-linha-nota">Ligado, o cliente só abre o chat depois de enviar a triagem. Garante contexto, mas barra quem já pagou e está com pressa.</span>
                   </div>
+                  <label class="switch">
+                    <input type="checkbox" id="cfg-triagem-obrigatoria">
+                    <span class="slider round"></span>
+                  </label>
+                </div>
+
+                <div class="cfg-linha">
                   <div>
-                    <label style="display: block; font-size: 12px; font-weight: 600; margin-bottom: 4px; color: var(--color-pine)">Registro CRC</label>
-                    <input type="text" class="input-light" value="SP-123456/O-7" style="width: 100%; border: 1px solid var(--color-border); border-radius: 6px; padding: 8px; font-family: inherit;">
+                    <strong class="cfg-linha-titulo">Tamanho mínimo do relato</strong>
+                    <span class="cfg-linha-nota">Quantas letras o cliente precisa escrever para conseguir enviar. Muito alto vira obstáculo; muito baixo aceita "oi".</span>
                   </div>
+                  <input type="number" class="cfg-input" id="cfg-triagem-minimo" min="0" max="500" style="width: 90px;">
                 </div>
+              </div>
 
-                <div>
-                  <label style="display: block; font-size: 12px; font-weight: 600; margin-bottom: 4px; color: var(--color-pine)">Especialidade / Título</label>
-                  <input type="text" class="input-light" value="Especialista em Imposto de Renda e MEI" style="width: 100%; border: 1px solid var(--color-border); border-radius: 6px; padding: 8px; font-family: inherit;">
+              <!-- Catálogo de assuntos -->
+              <div class="setting-block">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 4px;">
+                  <div>
+                    <h4 style="font-size: 14px; color: var(--color-pine);">Assuntos da triagem</h4>
+                    <p style="font-size: 12px; color: var(--color-text-secondary);">
+                      Escreva do jeito que o <em>cliente</em> falaria — ele não conhece os termos técnicos. O diagnóstico é a sua hipótese, e você confirma no dossiê.
+                    </p>
+                  </div>
+                  <button class="btn-utility" id="cfg-add-assunto" style="flex-shrink: 0;"><i class="fa-solid fa-plus"></i> Novo assunto</button>
                 </div>
+                <div id="cfg-assuntos" style="margin-top: 14px;"></div>
+              </div>
 
-                <div>
-                  <label style="display: block; font-size: 12px; font-weight: 600; margin-bottom: 4px; color: var(--color-pine)">Mensagem de Saudação Automática</label>
-                  <textarea class="input-light" style="width: 100%; border: 1px solid var(--color-border); border-radius: 6px; padding: 8px; resize: none; height: 60px; font-family: inherit;">Olá! Bem-vindo ao meu escritório virtual. Como posso te ajudar hoje?</textarea>
-                  <p style="font-size: 11px; color: var(--color-text-secondary); margin-top: 4px;">Essa mensagem aparece automaticamente quando o cliente abre o link do chat pela primeira vez.</p>
-                </div>
-
-                <div style="display: flex; justify-content: flex-end; margin-top: 8px;">
-                  <button class="btn-utility primary" onclick="showToast('Perfil salvo com sucesso!', 'success')">Salvar Alterações</button>
-                </div>
+              <div class="cfg-rodape">
+                <span class="cfg-aviso" id="cfg-aviso"></span>
+                <button class="btn-utility" id="cfg-descartar">Descartar mudanças</button>
+                <button class="btn-utility primary" id="cfg-salvar"><i class="fa-solid fa-save"></i> Salvar</button>
               </div>
             </div>
 
+            <!-- TAB: Perfil -->
             <!-- TAB: Acessos -->
             <div class="settings-pane" id="tab-acessos">
               <h3>Gerenciamento de Acessos</h3>
               <p style="font-size: 13px; color: var(--color-text-secondary); margin-bottom: 20px;">Controle quem pode acessar o sistema e os níveis de permissão.</p>
-              
+
               <div class="setting-block">
-                <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
                   <div>
                     <h4 style="font-size: 14px; color: var(--color-pine);">Membros da Equipe</h4>
                     <p style="font-size: 12px; color: var(--color-text-secondary);">Convide outros contadores ou assistentes para o painel.</p>
                   </div>
-                  <button class="btn-utility primary"><i class="fa-solid fa-plus"></i> Convidar</button>
+                  <button class="btn-utility primary" onclick="document.getElementById('modal-convite-equipe').style.display='flex'"><i class="fa-solid fa-plus"></i> Convidar</button>
                 </div>
-                
-                <div class="team-list" style="margin-top: 16px;">
-                  <div class="team-member">
+
+                <div class="team-list" id="team-list" style="margin-top: 16px; display: flex; flex-direction: column; gap: 12px;">
+                  <div class="team-member" style="display: flex; align-items: center; gap: 12px; background: var(--color-bg); padding: 12px; border-radius: var(--radius-md); border: 1px solid var(--color-border);">
                     <div class="chat-item-avatar">CF</div>
                     <div style="flex: 1;">
-                      <h4 style="font-size: 14px; color: var(--color-pine);">Contador Felipe</h4>
+                      <h4 style="font-size: 14px; margin: 0; color: var(--color-pine);">Contador Felipe</h4>
                       <span style="font-size: 11px; color: var(--color-text-secondary);">felipe@olacontador.com.br</span>
                     </div>
-                    <span class="status-badge" style="background-color: var(--color-pine); color: white; padding: 4px 8px; border-radius: 12px; font-size: 11px;">Admin</span>
+                    <span class="status-badge" style="background-color: var(--color-pine); color: white; padding: 4px 8px; border-radius: 12px; font-size: 11px;">Admin (Você)</span>
                   </div>
                 </div>
               </div>
@@ -698,8 +748,16 @@
             <div class="settings-pane" id="tab-integracoes">
               <h3>Integrações</h3>
               <p style="font-size: 13px; color: var(--color-text-secondary); margin-bottom: 20px;">Conecte o Olá Contador a outros sistemas.</p>
-              
-              <div class="integration-card">
+
+              <div class="em-breve-banner">
+                <i class="fa-solid fa-clock-rotate-left"></i>
+                <div>
+                  <strong>Em breve</strong>
+                  <span>Nenhuma integração conectada. WhatsApp e e-CAC dependem de contas e certificado que ainda não configuramos.</span>
+                </div>
+              </div>
+
+              <div class="integration-card em-breve-lock">
                 <div style="display: flex; gap: 12px; align-items: center;">
                   <i class="fa-brands fa-whatsapp" style="font-size: 24px; color: #25D366;"></i>
                   <div>
@@ -707,10 +765,10 @@
                     <p style="font-size: 12px; color: var(--color-text-secondary);">Sincroniza mensagens do WhatsApp para o painel de atendimento.</p>
                   </div>
                 </div>
-                <div class="toggle-switch active"></div>
+                <div class="toggle-switch"></div>
               </div>
-              
-              <div class="integration-card">
+
+              <div class="integration-card em-breve-lock">
                 <div style="display: flex; gap: 12px; align-items: center;">
                   <i class="fa-solid fa-building-columns" style="font-size: 24px; color: var(--color-pine);"></i>
                   <div>
@@ -718,50 +776,244 @@
                     <p style="font-size: 12px; color: var(--color-text-secondary);">Busca automática de pendências e recibos (Requer Certificado Digital).</p>
                   </div>
                 </div>
-                <div class="toggle-switch active"></div>
+                <div class="toggle-switch"></div>
               </div>
             </div>
 
             <!-- TAB: IA -->
             <div class="settings-pane" id="tab-ia">
-              <h3>Inteligência Artificial (AIA)</h3>
-              <p style="font-size: 13px; color: var(--color-text-secondary); margin-bottom: 20px;">Configure como o assistente virtual auxilia no diagnóstico e nas respostas rápidas.</p>
-              
+              <h3>Inteligência Artificial & Skills</h3>
+              <p style="font-size: 13px; color: var(--color-text-secondary); margin-bottom: 20px;">Crie Bases de Conhecimento isoladas (Skills) para que a IA dê respostas precisas baseadas na sua legislação, evitando invenções.</p>
+
               <div class="setting-block">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                  <h4 style="font-size: 14px; color: var(--color-pine);">Suas Skills (Bases de Conhecimento)</h4>
+                  <button class="btn-utility primary" onclick="openSkillModal()"><i class="fa-solid fa-plus"></i> Nova Skill</button>
+                </div>
+                
+                <div class="table-container">
+                  <table class="financeiro-table">
+                    <thead>
+                      <tr>
+                        <th>Nome da Skill</th>
+                        <th>Descrição</th>
+                        <th>Ativação</th>
+                        <th>Ações</th>
+                      </tr>
+                    </thead>
+                    <tbody id="skills-table-body">
+                      <!-- Populated by JS -->
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            <!-- TAB: Aparência do Chat e Atalhos -->
+            <div class="settings-pane" id="tab-chat-ui">
+              <h3>Aparência do Chat & Atalhos</h3>
+              <p style="font-size: 13px; color: var(--color-text-secondary); margin-bottom: 20px;">Personalize as cores do chat de atendimento e gerencie seus atalhos rápidos de mensagem.</p>
+              
+              <!-- Seção: Cores -->
+              <div class="setting-block">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; padding-bottom: 16px; border-bottom: 1px solid var(--color-border);">
                   <div>
-                    <h4 style="font-size: 14px; color: var(--color-pine);">Análise Automática de Documentos</h4>
-                    <p style="font-size: 12px; color: var(--color-text-secondary);">A AIA lerá PDFs (como notificações de malha fina) e sugerirá um diagnóstico automaticamente.</p>
+                    <h4 style="font-size: 14px; color: var(--color-pine); margin-bottom: 4px;">Modo Escuro (Dark Mode)</h4>
+                    <p style="font-size: 12px; color: var(--color-text-secondary); margin-bottom: 0;">Ativar tema escuro em todo o painel.</p>
                   </div>
-                  <div class="toggle-switch active"></div>
+                  <label class="theme-switch">
+                    <input type="checkbox" id="dark-mode-toggle">
+                    <span class="theme-slider"></span>
+                  </label>
+                </div>
+                
+                <h4 style="font-size: 14px; color: var(--color-pine); margin-bottom: 4px;">Personalizar Cores do Chat</h4>
+                <p style="font-size: 12px; color: var(--color-text-secondary); margin-bottom: 14px;">As mudanças de cor são refletidas em tempo real no seu chat.</p>
+                <div class="cfg-grid">
+                  <div>
+                    <label class="cfg-label" for="cfg-color-chat-bg">Fundo do Chat</label>
+                    <input type="color" id="cfg-color-chat-bg" value="#FFFFFF" style="width: 100%; height: 40px; border: 1px solid var(--color-border); border-radius: var(--radius-sm); cursor: pointer;">
+                  </div>
+                  <div>
+                    <label class="cfg-label" for="cfg-color-bubble-contador">Balão (Contador)</label>
+                    <input type="color" id="cfg-color-bubble-contador" value="#164E37" style="width: 100%; height: 40px; border: 1px solid var(--color-border); border-radius: var(--radius-sm); cursor: pointer;">
+                  </div>
+                  <div>
+                    <label class="cfg-label" for="cfg-color-bubble-cliente">Balão (Cliente)</label>
+                    <input type="color" id="cfg-color-bubble-cliente" value="#F0EDE6" style="width: 100%; height: 40px; border: 1px solid var(--color-border); border-radius: var(--radius-sm); cursor: pointer;">
+                  </div>
+                  <div>
+                    <label class="cfg-label" for="cfg-color-copilot-bg">Fundo do Copiloto IA</label>
+                    <input type="color" id="cfg-color-copilot-bg" value="#EAF1F6" style="width: 100%; height: 40px; border: 1px solid var(--color-border); border-radius: var(--radius-sm); cursor: pointer;">
+                  </div>
                 </div>
               </div>
 
-              <div class="setting-block">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                  <div>
-                    <h4 style="font-size: 14px; color: var(--color-pine);">Sugestão de Respostas no Chat</h4>
-                    <p style="font-size: 12px; color: var(--color-text-secondary);">Ativar o recurso de autocomplete enquanto você digita no chat com o cliente.</p>
+              <!-- Seção: Atalhos Rápidos -->
+              <div class="setting-block" style="margin-top: 24px;">
+                <h4 style="font-size: 14px; color: var(--color-pine); margin-bottom: 4px;">Atalhos de Mensagem Rápida</h4>
+                <p style="font-size: 12px; color: var(--color-text-secondary); margin-bottom: 14px;">Gerencie os botões que aparecem acima do campo de digitação.</p>
+                
+                <div id="cfg-shortcuts-list" style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px;">
+                  <!-- Lista preenchida pelo JS -->
+                </div>
+                
+                <div style="background: var(--color-bg); padding: 16px; border-radius: var(--radius-md); border: 1px dashed var(--color-border);">
+                  <h5 style="font-size: 12px; color: var(--color-pine); margin-bottom: 8px;">Adicionar Novo Atalho</h5>
+                  <div style="display: flex; gap: 8px; align-items: flex-end;">
+                    <div style="flex: 2;">
+                      <label class="cfg-label" style="font-size: 10px;">Comando (ex: /ola)</label>
+                      <input type="text" id="new-shortcut-text" class="cfg-input" placeholder="/comando ou texto">
+                    </div>
+                    <div style="flex: 2;">
+                      <label class="cfg-label" style="font-size: 10px;">Rótulo do Botão</label>
+                      <input type="text" id="new-shortcut-label" class="cfg-input" placeholder="Ex: Boas Vindas">
+                    </div>
+                    <div style="width: 100px;">
+                      <label class="cfg-label" style="font-size: 10px;">Ícone (fa)</label>
+                      <input type="text" id="new-shortcut-icon" class="cfg-input" placeholder="fa-bolt" value="fa-bolt">
+                    </div>
+                    <button class="btn-utility primary" id="btn-add-shortcut" style="height: 40px; margin-bottom: 4px;"><i class="fa-solid fa-plus"></i></button>
                   </div>
-                  <div class="toggle-switch active"></div>
                 </div>
               </div>
 
-              <div class="form-group" style="margin-top: 24px;">
-                <label class="form-label">Tom de Voz do Assistente (Geração de Prontuário)</label>
-                <select class="form-select">
-                  <option>Profissional e Técnico (Padrão)</option>
-                  <option>Amigável e Simplificado</option>
-                  <option>Direto e Objetivo</option>
-                </select>
+              <!-- Seção: Atalhos do Copiloto IA -->
+              <div class="setting-block" style="margin-top: 24px;">
+                <h4 style="font-size: 14px; color: var(--color-pine); margin-bottom: 4px;">Atalhos do Copiloto IA</h4>
+                <p style="font-size: 12px; color: var(--color-text-secondary); margin-bottom: 14px;">Ligue/desligue e edite os comandos rápidos que aparecem no chat com a IA. O texto é o que é enviado como pergunta.</p>
+
+                <div id="cfg-copilot-shortcuts-list" style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px;">
+                  <!-- Lista preenchida pelo JS -->
+                </div>
+
+                <div style="background: var(--color-bg); padding: 16px; border-radius: var(--radius-md); border: 1px dashed var(--color-border);">
+                  <h5 style="font-size: 12px; color: var(--color-pine); margin-bottom: 8px;">Adicionar Novo Atalho da IA</h5>
+                  <div style="display: flex; gap: 8px; align-items: flex-end;">
+                    <div style="flex: 1;">
+                      <label class="cfg-label" style="font-size: 10px;">Rótulo do Botão</label>
+                      <input type="text" id="new-copilot-shortcut-label" class="cfg-input" placeholder="Ex: Prazo de Entrega">
+                    </div>
+                    <div style="flex: 2;">
+                      <label class="cfg-label" style="font-size: 10px;">Pergunta enviada à IA</label>
+                      <input type="text" id="new-copilot-shortcut-prompt" class="cfg-input" placeholder="Ex: Qual o prazo pra este tipo de caso?">
+                    </div>
+                    <button class="btn-utility primary" id="btn-add-copilot-shortcut" style="height: 40px; margin-bottom: 4px;"><i class="fa-solid fa-plus"></i></button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SECTION: Perfil Profissional -->
+      <section class="content-panel" id="section-perfil">
+        <div class="panel-header">
+          <h2>Meu Perfil Profissional</h2>
+          <p>Gerencie sua identidade e estatísticas na plataforma.</p>
+        </div>
+        
+        <div class="profile-header">
+          <div class="profile-avatar">
+            <i class="fa-solid fa-user-tie"></i>
+          </div>
+          <div class="profile-info">
+            <h2 style="color:var(--color-pine); font-size:24px; margin-bottom:8px;">Filipe Heck <i class="fa-solid fa-circle-check" style="color:var(--color-coral); font-size:16px;" title="Contador Verificado"></i></h2>
+            <p style="color:var(--color-text-secondary); margin-bottom:12px;"><i class="fa-solid fa-id-card"></i> CRC/RS 123456/O</p>
+            <div style="display:flex; gap:8px;">
+              <span class="specialty-tag">MEI</span>
+              <span class="specialty-tag">Imposto de Renda</span>
+              <span class="specialty-tag">Malha Fina</span>
+            </div>
+          </div>
+          <div style="margin-left: auto;">
+            <button class="btn-primary" onclick="openModal('modal-editar-perfil')"><i class="fa-solid fa-pen-to-square"></i> Editar Perfil</button>
+          </div>
+        </div>
+
+        <div class="stats-grid" style="margin-top: 32px;">
+          <div class="stat-card">
+            <i class="fa-solid fa-comments"></i>
+            <h3>142</h3>
+            <p>Atendimentos Realizados</p>
+          </div>
+          <div class="stat-card">
+            <i class="fa-solid fa-star"></i>
+            <h3>4.9</h3>
+            <p>Avaliação Média</p>
+          </div>
+          <div class="stat-card">
+            <i class="fa-solid fa-calendar-check"></i>
+            <h3>Jan 2025</h3>
+            <p>Membro desde</p>
+          </div>
+        </div>
+
+        <div style="margin-top: 32px;">
+          <h3 style="color:var(--color-pine); font-size:18px; border-bottom:1px solid var(--color-border); padding-bottom:8px; margin-bottom:16px;">Sobre Mim</h3>
+          <p style="color:var(--color-text-primary); line-height:1.6;">
+            Sou especialista em atendimento a pequenos e médios empreendedores. Com mais de 10 anos de atuação na área contábil, meu foco é traduzir a burocracia do Leão em linguagem simples e resultados reais para os clientes, sempre focando na economia legal e otimização fiscal.
+          </p>
+        </div>
+
+        <div style="margin-top: 32px;">
+          <h3 style="color:var(--color-pine); font-size:18px; border-bottom:1px solid var(--color-border); padding-bottom:8px; margin-bottom:16px;">Formação Acadêmica</h3>
+          <ul id="profile-education" style="list-style:none; padding:0; color:var(--color-text-primary); line-height:1.8;">
+            <li><i class="fa-solid fa-graduation-cap" style="color:var(--color-coral); width:24px;"></i> Bacharelado em Ciências Contábeis - UFRGS (2015)</li>
+            <li><i class="fa-solid fa-award" style="color:var(--color-coral); width:24px;"></i> Pós-graduação em Direito Tributário (2018)</li>
+          </ul>
+        </div>
+
+        <div style="margin-top: 48px; margin-bottom: 24px;">
+          <h2 style="color:var(--color-pine); font-size:20px; border-bottom:2px solid var(--color-pine-light); padding-bottom:8px; margin-bottom:24px;">Desempenho Profissional</h2>
+          
+          <div class="responsive-grid" style="display: grid; grid-template-columns: 2fr 1fr; gap: 24px;">
+            <!-- Top Serviços -->
+            <div class="financeiro-card">
+              <h3 style="color:var(--color-pine); margin-bottom:16px; font-size:16px;"><i class="fa-solid fa-ranking-star" style="color:var(--color-coral);"></i> Serviços Mais Realizados</h3>
+              
+              <div style="margin-bottom: 12px;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 4px; font-size: 13px;">
+                  <span>Regularização de MEI</span>
+                  <span style="font-weight: 600;">85 atendimentos</span>
+                </div>
+                <div style="background: var(--color-bg); height: 8px; border-radius: 4px; overflow: hidden;">
+                  <div style="background: var(--color-coral); height: 100%; width: 85%;"></div>
+                </div>
               </div>
 
-              <div class="form-group">
-                <label class="form-label">Prompt Base de Instruções da AIA</label>
-                <textarea class="form-textarea" rows="4" style="font-family: monospace; font-size: 12px; color: var(--color-text-secondary);">Você é um assistente contábil do sistema "Olá Contador". Seu objetivo é extrair dados de notificações da Receita Federal e sugerir preenchimentos para o Prontuário Fiscal, sempre com base na legislação tributária vigente...</textarea>
+              <div style="margin-bottom: 12px;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 4px; font-size: 13px;">
+                  <span>Imposto de Renda (IRPF)</span>
+                  <span style="font-weight: 600;">42 atendimentos</span>
+                </div>
+                <div style="background: var(--color-bg); height: 8px; border-radius: 4px; overflow: hidden;">
+                  <div style="background: var(--color-pine); height: 100%; width: 42%;"></div>
+                </div>
               </div>
+
+              <div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 4px; font-size: 13px;">
+                  <span>Assessoria Tributária</span>
+                  <span style="font-weight: 600;">15 atendimentos</span>
+                </div>
+                <div style="background: var(--color-bg); height: 8px; border-radius: 4px; overflow: hidden;">
+                  <div style="background: var(--color-pine-light); height: 100%; width: 15%;"></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Resumo Financeiro -->
+            <div class="financeiro-card" style="display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center;">
+              <h3 style="color:var(--color-pine); margin-bottom:16px; font-size:16px;"><i class="fa-solid fa-wallet" style="color:var(--color-coral);"></i> Faturamento Gerado</h3>
+              <div style="font-size: 32px; font-weight: 700; color: var(--color-pine); margin-bottom: 8px;">R$ 42.850,00</div>
+              <p style="font-size: 13px; color: var(--color-text-secondary); margin-bottom: 16px;">Total bruto faturado</p>
               
-              <button class="btn-utility primary" style="margin-top: 12px;" onclick="showToast('Configurações de IA salvas com sucesso!')"><i class="fa-solid fa-save"></i> Salvar Preferências de IA</button>
+              <div style="width: 100%; border-top: 1px solid var(--color-border); padding-top: 16px; display: flex; justify-content: space-between;">
+                <span style="color: var(--color-text-secondary); font-size: 12px;">Ticket Médio</span>
+                <span style="font-weight: 600; color: var(--color-pine); font-size: 13px;">R$ 301,76</span>
+              </div>
             </div>
           </div>
         </div>
@@ -770,16 +1022,22 @@
       <!-- SECTION 6: Clientes (CRM) -->
       <section class="content-panel" id="section-clientes" style="padding: 0;">
         
-        <div style="display: flex; height: 100%;">
+        <div class="dashboard-split-grid" style="display: grid; grid-template-columns: 320px 1fr; height: 100%;">
           
           <!-- Left: Client List -->
-          <div style="width: 320px; border-right: 1px solid var(--color-border); display: flex; flex-direction: column; background: var(--color-bg);">
+          <div style="border-right: 1px solid var(--color-border); display: flex; flex-direction: column; background: var(--color-bg);">
             <div style="padding: 24px; border-bottom: 1px solid var(--color-border); background: white;">
-              <h2 style="font-size: 18px; margin-bottom: 4px; color: var(--color-pine);">CRM de Clientes</h2>
-              <p style="font-size: 12px; color: var(--color-text-secondary); margin-bottom: 16px;">Sua base completa de dados.</p>
-              <div class="search-chat" style="margin: 0;">
+              <h2 style="font-size: 18px; margin-bottom: 4px; color: var(--color-pine);">Clientes</h2>
+              <p style="font-size: 12px; color: var(--color-text-secondary); margin-bottom: 16px;">Base completa e histórico de atendimentos finalizados.</p>
+              <div class="search-chat" style="margin: 0 0 10px;">
                 <i class="fa-solid fa-search"></i>
-                <input type="text" placeholder="Buscar CPF, CNPJ ou Nome...">
+                <input type="text" id="crm-search" placeholder="Buscar CPF, CNPJ ou Nome...">
+              </div>
+              <div style="display:flex;gap:6px;flex-wrap:wrap;" id="crm-filtro-finalizados">
+                <button type="button" class="btn-shortcut-tag active" data-crm-filtro="todos">Todos</button>
+                <button type="button" class="btn-shortcut-tag" data-crm-filtro="hoje">Finalizados hoje</button>
+                <button type="button" class="btn-shortcut-tag" data-crm-filtro="semana">Esta semana</button>
+                <button type="button" class="btn-shortcut-tag" data-crm-filtro="mes">Este mês</button>
               </div>
             </div>
             
@@ -803,9 +1061,9 @@
           </div>
 
           <!-- Right: Client Profile (Dossier View) -->
-          <div style="flex: 1; display: flex; flex-direction: column; background: white; overflow-y: auto;">
+          <div id="crm-client-detail" style="flex: 1; display: flex; flex-direction: column; background: white; overflow-y: auto;">
             <!-- Profile Header -->
-            <div style="padding: 32px 40px; border-bottom: 1px solid var(--color-border); display: flex; justify-content: space-between; align-items: flex-end;">
+            <div style="padding: 32px 40px; border-bottom: 1px solid var(--color-border); display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 16px;">
               <div style="display: flex; gap: 24px; align-items: center;">
                 <div style="width: 80px; height: 80px; border-radius: 50%; background: var(--color-pine); color: white; display: flex; align-items: center; justify-content: center; font-size: 28px;">MR</div>
                 <div>
@@ -825,7 +1083,7 @@
             </div>
 
             <!-- Profile Body Grid -->
-            <div style="padding: 40px; display: grid; grid-template-columns: 1fr 1fr; gap: 40px;">
+            <div class="responsive-grid" style="padding: 40px; display: grid; grid-template-columns: 1fr 1fr; gap: 40px;">
               
               <!-- Histórico de Atendimentos -->
               <div>
@@ -916,6 +1174,7 @@
                 <div class="kanban-card-title">Pedro Marques</div>
                 <div class="kanban-card-tags"><span style="background:#FAD7A1; color:#E67E22;">Ganho de Capital</span></div>
                 <div class="kanban-card-meta"><i class="fa-solid fa-clock"></i> Aguardando iniciar</div>
+                <div class="sla-badge sla-green"><i class="fa-solid fa-stopwatch"></i> Prazo: 42h restantes</div>
               </div>
             </div>
           </div>
@@ -931,6 +1190,7 @@
                 <div class="kanban-card-title">João Paulo</div>
                 <div class="kanban-card-tags"><span style="background:#D2B4DE; color:#8E44AD;">Regularização MEI</span></div>
                 <div class="kanban-card-meta"><i class="fa-solid fa-gears"></i> Auditando CNPJ</div>
+                <div class="sla-badge sla-yellow"><i class="fa-solid fa-stopwatch"></i> Prazo: 4h restantes</div>
               </div>
             </div>
           </div>
@@ -946,6 +1206,7 @@
                 <div class="kanban-card-title">Marta Silva</div>
                 <div class="kanban-card-tags"><span style="background:#A9CCE3; color:#2980B9;">IRPF</span></div>
                 <div class="kanban-card-meta"><i class="fa-solid fa-envelope"></i> Pedido de extrato enviado</div>
+                <div class="sla-badge sla-red"><i class="fa-solid fa-stopwatch"></i> Atrasado: 12h</div>
               </div>
             </div>
           </div>
@@ -985,33 +1246,33 @@
 
       <!-- SECTION 7: Financeiro -->
       <section class="content-panel" id="section-financeiro">
-        <div class="panel-header-desc" style="display: flex; justify-content: space-between; align-items: center;">
+        <div class="panel-header-desc" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
           <div>
             <h2>Painel Financeiro (Asaas)</h2>
             <p>Gerencie faturamento, planos e links de pagamento integrados.</p>
           </div>
-          <button class="btn-utility primary"><i class="fa-solid fa-plus"></i> Nova Cobrança</button>
+          <button class="btn-utility primary" id="btn-novo-servico"><i class="fa-solid fa-plus"></i> Novo serviço</button>
         </div>
 
         <div class="financeiro-grid">
           <!-- Resumo Financeiro -->
           <div class="financeiro-card">
             <h3 style="font-size: 14px; margin-bottom: 12px; color: var(--color-text-secondary);">Recebimentos do Mês</h3>
-            <h2 style="font-size: 28px; color: var(--color-pine);">R$ 12.450,00</h2>
-            <p class="kpi-trend positive"><i class="fa-solid fa-arrow-up"></i> +15% vs mês passado</p>
+            <h2 id="financeiro-recebido" style="font-size: 28px; color: var(--color-pine);">—</h2>
+            <p class="kpi-trend positive" id="financeiro-recebido-info">Carregando cobranças…</p>
           </div>
           
           <div class="financeiro-card">
             <h3 style="font-size: 14px; margin-bottom: 12px; color: var(--color-text-secondary);">A Receber (Em Aberto)</h3>
-            <h2 style="font-size: 28px; color: var(--color-coral);">R$ 2.300,00</h2>
-            <p class="kpi-trend warning"><i class="fa-solid fa-clock"></i> 3 cobranças vencidas</p>
+            <h2 id="financeiro-aberto" style="font-size: 28px; color: var(--color-coral);">—</h2>
+            <p class="kpi-trend warning" id="financeiro-aberto-info">Carregando cobranças…</p>
           </div>
 
           <!-- Planos Asaas -->
           <div class="financeiro-card full-width">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
               <h3 style="font-size: 16px;">Planos de Serviço (Checkout)</h3>
-              <button class="btn-utility"><i class="fa-solid fa-link"></i> Sincronizar com Asaas</button>
+              <button class="btn-utility" id="btn-atualizar-financeiro"><i class="fa-solid fa-rotate"></i> Atualizar</button>
             </div>
             
             <table class="financeiro-table">
@@ -1024,30 +1285,127 @@
                   <th>Ações</th>
                 </tr>
               </thead>
-              <tbody>
-                <tr>
-                  <td>Regularização Malha Fina (Padrão)</td>
-                  <td>R$ 150,00</td>
-                  <td>Avulso</td>
-                  <td><span class="status-badge status-active">Ativo</span></td>
-                  <td><button class="btn-doc-action"><i class="fa-solid fa-copy"></i> Copiar Link</button></td>
-                </tr>
-                <tr>
-                  <td>Assessoria MEI Mensal</td>
-                  <td>R$ 97,00</td>
-                  <td>Mensal</td>
-                  <td><span class="status-badge status-active">Ativo</span></td>
-                  <td><button class="btn-doc-action"><i class="fa-solid fa-copy"></i> Copiar Link</button></td>
-                </tr>
-                <tr>
-                  <td>Declaração GCAP Complexa</td>
-                  <td>R$ 450,00</td>
-                  <td>Avulso</td>
-                  <td><span class="status-badge status-docs">Pausado</span></td>
-                  <td><button class="btn-doc-action"><i class="fa-solid fa-pen"></i> Editar</button></td>
-                </tr>
-              </tbody>
+              <tbody id="financeiro-servicos-lista"><tr><td colspan="5">Carregando serviços…</td></tr></tbody>
             </table>
+          </div>
+          <div class="financeiro-card full-width">
+            <h3 style="font-size:16px;margin-bottom:16px">Cobranças recentes</h3>
+            <div id="financeiro-cobrancas-lista" style="font-size:13px;color:var(--color-text-secondary)">Carregando cobranças…</div>
+          </div>
+
+          <!-- Créditos de Atendimento -->
+          <div class="financeiro-card full-width">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+              <h3 style="font-size: 16px;">Créditos de Atendimento</h3>
+              <button class="btn-utility primary" id="btn-gerar-credito"><i class="fa-solid fa-gift"></i> Gerar crédito</button>
+            </div>
+            <p style="font-size:12px;color:var(--color-text-secondary);margin:0 0 16px">Gere um crédito em R$ (cortesia, reembolso, parceria) e envie o código ou o link para o cliente. Ele resgata direto — sem passar pelo checkout/pagamento.</p>
+            <table class="financeiro-table">
+              <thead>
+                <tr>
+                  <th>Código</th>
+                  <th>Valor</th>
+                  <th>Status</th>
+                  <th>Cliente</th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
+              <tbody id="financeiro-creditos-lista"><tr><td colspan="5">Carregando créditos…</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section class="content-panel" id="section-recorrentes" style="padding: 0;">
+        <div class="dashboard-split-grid" style="display: grid; grid-template-columns: 320px 1fr; height: 100%;">
+
+          <!-- Left: lista de clientes recorrentes -->
+          <div style="border-right: 1px solid var(--color-border); display: flex; flex-direction: column; background: var(--color-bg);">
+            <div style="padding: 24px; border-bottom: 1px solid var(--color-border); background: white;">
+              <h2 style="font-size: 18px; margin-bottom: 4px; color: var(--color-pine);"><i class="fa-solid fa-arrows-rotate"></i> Clientes Recorrentes</h2>
+              <p style="font-size: 12px; color: var(--color-text-secondary);">Acompanhamento mensal (parcelamento, obrigação recorrente etc.) e documentos.</p>
+            </div>
+            <div style="flex: 1; overflow-y: auto;" id="recorrentes-client-list">
+              <!-- Rendered by JS -->
+            </div>
+          </div>
+
+          <!-- Right: detalhe do cliente recorrente -->
+          <div id="recorrentes-client-detail" style="flex: 1; display: flex; flex-direction: column; background: white; overflow-y: auto;">
+            <!-- Rendered by JS -->
+          </div>
+        </div>
+      </section>
+
+      <section class="content-panel" id="section-insights">
+        <div class="panel-header-desc" style="display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:16px;">
+          <div>
+            <h2>Insights</h2>
+            <p>Números do seu negócio: volume, tempo de atendimento, rentabilidade e perfil dos clientes.</p>
+          </div>
+          <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;" id="insights-filtro-periodo">
+            <button type="button" class="btn-shortcut-tag" data-insights-periodo="hoje">Hoje</button>
+            <button type="button" class="btn-shortcut-tag" data-insights-periodo="semana">Semana</button>
+            <button type="button" class="btn-shortcut-tag" data-insights-periodo="mes">Mês</button>
+            <button type="button" class="btn-shortcut-tag active" data-insights-periodo="ano">Ano</button>
+            <button type="button" class="btn-shortcut-tag" data-insights-periodo="tudo">Tudo</button>
+            <input type="date" id="insights-data-de" class="cfg-input" style="font-size:12px;padding:6px 8px;">
+            <span style="font-size:12px;color:var(--color-text-secondary)">até</span>
+            <input type="date" id="insights-data-ate" class="cfg-input" style="font-size:12px;padding:6px 8px;">
+            <button type="button" class="btn-utility" id="insights-aplicar-periodo" style="font-size:12px;padding:6px 12px;">Aplicar</button>
+          </div>
+        </div>
+
+        <div class="financeiro-grid">
+          <div class="financeiro-card">
+            <h3 style="font-size: 13px; margin-bottom: 10px; color: var(--color-text-secondary);">Atendimentos no período</h3>
+            <h2 id="insights-total-periodo" style="font-size: 26px; color: var(--color-pine);">—</h2>
+          </div>
+          <div class="financeiro-card">
+            <h3 style="font-size: 13px; margin-bottom: 10px; color: var(--color-text-secondary);">Duração média</h3>
+            <h2 id="insights-duracao-media" style="font-size: 26px; color: var(--color-pine);">—</h2>
+          </div>
+          <div class="financeiro-card">
+            <h3 style="font-size: 13px; margin-bottom: 10px; color: var(--color-text-secondary);">Ticket médio</h3>
+            <h2 id="insights-ticket-medio" style="font-size: 26px; color: var(--color-pine);">—</h2>
+          </div>
+          <div class="financeiro-card">
+            <h3 style="font-size: 13px; margin-bottom: 10px; color: var(--color-text-secondary);">Rentabilidade média</h3>
+            <h2 id="insights-rentabilidade" style="font-size: 26px; color: var(--color-pine);">—</h2>
+            <p class="kpi-trend" style="font-size:11px;">R$ por hora de atendimento</p>
+          </div>
+
+          <div class="financeiro-card" style="min-width:320px;">
+            <h3 style="font-size:15px;margin-bottom:4px">Distribuição por serviço</h3>
+            <p style="font-size:12px;color:var(--color-text-secondary);margin-bottom:12px">Onde vale investir em marketing.</p>
+            <div id="insights-donut-servico">Carregando…</div>
+          </div>
+
+          <div class="financeiro-card" style="min-width:320px;">
+            <h3 style="font-size:15px;margin-bottom:12px">Duração média por serviço</h3>
+            <div id="insights-barras-duracao">Carregando…</div>
+          </div>
+
+          <div class="financeiro-card full-width">
+            <h3 style="font-size:15px;margin-bottom:4px">Atendimento resolvido na hora × que se estende</h3>
+            <p style="font-size:12px;color:var(--color-text-secondary);margin-bottom:12px">Comparação de prazo médio de conclusão.</p>
+            <div id="insights-mesmo-dia-vs-estendido" style="display:flex;gap:32px;flex-wrap:wrap;">Carregando…</div>
+          </div>
+
+          <div class="financeiro-card full-width">
+            <h3 style="font-size:15px;margin-bottom:4px">Ranking de rentabilidade por serviço</h3>
+            <p style="font-size:12px;color:var(--color-text-secondary);margin-bottom:12px">Relação entre valor cobrado e tempo gasto — o que realmente compensa atender.</p>
+            <div id="insights-ranking-rentabilidade">Carregando…</div>
+          </div>
+
+          <div class="financeiro-card" style="min-width:320px;">
+            <h3 style="font-size:15px;margin-bottom:12px">Clientes por sexo</h3>
+            <div id="insights-donut-sexo">Carregando…</div>
+          </div>
+
+          <div class="financeiro-card" style="min-width:320px;">
+            <h3 style="font-size:15px;margin-bottom:12px">Clientes por cidade</h3>
+            <div id="insights-barras-cidade">Carregando…</div>
           </div>
         </div>
       </section>
@@ -1196,7 +1554,7 @@
                 <option value="Em Processamento">Em Processamento</option>
                 <option value="Concluído">Concluído</option>
               </select>
-              <button class="btn-utility primary" onclick="showToast('Status atualizado na esteira!')"><i class="fa-solid fa-save"></i> Salvar</button>
+              <button class="btn-utility primary" id="btn-dossier-save-status"><i class="fa-solid fa-save"></i> Salvar</button>
             </div>
           </div>
 
@@ -1234,7 +1592,7 @@
           <div class="financeiro-card">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
               <h3 style="font-size: 14px; color: var(--color-pine);">Receita Fiscal (10/07/2026)</h3>
-              <button class="btn-doc-action" onclick="showModal('modal-receita-overlay')"><i class="fa-solid fa-eye"></i> Visualizar Prontuário</button>
+              <button class="btn-doc-action" onclick="abrirRelatorio()"><i class="fa-solid fa-file-lines"></i> Abrir Relatório do Cliente</button>
             </div>
             <p style="font-size: 13px; color: var(--color-text-secondary);">Diagnóstico: Malha Fina - Omissão de Rendimentos de Trabalho.</p>
           </div>
@@ -1286,87 +1644,43 @@
     </div>
   </div>
 
-  <!-- Modal: Visualização de Receita Fiscal Gerada (Estilo Memed) -->
-  <div class="modal-overlay" id="modal-receita-overlay">
-    <div class="modal-container receita-modal-container">
+  <!-- Modal: Relatório do Cliente — a IA preenche, o contador revisa, vira PDF branded -->
+  <div class="modal-overlay" id="modal-relatorio-overlay">
+    <div class="modal-container" style="max-width: 980px; width: 95%;">
       <div class="modal-header">
-        <h3>Receita Fiscal Gerada</h3>
-        <button class="btn-close-modal" data-close="modal-receita-overlay">&times;</button>
+        <h3><i class="fa-solid fa-file-lines" style="color: var(--color-coral)"></i> Relatório do Cliente</h3>
+        <button class="btn-close-modal" data-close="modal-relatorio-overlay">&times;</button>
       </div>
-      <div class="modal-body" style="background-color: #F0EDE6; padding: 20px;">
-        
-        <!-- Documento impresso -->
-        <div class="receita-document" id="receita-print-area">
-          <div class="receita-header">
-            <div class="receita-header-logo">
-              <!-- Inline logo small -->
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 616 640">
-                <path fill="#FF6A45" d="M287 64.93C289.21 64.66 293.62 64.17 296.94 64.02C300.27 63.86 303.61 64 306.94 64C310.28 64 313.61 64 316.94 64C320.28 64 323.61 64 326.94 64C330.28 64 333.61 64 336.94 64C340.28 64 343.62 63.84 346.94 64.02C350.27 64.19 353.59 64.51 356.87 65.06C360.15 65.61 363.34 66.69 366.61 67.32C369.88 67.95 373.24 68.15 376.5 68.83C379.75 69.51 382.94 70.52 386.15 71.4C389.37 72.29 392.57 73.22 395.77 74.17C398.96 75.12 402.16 76.05 405.32 77.11C408.48 78.17 411.62 79.3 414.73 80.51C417.83 81.71 420.93 82.97 423.97 84.32C427.02 85.67 430.02 87.13 433 88.61C435.98 90.1 438.94 91.65 441.87 93.22C444.81 94.79 447.75 96.38 450.62 98.06C453.5 99.74 456.33 101.5 459.14 103.3C461.94 105.11 464.71 106.97 467.44 108.88C470.17 110.79 472.85 112.78 475.52 114.77C478.19 116.76 480.8 118.83 483.46 120.85C486.12 122.86 488.88 124.74 491.45 126.86C494.02 128.97 496.48 131.24 498.9 133.52C501.32 135.81 503.65 138.2 505.99 140.58C508.32 142.96 510.72 145.29 512.9 147.8C515.08 150.31 517.05 153.01 519.09 155.65C521.12 158.29 523.1 160.97 525.11 163.63C527.12 166.29 529.21 168.89 531.13 171.62C533.04 174.34 534.84 177.16 536.61 179.98C538.38 182.8 540.17 185.63 541.75 188.56C543.34 191.48 544.86 194.47 546.12 197.54C547.38 200.62 548.52 203.79 549.32 207.01C550.12 210.23 550.69 213.56 550.92 216.86C551.14 220.17 551.09 223.56 550.68 226.85C550.27 230.14 549.39 233.39 548.46 236.58C547.52 239.77 546.42 242.95 545.07 245.98C543.71 249.02 542.19 252.03 540.34 254.78C538.5 257.53 536.28 260.08 534 262.5C531.71 264.91 529.26 267.21 526.65 269.27C524.04 271.32 521.26 273.24 518.35 274.83C515.44 276.41 512.31 277.65 509.19 278.79C506.06 279.93 502.86 280.99 499.61 281.67C496.37 282.36 493.01 282.91 489.71 282.89C486.42 282.86 483.08 282.21 479.83 281.53C476.58 280.85 473.35 279.89 470.21 278.8C467.07 277.72 463.91 276.55 460.98 275C458.05 273.45 455.26 271.54 452.64 269.51C450.02 267.47 447.56 265.17 445.26 262.77C442.96 260.37 440.83 257.78 438.84 255.11C436.84 252.45 435.15 249.56 433.3 246.79C431.45 244.02 429.73 241.14 427.74 238.48C425.75 235.82 423.58 233.27 421.33 230.81C419.09 228.35 416.68 226.04 414.27 223.73C411.87 221.42 409.45 219.12 406.9 216.97C404.36 214.83 401.7 212.8 399 210.86C396.29 208.92 393.5 207.09 390.65 205.35C387.8 203.62 384.89 201.98 381.92 200.47C378.95 198.96 375.92 197.56 372.84 196.29C369.76 195.03 366.61 193.91 363.45 192.87C360.28 191.83 357.06 190.95 353.84 190.08C350.63 189.21 347.43 188.16 344.15 187.64C340.88 187.13 337.51 187.11 334.19 187C330.86 186.89 327.52 187 324.19 187C320.85 187 317.52 186.99 314.19 187C310.85 187.01 307.5 186.8 304.19 187.08C300.88 187.35 297.59 187.95 294.33 188.64C291.08 189.33 287.87 190.29 284.67 191.22C281.47 192.14 278.25 193.03 275.12 194.17C272 195.31 268.94 196.67 265.92 198.08C262.9 199.48 259.89 200.93 257.01 202.59C254.12 204.25 251.36 206.14 248.62 208.03C245.88 209.92 243.22 211.93 240.56 213.95C237.91 215.96 235.23 217.95 232.71 220.13C230.19 222.31 227.77 224.62 225.44 227C223.12 229.39 220.87 231.86 218.76 234.43C216.64 237 214.69 239.72 212.76 242.43C210.83 245.14 208.87 247.86 207.16 250.71C205.44 253.56 203.94 256.55 202.45 259.53C200.96 262.51 199.53 265.52 198.22 268.59C196.92 271.65 195.7 274.76 194.64 277.92C193.57 281.07 192.54 284.26 191.83 287.5C191.11 290.75 190.95 294.12 190.34 297.39C189.72 300.66 188.69 303.86 188.14 307.14C187.58 310.42 187.19 313.75 187.03 317.07C186.88 320.38 186.86 323.76 187.21 327.06C187.55 330.36 188.46 333.6 189.09 336.86C189.73 340.13 190.34 343.41 191.01 346.67C191.68 349.93 192.21 353.23 193.1 356.44C193.98 359.64 195.15 362.79 196.34 365.9C197.53 369.01 198.85 372.08 200.26 375.09C201.68 378.11 203.2 381.08 204.82 383.99C206.44 386.9 208.18 389.75 209.99 392.55C211.81 395.34 213.7 398.1 215.71 400.75C217.72 403.4 219.84 405.99 222.07 408.46C224.29 410.94 226.84 413.14 229.07 415.6C231.29 418.07 234.24 420.36 235.44 423.26C236.64 426.15 236.53 429.76 236.25 433C235.97 436.23 234.64 439.46 233.78 442.68C232.92 445.9 231.99 449.11 231.11 452.32C230.22 455.53 229.06 458.71 228.46 461.97C227.87 465.22 226.54 469.23 227.51 471.85C228.49 474.46 231.62 477.29 234.29 477.66C236.97 478.03 240.54 475.43 243.57 474.07C246.6 472.71 249.51 471.03 252.47 469.51C255.43 467.99 258.41 466.48 261.35 464.92C264.3 463.36 267.2 461.72 270.14 460.15C273.08 458.59 275.98 456.91 279.01 455.53C282.03 454.15 285.09 452.55 288.29 451.88C291.49 451.2 294.91 451.45 298.23 451.47C301.55 451.49 304.88 451.91 308.21 452C311.54 452.08 314.88 452 318.21 452C321.55 452 324.88 452.01 328.21 452C331.55 451.99 334.9 452.21 338.21 451.93C341.52 451.65 344.81 451.04 348.06 450.33C351.31 449.62 354.5 448.61 357.7 447.67C360.9 446.74 364.11 445.83 367.25 444.71C370.38 443.58 373.48 442.33 376.5 440.93C379.52 439.53 382.47 437.95 385.37 436.33C388.28 434.7 391.13 432.97 393.95 431.18C396.76 429.39 399.58 427.6 402.24 425.6C404.9 423.6 407.43 421.41 409.92 419.2C412.41 416.98 414.84 414.69 417.17 412.31C419.5 409.94 421.81 407.51 423.92 404.94C426.03 402.37 427.91 399.6 429.85 396.89C431.79 394.18 433.61 391.39 435.55 388.67C437.48 385.96 433.61 391.39 435.55 388.67C437.48 385.96 439.31 383.15 441.46 380.61C443.61 378.08 445.96 375.68 448.44 373.47C450.92 371.26 453.58 369.2 456.35 367.36C459.12 365.53 462.03 363.83 465.05 362.45C468.07 361.08 471.28 360.09 474.47 359.13C477.65 358.16 480.88 357.1 484.15 356.65C487.42 356.2 490.82 356.12 494.11 356.44C497.39 356.76 500.65 357.72 503.86 358.59C507.07 359.47 510.32 360.39 513.36 361.69C516.41 363 519.38 364.61 522.16 366.43C524.93 368.25 527.54 370.38 530.01 372.61C532.47 374.83 534.83 377.23 536.96 379.78C539.09 382.33 541.11 385.03 542.78 387.89C544.46 390.75 545.8 393.85 547 396.95C548.2 400.05 549.31 403.24 549.98 406.48C550.64 409.73 550.86 413.09 550.99 416.41C551.11 419.73 551.16 423.12 550.72 426.4C550.29 429.69 549.4 432.94 548.4 436.1C547.39 439.27 546.1 442.37 544.68 445.38C543.26 448.39 541.59 451.29 539.89 454.15C538.19 457.01 536.34 459.79 534.47 462.55C532.6 465.31 530.69 468.05 528.68 470.71C526.68 473.37 524.51 475.9 522.44 478.51C520.36 481.12 518.33 483.76 516.25 486.37C514.17 488.97 512.15 491.63 509.95 494.13C507.75 496.63 505.39 499 503.04 501.36C500.69 503.72 498.33 506.09 495.84 508.3C493.34 510.5 490.68 512.51 488.07 514.59C485.47 516.67 482.84 518.71 480.23 520.79C477.61 522.86 475.1 525.06 472.41 527.02C469.72 528.99 469.72 528.99 472.41 527.02C469.72 528.99 466.9 530.77 464.11 532.59C461.31 534.4 458.48 536.17 455.64 537.91C452.79 539.64 449.93 541.35 447.02 542.98C444.11 544.61 441.16 546.15 438.2 547.68C435.24 549.22 432.29 550.78 429.28 552.19C426.26 553.6 423.18 554.88 420.1 556.14C417.01 557.41 413.91 558.62 410.78 559.77C407.65 560.92 404.5 562.01 401.33 563.05C398.17 564.09 394.98 565.06 391.78 566.02C388.59 566.97 385.41 568 382.18 568.81C378.95 569.61 375.68 570.24 372.41 570.85C369.13 571.46 365.82 571.85 362.55 572.47C359.28 573.1 356.08 574.19 352.79 574.61C349.5 575.03 346.13 574.94 342.8 575C339.47 575.06 336.13 575 332.8 575C329.47 575 326.13 575 322.8 575C319.47 575 316.13 575 312.8 575C309.47 575 306.13 575.02 302.8 575C299.47 574.98 296.11 575.15 292.8 574.86C289.5 574.56 286.23 573.82 282.96 573.22C279.68 572.62 276.43 571.88 273.16 571.25C269.89 570.62 266.58 570.17 263.33 569.43C260.09 568.7 256.89 567.73 253.67 566.85C250.46 565.98 247.22 565.17 244.04 564.17C240.86 563.18 237.74 562 234.6 560.87C231.47 559.74 228.33 558.62 225.23 557.38C222.14 556.15 219.06 554.85 216.03 553.47C213 552.08 210.03 550.58 207.05 549.07C204.08 547.56 201.13 546.02 198.2 544.42C195.28 542.82 192.36 541.2 189.5 539.48C186.65 537.77 183.84 535.97 181.05 534.15C178.26 532.32 175.49 530.46 172.78 528.53C170.06 526.59 167.42 524.56 164.77 522.55C162.11 520.53 159.47 518.49 156.86 516.42C154.25 514.35 151.59 512.34 149.08 510.14C146.58 507.94 144.21 505.59 141.84 503.24C139.48 500.9 137.11 498.54 134.88 496.07C132.64 493.6 130.56 491 128.46 488.41C126.36 485.82 124.36 483.15 122.28 480.55C120.19 477.95 117.98 475.45 115.94 472.81C113.9 470.18 111.94 467.48 110.03 464.75C108.12 462.02 106.27 459.24 104.48 456.43C102.69 453.62 100.96 450.77 99.28 447.89C97.6 445.01 95.94 442.12 94.4 439.16C92.85 436.21 91.44 433.19 90.03 430.17C88.61 427.15 87.23 424.12 85.91 421.06C84.6 418 83.37 414.9 82.14 411.8C80.92 408.7 79.67 405.6 78.56 402.46C77.46 399.32 76.47 396.13 75.52 392.94C74.57 389.74 73.61 386.55 72.84 383.31C72.07 380.07 71.61 376.75 70.9 373.5C70.19 370.24 69.11 367.05 68.58 363.77C68.05 360.49 68.13 357.12 67.72 353.82C67.31 350.51 66.64 347.24 66.12 343.95C65.6 340.66 64.95 337.38 64.61 334.07C64.26 330.76 64.14 327.42 64.04 324.09C63.94 320.76 63.93 317.42 64.01 314.09C64.08 310.76 64.11 307.41 64.5 304.11C64.89 300.81 65.8 297.57 66.36 294.29C66.91 291 67.47 287.71 67.83 284.41C68.19 281.1 68.04 277.72 68.53 274.44C69.02 271.15 70.04 267.95 70.78 264.7C71.53 261.45 72.16 258.17 73.01 254.95C73.86 251.73 74.89 248.56 75.88 245.37C76.87 242.19 77.9 239.02 78.98 235.87C80.06 232.71 81.16 229.57 82.37 226.46C83.58 223.36 84.9 220.3 86.23 217.24C87.55 214.18 88.86 211.11 90.29 208.1C91.72 205.09 93.25 202.13 94.83 199.19C96.41 196.26 98.04 193.35 99.75 190.49C101.47 187.64 103.32 184.86 105.12 182.06C106.93 179.25 108.71 176.43 110.57 173.67C112.44 170.91 114.36 168.18 116.32 165.49C118.29 162.8 120.33 160.16 122.36 157.52C124.4 154.88 126.37 152.19 128.53 149.65C130.69 147.11 133 144.71 135.31 142.31C137.62 139.9 139.99 137.55 142.38 135.23C144.77 132.91 147.15 130.56 149.67 128.39C152.18 126.21 154.87 124.22 157.49 122.16C160.11 120.1 162.73 118.04 165.39 116.04C168.06 114.03 170.75 112.07 173.47 110.14C176.18 108.21 178.92 106.31 181.7 104.46C184.48 102.62 187.27 100.79 190.13 99.09C192.99 97.38 195.95 95.83 198.88 94.25C201.82 92.67 204.75 91.09 207.74 89.61C210.72 88.13 213.75 86.73 216.79 85.37C219.83 84.01 222.91 82.72 226 81.47C229.09 80.22 232.21 79.04 235.32 77.86C238.44 76.69 241.53 75.41 244.71 74.41C247.89 73.42 251.15 72.72 254.38 71.89C257.61 71.06 260.82 70.15 264.08 69.45C267.33 68.74 270.64 68.3 273.91 67.66C277.18 67.03 281.52 66.11 283.7 65.66C285.88 65.2 284.79 65.2 287 64.93Z"/>
-              </svg>
-              <h2>Olá, Contador<span>.</span></h2>
-            </div>
-            <div class="receita-header-meta">
-              <strong>RECEITA FISCAL DE REGULARIZAÇÃO</strong><br>
-              <span>Gerado em: <span id="receita-meta-date">11/07/2026</span></span><br>
-              <span>Atendente: Felipe (CRC-SP)</span>
-            </div>
+      <div class="modal-body" style="padding: 0;">
+        <div style="display: flex; max-height: 68vh;">
+          <!-- Editor -->
+          <div style="flex: 1; padding: 20px; overflow-y: auto; border-right: 1px solid var(--color-border);">
+            <button class="btn-utility primary" id="btn-rel-ia" style="width: 100%; margin-bottom: 12px;">
+              <i class="fa-solid fa-wand-magic-sparkles"></i> Preencher com a IA (AIA)
+            </button>
+            <p style="font-size: 12px; color: var(--color-text-secondary); margin-bottom: 16px;">A AIA lê a conversa e escreve um rascunho em linguagem do cliente. Revise e ajuste antes de enviar.</p>
+            <label class="form-label">Título do atendimento</label>
+            <input class="form-select" id="rel-titulo" placeholder="Ex.: Regularização de Malha Fina 2024">
+            <label class="form-label" style="margin-top: 12px;">O que aconteceu (o problema)</label>
+            <textarea class="form-textarea" id="rel-problema" rows="3"></textarea>
+            <label class="form-label" style="margin-top: 12px;">Solução proposta</label>
+            <textarea class="form-textarea" id="rel-solucao" rows="3"></textarea>
+            <label class="form-label" style="margin-top: 12px;">O que foi feito <span style="font-weight: 400; color: var(--color-text-secondary);">(um item por linha)</span></label>
+            <textarea class="form-textarea" id="rel-oquefeito" rows="4"></textarea>
+            <label class="form-label" style="margin-top: 12px;">Como foi feito e próximos passos <span style="font-weight: 400; color: var(--color-text-secondary);">(um item por linha)</span></label>
+            <textarea class="form-textarea" id="rel-comofeito" rows="4"></textarea>
           </div>
-
-          <!-- Patient Information -->
-          <div class="receita-patient-card">
-            <div class="receita-patient-grid">
-              <div>
-                <div class="receita-patient-label">Cliente (Contribuinte)</div>
-                <div class="receita-patient-value" id="receita-patient-name">Ana Silva</div>
-              </div>
-              <div>
-                <div class="receita-patient-label">Documento/CPF</div>
-                <div class="receita-patient-value" id="receita-patient-cpf">123.456.789-00</div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Diagnóstico Section -->
-          <div class="receita-section">
-            <div class="receita-section-title">Diagnóstico Fiscal</div>
-            <div class="receita-diagnostico" id="receita-val-diagnostico">Malha Fina - Omissão de Rendimentos de Trabalho</div>
-          </div>
-
-          <!-- Evidências Section -->
-          <div class="receita-section">
-            <div class="receita-section-title">Evidências / Sintomas Fiscais</div>
-            <ul class="receita-list" id="receita-val-evidencias">
-              <!-- Rendered by JS -->
-            </ul>
-          </div>
-
-          <!-- Tratamento Section -->
-          <div class="receita-section">
-            <div class="receita-section-title">Tratamento Recomendado (Prescrição)</div>
-            <ul class="receita-list" id="receita-val-tratamento">
-              <!-- Rendered by JS -->
-            </ul>
-          </div>
-
-          <!-- Signatures & Stamp -->
-          <div class="receita-footer-signatures">
-            <div class="receita-signature-box">
-              <div class="receita-signature-line"></div>
-              <div class="receita-signature-title">Felipe (Contador Certificado)</div>
-              <div class="receita-signature-subtitle">CRC-SP nº 28941/O</div>
-            </div>
-            <div class="receita-stamp">
-              <div class="receita-stamp-title">APROVADO</div>
-              <div class="receita-stamp-code">OLÁ CONTADOR</div>
-            </div>
+          <!-- Prévia ao vivo do documento -->
+          <div style="flex: 1.05; padding: 20px; overflow-y: auto; background: #EDEAE3;">
+            <div style="font-size: 11px; text-transform: uppercase; letter-spacing: .5px; color: var(--color-text-secondary); margin-bottom: 10px;">Prévia do documento</div>
+            <div id="rel-previa-wrap" style="overflow: hidden;"><div id="rel-previa"></div></div>
           </div>
         </div>
-
       </div>
       <div class="modal-footer">
-        <button class="btn-utility" data-close="modal-receita-overlay">Fechar</button>
-        <button class="btn-utility" id="btn-print-receita"><i class="fa-solid fa-print"></i> Imprimir / PDF</button>
-        <button class="btn-utility primary" id="btn-send-receita-chat"><i class="fa-solid fa-paper-plane"></i> Compartilhar no Chat</button>
+        <button class="btn-utility" data-close="modal-relatorio-overlay">Fechar</button>
+        <button class="btn-utility" id="btn-rel-baixar"><i class="fa-solid fa-download"></i> Baixar PDF</button>
+        <button class="btn-utility primary" id="btn-rel-enviar"><i class="fa-solid fa-paper-plane"></i> Gerar e enviar ao cliente</button>
       </div>
     </div>
   </div>
@@ -1385,6 +1699,78 @@
     </div>
   </div>
 
+  <!-- Modal Editar Perfil -->
+  <div class="modal-overlay" id="modal-editar-perfil">
+    <div class="modal-container" style="max-width: 600px;">
+      <div class="modal-header">
+        <h3>Editar Meu Perfil</h3>
+        <button class="btn-modal-close" onclick="closeModal('modal-editar-perfil')"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="modal-body">
+        <form id="form-editar-perfil" onsubmit="event.preventDefault(); saveProfileData();">
+          <div class="responsive-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+            <div>
+              <label class="form-label">Nome Completo</label>
+              <input type="text" id="edit-profile-name" class="form-input" required>
+            </div>
+            <div>
+              <label class="form-label">Registro (CRC e UF)</label>
+              <input type="text" id="edit-profile-crc" class="form-input" placeholder="Ex: CRC/SP 123456/O" required>
+            </div>
+          </div>
+          
+          <div style="margin-bottom: 16px;">
+            <label class="form-label">Especialidades (separadas por vírgula)</label>
+            <input type="text" id="edit-profile-tags" class="form-input" placeholder="MEI, Imposto de Renda, Lucro Real...">
+            <small style="color:var(--color-text-secondary); font-size:11px;">Elas aparecerão como "pílulas" verdes no seu perfil.</small>
+          </div>
+
+          <div style="margin-bottom: 16px;">
+            <label class="form-label">Sobre Mim (Biografia)</label>
+            <textarea id="edit-profile-bio" class="form-input" rows="4" style="resize: vertical;"></textarea>
+          </div>
+
+          <div style="margin-bottom: 24px;">
+            <label class="form-label">Formação Acadêmica (uma por linha)</label>
+            <textarea id="edit-profile-education" class="form-input" rows="3" style="resize: vertical;" placeholder="Bacharelado em Ciências Contábeis&#10;Pós-graduação em Finanças"></textarea>
+          </div>
+
+          <div style="margin-bottom: 24px; padding-top: 8px; border-top: 1px solid var(--color-border);">
+            <label class="form-label" style="margin-top: 16px; display: block;">Marca no Relatório do Cliente</label>
+            <small style="color:var(--color-text-secondary); font-size:11px; display:block; margin-bottom:12px;">Aparecem no cabeçalho e na assinatura do PDF entregue ao cliente. Se não enviar, usamos a marca padrão do Olá, Contador.</small>
+            <div style="display: flex; gap: 20px; flex-wrap: wrap;">
+              <div style="display: flex; align-items: center; gap: 10px;">
+                <img id="preview-profile-logo" src="" style="width:40px; height:40px; border-radius:8px; object-fit:cover; background:var(--color-bg); display:none; border:1px solid var(--color-border);">
+                <div>
+                  <label class="btn-utility" style="font-size:12px; cursor:pointer; display:inline-flex;" for="edit-profile-logo">
+                    <i class="fa-solid fa-image"></i> Logo (quadrada)
+                  </label>
+                  <input type="file" id="edit-profile-logo" accept="image/png,image/jpeg" hidden>
+                  <button type="button" class="btn-utility" id="btn-remover-logo" style="font-size:11px; padding:4px 8px; display:none; margin-left:4px;" title="Remover logo">✕</button>
+                </div>
+              </div>
+              <div style="display: flex; align-items: center; gap: 10px;">
+                <img id="preview-profile-assinatura" src="" style="width:70px; height:34px; object-fit:contain; background:var(--color-bg); display:none; border:1px solid var(--color-border); border-radius:6px;">
+                <div>
+                  <label class="btn-utility" style="font-size:12px; cursor:pointer; display:inline-flex;" for="edit-profile-assinatura">
+                    <i class="fa-solid fa-signature"></i> Assinatura (imagem)
+                  </label>
+                  <input type="file" id="edit-profile-assinatura" accept="image/png,image/jpeg" hidden>
+                  <button type="button" class="btn-utility" id="btn-remover-assinatura" style="font-size:11px; padding:4px 8px; display:none; margin-left:4px;" title="Remover assinatura">✕</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div style="display: flex; justify-content: flex-end; gap: 12px;">
+            <button type="button" class="btn-utility" onclick="closeModal('modal-editar-perfil')">Cancelar</button>
+            <button type="submit" class="btn-primary">Salvar Perfil</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
   <!-- Toast Notification -->
   <div class="toast-notification" id="toast">
     <i class="fa-solid fa-circle-check"></i>
@@ -1394,7 +1780,95 @@
   <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <!-- JS Logic -->
-  <script src="/socket.io/socket.io.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.2/dist/html2pdf.bundle.min.js"></script>
+  <script src="config.js"></script>
+  <script src="oc-data.js"></script>
+  <script src="triagem-catalogo.js"></script>
+  <script src="config-cliente.js"></script>
+  <script src="relatorio-pdf.js"></script>
+  <script src="ai-analysis.js"></script>
+  <script src="kanban.js"></script>
+  <script src="equipe.js"></script>
   <script src="app.js"></script>
+  <!-- Depois do app.js: reorganiza o painel para o celular (barra inferior,
+       folha "Mais" e as três vistas do atendimento). Só age abaixo de 768px. -->
+  <script src="contador-mobile.js"></script>
+
+  <!-- Modal: Nova Skill -->
+  <div class="modal-overlay" id="modal-skill-overlay">
+    <div class="modal-container" style="max-width: 600px;">
+      <div class="modal-header">
+        <h3 id="skill-modal-title">Nova Skill (Base de Conhecimento)</h3>
+        <button class="btn-modal-close" onclick="closeModal('modal-skill-overlay')"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="modal-body">
+        <form id="form-skill">
+          <input type="hidden" id="skill-id">
+          <div class="form-group">
+            <label class="form-label" for="skill-name">Nome da Skill</label>
+            <input type="text" class="form-input" id="skill-name" placeholder="Ex: Ganho de Capital Imóveis" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="skill-desc">Descrição / Gatilho</label>
+            <input type="text" class="form-input" id="skill-desc" placeholder="Ex: Use esta skill para responder sobre isenção de 180 dias.">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="skill-tema">Tema do atendimento (ativa sozinha)</label>
+            <select class="form-select" id="skill-tema">
+              <option value="">Nenhum — só ativo se eu escolher manualmente</option>
+              <option value="Malha Fina">Malha Fina</option>
+              <option value="Ganho de Capital">Ganho de Capital</option>
+              <option value="IRPF Padrão">IRPF Padrão</option>
+              <option value="Assessoria MEI">Assessoria MEI</option>
+            </select>
+            <small style="color:var(--color-text-secondary); font-size:11px; display:block; margin-top:4px;">Quando o atendimento aberto tiver essa tag, o Copiloto ativa esta skill sozinho.</small>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="skill-content">Base de Conhecimento (Regras, Leis, Textos)</label>
+            <textarea class="form-textarea" id="skill-content" rows="8" placeholder="Cole aqui a legislação, normas da Receita, ou instruções de como a IA deve responder..." required style="font-family: monospace; font-size: 12px;"></textarea>
+          </div>
+          <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px;">
+            <button type="button" class="btn-utility" onclick="closeModal('modal-skill-overlay')">Cancelar</button>
+            <button type="submit" class="btn-utility primary">Salvar Skill</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Convidar Equipe -->
+  <div class="modal-overlay" id="modal-convite-equipe">
+    <div class="modal-container" style="max-width: 500px;">
+      <div class="modal-header">
+        <h3>Adicionar Membro</h3>
+        <button class="btn-modal-close" onclick="closeModal('modal-convite-equipe')"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="modal-body">
+        <form id="form-equipe">
+          <div class="form-group">
+            <label class="form-label" for="equipe-nome">Nome Completo</label>
+            <input type="text" class="form-input" id="equipe-nome" placeholder="Ex: Joana Alves" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="equipe-email">Email</label>
+            <input type="email" class="form-input" id="equipe-email" placeholder="Ex: joana@olacontador.com.br" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="equipe-permissao">Nível de Acesso</label>
+            <select class="form-select" id="equipe-permissao" required>
+              <option value="Admin">Administrador (Total)</option>
+              <option value="Atendente">Atendente (Apenas Chat e Kanban)</option>
+              <option value="Leitura">Leitura (Apenas Visualização)</option>
+            </select>
+          </div>
+          <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 24px;">
+            <button type="button" class="btn-utility" onclick="closeModal('modal-convite-equipe')">Cancelar</button>
+            <button type="submit" class="btn-utility primary">Enviar Convite</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
 </body>
 </html>

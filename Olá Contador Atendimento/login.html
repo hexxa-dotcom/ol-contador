@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Entrar — Olá, Contador</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Hanken+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    /* cores tiradas do próprio site, para o login não parecer outro produto */
+    :root { --pine:#093726; --pine-light:#F7F1E6; --coral:#FF6A45; --border:#E3DDD1; --text:#1A2B25; --muted:#6B7A74; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Hanken Grotesk', system-ui, sans-serif; background: var(--pine-light); color: var(--text);
+      min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
+    .card { background: #fff; border: 1px solid var(--border); border-radius: 16px; padding: 36px 32px;
+      width: 100%; max-width: 400px; box-shadow: 0 12px 40px rgba(31,77,61,0.08); }
+    .brand { display: flex; align-items: center; gap: 10px; margin-bottom: 18px; }
+    .brand .dot { width: 36px; height: 36px; border-radius: 50%; background: var(--coral); color: #fff;
+      display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 19px; }
+    .brand h1 { font-family: 'Bricolage Grotesque', system-ui, sans-serif; font-size: 19px; font-weight: 800; color: var(--pine); }
+    h2 { font-family: 'Bricolage Grotesque', system-ui, sans-serif; font-size: 22px; font-weight: 800; margin-bottom: 6px; }
+    p.sub { font-size: 13px; color: var(--muted); margin-bottom: 22px; line-height: 1.5; }
+    label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; }
+    input { width: 100%; padding: 12px 14px; border: 1px solid var(--border); border-radius: 10px;
+      font-size: 15px; font-family: inherit; margin-bottom: 16px; outline: none; transition: border-color .15s; }
+    input:focus { border-color: var(--pine); }
+    button { width: 100%; padding: 13px; border: none; border-radius: 10px; background: var(--pine);
+      color: #fff; font-size: 15px; font-weight: 600; cursor: pointer; font-family: inherit; transition: opacity .15s; }
+    button:disabled { opacity: .55; cursor: default; }
+    button.ghost { background: none; color: var(--pine); border: 1px solid var(--border); margin-top: 10px; }
+    .msg { font-size: 13px; padding: 10px 12px; border-radius: 8px; margin-bottom: 16px; display: none; line-height: 1.5; }
+    .msg.err { background: #fdecec; color: #b3261e; display: block; }
+    .msg.ok  { background: var(--pine-light); color: var(--pine); display: block; }
+    .sep { display: flex; align-items: center; gap: 10px; margin: 18px 0 14px; color: var(--muted); font-size: 12px; }
+    .sep::before, .sep::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+    .foot { margin-top: 22px; text-align: center; font-size: 12px; color: var(--muted); line-height: 1.6; }
+    .foot a { color: var(--pine); font-weight: 600; text-decoration: none; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="brand"><span class="dot">C</span><h1>Olá, Contador.</h1></div>
+    <h2 id="titulo">Entrar</h2>
+    <p class="sub" id="subtitulo">Use o e-mail da sua conta. Levamos você direto para a sua área.</p>
+
+    <div class="msg" id="msg"></div>
+
+    <div id="form">
+      <label for="email">E-mail</label>
+      <input type="email" id="email" placeholder="voce@email.com" autocomplete="email" />
+
+      <label for="senha">Senha</label>
+      <input type="password" id="senha" placeholder="sua senha" autocomplete="current-password" />
+      <button id="btn-senha">Entrar</button>
+
+      <div class="sep">ou</div>
+      <button class="ghost" id="btn-link">Receber link de acesso por e-mail</button>
+    </div>
+
+    <div class="foot">
+      Ainda não é cliente? <a href="index.html#precos">Ver preços e agendar</a><br />
+      Não tem senha? Use o link de acesso — dá para criar uma senha depois, na sua área.
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
+  <script src="oc-data.js"></script>
+  <script>
+    const msg = document.getElementById('msg');
+    const email = document.getElementById('email');
+    const senha = document.getElementById('senha');
+    const btnSenha = document.getElementById('btn-senha');
+    const btnLink = document.getElementById('btn-link');
+    const form = document.getElementById('form');
+
+    function aviso(texto, tipo) { msg.className = 'msg ' + tipo; msg.textContent = texto; }
+    function limpar() { msg.className = 'msg'; }
+    function contadorTesteAtivo() {
+      return !!(window.OC_CONFIG && window.OC_CONFIG.TESTE_CONTADOR_SEM_LOGIN && window.OC_CONFIG.TESTE_CONTADOR_SEM_LOGIN.enabled);
+    }
+    function irParaContadorTeste() {
+      if (!contadorTesteAtivo()) return false;
+      if (form) form.style.display = 'none';
+      document.getElementById('titulo').textContent = 'Abrindo painel do contador...';
+      document.getElementById('subtitulo').textContent = 'Modo de teste sem senha ativo.';
+      location.href = 'contador.html';
+      return true;
+    }
+
+    // O coração do login único: quem decide o destino é o banco, não a URL.
+    // is_staff() → contador pré-cadastrado. my_client_id() → cliente que veio pela compra.
+    async function levarParaMinhaArea() {
+      if (window.OC_ROLE === 'geral' && irParaContadorTeste()) return true;
+      const ctx = await OCAuth.context();
+      if (!ctx.user && !ctx.isTest) return false;
+      if (ctx.isStaff)   { location.href = 'contador.html'; return true; }
+      if (ctx.clientId)  { location.href = 'cliente.html';  return true; }
+      // Entrou, mas a conta não é nem staff nem cliente — deixa entrar seria pior:
+      // cairia num painel vazio sem explicação.
+      await sb.auth.signOut();
+      aviso('Este e-mail não tem nenhuma área liberada ainda. Se você acabou de contratar, '
+          + 'use o link que enviamos na confirmação do pagamento.', 'err');
+      return false;
+    }
+
+    // Cobre os dois casos: sessão que já existia e magic link recém-clicado
+    // (o Supabase processa o link e dispara este evento).
+    sb.auth.onAuthStateChange((_evento, sessao) => { if (sessao) levarParaMinhaArea(); });
+    levarParaMinhaArea();
+
+    btnSenha.addEventListener('click', async () => {
+      if (!email.value.trim().includes('@')) { aviso('Digite um e-mail válido.', 'err'); return; }
+      if (!senha.value) { aviso('Digite sua senha — ou use o link de acesso abaixo.', 'err'); return; }
+      btnSenha.disabled = true; btnSenha.textContent = 'Entrando...'; limpar();
+      const { error } = await sb.auth.signInWithPassword({ email: email.value.trim(), password: senha.value });
+      if (error) {
+        btnSenha.disabled = false; btnSenha.textContent = 'Entrar';
+        aviso('E-mail ou senha incorretos. Se você nunca criou uma senha, use o link de acesso.', 'err');
+        return;
+      }
+      if (!(await levarParaMinhaArea())) { btnSenha.disabled = false; btnSenha.textContent = 'Entrar'; }
+    });
+
+    btnLink.addEventListener('click', async () => {
+      if (!email.value.trim().includes('@')) { aviso('Digite seu e-mail para receber o link.', 'err'); return; }
+      btnLink.disabled = true; btnLink.textContent = 'Enviando...'; limpar();
+      // shouldCreateUser: false — o acesso nasce da compra, não do login. Sem isso,
+      // qualquer e-mail digitado aqui viraria uma conta órfã.
+      const { error } = await sb.auth.signInWithOtp({
+        email: email.value.trim(),
+        options: { shouldCreateUser: false, emailRedirectTo: location.origin + '/login.html' }
+      });
+      btnLink.disabled = false; btnLink.textContent = 'Receber link de acesso por e-mail';
+      if (error) {
+        aviso('Não encontrei uma conta com esse e-mail. Confira se é o mesmo que você usou na contratação.', 'err');
+        return;
+      }
+      aviso('Link enviado! Abra seu e-mail e clique no botão de acesso — você entra direto, sem senha.', 'ok');
+    });
+
+    senha.addEventListener('keydown', e => { if (e.key === 'Enter') btnSenha.click(); });
+    email.addEventListener('keydown', e => { if (e.key === 'Enter') senha.focus(); });
+  </script>
+</body>
+</html>

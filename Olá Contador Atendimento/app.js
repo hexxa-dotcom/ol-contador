@@ -11,6 +11,9 @@ let socket = null;
 let clientsData = {};
 let notifications = [];
 let appointments = [];
+let activeCrmClientId = null;
+let financeiro = { servicos: [], cobrancas: [] };
+let kanbanEtapas = {};
 
 // Audio Context for System Sounds
 let audioCtx = null;
@@ -87,7 +90,11 @@ function playSound(type = 'notification') {
 }
 
 // Application State
-let currentScheduleFilter = "all";
+let currentScheduleFilter = "today";
+const DEFAULT_AGENDA_SLOTS = ['09:00', '10:00', '11:00', '14:00', '15:00', '16:30'];
+const AGENDA_SLOT_OPTIONS = ['08:00', '09:00', '10:00', '11:00', '13:30', '14:00', '15:00', '16:00', '16:30', '17:00'];
+let agendaDisponibilidade = [...DEFAULT_AGENDA_SLOTS];
+let calendarMonthDate = new Date();
 
 // Chat Timer State
 let chatTimerInterval = null;
@@ -150,41 +157,82 @@ const treatmentTemplates = {
 
 // Initial App Setup
 document.addEventListener("DOMContentLoaded", async () => {
+  // Exige login de contador (staff); redireciona se não autorizado.
+  const ctx = await OCAuth.guard('contador');
+  if (!ctx) return;
+
   setupNavigation();
   setupEventListeners();
   setupCalculators();
   setupTimer();
-  
-  // Connect Socket.IO
-  socket = io();
-  socket.on('receive_chat_message', (data) => {
-    if (clientsData[data.clientId]) {
-      // Check if message already exists (to prevent dupes if we sent it via fetch)
-      const exists = clientsData[data.clientId].messages.some(m => m.id === data.message.id);
-      if (!exists) {
-        clientsData[data.clientId].messages.push(data.message);
-        if (activeClientId === data.clientId) {
-          renderChatMessages();
-          playPopSound();
+  setupLogout();
+  setupAbasDoPainel();
+
+  // Chat + eventos em tempo real via Supabase Realtime (substitui o Socket.io).
+  OCRealtime.subscribe({
+    onMessage: (clientId, message) => {
+      if (clientsData[clientId]) {
+        const exists = clientsData[clientId].messages.some(m => m.id === message.id);
+        if (!exists) {
+          clientsData[clientId].messages.push(message);
+          if (activeClientId === clientId && document.getElementById('section-atendimento').classList.contains('active')) {
+            renderMessages();
+            playSound('message');
+            // Chegou com a conversa aberta na tela: já foi lida.
+            if (message.sender === 'client') marcarConversaLida();
+          } else if (message.sender === 'client') {
+            // Só mensagem DO CLIENTE avisa. Faltava este filtro: ao responder o
+            // cliente A com o cliente B aberto, a resposta do próprio contador
+            // caía aqui e inflava o contador de "não lidas" com o que ele mesmo
+            // acabara de escrever.
+            incrementContadorBadge();
+            playSound('notification');
+          }
+          // A fila mostra não lidas, prévia e horário da última atividade —
+          // tudo isso acabou de mudar, independentemente de qual conversa
+          // estava aberta.
+          atualizarFila();
         }
+      } else {
+        // cliente novo (ex.: primeiro contato) — recarrega a base
+        refreshAllData();
       }
+    },
+    // Hoje o único UPDATE em mensagens é o read_at: o cliente confirmando leitura.
+    onMessageUpdate: (clientId, message) => {
+      const c = clientsData[clientId];
+      if (!c) return;
+      const i = c.messages.findIndex(m => m.id === message.id);
+      if (i === -1) return;
+      c.messages[i] = message;
+      if (activeClientId === clientId) renderMessages();
+      // O UPDATE aqui é o read_at. Marcar como lida muda a contagem da fila,
+      // então a bolinha some sozinha em vez de ficar até o próximo F5.
+      atualizarFila();
+    },
+    onData: async () => {
+      await refreshAllData();
+      if (activeClientId) { updateProntuarioChecklist(); renderMessages(); }
     }
   });
 
-  socket.on('doc_status_update', async (data) => {
-    if (clientsData[data.clientId]) {
-      await refreshAllData();
-      if (activeClientId === data.clientId) {
-        renderDossier(clientsData[activeClientId]);
-        renderChatMessages();
-      }
-    }
-  });
-  
-  // Initial loading from backend API
-  await refreshAllData();
-  loadClient(activeClientId);
+  // Voltar para a aba com a conversa aberta conta como ler.
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) marcarConversaLida(); });
+
+  // Initial loading from backend API. O catálogo vem junto: o card da triagem no
+  // dossiê traduz as respostas com ele, e a lista embutida no arquivo pode estar
+  // desatualizada em relação ao que o contador editou.
+  await Promise.all([refreshAllData(), OC_TRIAGEM.carregar(), carregarWorkspacePersistente()]);
+  if (clientsData[activeClientId]) loadClient(activeClientId);
+  else { const first = Object.keys(clientsData)[0]; if (first) loadClient(first); }
 });
+
+// Botão de sair (encerra a sessão do contador).
+function setupLogout() {
+  document.querySelectorAll('[data-logout]').forEach(el => {
+    el.addEventListener('click', (e) => { e.preventDefault(); OCAuth.signOut(); });
+  });
+}
 
 // Load everything from the backend
 async function refreshAllData() {
@@ -200,9 +248,15 @@ async function refreshAllData() {
 
     updateDashboardData();
     renderClientList();
+    renderCRM();
+    renderKanban();
     renderAppointments();
+    renderCalendarioAgendamentos();
+    renderAgendaDoDia();
     renderNotificationsLog();
     updateNotificationBadge();
+    setupPresence();
+    refreshFinanceiro();
   } catch (e) {
     console.error("API Fetch Error:", e);
     showToast("Erro ao conectar com o servidor local.");
@@ -223,6 +277,14 @@ function setupNavigation() {
       const targetPanel = document.getElementById(targetSectionId);
       if (targetPanel) {
         targetPanel.classList.add("active");
+        if (targetSectionId === 'section-atendimento') {
+          clearContadorBadge();
+          marcarConversaLida();
+          const h = document.getElementById('chat-messages');
+          if (h) h.scrollTop = h.scrollHeight;
+        }
+        if (targetSectionId === 'section-recorrentes') renderRecorrentes();
+        if (targetSectionId === 'section-insights') renderInsights();
       }
       
       document.getElementById("noti-dropdown").classList.remove("active");
@@ -230,50 +292,322 @@ function setupNavigation() {
   });
 }
 
+function startOfWeekLocal(date = new Date()) {
+  const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const day = d.getDay() || 7;
+  d.setDate(d.getDate() - day + 1);
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
+function endOfWeekLocal(date = new Date()) {
+  const d = startOfWeekLocal(date);
+  d.setDate(d.getDate() + 7);
+  return d;
+}
+
+function parseDateTimeLocal(dateIso, timeText = '00:00') {
+  const day = dataLocalFromISO(normalizeAppointmentDate(dateIso));
+  if (!day) return null;
+  const [h, m] = String(timeText || '00:00').split(':').map(n => parseInt(n, 10));
+  day.setHours(Number.isFinite(h) ? h : 0, Number.isFinite(m) ? m : 0, 0, 0);
+  return day;
+}
+
+function isThisWeek(dateLike) {
+  const d = dateLike instanceof Date ? dateLike : new Date(dateLike);
+  if (isNaN(d)) return false;
+  return d >= startOfWeekLocal() && d < endOfWeekLocal();
+}
+
+function docsPendentesDoCliente(client) {
+  return Object.entries(client.checklist || {})
+    .filter(([, ok]) => !ok)
+    .map(([name]) => name);
+}
+
+function clientTemMensagemNaoRespondida(client) {
+  const msgs = Array.isArray(client.messages) ? client.messages : [];
+  const lastUseful = [...msgs].reverse().find(m => m && m.sender !== 'system');
+  return lastUseful && lastUseful.sender === 'client';
+}
+
+function dashboardClientButton(clientId, label = 'Abrir') {
+  return `<button class="btn-doc-action" type="button" onclick="actionTimelineChat('${safe(clientId)}')"><i class="fa-solid fa-comments"></i> ${label}</button>`;
+}
+
+// Checklist mensal dos clientes recorrentes (parcelamento/obrigação mensal).
+// Geração da guia ainda é manual (sem certificado do Integra Contador) — isto
+// só lembra quem vence este mês e deixa marcar como feito.
+async function renderGuiasMensais() {
+  const list = document.getElementById('guias-mensais-lista');
+  if (!list) return;
+  let guias = [];
+  try {
+    const res = await fetch(API_BASE + '/api/guias-mensais');
+    if (res.ok) guias = await res.json();
+  } catch (_) { /* silencioso — o card só fica vazio */ }
+
+  const pendentes = guias.filter(g => g.status !== 'gerada');
+
+  if (!pendentes.length) {
+    list.innerHTML = `
+      <div class="dashboard-empty-state">
+        <i class="fa-solid fa-file-invoice"></i>
+        <p>Nenhuma guia pendente este mês.</p>
+        <span>Ative "Acompanhamento recorrente" no CRM de um cliente com parcelamento para ele aparecer aqui todo mês.</span>
+      </div>`;
+    return;
+  }
+
+  list.innerHTML = pendentes.map(g => `
+    <div class="dashboard-alert-card">
+      <div class="dashboard-alert-card-top">
+        <span>${safe(g.clientName)}</span>
+        <span class="sla-badge sla-yellow" style="margin: 0;">Pendente</span>
+      </div>
+      <p>${safe(g.tipo || 'Acompanhamento mensal')} · competência ${safe(g.competencia)}</p>
+      <div class="dashboard-card-actions">
+        ${g.clientRef ? dashboardClientButton(g.clientRef, 'Contato') : ''}
+        <button class="btn-doc-action" type="button" data-guia-concluir="${g.id}"><i class="fa-solid fa-check"></i> Marcar gerada</button>
+      </div>
+    </div>`).join('');
+
+  list.querySelectorAll('[data-guia-concluir]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      btn.disabled = true;
+      try {
+        const res = await fetch(API_BASE + '/api/guias-mensais/' + btn.dataset.guiaConcluir + '/concluir', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({}) });
+        if (!res.ok) { showToast('Não foi possível marcar como gerada.'); btn.disabled = false; return; }
+        showToast('Guia marcada como gerada.');
+        renderGuiasMensais();
+      } catch (_) {
+        showToast('Falha de conexão.');
+        btn.disabled = false;
+      }
+    });
+  });
+}
+
+function updateDashboardFinanceiroKpis() {
+  const faturamentoEl = document.getElementById("kpi-faturamento");
+  if (!faturamentoEl) return;
+
+  const paidWeekCents = financeiro.cobrancas
+    .filter(c => c.status === 'paid')
+    .filter(c => isThisWeek(c.paidAt || c.createdAt))
+    .reduce((total, c) => total + (c.valueCents || 0), 0);
+
+  const honorariosSemana = appointments
+    .filter(a => a.status === 'done' && isThisWeek(parseDateTimeLocal(a.date, a.time)))
+    .reduce((total, a) => total + (Number(clientsData[a.clientRef]?.honorarios) || 0), 0);
+
+  const fallbackHonorariosAtivos = Object.values(clientsData)
+    .filter(c => ['active', 'ready', 'done'].includes(etapaDoCliente(c)))
+    .reduce((total, c) => total + (Number(c.honorarios) || 0), 0);
+
+  const valor = paidWeekCents > 0 ? paidWeekCents / 100 : (honorariosSemana || fallbackHonorariosAtivos);
+  faturamentoEl.textContent = formatBRL(valor);
+
+  const trend = faturamentoEl.parentElement?.querySelector('.kpi-trend');
+  if (trend) {
+    if (paidWeekCents > 0) {
+      const qtd = financeiro.cobrancas.filter(c => c.status === 'paid' && isThisWeek(c.paidAt || c.createdAt)).length;
+      trend.className = 'kpi-trend positive';
+      trend.innerHTML = `<i class="fa-solid fa-circle-check"></i> ${qtd} cobrança${qtd !== 1 ? 's' : ''} paga${qtd !== 1 ? 's' : ''} nesta semana`;
+    } else {
+      trend.className = 'kpi-trend warning';
+      trend.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> Estimado por honorários até o financeiro registrar pagamentos';
+    }
+  }
+}
+
+function renderDashboardSlaAlerts() {
+  const list = document.getElementById('sla-alerts-list');
+  const badge = document.getElementById('sla-alerts-badge');
+  if (!list || !badge) return;
+
+  const now = new Date();
+  const alerts = [];
+
+  appointments.forEach(app => {
+    if (app.status === 'done') return;
+    const when = parseDateTimeLocal(app.date, app.time);
+    if (!when) return;
+    const diffHours = (when - now) / 36e5;
+    if (diffHours < -0.25) {
+      alerts.push({
+        level: 'red',
+        sort: diffHours,
+        clientRef: app.clientRef,
+        name: app.clientName,
+        badge: `Atrasado ${Math.max(1, Math.round(Math.abs(diffHours)))}h`,
+        desc: `${app.taxType || 'Atendimento'} deveria ter iniciado às ${app.time || '--:--'}`
+      });
+    } else if (diffHours >= 0 && diffHours <= 4) {
+      alerts.push({
+        level: 'yellow',
+        sort: diffHours,
+        clientRef: app.clientRef,
+        name: app.clientName,
+        badge: diffHours < 1 ? 'Começa em breve' : `Restam ${Math.round(diffHours)}h`,
+        desc: `${app.taxType || 'Atendimento'} agendado para ${app.time || '--:--'}`
+      });
+    }
+  });
+
+  Object.values(clientsData).forEach(client => {
+    const pendingDocs = docsPendentesDoCliente(client);
+    if (etapaDoCliente(client) === 'docs' && pendingDocs.length) {
+      alerts.push({
+        level: 'yellow',
+        sort: 24,
+        clientRef: client.id,
+        name: client.name,
+        badge: `${pendingDocs.length} pendente${pendingDocs.length !== 1 ? 's' : ''}`,
+        desc: `Aguardando: ${pendingDocs.slice(0, 2).join(', ')}${pendingDocs.length > 2 ? '…' : ''}`
+      });
+    }
+    if (clientTemMensagemNaoRespondida(client) && etapaDoCliente(client) !== 'done') {
+      alerts.push({
+        level: 'green',
+        sort: 12,
+        clientRef: client.id,
+        name: client.name,
+        badge: 'Responder',
+        desc: 'Última mensagem veio do cliente'
+      });
+    }
+  });
+
+  alerts.sort((a, b) => a.sort - b.sort);
+  const critical = alerts.filter(a => a.level === 'red').length;
+  badge.textContent = critical ? `${critical} atrasado${critical !== 1 ? 's' : ''}` : `${alerts.length} alerta${alerts.length !== 1 ? 's' : ''}`;
+  badge.style.background = critical ? 'var(--color-coral)' : 'var(--color-pine)';
+
+  if (!alerts.length) {
+    list.innerHTML = `
+      <div class="dashboard-empty-state">
+        <i class="fa-solid fa-shield-heart"></i>
+        <p>Nenhum prazo crítico agora.</p>
+        <span>Atendimentos, documentos e mensagens estão dentro do esperado.</span>
+      </div>`;
+    return;
+  }
+
+  list.innerHTML = alerts.slice(0, 8).map(a => `
+    <div class="dashboard-alert-card">
+      <div class="dashboard-alert-card-top">
+        <span>${safe(a.name || 'Cliente')}</span>
+        <span class="sla-badge sla-${a.level}" style="margin: 0;">${safe(a.badge)}</span>
+      </div>
+      <p>${safe(a.desc)}</p>
+      ${a.clientRef ? dashboardClientButton(a.clientRef, 'Ver caso') : ''}
+    </div>
+  `).join('');
+}
+
+function renderDashboardRemarketing() {
+  const list = document.getElementById('remarketing-lista');
+  if (!list) return;
+
+  const abertas = financeiro.cobrancas
+    .filter(c => c.status !== 'paid')
+    .sort((a, b) => new Date(a.createdAt || 0) - new Date(b.createdAt || 0));
+
+  if (!abertas.length) {
+    list.innerHTML = `
+      <div class="dashboard-empty-state">
+        <i class="fa-solid fa-cart-shopping"></i>
+        <p>Nenhum carrinho abandonado no momento.</p>
+        <span>Quando houver cobrança aberta ou checkout iniciado sem pagamento, ela aparece aqui.</span>
+      </div>`;
+    return;
+  }
+
+  list.innerHTML = abertas.slice(0, 8).map(c => {
+    const client = clientsData[c.clientRef] || {};
+    const dias = c.createdAt ? Math.max(0, Math.floor((Date.now() - new Date(c.createdAt).getTime()) / 86400000)) : null;
+    return `
+      <div class="dashboard-alert-card">
+        <div class="dashboard-alert-card-top">
+          <span>${safe(client.name || c.clientRef || 'Cliente')}</span>
+          <span class="sla-badge sla-yellow" style="margin: 0;">${formatBRL((c.valueCents || 0) / 100)}</span>
+        </div>
+        <p>${dias == null ? 'Cobrança em aberto' : `Cobrança aberta há ${dias} dia${dias !== 1 ? 's' : ''}`} · status: ${safe(c.status || 'aberta')}</p>
+        <div class="dashboard-card-actions">
+          ${c.clientRef ? dashboardClientButton(c.clientRef, 'Contato') : ''}
+          ${c.invoiceUrl ? `<a class="btn-doc-action" href="${safe(c.invoiceUrl)}" target="_blank" rel="noopener"><i class="fa-solid fa-link"></i> Cobrança</a>` : ''}
+        </div>
+      </div>`;
+  }).join('');
+}
+
 // Update executive dashboard KPIs and timeline
 function updateDashboardData() {
-  let activeFeesSum = 0;
-  Object.values(clientsData).forEach(c => {
-    activeFeesSum += c.honorarios;
-  });
-  const totalFaturamento = 4120 + activeFeesSum;
-  document.getElementById("kpi-faturamento").textContent = formatBRL(totalFaturamento);
+  updateDashboardFinanceiroKpis();
 
-  const completedCount = appointments.filter(a => a.status === "done").length;
-  const todayApps = appointments.filter(a => a.date === "Hoje");
-  document.getElementById("kpi-concluidos").textContent = `${completedCount} de ${todayApps.length}`;
+  const completedWeekCount = appointments
+    .filter(a => a.status === "done" && isThisWeek(parseDateTimeLocal(a.date, a.time)))
+    .length;
+  const todayApps = appointments.filter(a => OCTempo.ehHoje(normalizeAppointmentDate(a.date)));
+  const activeTodayCount = todayApps.filter(a => a.status === 'active').length;
+  const concluidosEl = document.getElementById("kpi-concluidos");
+  if (concluidosEl) concluidosEl.textContent = `${completedWeekCount} na semana`;
+  const concluidosTrend = concluidosEl?.parentElement?.querySelector('.kpi-trend');
+  if (concluidosTrend) {
+    concluidosTrend.className = activeTodayCount ? 'kpi-trend positive' : 'kpi-trend warning';
+    concluidosTrend.innerHTML = `<i class="fa-solid fa-circle-play"></i> ${activeTodayCount} atendimento${activeTodayCount !== 1 ? 's' : ''} ativo${activeTodayCount !== 1 ? 's' : ''} hoje`;
+  }
 
-  const pendingDocsCount = Object.values(clientsData).filter(c => c.status === "docs").length;
-  document.getElementById("kpi-pendentes").textContent = `${pendingDocsCount} cliente${pendingDocsCount !== 1 ? 's' : ''}`;
+  const pendingDocsClients = Object.values(clientsData).filter(c => etapaDoCliente(c) === "docs" || docsPendentesDoCliente(c).length);
+  const pendentesEl = document.getElementById("kpi-pendentes");
+  if (pendentesEl) pendentesEl.textContent = `${pendingDocsClients.length} cliente${pendingDocsClients.length !== 1 ? 's' : ''}`;
+  const pendentesTrend = pendentesEl?.parentElement?.querySelector('.kpi-trend');
+  if (pendentesTrend) {
+    const docsCount = pendingDocsClients.reduce((total, c) => total + docsPendentesDoCliente(c).length, 0);
+    pendentesTrend.className = docsCount ? 'kpi-trend warning' : 'kpi-trend positive';
+    pendentesTrend.innerHTML = docsCount
+      ? `<i class="fa-solid fa-file-circle-exclamation"></i> ${docsCount} documento${docsCount !== 1 ? 's' : ''} pendente${docsCount !== 1 ? 's' : ''}`
+      : '<i class="fa-solid fa-circle-check"></i> Nenhum documento pendente';
+  }
+  carregarNPS();
+  renderDashboardSlaAlerts();
+  renderDashboardRemarketing();
+  renderGuiasMensais();
 
   const timelineContainer = document.getElementById("dashboard-timeline");
+  if (!timelineContainer) return;
   timelineContainer.innerHTML = "";
 
-  document.getElementById("agenda-count-badge").textContent = `${todayApps.filter(a => a.status !== "done").length} pendentes`;
+  const pendingToday = todayApps.filter(a => a.status !== "done").length;
+  const agendaBadge = document.getElementById("agenda-count-badge");
+  if (agendaBadge) agendaBadge.textContent = `${pendingToday} pendente${pendingToday !== 1 ? 's' : ''}`;
 
   if (todayApps.length === 0) {
     timelineContainer.innerHTML = `<p style="font-size: 13px; color: var(--color-text-secondary); text-align: center; padding: 20px 0;">Nenhuma atividade agendada para hoje.</p>`;
     return;
   }
 
-  todayApps.sort((a,b) => a.time.localeCompare(b.time)).forEach(app => {
+  todayApps.sort((a,b) => String(a.time || '').localeCompare(String(b.time || ''))).forEach(app => {
     const isActive = app.status === "active" ? "active" : "";
     
     let btnHtml = "";
     if (app.status === "pending" || app.status === "active") {
-      btnHtml = `<button class="btn-doc-action" onclick="actionTimelineChat('${app.clientRef}')"><i class="fa-solid fa-comments"></i> Chat</button>`;
+      btnHtml = app.clientRef ? dashboardClientButton(app.clientRef, 'Chat') : '<span style="font-size: 11px; color: var(--color-text-secondary);">Sem cliente vinculado</span>';
     } else {
       btnHtml = `<span style="font-size: 11px; color:#2ECC71; font-weight:600;"><i class="fa-solid fa-circle-check"></i> Concluído</span>`;
     }
 
+    const hora = safe(app.time || '--:--');
     const itemHtml = `
       <div class="timeline-item ${isActive}">
-        <div class="timeline-badge">${app.time.split(":")[0]}h</div>
+        <div class="timeline-badge">${safe(String(app.time || '--').split(":")[0])}h</div>
         <div class="timeline-content-card">
           <div class="timeline-content-info">
-            <span class="timeline-time">${app.time}</span>
-            <span class="timeline-title">${app.clientName}</span>
-            <span class="timeline-desc">${app.taxType}</span>
+            <span class="timeline-time">${hora}</span>
+            <span class="timeline-title">${safe(app.clientName || 'Cliente')}</span>
+            <span class="timeline-desc">${safe(app.taxType || 'Atendimento')}</span>
           </div>
           ${btnHtml}
         </div>
@@ -302,6 +636,11 @@ function setupEventListeners() {
     sendMessage();
   });
 
+  const inputMsg = document.getElementById("message-input");
+  if (inputMsg) inputMsg.addEventListener("input", () => {
+    if (inputMsg.value.trim() && typingCanal) typingCanal.aviso('agent');
+  });
+
   document.getElementById("search-input-tab").addEventListener("input", (e) => {
     renderClientList(e.target.value);
   });
@@ -315,20 +654,12 @@ function setupEventListeners() {
     btnFinishChat.addEventListener("click", finishActiveChat);
   }
 
-  document.querySelectorAll(".btn-shortcut-tag").forEach(btn => {
-    btn.addEventListener("click", () => {
-      const action = btn.getAttribute("data-action");
-      if (action === "reply") {
-        const textKey = btn.getAttribute("data-text");
-        const client = clientsData[activeClientId];
-        let cannedText = cannedResponses[textKey].replace("[VALOR]", `R$ ${client.honorarios},00`);
-        document.getElementById("message-input").value = cannedText;
-        document.getElementById("message-input").focus();
-      } else if (action === "doc") {
-        sendDocumentRequest(btn.getAttribute("data-doc"));
-      }
-    });
-  });
+  const btnSendAcompanhamento = document.getElementById("btn-send-acompanhamento");
+  if (btnSendAcompanhamento) {
+    btnSendAcompanhamento.addEventListener("click", moverParaAcompanhamento);
+  }
+
+
 
   const toggleSound = document.getElementById("toggle-sound-enabled");
   if (toggleSound) {
@@ -338,7 +669,7 @@ function setupEventListeners() {
     });
   }
 
-  document.getElementById("btn-send-audio-shortcut").addEventListener("click", () => sendAudioMessage("agent", "0:45"));
+
   document.getElementById("btn-sim-reply").addEventListener("click", simulateClientMessage);
   document.getElementById("btn-sim-upload").addEventListener("click", simulateClientFileUpload);
   document.getElementById("btn-sim-voice").addEventListener("click", simulateClientAudioMessage);
@@ -347,9 +678,15 @@ function setupEventListeners() {
     updateProntuarioTagsAndTreatment(e.target.value);
   });
 
-  document.getElementById("btn-generate-prontuario").addEventListener("click", generatePrescription);
-  document.getElementById("btn-send-receita-chat").addEventListener("click", sharePrescriptionInChat);
-  document.getElementById("btn-print-receita").addEventListener("click", () => window.print());
+  document.getElementById("btn-generate-prontuario").addEventListener("click", abrirRelatorio);
+  document.getElementById("btn-sugerir-ia").addEventListener("click", sugerirProntuarioIA);
+  // Modal do Relatório do Cliente
+  document.getElementById("btn-rel-ia").addEventListener("click", preencherRelatorioComIA);
+  document.getElementById("btn-rel-baixar").addEventListener("click", baixarRelatorioAtual);
+  document.getElementById("btn-rel-enviar").addEventListener("click", gerarEnviarRelatorio);
+  ["rel-titulo", "rel-problema", "rel-solucao", "rel-oquefeito", "rel-comofeito"].forEach(id => {
+    document.getElementById(id).addEventListener("input", atualizarPreviaRelatorio);
+  });
 
   document.getElementById("btn-noti-trigger").addEventListener("click", (e) => {
     e.stopPropagation();
@@ -380,6 +717,35 @@ function setupEventListeners() {
     e.preventDefault();
     bookNewAppointment();
   });
+
+  const btnCalendarToday = document.getElementById("calendar-today");
+  if (btnCalendarToday) {
+    btnCalendarToday.addEventListener("click", () => {
+      calendarMonthDate = new Date();
+      renderCalendarioAgendamentos();
+    });
+  }
+
+  const btnCalendarPrev = document.getElementById("calendar-prev");
+  if (btnCalendarPrev) {
+    btnCalendarPrev.addEventListener("click", () => {
+      calendarMonthDate = new Date(calendarMonthDate.getFullYear(), calendarMonthDate.getMonth() - 1, 1);
+      renderCalendarioAgendamentos();
+    });
+  }
+
+  const btnCalendarNext = document.getElementById("calendar-next");
+  if (btnCalendarNext) {
+    btnCalendarNext.addEventListener("click", () => {
+      calendarMonthDate = new Date(calendarMonthDate.getFullYear(), calendarMonthDate.getMonth() + 1, 1);
+      renderCalendarioAgendamentos();
+    });
+  }
+
+  const btnSaveAvailability = document.getElementById("btn-save-availability");
+  if (btnSaveAvailability) {
+    btnSaveAvailability.addEventListener("click", salvarDisponibilidadeAgenda);
+  }
 
   document.querySelectorAll(".schedule-filters .btn-filter-tag").forEach(btn => {
     btn.addEventListener("click", () => {
@@ -412,12 +778,16 @@ function setupEventListeners() {
     tab.addEventListener("click", () => {
       document.querySelectorAll(".settings-tab").forEach(t => t.classList.remove("active"));
       document.querySelectorAll(".settings-pane").forEach(p => p.classList.remove("active"));
-      
+
       tab.classList.add("active");
-      const targetPane = document.getElementById(tab.getAttribute("data-tab"));
+      const alvo = tab.getAttribute("data-tab");
+      const targetPane = document.getElementById(alvo);
       if (targetPane) {
         targetPane.classList.add("active");
       }
+      // Recarrega a cada abertura: se outra pessoa da equipe mexeu no catálogo,
+      // editar por cima de uma cópia velha apagaria o trabalho dela no Salvar.
+      if (alvo === 'tab-cliente') ConfigCliente.abrir();
     });
   });
 
@@ -430,27 +800,187 @@ function setupEventListeners() {
 }
 
 // Render client list side panel
+// ---------------------------------------------------------------------------
+// Fila de atendimento
+// ---------------------------------------------------------------------------
+// Quantas mensagens DO CLIENTE ainda não foram lidas. É o número que aparece na
+// bolinha da linha. Mensagens do próprio contador nunca contam — ele não precisa
+// ser avisado do que ele mesmo escreveu.
+function naoLidasDoCliente(client) {
+  if (!client.messages) return 0;
+  return client.messages.filter(m => m.sender === 'client' && !m.readAt).length;
+}
+
+// Última mensagem da conversa, para a prévia e para ordenar por atividade.
+function ultimaMensagem(client) {
+  if (!client.messages || !client.messages.length) return null;
+  return client.messages[client.messages.length - 1];
+}
+
+// Texto curto da última mensagem. Cards de documento/áudio não têm texto útil,
+// então viram uma descrição do que são.
+function previaDaMensagem(msg) {
+  if (!msg) return 'Sem mensagens ainda';
+  if (msg.type === 'doc-request') return '📎 Documento solicitado: ' + (msg.docName || '');
+  if (msg.type === 'doc-upload') return '📎 ' + (msg.docName || 'Arquivo enviado');
+  if (msg.type === 'audio') return '🎤 Áudio';
+  const t = (msg.text || '').replace(/\s+/g, ' ').trim();
+  if (!t) return 'Mensagem';
+  return t.length > 48 ? t.slice(0, 48) + '…' : t;
+}
+
+// Horário da última atividade: hoje mostra a hora, ontem "Ontem", antes a data.
+// Antes a fila mostrava o horário AGENDADO, que nunca mudava — não dizia nada
+// sobre quem estava esperando resposta agora.
+function horaDaAtividade(msg) {
+  const d = msg ? OCTempo.data(msg) : null;
+  if (!d) return '';
+  const hoje = new Date();
+  const zera = x => new Date(x.getFullYear(), x.getMonth(), x.getDate());
+  const dias = Math.round((zera(hoje) - zera(d)) / 86400000);
+  if (dias === 0) return d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  if (dias === 1) return 'Ontem';
+  return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+}
+
+// ---------------------------------------------------------------------------
+// Agenda do dia — a aba ao lado da Fila
+// ---------------------------------------------------------------------------
+// O atendimento é por agendamento, então a agenda do dia é o plano de trabalho.
+// Ela existia só na seção Agendamentos, longe de onde o atendimento acontece.
+
+// Converte "14:00" em minutos para ordenar. Horário como texto ordena certo por
+// acaso em HH:MM, mas não se alguém gravar "9:00" sem o zero.
+function minutosDoHorario(hhmm) {
+  const m = /^(\d{1,2}):(\d{2})$/.exec((hhmm || '').trim());
+  return m ? Number(m[1]) * 60 + Number(m[2]) : 24 * 60;
+}
+
+// Passou da hora e ainda não foi atendido? Vira "atrasado".
+function agendamentoAtrasado(app) {
+  if (app.status === 'done' || app.status === 'active') return false;
+  if (!OCTempo.ehHoje(normalizeAppointmentDate(app.date))) return false;
+  const agora = new Date();
+  return minutosDoHorario(app.time) < agora.getHours() * 60 + agora.getMinutes();
+}
+
+function renderAgendaDoDia() {
+  const container = document.getElementById('agenda-do-dia-list');
+  const cabecalho = document.getElementById('agenda-dia-cabecalho');
+  const contador = document.getElementById('agenda-count-tab');
+  if (!container) return;
+
+  const doDia = appointments
+    .filter(a => OCTempo.ehHoje(normalizeAppointmentDate(a.date)))
+    .sort((a, b) => minutosDoHorario(a.time) - minutosDoHorario(b.time));
+
+  if (contador) contador.textContent = doDia.length;
+
+  if (cabecalho) {
+    const hoje = new Date();
+    const bruto = hoje.toLocaleDateString('pt-BR',
+      { weekday: 'long', day: '2-digit', month: 'long' });
+    // Só a primeira letra: "sábado, 18 de julho" → "Sábado, 18 de julho".
+    const porExtenso = bruto.charAt(0).toUpperCase() + bruto.slice(1);
+    const feitos = doDia.filter(a => a.status === 'done').length;
+    cabecalho.innerHTML =
+      `<span class="agenda-dia-data">${porExtenso}</span>` +
+      `<span class="agenda-dia-resumo">${feitos} de ${doDia.length} concluído${doDia.length === 1 ? '' : 's'}</span>`;
+  }
+
+  if (!doDia.length) {
+    container.innerHTML =
+      '<p class="agenda-vazia">Nenhum atendimento marcado para hoje.</p>';
+    return;
+  }
+
+  container.innerHTML = doDia.map(app => {
+    const atrasado = agendamentoAtrasado(app);
+
+    let rotuloStatus = 'Aguardando', classeStatus = 'status-waiting';
+    if (app.status === 'done') { rotuloStatus = 'Concluído'; classeStatus = 'status-done'; }
+    else if (app.status === 'active') { rotuloStatus = 'Em atendimento'; classeStatus = 'status-active'; }
+    else if (atrasado) { rotuloStatus = 'Atrasado'; classeStatus = 'status-atrasado'; }
+
+    // Sem cliente_ref não há conversa para abrir (ex.: marcação avulsa feita à
+    // mão). O card aparece, mas não finge ser clicável.
+    const temChat = !!app.clientRef && !!clientsData[app.clientRef];
+    const acao = temChat ? `onclick="abrirAtendimentoDaAgenda('${app.clientRef}')"` : '';
+
+    return `
+      <div class="agenda-item ${atrasado ? 'atrasado' : ''} ${temChat ? '' : 'sem-chat'}" ${acao}>
+        <div class="agenda-item-hora">${app.time || '--:--'}</div>
+        <div class="agenda-item-corpo">
+          <div class="agenda-item-nome">${escapeHtml(app.clientName || '')}</div>
+          <div class="agenda-item-tema">${escapeHtml(app.taxType || 'Sem tema definido')}</div>
+          <span class="status-badge ${classeStatus}">${rotuloStatus}</span>
+        </div>
+        ${temChat ? '<i class="fa-solid fa-chevron-right agenda-item-seta"></i>' : ''}
+      </div>`;
+  }).join('');
+}
+
+// Abrir pela agenda leva direto para a conversa daquele cliente.
+function abrirAtendimentoDaAgenda(clientRef) {
+  loadClient(clientRef);
+  trocarListaDoPainel('fila');
+  if (window.OCMobile && window.OCMobile.ativo()) window.OCMobile.irParaConversa();
+}
+
+// Alterna Fila / Agenda do dia.
+function trocarListaDoPainel(qual) {
+  document.querySelectorAll('.painel-aba').forEach(b => {
+    const ativa = b.dataset.lista === qual;
+    b.classList.toggle('ativa', ativa);
+    b.setAttribute('aria-selected', ativa ? 'true' : 'false');
+  });
+  document.querySelectorAll('.painel-lista').forEach(l => {
+    l.classList.toggle('ativa', l.id === 'lista-' + qual);
+  });
+  if (qual === 'agenda') renderAgendaDoDia();
+}
+
+function setupAbasDoPainel() {
+  document.querySelectorAll('.painel-aba').forEach(b => {
+    b.addEventListener('click', () => trocarListaDoPainel(b.dataset.lista));
+  });
+}
+
+// Redesenha a fila preservando o que estiver escrito na busca. Existe para os
+// vários pontos que mudam a fila (mensagem nova, leitura confirmada) não terem
+// que saber o id do campo de busca cada um por sua conta.
+function atualizarFila() {
+  const busca = document.getElementById('search-input-tab');
+  renderClientList(busca ? busca.value : '');
+}
+
 function renderClientList(filter = "") {
   const container = document.getElementById("client-list-tab");
   container.innerHTML = "";
-  
+
   let count = 0;
-  
-  // Convert object to array and sort by scheduledTime
-  let sortedClients = Object.values(clientsData).sort((a, b) => {
-    if (!a.scheduledTime) return 1;
-    if (!b.scheduledTime) return -1;
-    return a.scheduledTime.localeCompare(b.scheduledTime);
+
+  // Ordem: quem tem mensagem não lida primeiro, depois quem falou por último.
+  // A ordem antiga era o horário agendado — fixo, então a fila ficava parada
+  // mesmo quando alguém estava esperando resposta há uma hora.
+  const ordenados = Object.values(clientsData).sort((a, b) => {
+    const na = naoLidasDoCliente(a), nb = naoLidasDoCliente(b);
+    if ((na > 0) !== (nb > 0)) return nb - na;
+
+    const ma = ultimaMensagem(a), mb = ultimaMensagem(b);
+    const da = ma && OCTempo.data(ma) ? OCTempo.data(ma).getTime() : 0;
+    const db = mb && OCTempo.data(mb) ? OCTempo.data(mb).getTime() : 0;
+    if (da !== db) return db - da;
+
+    return (a.scheduledTime || '').localeCompare(b.scheduledTime || '');
   });
 
-  sortedClients.forEach((client, index) => {
-    if (filter && !client.name.toLowerCase().includes(filter.toLowerCase())) {
-      return;
-    }
+  ordenados.forEach(client => {
+    if (filter && !client.name.toLowerCase().includes(filter.toLowerCase())) return;
     count++;
-    
+
     const isActive = client.id === activeClientId ? "active" : "";
-    
+
     let statusClass = "status-waiting";
     let statusText = "Aguardando";
     if (client.status === "active") {
@@ -461,23 +991,28 @@ function renderClientList(filter = "") {
       statusText = "Aguardando Doc";
     }
 
-    const queueNumber = `${index + 1}º`;
-    const schedTime = client.scheduledTime || "--:--";
+    const naoLidas = naoLidasDoCliente(client);
+    const ultima = ultimaMensagem(client);
+    const previa = previaDaMensagem(ultima);
+    const hora = horaDaAtividade(ultima) || (client.scheduledTime || '');
+
+    // A prévia vem de texto digitado pelo cliente: escapa, senão um "<" na
+    // mensagem quebra a lista (ou pior).
+    const previaSegura = escapeHtml(previa);
 
     const itemHtml = `
-      <div class="chat-item ${isActive}" onclick="loadClient('${client.id}')">
+      <div class="chat-item ${isActive} ${naoLidas ? 'tem-nao-lidas' : ''}" onclick="loadClient('${client.id}')">
         <div class="chat-item-avatar">${client.avatar}</div>
         <div class="chat-item-content">
           <div class="chat-item-header">
-            <span class="chat-item-name">${client.name}</span>
-            <span class="chat-item-time" style="font-weight:700; color:var(--color-pine); background: var(--color-pine-ultra-light); padding: 2px 6px; border-radius:4px;"><i class="fa-regular fa-clock"></i> ${schedTime}</span>
+            <span class="chat-item-name">${escapeHtml(client.name)}</span>
+            <span class="chat-item-time">${hora}</span>
           </div>
-          <div style="font-size:12px; color:var(--color-text-secondary); margin-bottom: 8px;">
-            <span style="font-weight: 700; color: var(--color-coral); margin-right: 4px;">Fila: ${queueNumber}</span>
-          </div>
+          <div class="chat-item-preview">${previaSegura}</div>
           <div class="chat-item-footer">
             <span class="status-badge ${statusClass}">${statusText}</span>
-            <span style="font-size: 10px; font-weight:600; color:var(--color-pine); border: 1px solid var(--color-pine-ultra-light); padding: 2px 6px; border-radius: 4px; background: white;">${client.taxType}</span>
+            <span class="chat-item-tag">${escapeHtml(client.taxType || '')}</span>
+            ${naoLidas ? `<span class="chat-item-nao-lidas" title="${naoLidas} mensagem(ns) não lida(s)">${naoLidas > 99 ? '99+' : naoLidas}</span>` : ''}
           </div>
         </div>
       </div>
@@ -489,14 +1024,184 @@ function renderClientList(filter = "") {
 }
 
 // Load selected client in active pane
+// ---------------------------------------------------------------------------
+// "Digitando..." — o canal é por cliente, então trocar de conversa troca o canal.
+// ---------------------------------------------------------------------------
+let typingCanal = null;
+let typingTimer = null;
+
+function ligarDigitando(clientId) {
+  if (typingCanal) typingCanal.encerrar();
+  esconderDigitando();
+  typingCanal = OCChat.typing(clientId, {
+    onTyping: (from) => { if (from === 'client') mostrarDigitando(); }
+  });
+}
+
+function montarIndicadorDigitando() {
+  if (document.getElementById('oc-digitando')) return;
+  const historico = document.getElementById('chat-messages');
+  if (!historico) return;
+  const el = document.createElement('div');
+  el.id = 'oc-digitando';
+  el.className = 'chat-digitando';
+  el.innerHTML = '<span class="ponto"></span><span class="ponto"></span><span class="ponto"></span>'
+               + '<em>O cliente está digitando</em>';
+  historico.parentElement.insertBefore(el, historico.nextSibling);
+}
+
+function mostrarDigitando() {
+  montarIndicadorDigitando();
+  const el = document.getElementById('oc-digitando');
+  if (el) el.classList.add('ativo');
+  // Some sozinho: sem isso, quem fechasse a aba no meio de uma frase deixaria o
+  // indicador ligado para sempre.
+  clearTimeout(typingTimer);
+  typingTimer = setTimeout(esconderDigitando, 3000);
+}
+
+function esconderDigitando() {
+  const el = document.getElementById('oc-digitando');
+  if (el) el.classList.remove('ativo');
+}
+
+// ===========================================================================
+// TRIAGEM no dossiê — o que o cliente contou antes de entrar.
+//
+// O card é só leitura, de propósito: a triagem é a palavra do cliente, e o
+// painel não deve reescrevê-la. O que ele oferece é o botão de APLICAR — que
+// transforma a hipótese em diagnóstico e a lista de documentos em checklist,
+// com o contador decidindo. Aplicar sozinho seria deixar o cliente diagnosticar.
+// ===========================================================================
+function renderTriagemCard(client) {
+  const card = document.getElementById('triagem-card');
+  if (!card) return;
+  const t = client.triagem;
+
+  if (!t || t.status !== 'enviada') {
+    card.hidden = false;
+    card.className = 'triagem-card vazio';
+    card.innerHTML = t
+      ? '<i class="fa-solid fa-hourglass-half"></i> <span>O cliente começou a triagem, mas ainda não enviou.</span>'
+      : '<i class="fa-regular fa-circle-question"></i> <span>Sem triagem — este cliente entra sem contexto prévio.</span>';
+    return;
+  }
+
+  const assunto = OC_TRIAGEM.acharAssunto(t.assunto);
+  const pct = OC_TRIAGEM.completude(t);
+  const sugerido = OC_TRIAGEM.diagnosticoSugerido(t.assunto, t.respostas);
+
+  // Só as perguntas que ele respondeu. Listar "não informado" cinco vezes
+  // empurraria o relato — a parte que importa — para fora da tela.
+  let respostasHtml = '';
+  if (assunto) {
+    assunto.perguntas.forEach(p => {
+      const v = t.respostas && t.respostas[p.id];
+      if (v === undefined || v === null || String(v).trim() === '') return;
+      respostasHtml += `<div class="triagem-card-resp"><span>${p.label}</span><strong>${escapeHtml(String(v))}</strong></div>`;
+    });
+  }
+
+  card.hidden = false;
+  card.className = 'triagem-card';
+  card.innerHTML = `
+    <div class="triagem-card-topo">
+      <i class="fa-solid ${assunto ? assunto.icone : 'fa-clipboard-question'}"></i>
+      <div>
+        <span class="triagem-card-rotulo">O cliente contou antes de entrar</span>
+        <strong>${assunto ? escapeHtml(assunto.titulo) : 'Assunto não informado'}</strong>
+      </div>
+      <span class="triagem-card-pct" title="Quanto da triagem ele preencheu">${pct}%</span>
+    </div>
+    ${t.descricao ? `<blockquote class="triagem-card-relato">${escapeHtml(t.descricao)}</blockquote>` : ''}
+    ${respostasHtml ? `<div class="triagem-card-respostas">${respostasHtml}</div>` : ''}
+    ${sugerido ? `
+      <div class="triagem-card-sugestao">
+        <div>
+          <span class="triagem-card-rotulo">Hipótese pela triagem — confirme antes de usar</span>
+          <strong>${escapeHtml(sugerido)}</strong>
+        </div>
+        <button class="btn-doc-action" id="btn-aplicar-triagem">
+          <i class="fa-solid fa-wand-magic-sparkles"></i> Aplicar ao dossiê
+        </button>
+      </div>` : ''}
+  `;
+
+  const btn = document.getElementById('btn-aplicar-triagem');
+  if (btn) btn.addEventListener('click', () => aplicarTriagem(client.id));
+}
+
+function escapeHtml(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, c =>
+    ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+// Preenche diagnóstico + checklist a partir da triagem. Os documentos que o
+// cliente já anexou entram JÁ MARCADOS — pedir de novo o que ele mandou é o
+// tipo de coisa que faz o cliente achar que ninguém leu.
+async function aplicarTriagem(clientId) {
+  const client = clientsData[clientId];
+  const t = client && client.triagem;
+  if (!t || !t.assunto) return;
+
+  const btn = document.getElementById('btn-aplicar-triagem');
+  if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Aplicando...'; }
+
+  const diagnosis = OC_TRIAGEM.diagnosticoSugerido(t.assunto, t.respostas);
+  const checklist = OC_TRIAGEM.checklistDoAssunto(t.assunto);
+  try {
+    const res = await fetch(API_BASE + '/api/documentos?clientId=' + encodeURIComponent(clientId));
+    const docs = await res.json();
+    (docs || []).forEach(d => {
+      if (d.checklistItem && checklist[d.checklistItem] !== undefined) checklist[d.checklistItem] = true;
+    });
+
+    const r2 = await fetch(API_BASE + '/api/triagem/aplicar', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ clientId, diagnosis, checklist })
+    });
+    if (!r2.ok) throw new Error('resposta ' + r2.status);
+    clientsData[clientId] = await r2.json();
+
+    if (activeClientId === clientId) {
+      document.getElementById('prontuario-diagnostico').value = diagnosis || '';
+      updateProntuarioChecklist();
+      renderTriagemCard(clientsData[clientId]);
+    }
+    showToast('Dossiê preenchido a partir da triagem. Confira o diagnóstico.');
+  } catch (e) {
+    console.error('Falha ao aplicar a triagem:', e);
+    showToast('Não consegui aplicar a triagem. Tente de novo.');
+    if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles"></i> Aplicar ao dossiê'; }
+  }
+}
+
 function loadClient(clientId) {
   activeClientId = clientId;
   const client = clientsData[clientId];
 
-  resetChatTimer();
+  // Atualiza botão de bloqueio
+  const lockBtn = document.getElementById('btn-toggle-lock');
+  if (lockBtn) {
+    if (client.status === 'locked') {
+      lockBtn.innerHTML = '<i class="fa-solid fa-lock-open"></i> Desbloquear Chat';
+      lockBtn.style.backgroundColor = 'var(--color-bg)';
+    } else {
+      lockBtn.innerHTML = '<i class="fa-solid fa-lock"></i> Bloquear Chat';
+      lockBtn.style.backgroundColor = '';
+    }
+  }
 
-  if (client.status === "done") {
-    disableChatInput();
+  // 1. Marcar aba lateral ativa
+  document.querySelectorAll(".chat-item").forEach(item => item.classList.remove("active"));
+
+  ligarDigitando(clientId);
+  resetChatTimer();
+  atualizarContextoCopilot(client);
+
+  if (client.status === "done" || client.status === "locked") {
+    disableChatInput(client.status);
   } else {
     enableChatInput();
     // Auto-start timer
@@ -507,15 +1212,32 @@ function loadClient(clientId) {
     if(btnStop) btnStop.style.display = "block";
   }
 
-  document.querySelectorAll(".chat-item").forEach(item => item.classList.remove("active"));
   
   // Update header UI
   document.getElementById("active-client-avatar").textContent = client.avatar;
   document.getElementById("active-client-name").textContent = client.name;
-  document.getElementById("active-client-tax-type").textContent = client.taxType;
+  document.getElementById("active-client-tax-type").textContent = `CPF: ${client.cpf || 'Não informado'}`;
+  
+  const tagSelect = document.getElementById("active-client-tag-select");
+  if (tagSelect) {
+    let found = false;
+    for (let i = 0; i < tagSelect.options.length; i++) {
+      if (tagSelect.options[i].text === `Tag: ${client.taxType}`) {
+        tagSelect.selectedIndex = i;
+        found = true;
+        break;
+      }
+    }
+    if (!found && client.taxType) {
+      const newOpt = new Option(`Tag: ${client.taxType}`, `Tag: ${client.taxType}`, true, true);
+      tagSelect.add(newOpt);
+    }
+  }
   document.getElementById("prontuario-honorarios").value = client.honorarios;
 
   renderMessages();
+  marcarConversaLida();
+  renderTriagemCard(client);
 
   // Populate prontuário fields
   document.getElementById("prontuario-diagnostico").value = client.diagnosis;
@@ -539,13 +1261,90 @@ function loadClient(clientId) {
 
   updateProntuarioChecklist();
   document.getElementById("prontuario-tratamento").value = client.treatment;
+
+  renderClientDocs(clientId);
+}
+
+// Lista os documentos enviados pelo cliente, com botão "Ler com IA".
+async function renderClientDocs(clientId) {
+  const box = document.getElementById("prontuario-documentos");
+  if (!box) return;
+  box.innerHTML = '<span style="font-size:12px;color:var(--color-text-secondary);">Carregando...</span>';
+  try {
+    const res = await fetch(API_BASE + '/api/documentos?clientId=' + encodeURIComponent(clientId));
+    const docs = await res.json();
+    if (!docs.length) {
+      box.innerHTML = '<span style="font-size:12px;color:var(--color-text-secondary);">Nenhum documento enviado.</span>';
+      return;
+    }
+    box.innerHTML = '';
+    docs.forEach(d => {
+      const icon = (d.mime || '').startsWith('image/') ? 'fa-file-image' : 'fa-file-pdf';
+      const card = document.createElement('div');
+      card.style.cssText = 'border:1px solid var(--color-border);border-radius:8px;padding:10px 12px;';
+      const aiHtml = d.ai
+        ? `<div style="margin-top:8px;font-size:12px;background:var(--color-pine-ultra-light,#f0f4f2);border-radius:6px;padding:8px;">
+             <div><strong>${d.ai.tipo || 'Documento'}</strong></div>
+             <div style="color:var(--color-text-secondary);">${d.ai.resumo || ''}</div>
+             ${d.ai.diagnostico ? `<div style="margin-top:4px;"><strong>Diagnóstico:</strong> ${d.ai.diagnostico}</div>` : ''}
+             ${d.ai.dados ? `<div style="margin-top:4px;color:var(--color-text-secondary);">${d.ai.dados}</div>` : ''}
+           </div>`
+        : '';
+      card.innerHTML = `
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
+          <a href="${d.url}" target="_blank" style="display:flex;align-items:center;gap:8px;color:var(--color-pine);font-size:13px;text-decoration:none;">
+            <i class="fa-solid ${icon}"></i> ${d.fileName}
+          </a>
+          <button class="btn-utility" style="font-size:11px;white-space:nowrap;" onclick="analisarDocumentoIA(${d.id}, this)">
+            <i class="fa-solid fa-wand-magic-sparkles"></i> Ler com IA
+          </button>
+        </div>
+        <div class="doc-ai-result">${aiHtml}</div>
+      `;
+      box.appendChild(card);
+    });
+  } catch (e) {
+    box.innerHTML = '<span style="font-size:12px;color:var(--color-coral);">Erro ao carregar documentos.</span>';
+  }
+}
+
+async function analisarDocumentoIA(docId, btn) {
+  const original = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Lendo...';
+  try {
+    const res = await fetch(API_BASE + `/api/documentos/${docId}/analisar`, { method: 'POST' });
+    if (res.status === 503) { showToast("IA não configurada (.env)."); return; }
+    if (!res.ok) { showToast("Não consegui ler o documento."); return; }
+    const data = await res.json();
+    const ai = data.ai || {};
+    const result = btn.closest('div').parentElement.querySelector('.doc-ai-result');
+    if (result) {
+      result.innerHTML = `
+        <div style="margin-top:8px;font-size:12px;background:var(--color-pine-ultra-light,#f0f4f2);border-radius:6px;padding:8px;">
+          <div><strong>${ai.tipo || 'Documento'}</strong></div>
+          <div style="color:var(--color-text-secondary);">${ai.resumo || ''}</div>
+          ${ai.diagnostico ? `<div style="margin-top:4px;"><strong>Diagnóstico:</strong> ${ai.diagnostico}</div>` : ''}
+          ${ai.dados ? `<div style="margin-top:4px;color:var(--color-text-secondary);">${ai.dados}</div>` : ''}
+        </div>`;
+    }
+    showToast("Documento analisado pela IA.");
+  } catch (e) {
+    showToast("Falha de conexão com a IA.");
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = original;
+  }
 }
 
 // Render messages
 function renderMessages() {
   const container = document.getElementById("chat-messages");
+  // Se o contador subiu para reler algo, redesenhar não pode jogá-lo lá pra baixo.
+  const colado = container.scrollHeight - container.scrollTop - container.clientHeight < 80;
   container.innerHTML = "";
-  
+  let ultimoDia = null;
+
   const client = clientsData[activeClientId];
   client.messages.forEach(msg => {
     let bubbleClass = "received";
@@ -608,42 +1407,93 @@ function renderMessages() {
           <p style="font-size: 13px; font-weight: 600; color: var(--color-pine); margin-bottom: 6px">${msg.diagnosis}</p>
           <p style="font-size: 12px; color: var(--color-text-primary); margin-bottom: 12px">Documento oficial de prontuário e orientações de pendência gerado pelo profissional responsável.</p>
           <div style="display: flex; gap: 8px;">
-            <button class="btn-doc-action" onclick="openModal('modal-receita-overlay')"><i class="fa-solid fa-print"></i> Visualizar/Imprimir</button>
-            <button class="btn-doc-action" onclick="showToast('Relatório baixado em formato PDF!')"><i class="fa-solid fa-file-pdf"></i> Baixar PDF</button>
+            <button class="btn-doc-action" onclick="abrirRelatorio()"><i class="fa-solid fa-file-lines"></i> Abrir Relatório do Cliente</button>
           </div>
         </div>
       `;
     }
 
+    // Separador de dia: só quando a data vira.
+    const chaveDia = OCTempo.diaChave(msg);
+    if (chaveDia && chaveDia !== ultimoDia) {
+      ultimoDia = chaveDia;
+      container.insertAdjacentHTML("beforeend",
+        `<div class="chat-dia"><span>${OCTempo.diaLabel(OCTempo.data(msg))}</span></div>`);
+    }
+
+    let extra = "";
+    if (msg._status === "pendente")    { bubbleClass += " pendente"; extra = ' <i class="fa-regular fa-clock"></i>'; }
+    else if (msg._status === "falhou") { bubbleClass += " falhou"; }
+    else if (msg.sender === "agent")   { extra = msg.readAt ? ' <i class="fa-solid fa-check-double lida"></i>' : ' <i class="fa-solid fa-check"></i>'; }
+
+    const rodape = msg._status === "falhou"
+      ? `<button type="button" class="chat-retry" onclick="reenviarMensagem('${msg.id}')"><i class="fa-solid fa-rotate-right"></i> Não enviou — clique para tentar de novo</button>`
+      : `<div class="message-meta">${OCTempo.hora(msg)}${extra}</div>`;
+
     const itemHtml = `
-      <div class="message-bubble ${bubbleClass}">
+      <div class="message-bubble ${bubbleClass}" data-msg-id="${msg.id || ''}">
         ${messageBody}
-        <div class="message-meta">${msg.time}</div>
+        ${rodape}
       </div>
     `;
     container.insertAdjacentHTML("beforeend", itemHtml);
   });
-  
-  container.scrollTop = container.scrollHeight;
+
+  if (colado) container.scrollTop = container.scrollHeight;
+}
+
+// Reenvia uma mensagem que falhou (o botão da bolha vermelha).
+function reenviarMensagem(msgId) {
+  const client = clientsData[activeClientId];
+  if (!client) return;
+  const msg = client.messages.find(m => m.id === msgId);
+  if (msg) postMessageToBackend(msg);
+}
+
+// Marca como lidas as mensagens do cliente aberto — mas só se o chat estiver
+// mesmo à vista: "lido" tem que significar lido.
+function marcarConversaLida() {
+  const painel = document.getElementById('section-atendimento');
+  if (!activeClientId || document.hidden) return;
+  if (!painel || !painel.classList.contains('active')) return;
+  OCChat.marcarLidas(activeClientId);
 }
 
 // API Post message trigger
+// A bolha entra na conversa ANTES da ida ao servidor. Se der erro, ela fica lá
+// marcada em vermelho com o botão de reenviar — nunca some sem avisar.
 async function postMessageToBackend(message) {
+  // O contador pode trocar de cliente no meio da requisição; a mensagem tem que
+  // pousar na conversa em que foi escrita, não na que estiver aberta ao voltar.
+  const clientId = activeClientId;
+  const client = clientsData[clientId];
+  if (!client) return;
+
+  if (!message.id) message.id = 'msg_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
+  if (!message.createdAt) message.createdAt = new Date().toISOString();
+
+  if (!client.messages.some(m => m.id === message.id)) client.messages.push(message);
+  message._status = 'pendente';
+  if (activeClientId === clientId) renderMessages();
+
   try {
     const res = await fetch(API_BASE + '/api/messages', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ clientId: activeClientId, message: message })
+      body: JSON.stringify({ clientId: clientId, message: message })
     });
-    const updatedClient = await res.json();
-    clientsData[activeClientId] = updatedClient;
-    
-    renderMessages();
-    renderClientList();
-    updateDashboardData();
+    if (!res.ok) throw new Error('resposta ' + res.status);
+    // A resposta é o cliente recarregado do banco — já sem os _status locais.
+    clientsData[clientId] = await res.json();
   } catch (e) {
-    showToast("Erro ao sincronizar mensagem com servidor.");
+    console.error('Falha ao enviar mensagem:', e);
+    message._status = 'falhou';
+    showToast("Não consegui enviar. A mensagem ficou no chat para tentar de novo.");
   }
+
+  if (activeClientId === clientId) renderMessages();
+  renderClientList();
+  updateDashboardData();
 }
 
 // Send normal message
@@ -903,76 +1753,225 @@ async function toggleChecklistDocument(docName, checkbox) {
   }
 }
 
-// Generate Memed-Style Recipe / Prontuário modal
-async function generatePrescription() {
-  const client = clientsData[activeClientId];
-  const diagnosis = document.getElementById("prontuario-diagnostico").value;
-  const honorarios = document.getElementById("prontuario-honorarios").value;
-  const treatment = document.getElementById("prontuario-tratamento").value;
+// IA sugere Diagnóstico Fiscal + Tratamento a partir da conversa do cliente.
+async function sugerirProntuarioIA() {
+  const btn = document.getElementById("btn-sugerir-ia");
+  const original = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Analisando...';
 
-  client.diagnosis = diagnosis;
-  client.honorarios = parseInt(honorarios);
-  client.treatment = treatment;
-
-  await saveProntuarioChanges();
-
-  document.getElementById("receita-patient-name").textContent = client.name;
-  document.getElementById("receita-patient-cpf").textContent = client.cpf;
-  document.getElementById("receita-val-diagnostico").textContent = diagnosis;
-
-  const now = new Date();
-  document.getElementById("receita-meta-date").textContent = `${now.getDate().toString().padStart(2, '0')}/${(now.getMonth() + 1).toString().padStart(2, '0')}/${now.getFullYear()}`;
-
-  const evidencesContainer = document.getElementById("receita-val-evidencias");
-  evidencesContainer.innerHTML = "";
-  
-  const selectedEvidences = client.evidences.filter(e => e.selected);
-  if (selectedEvidences.length === 0) {
-    evidencesContainer.insertAdjacentHTML("beforeend", `<li class="receita-list-item">Nenhuma evidência fiscal específica adicionada.</li>`);
-  } else {
-    selectedEvidences.forEach(e => {
-      evidencesContainer.insertAdjacentHTML("beforeend", `<li class="receita-list-item">${e.text}</li>`);
+  try {
+    const res = await fetch(API_BASE + '/api/copilot', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ clientId: activeClientId, mode: 'diagnostico' })
     });
-  }
 
-  const treatmentContainer = document.getElementById("receita-val-tratamento");
-  treatmentContainer.innerHTML = "";
-  
-  const treatmentLines = treatment.split("\n");
-  treatmentLines.forEach(line => {
-    if (line.trim()) {
-      treatmentContainer.insertAdjacentHTML("beforeend", `<li class="receita-list-item">${line}</li>`);
+    if (res.status === 503) {
+      showToast("IA não configurada. Adicione OPENROUTER_API_KEY no .env.");
+      return;
     }
-  });
+    if (!res.ok) { showToast("Não consegui gerar a sugestão."); return; }
 
-  openModal("modal-receita-overlay");
+    const data = await res.json();
+
+    // Tratamento (textarea livre)
+    if (data.treatment) document.getElementById("prontuario-tratamento").value = data.treatment;
+
+    // Diagnóstico (select): casa com uma opção existente ou cria uma temporária
+    if (data.diagnosis) {
+      const sel = document.getElementById("prontuario-diagnostico");
+      let opt = [...sel.options].find(o => o.value.toLowerCase().includes(data.diagnosis.toLowerCase().slice(0, 15)));
+      if (!opt) {
+        opt = new Option(`IA: ${data.diagnosis}`, data.diagnosis);
+        sel.add(opt);
+      }
+      sel.value = opt.value;
+      sel.dispatchEvent(new Event('change'));
+    }
+
+    showToast("Sugestão da IA aplicada. Revise antes de gerar a receita.");
+  } catch (e) {
+    showToast("Falha de conexão com a IA.");
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = original;
+  }
 }
 
-// Share Recipe directly in chat
-async function sharePrescriptionInChat() {
-  const client = clientsData[activeClientId];
-  const now = new Date();
-  const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+// Generate Memed-Style Recipe / Prontuário modal
+// NPS real: média das avaliações que os clientes deram após receber o relatório.
+// Antes este KPI era um número fixo ("9.8 / 10") escrito no HTML.
+async function carregarNPS() {
+  const valor = document.getElementById("kpi-nps");
+  const detalhe = document.getElementById("kpi-nps-detalhe");
+  if (!valor) return;
+  try {
+    const { media, total } = await (await fetch(API_BASE + '/api/avaliacoes/resumo')).json();
+    if (!total) {
+      valor.textContent = "—";
+      detalhe.innerHTML = '<i class="fa-solid fa-heart"></i> Sem avaliações ainda';
+      return;
+    }
+    valor.textContent = media.toFixed(1) + " / 5";
+    detalhe.innerHTML = `<i class="fa-solid fa-heart"></i> ${total} avaliaç${total === 1 ? 'ão' : 'ões'} de clientes`;
+  } catch (e) {
+    valor.textContent = "—";
+  }
+}
 
-  await postMessageToBackend({
-    sender: "agent",
-    text: `Compartilhado: Receita Fiscal de Regularização`,
-    time: timeStr,
-    type: "prescription-card",
-    diagnosis: client.diagnosis
-  });
+// ===========================================================================
+// RELATÓRIO DO CLIENTE — a IA preenche, o contador revisa, vira PDF branded e
+// é entregue ao cliente (tabela `relatorios` + card no chat + Meus Documentos).
+// ===========================================================================
+let PERFIL_PAINEL = null; // {nome, crc, especialidade} do contador, para assinar
 
-  // Mark appointment as done
-  await fetch(API_BASE + '/api/appointments/done', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ clientRef: client.id })
-  });
+async function carregarPerfilPainel() {
+  if (PERFIL_PAINEL) return PERFIL_PAINEL;
+  try {
+    const cfg = await (await fetch(API_BASE + '/api/config')).json();
+    // A chave salva por "Meu Perfil" é 'perfil_contador' com campos {name, crc, ...}
+    // (ver saveProfileData) — este trecho lia 'contador_perfil'/'nome', que não
+    // existem, então o relatório nunca pegava o nome/CRC de verdade do contador.
+    PERFIL_PAINEL = configObject(cfg.perfil_contador, {});
+  } catch (e) { PERFIL_PAINEL = {}; }
+  return PERFIL_PAINEL;
+}
 
-  closeModal("modal-receita-overlay");
-  await refreshAllData();
-  loadClient(activeClientId);
-  showToast("Receita fiscal compartilhada no chat.");
+// Lê os campos do editor e devolve o objeto do relatório (o mesmo que vira PDF).
+function relatorioObjAtual() {
+  const client = clientsData[activeClientId] || {};
+  return {
+    id: 'previa',
+    clientRef: activeClientId,
+    clienteNome: client.name || '',
+    clienteCpf: client.cpf || '',
+    titulo: document.getElementById("rel-titulo").value.trim(),
+    problema: document.getElementById("rel-problema").value.trim(),
+    solucao: document.getElementById("rel-solucao").value.trim(),
+    oqueFeito: document.getElementById("rel-oquefeito").value,
+    comoFeito: document.getElementById("rel-comofeito").value,
+    contadorNome: (PERFIL_PAINEL && PERFIL_PAINEL.name) || 'Contador',
+    contadorCrc: (PERFIL_PAINEL && PERFIL_PAINEL.crc) || '',
+    contadorLogo: (PERFIL_PAINEL && PERFIL_PAINEL.logoDataUrl) || '',
+    contadorAssinatura: (PERFIL_PAINEL && PERFIL_PAINEL.assinaturaDataUrl) || '',
+    createdAt: new Date().toISOString()
+  };
+}
+
+function atualizarPreviaRelatorio() {
+  const client = clientsData[activeClientId] || {};
+  const inner = document.getElementById("rel-previa");
+  const wrap = document.getElementById("rel-previa-wrap");
+  inner.innerHTML = OCRelatorio.montarHTML(relatorioObjAtual(), client);
+  const doc = inner.firstElementChild;
+  if (!doc) return;
+  // Largura 0 acontece quando o modal ainda não tem layout; um palpite razoável
+  // evita a prévia sair em escala 0 (invisível) até a correção chegar.
+  const escala = Math.min(1, (wrap.clientWidth || 440) / 720);
+  doc.style.transformOrigin = "top left";
+  doc.style.transform = "scale(" + escala + ")";
+  inner.style.height = (doc.offsetHeight * escala) + "px";
+}
+
+async function abrirRelatorio() {
+  if (!activeClientId) { showToast("Abra um atendimento primeiro."); return; }
+  await carregarPerfilPainel();
+  const client = clientsData[activeClientId] || {};
+  // Semente: título do diagnóstico se o campo estiver vazio.
+  const tit = document.getElementById("rel-titulo");
+  if (!tit.value && client.diagnosis) tit.value = client.diagnosis;
+  openModal("modal-relatorio-overlay");
+  // Desenha já e corrige a escala quando o modal ganha layout. Só com rAF a
+  // prévia ficaria vazia se a aba estivesse em segundo plano (rAF não dispara).
+  atualizarPreviaRelatorio();
+  requestAnimationFrame(() => requestAnimationFrame(atualizarPreviaRelatorio));
+  setTimeout(atualizarPreviaRelatorio, 150);
+}
+
+async function preencherRelatorioComIA() {
+  const btn = document.getElementById("btn-rel-ia");
+  const original = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> A AIA está lendo a conversa...';
+  try {
+    const res = await fetch(API_BASE + '/api/copilot', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ clientId: activeClientId, mode: 'relatorio' })
+    });
+    if (res.status === 503) { showToast("IA não configurada."); return; }
+    if (!res.ok) { showToast("Não consegui gerar o relatório."); return; }
+    const d = await res.json();
+    if (d.titulo) document.getElementById("rel-titulo").value = d.titulo;
+    if (d.problema) document.getElementById("rel-problema").value = d.problema;
+    if (d.solucao) document.getElementById("rel-solucao").value = d.solucao;
+    if (d.oqueFeito) document.getElementById("rel-oquefeito").value = d.oqueFeito;
+    if (d.comoFeito) document.getElementById("rel-comofeito").value = d.comoFeito;
+    atualizarPreviaRelatorio();
+    showToast("Rascunho da AIA pronto. Revise antes de enviar.");
+  } catch (e) {
+    showToast("Falha de conexão com a IA.");
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = original;
+  }
+}
+
+function baixarRelatorioAtual() {
+  const client = clientsData[activeClientId] || {};
+  OCRelatorio.baixarPDF(relatorioObjAtual(), client);
+}
+
+async function gerarEnviarRelatorio() {
+  const rel = relatorioObjAtual();
+  if (!rel.titulo || !rel.problema) {
+    showToast("Preencha ao menos o título e o que aconteceu.");
+    return;
+  }
+  const btn = document.getElementById("btn-rel-enviar");
+  const original = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Enviando...';
+  try {
+    const res = await fetch(API_BASE + '/api/relatorios', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ clientId: activeClientId, ...rel })
+    });
+    if (!res.ok) throw new Error('resposta ' + res.status);
+    const salvo = await res.json();
+
+    // Card no chat avisando o cliente que o documento está pronto.
+    const now = new Date();
+    await postMessageToBackend({
+      sender: "agent",
+      text: `📄 Seu relatório de atendimento está pronto: "${rel.titulo}". Baixe em PDF na aba Meus Documentos.`,
+      time: `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`,
+      type: "relatorio-card",
+      relatorioId: salvo.id
+    });
+    // Encerra o atendimento — o relatório é o fecho do serviço.
+    await fetch(API_BASE + '/api/appointments/done', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ clientRef: activeClientId })
+    }).catch(() => {});
+    await atualizarStatusCliente(activeClientId, 'done').catch(() => {});
+    await fetch(API_BASE + '/api/triagem/arquivar', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ clientId: activeClientId })
+    }).catch(() => {});
+
+    closeModal("modal-relatorio-overlay");
+    showToast("Relatório enviado e atendimento encerrado.");
+    await refreshAllData();
+    loadClient(activeClientId);
+  } catch (e) {
+    showToast("Não consegui enviar o relatório.");
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = original;
+  }
 }
 
 // Modal actions helpers
@@ -1081,33 +2080,150 @@ async function actionDeleteNotification(event, notiId) {
 }
 
 // Appointments Scheduling Logic
+function normalizeAppointmentDate(value) {
+  if (!value) return '';
+  if (value === 'Hoje') return OCTempo.hojeISO();
+  if (value === 'Amanhã') return OCTempo.amanhaISO();
+  return value;
+}
+
+function dataLocalFromISO(iso) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso || '');
+  if (!m) return null;
+  return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+}
+
+function isoLocal(date) {
+  const p = n => String(n).padStart(2, '0');
+  return date.getFullYear() + '-' + p(date.getMonth() + 1) + '-' + p(date.getDate());
+}
+
+function nomeMesAno(date) {
+  const texto = date.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+  return texto.charAt(0).toUpperCase() + texto.slice(1);
+}
+
+function nomeDiaCompleto(iso) {
+  const d = dataLocalFromISO(iso);
+  if (!d) return OCTempo.rotuloDia(iso);
+  const texto = d.toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' });
+  return texto.charAt(0).toUpperCase() + texto.slice(1);
+}
+
+function classeTipoAgendamento(taxType) {
+  const t = (taxType || '').toLowerCase();
+  if (t.includes('ganho')) return 'type-ganho';
+  if (t.includes('simples') || t.includes('mei')) return 'type-simples';
+  return 'type-imposto';
+}
+
+function classeStatusAgendamento(status) {
+  if (status === 'done') return 'success';
+  if (status === 'active') return 'status-active';
+  return 'pending';
+}
+
+function clientRefFromName(name) {
+  const alvo = (name || '').trim().toLowerCase();
+  const found = Object.entries(clientsData || {}).find(([, c]) => (c.name || '').trim().toLowerCase() === alvo);
+  if (found) return found[0];
+  return alvo
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
+
+function renderCalendarioAgendamentos() {
+  const grid = document.getElementById("calendar-days-grid-container");
+  const title = document.getElementById("calendar-title");
+  if (!grid) return;
+
+  const base = new Date(calendarMonthDate.getFullYear(), calendarMonthDate.getMonth(), 1);
+  if (title) title.textContent = nomeMesAno(base);
+
+  const inicio = new Date(base);
+  inicio.setDate(1 - inicio.getDay());
+  const hojeIso = OCTempo.hojeISO();
+  const mesAtual = base.getMonth();
+
+  const porDia = new Map();
+  (appointments || []).forEach(app => {
+    const iso = normalizeAppointmentDate(app.date);
+    if (!iso) return;
+    if (!porDia.has(iso)) porDia.set(iso, []);
+    porDia.get(iso).push(app);
+  });
+
+  grid.innerHTML = "";
+  for (let i = 0; i < 42; i++) {
+    const dia = new Date(inicio);
+    dia.setDate(inicio.getDate() + i);
+    const iso = isoLocal(dia);
+    const eventos = (porDia.get(iso) || []).sort((a, b) => minutosDoHorario(a.time) - minutosDoHorario(b.time));
+    const cell = document.createElement("div");
+    cell.className = "calendar-day-cell";
+    if (dia.getMonth() !== mesAtual) cell.classList.add("other-month");
+    if (iso === hojeIso) cell.classList.add("today");
+
+    const visiveis = eventos.slice(0, 3).map(app => {
+      const temChat = !!app.clientRef && !!clientsData[app.clientRef];
+      const attrs = temChat ? ` onclick="actionTimelineChat('${app.clientRef}')"` : "";
+      const statusIcon = app.status === "done" ? '<i class="fa-solid fa-check"></i> ' : '';
+      return `<div class="calendar-event ${classeTipoAgendamento(app.taxType)}" title="${escapeHtml(app.clientName || '')} · ${escapeHtml(app.taxType || '')}"${attrs}>${statusIcon}${escapeHtml(app.time || '--:--')} - ${escapeHtml(app.clientName || 'Cliente')}</div>`;
+    }).join("");
+    const excedente = eventos.length > 3 ? `<span class="calendar-more-events">+${eventos.length - 3} atendimento${eventos.length - 3 === 1 ? '' : 's'}</span>` : "";
+
+    cell.innerHTML = `
+      <span class="calendar-day-number">${dia.getDate()}</span>
+      <div class="calendar-events-container">${visiveis}${excedente}</div>
+    `;
+    grid.appendChild(cell);
+  }
+}
+
 function renderAppointments() {
   const container = document.getElementById("appointments-cards-container");
+  const dayLabel = document.getElementById("appointments-day-label");
   if (!container) return;
   container.innerHTML = "";
 
   let filtered = appointments;
   if (currentScheduleFilter === "today") {
-    filtered = appointments.filter(a => a.date === "Hoje");
+    filtered = appointments.filter(a => normalizeAppointmentDate(a.date) === OCTempo.hojeISO());
+    if (dayLabel) dayLabel.textContent = nomeDiaCompleto(OCTempo.hojeISO());
   } else if (currentScheduleFilter === "upcoming") {
-    filtered = appointments.filter(a => a.date !== "Hoje" && a.status !== "done");
+    // "Próximos" é o que ainda vai acontecer: depois de hoje. Antes bastava não
+    // ser a palavra "Hoje", então agendamentos VENCIDOS entravam como próximos.
+    filtered = appointments.filter(a => normalizeAppointmentDate(a.date) > OCTempo.hojeISO() && a.status !== "done");
+    if (dayLabel) dayLabel.textContent = "Próximos atendimentos";
   } else if (currentScheduleFilter === "done") {
     filtered = appointments.filter(a => a.status === "done");
+    if (dayLabel) dayLabel.textContent = "Atendimentos concluídos";
+  } else if (dayLabel) {
+    dayLabel.textContent = "Todos os atendimentos";
   }
 
+  filtered = filtered.slice().sort((a, b) =>
+    normalizeAppointmentDate(a.date).localeCompare(normalizeAppointmentDate(b.date)) ||
+    minutosDoHorario(a.time) - minutosDoHorario(b.time)
+  );
+
   if (filtered.length === 0) {
-    container.innerHTML = `<p style="font-size:13px; color:var(--color-text-secondary); text-align:center; padding:30px 0;">Nenhum agendamento encontrado para este filtro.</p>`;
+    container.innerHTML = `<p style="font-size:13px; color:var(--color-text-secondary); text-align:center; padding:30px 0;">Nenhum atendimento nesta visão.</p>`;
     return;
   }
 
   filtered.forEach(app => {
     let actionBtnHtml = "";
-    if (app.status !== "done") {
+    const temChat = !!app.clientRef && !!clientsData[app.clientRef];
+    if (app.status !== "done" && temChat) {
       actionBtnHtml = `
         <button class="btn-icon-action primary" onclick="actionTimelineChat('${app.clientRef}')" title="Iniciar Atendimento">
           <i class="fa-solid fa-play"></i>
         </button>
       `;
+    } else if (app.status !== "done") {
+      actionBtnHtml = `<span style="font-size: 11px; color:var(--color-text-secondary); font-weight:600;">Sem chat</span>`;
     } else {
       actionBtnHtml = `<span style="font-size: 11px; color:#2ECC71; font-weight:600;"><i class="fa-solid fa-circle-check"></i> Finalizado</span>`;
     }
@@ -1115,12 +2231,13 @@ function renderAppointments() {
     const cardHtml = `
       <div class="appointment-card">
         <div class="appointment-card-info">
-          <h4>${app.clientName}</h4>
-          <p><i class="fa-solid fa-clock"></i> ${app.date} às ${app.time} · <strong>${app.taxType}</strong></p>
+          <h4>${escapeHtml(app.clientName || 'Cliente')}</h4>
+          <p><i class="fa-solid fa-clock"></i> ${OCTempo.rotuloDia(normalizeAppointmentDate(app.date))} às ${escapeHtml(app.time || '--:--')} · <strong>${escapeHtml(app.taxType || 'Atendimento')}</strong></p>
+          <span class="status-badge ${classeStatusAgendamento(app.status)}">${app.status === 'done' ? 'Concluído' : app.status === 'active' ? 'Em atendimento' : 'Agendado'}</span>
         </div>
         <div class="appointment-card-actions">
           ${actionBtnHtml}
-          <button class="btn-icon-action" onclick="actionDeleteAppointment(${app.id})" title="Cancelar Agendamento">
+          <button class="btn-icon-action" onclick="actionDeleteAppointment(${JSON.stringify(app.id)})" title="Cancelar Agendamento">
             <i class="fa-solid fa-trash-can"></i>
           </button>
         </div>
@@ -1136,23 +2253,18 @@ async function bookNewAppointment() {
   const dateVal = document.getElementById("book-date").value;
   const timeVal = document.getElementById("book-time").value;
 
-  const now = new Date();
-  const dateObj = new Date(dateVal + "T00:00:00");
-  let friendlyDate = dateVal;
-  
-  if (
-    dateObj.getDate() === now.getDate() &&
-    dateObj.getMonth() === now.getMonth() &&
-    dateObj.getFullYear() === now.getFullYear()
-  ) {
-    friendlyDate = "Hoje";
-  }
+  // Grava a data COMO ELA É. Antes, se a marcação fosse para hoje, o código
+  // trocava a data pela palavra "Hoje" antes de salvar — e aquele agendamento
+  // ficava eternamente "de hoje", em qualquer dia que se abrisse o painel.
+  // "Hoje"/"Amanhã" agora é só rótulo de tela (OCTempo.rotuloDia).
+  const rotulo = OCTempo.rotuloDia(dateVal);
 
   const appData = {
     clientName: name,
-    date: friendlyDate,
+    date: dateVal,
     time: timeVal,
     taxType: type,
+    clientRef: clientRefFromName(name),
     status: "pending"
   };
 
@@ -1163,7 +2275,7 @@ async function bookNewAppointment() {
       body: JSON.stringify(appData)
     });
 
-    await postNotificationToBackend(`Nova consulta agendada para ${name} (${friendlyDate} às ${timeVal}).`);
+    await postNotificationToBackend(`Nova consulta agendada para ${name} (${rotulo} às ${timeVal}).`);
     
     document.getElementById("book-client-name").value = "";
     document.getElementById("book-date").value = "";
@@ -1173,6 +2285,53 @@ async function bookNewAppointment() {
     showToast(`Consulta de ${name} agendada com sucesso.`);
   } catch (e) {
     showToast("Erro ao agendar consulta no servidor.");
+  }
+}
+
+function renderDisponibilidadeAgenda() {
+  const container = document.getElementById("availability-slots-container");
+  if (!container) return;
+  const ativos = new Set(agendaDisponibilidade || DEFAULT_AGENDA_SLOTS);
+  container.innerHTML = AGENDA_SLOT_OPTIONS.map(hora => `
+    <label class="availability-slot">
+      <span><i class="fa-regular fa-clock"></i> ${hora} - ${horaFimAtendimento(hora)}</span>
+      <input type="checkbox" value="${hora}" ${ativos.has(hora) ? 'checked' : ''}>
+    </label>
+  `).join("");
+}
+
+function horaFimAtendimento(hora) {
+  const min = minutosDoHorario(hora);
+  if (min >= 24 * 60) return hora;
+  const fim = min + 45;
+  return `${String(Math.floor(fim / 60)).padStart(2, '0')}:${String(fim % 60).padStart(2, '0')}`;
+}
+
+async function salvarDisponibilidadeAgenda() {
+  const checks = [...document.querySelectorAll('#availability-slots-container input[type="checkbox"]:checked')];
+  const status = document.getElementById("availability-status");
+  const selecionados = checks.map(c => c.value).sort((a, b) => minutosDoHorario(a) - minutosDoHorario(b));
+
+  if (!selecionados.length) {
+    showToast("Escolha pelo menos um horário disponível.");
+    if (status) status.textContent = "Selecione ao menos um horário.";
+    return;
+  }
+
+  try {
+    const res = await fetch(API_BASE + '/api/config', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ agenda_disponibilidade: selecionados })
+    });
+    if (!res.ok) throw new Error('config_save_failed');
+    agendaDisponibilidade = selecionados;
+    if (status) status.textContent = "Disponibilidade salva e pronta para cliente/site.";
+    showToast("Disponibilidade salva.");
+  } catch (e) {
+    console.error("Erro ao salvar disponibilidade:", e);
+    if (status) status.textContent = "Não consegui salvar agora.";
+    showToast("Erro ao salvar disponibilidade.");
   }
 }
 
@@ -1215,7 +2374,11 @@ function setupTimer() {
 
 function startChatTimer() {
   if (chatTimerInterval) clearInterval(chatTimerInterval);
-  document.getElementById("chat-timer-icon").classList.add("fa-beat-fade");
+  // O ícone animado saiu do widget na reforma do cronômetro; sem esta guarda o
+  // null aqui DERRUBAVA o loadClient inteiro — a conversa abria vazia, sem
+  // nenhuma mensagem, e sem erro visível no console.
+  const iconeTimer = document.getElementById("chat-timer-icon");
+  if (iconeTimer) iconeTimer.classList.add("fa-beat-fade");
   
   chatTimerInterval = setInterval(() => {
     currentChatSeconds++;
@@ -1227,7 +2390,8 @@ function startChatTimer() {
 function pauseChatTimer() {
   if (chatTimerInterval) clearInterval(chatTimerInterval);
   chatTimerInterval = null;
-  document.getElementById("chat-timer-icon").classList.remove("fa-beat-fade");
+  const iconeTimer = document.getElementById("chat-timer-icon");
+  if (iconeTimer) iconeTimer.classList.remove("fa-beat-fade");
 }
 
 function resetChatTimer() {
@@ -1243,30 +2407,93 @@ function resetChatTimer() {
   if(btnStop) btnStop.style.display = "none";
 }
 
+function broadcastChatStatus(clientId, status) {
+  if (!window.sb || !clientId) return;
+  if (window.OC_CONFIG?.TESTE_CONTADOR_SEM_LOGIN?.enabled && window.OC_ROLE === 'contador') return;
+  try {
+    const ch = window.sb.channel('oc-lock-' + clientId);
+    ch.send({ type: 'broadcast', event: 'lock_change', payload: { locked: status === 'locked' || status === 'done', status } });
+  } catch (e) {
+    console.warn('Não consegui avisar o cliente em tempo real:', e);
+  }
+}
+
+async function atualizarStatusCliente(clientId, status) {
+  const res = await fetch(API_BASE + '/api/clients/status', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ clientId, status })
+  });
+  if (!res.ok) throw new Error('status_update_failed');
+  const updated = await res.json();
+  if (updated && updated.id) clientsData[clientId] = { ...clientsData[clientId], ...updated };
+  else if (clientsData[clientId]) clientsData[clientId].status = status;
+  broadcastChatStatus(clientId, status);
+  return clientsData[clientId];
+}
+
+// Gatilho explícito pro Kanban de Acompanhamento — usado quando o atendimento
+// não se resolve na hora (precisa de uma declaração, parcelamento etc.). Não
+// encerra o chat, só marca que esse caso entrou na esteira de pós-atendimento.
+async function moverParaAcompanhamento() {
+  if (!activeClientId) return;
+  const clientId = activeClientId;
+  kanbanEtapas = { ...kanbanEtapas, [clientId]: 'pending' };
+  const res = await fetch(API_BASE + '/api/config', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ kanban_etapas: kanbanEtapas })
+  });
+  if (!res.ok) { showToast('Não foi possível encaminhar para o Acompanhamento.'); return; }
+  await postSystemMessageToChat("Caso encaminhado para o Acompanhamento — vai aparecer no quadro de pós-atendimento.");
+  renderKanban(); renderCRM();
+  showToast('Cliente encaminhado para o Acompanhamento.', 'success');
+}
+
+// Encerrar não move mais o cliente pro Kanban de Acompanhamento — isso é só
+// pra casos que precisam de ação contínua (ver moverParaAcompanhamento). Um
+// atendimento resolvido na hora vai direto pro histórico em Clientes.
 async function finishActiveChat() {
   if (!activeClientId) return;
+  const clientId = activeClientId;
   
   pauseChatTimer();
   disableChatInput();
   
   playSound('success');
   
-  // Inform the backend to mark it as done
-  clientsData[activeClientId].status = "done";
-  
-  // Post system message
-  await postSystemMessageToChat("Atendimento Encerrado. O chat foi bloqueado e movido para finalizados.");
-  
-  // Re-render UI
-  renderClientList(document.getElementById("search-input-tab")?.value || "");
+  try {
+    await Promise.all([
+      atualizarStatusCliente(clientId, 'done'),
+      fetch(API_BASE + '/api/appointments/done', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clientRef: clientId })
+      }),
+      fetch(API_BASE + '/api/triagem/arquivar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clientId })
+      })
+    ]);
+
+    await postSystemMessageToChat("Atendimento encerrado. O chat foi bloqueado e o caso entrou no histórico do cliente.");
+
+    await refreshAllData();
+    if (clientsData[clientId]) loadClient(clientId);
+    showToast("Atendimento encerrado e sincronizado com a área do cliente.", "success");
+  } catch (e) {
+    console.error('Falha ao encerrar atendimento:', e);
+    showToast("Não consegui encerrar tudo. Tente novamente.");
+    enableChatInput();
+  }
 }
 
-function disableChatInput() {
+function disableChatInput(status = "done") {
   const input = document.getElementById("message-input");
   const btnSend = document.getElementById("btn-send-message");
   if (input) {
     input.disabled = true;
-    input.placeholder = "Atendimento Encerrado. Chat bloqueado.";
+    input.placeholder = status === "locked" ? "Chat bloqueado para o cliente." : "Atendimento encerrado. Chat bloqueado.";
   }
   if (btnSend) btnSend.disabled = true;
 }
@@ -1288,7 +2515,9 @@ function updateTimerUI() {
   const elMin = document.getElementById("timer-minutes");
   const elSec = document.getElementById("timer-seconds");
   const container = document.getElementById("chat-timer-container");
-  const icon = document.getElementById("chat-timer-icon");
+  // O ícone com id saiu na reforma do widget; o objeto vazio deixa os
+  // icon.style.color abaixo inofensivos sem encher o código de ifs.
+  const icon = document.getElementById("chat-timer-icon") || { style: {} };
   
   if(elMin) elMin.textContent = min;
   if(elSec) elSec.textContent = sec;
@@ -1465,20 +2694,694 @@ function showToast(message, soundType = 'notification') {
   }, 3000);
 }
 
-// Client Dossier Logic
-function openDossier(name, doc, status) {
-  document.getElementById("dossier-name").textContent = name;
-  document.getElementById("dossier-doc").textContent = doc;
-  
-  const initials = name.split(" ").map(n => n[0]).join("").substring(0, 2).toUpperCase();
-  document.getElementById("dossier-avatar").textContent = initials;
-  
-  const statusSelect = document.getElementById("dossier-status-select");
-  if (statusSelect) {
-    statusSelect.value = status;
+// ============================================================================
+// CRM, esteira e dossiê — todos usam a mesma fonte: clientes, documentos,
+// relatórios e agendamentos já persistidos no Supabase.
+// ============================================================================
+const KANBAN_STAGES = [
+  ['pending', 'Pendente de início', '#E67E22'],
+  ['active', 'Em análise', '#3498DB'],
+  ['docs', 'Aguardando documentos', '#F1C40F'],
+  ['ready', 'Pronto para envio', '#9B59B6'],
+  ['done', 'Concluído', '#2ECC71'],
+  ['recorrencia', 'Recorrência', '#0A3121']
+];
+function statusLabel(status) {
+  return (KANBAN_STAGES.find(s => s[0] === status) || KANBAN_STAGES[0])[1];
+}
+function etapaDoCliente(client) {
+  const stage = kanbanEtapas[client.id] || client.status;
+  return KANBAN_STAGES.some(s => s[0] === stage) ? stage : 'active';
+}
+function initials(name) {
+  return String(name || '?').split(' ').filter(Boolean).map(n => n[0]).join('').slice(0, 2).toUpperCase();
+}
+function safe(v) { return escapeHtml(String(v == null ? '' : v)); }
+
+let crmFiltroFinalizados = 'todos';
+
+// Um cliente conta como "finalizado" dentro da janela escolhida se o último
+// atendimento encerrado (status done/locked) caiu nela — só existe uma data
+// por cliente (a mais recente), não um histórico de cada atendimento.
+function clienteFinalizadoNaJanela(c, filtro) {
+  if (filtro === 'todos') return true;
+  if (!['done', 'locked'].includes(c.status) || !c.ultimoFinalizadoEm) return false;
+  const finalizado = new Date(c.ultimoFinalizadoEm);
+  if (isNaN(finalizado)) return false;
+  const agora = new Date();
+  if (filtro === 'hoje') return finalizado.toDateString() === agora.toDateString();
+  if (filtro === 'semana') return finalizado >= startOfWeekLocal(agora) && finalizado < endOfWeekLocal(agora);
+  if (filtro === 'mes') return finalizado.getFullYear() === agora.getFullYear() && finalizado.getMonth() === agora.getMonth();
+  return true;
+}
+
+function renderCRM() {
+  const list = document.getElementById('crm-client-list');
+  const detail = document.getElementById('crm-client-detail');
+  if (!list || !detail) return;
+  const all = Object.values(clientsData);
+  const search = document.getElementById('crm-search');
+  const query = (search && search.value || '').trim().toLowerCase();
+  const filtered = all
+    .filter(c => [c.name, c.cpf, c.email, c.phone].some(v => String(v || '').toLowerCase().includes(query)))
+    .filter(c => clienteFinalizadoNaJanela(c, crmFiltroFinalizados))
+    .sort((a, b) => crmFiltroFinalizados === 'todos' ? 0 : new Date(b.ultimoFinalizadoEm || 0) - new Date(a.ultimoFinalizadoEm || 0));
+  const semResultadoMsg = crmFiltroFinalizados === 'todos' ? 'Nenhum cliente encontrado.' : 'Nenhum atendimento finalizado nesse período.';
+  if (!activeCrmClientId || !filtered.some(c => c.id === activeCrmClientId)) activeCrmClientId = filtered[0] && filtered[0].id;
+  list.innerHTML = filtered.length ? filtered.map(c => `
+    <button type="button" class="chat-item ${c.id === activeCrmClientId ? 'active' : ''}" data-crm-client="${safe(c.id)}" style="margin:0;border-radius:0;border-bottom:1px solid var(--color-border);width:100%;text-align:left;">
+      <div class="chat-item-avatar">${safe(c.avatar || initials(c.name))}</div><div style="flex:1;min-width:0"><h4>${safe(c.name)}</h4><p>${c.ultimoFinalizadoEm && crmFiltroFinalizados !== 'todos' ? 'Finalizado em ' + new Date(c.ultimoFinalizadoEm).toLocaleDateString('pt-BR') : safe(c.cpf || c.taxType || 'Sem documento')}</p></div>
+      <span class="status-badge" style="font-size:10px">${safe(statusLabel(etapaDoCliente(c)))}</span>
+    </button>`).join('') : `<p style="padding:24px;text-align:center;color:var(--color-text-secondary)">${semResultadoMsg}</p>`;
+  list.querySelectorAll('[data-crm-client]').forEach(btn => btn.addEventListener('click', () => {
+    activeCrmClientId = btn.dataset.crmClient; renderCRM();
+  }));
+  if (search && !search.dataset.bound) { search.dataset.bound = '1'; search.addEventListener('input', renderCRM); }
+  const filtroBar = document.getElementById('crm-filtro-finalizados');
+  if (filtroBar && !filtroBar.dataset.bound) {
+    filtroBar.dataset.bound = '1';
+    filtroBar.querySelectorAll('[data-crm-filtro]').forEach(btn => btn.addEventListener('click', () => {
+      crmFiltroFinalizados = btn.dataset.crmFiltro;
+      filtroBar.querySelectorAll('[data-crm-filtro]').forEach(b => b.classList.toggle('active', b === btn));
+      renderCRM();
+    }));
+  }
+  const c = clientsData[activeCrmClientId];
+  if (!c) { detail.innerHTML = `<p style="padding:32px;text-align:center;color:var(--color-text-secondary)">${semResultadoMsg}</p>`; return; }
+  const docsDone = Object.values(c.checklist || {}).filter(Boolean).length;
+  detail.innerHTML = `
+    <div style="padding:28px 32px;border-bottom:1px solid var(--color-border);display:flex;justify-content:space-between;gap:16px;align-items:center;flex-wrap:wrap">
+      <div style="display:flex;gap:16px;align-items:center"><div class="chat-item-avatar" style="width:60px;height:60px;font-size:22px">${safe(c.avatar || initials(c.name))}</div><div><h1 style="font-size:22px;color:var(--color-pine);margin:0">${safe(c.name)}</h1><p style="margin:4px 0;color:var(--color-text-secondary);font-size:13px">${safe(c.taxType || 'Atendimento contábil')} · ${safe(statusLabel(etapaDoCliente(c)))}${['done', 'locked'].includes(c.status) && c.ultimoFinalizadoEm ? ' · Finalizado em ' + new Date(c.ultimoFinalizadoEm).toLocaleDateString('pt-BR') : ''}</p><p style="margin:5px 0 0;font-size:12px;color:var(--color-text-secondary)">${safe(c.cpf || '')} ${c.email ? '· ' + safe(c.email) : ''}</p></div></div>
+      <button class="btn-utility primary" data-open-dossier="${safe(c.id)}"><i class="fa-solid fa-folder-open"></i> Abrir dossiê</button>
+    </div>
+    <div class="responsive-grid" style="padding:28px 32px;display:grid;grid-template-columns:1fr 1fr;gap:28px">
+      <div><h3 style="font-size:14px;color:var(--color-pine)">Resumo do caso</h3><p style="font-size:13px;color:var(--color-text-secondary);line-height:1.5">${safe(c.diagnosis || c.triagem?.descricao || 'Sem diagnóstico registrado ainda.')}</p><p style="font-size:12px;color:var(--color-text-secondary)">${c.messages.length} mensagens · ${docsDone} documento(s) confirmado(s)</p></div>
+      <div><h3 style="font-size:14px;color:var(--color-pine)">Próximo passo</h3><p style="font-size:13px;color:var(--color-text-secondary)">${safe(c.treatment || 'Abra o dossiê para registrar diagnóstico, arquivos e andamento.')}</p></div>
+    </div>
+    <div style="padding:0 32px 28px;">${htmlRecorrencia(c)}</div>`;
+  detail.querySelector('[data-open-dossier]').addEventListener('click', () => openDossier(c.id));
+  ligarRecorrencia(c);
+}
+
+async function recarregarClientes() {
+  const res = await fetch(API_BASE + '/api/clients');
+  clientsData = await res.json();
+}
+
+// Card "Acompanhamento recorrente" no CRM — cliente com parcelamento/obrigação
+// mensal que precisa de guia gerada todo mês. Sem certificado do Integra
+// Contador ainda, a geração é manual (ver Dashboard → Guias Mensais); aqui só
+// liga/desliga a recorrência e a cobrança automática no Asaas.
+function htmlRecorrencia(c) {
+  if (c.recorrente) {
+    return `
+      <div class="financeiro-card" style="border-left:3px solid var(--color-pine);">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;">
+          <div>
+            <h3 style="font-size:14px;color:var(--color-pine);margin-bottom:4px;"><i class="fa-solid fa-arrows-rotate"></i> Acompanhamento recorrente ativo</h3>
+            <p style="font-size:12px;color:var(--color-text-secondary);">${safe(c.recorrenteTipo || 'Mensal')} · vencimento todo dia ${safe(c.recorrenteDiaVenc || '—')} · ${formatBRL(c.honorarios || 0)}/mês</p>
+          </div>
+          <button class="btn-utility" data-rec-desativar style="color:var(--color-coral);font-size:12px;"><i class="fa-solid fa-ban"></i> Desativar</button>
+        </div>
+      </div>`;
+  }
+  return `
+    <div class="financeiro-card">
+      <h3 style="font-size:14px;color:var(--color-pine);margin-bottom:4px;"><i class="fa-solid fa-arrows-rotate"></i> Acompanhamento recorrente</h3>
+      <p style="font-size:12px;color:var(--color-text-secondary);margin-bottom:12px;">Para clientes com parcelamento ou obrigação mensal (ex.: guia todo mês). Ativa cobrança automática recorrente no Asaas.</p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;">
+        <div>
+          <label class="cfg-label" style="font-size:10px;">Tipo</label>
+          <select class="cfg-input" id="rec-tipo" style="font-size:12px;">
+            <option value="Parcelamento Receita">Parcelamento Receita</option>
+            <option value="MEI Mensal">MEI Mensal</option>
+            <option value="Outro">Outro</option>
+          </select>
+        </div>
+        <div>
+          <label class="cfg-label" style="font-size:10px;">Dia vencimento</label>
+          <input type="number" class="cfg-input" id="rec-dia" min="1" max="28" value="10" style="width:70px;font-size:12px;">
+        </div>
+        <div>
+          <label class="cfg-label" style="font-size:10px;">Valor mensal (R$)</label>
+          <input type="number" class="cfg-input" id="rec-valor" min="0" step="0.01" value="${(c.honorarios || 0)}" style="width:100px;font-size:12px;">
+        </div>
+        <button class="btn-utility primary" data-rec-ativar style="font-size:12px;"><i class="fa-solid fa-play"></i> Ativar</button>
+      </div>
+    </div>`;
+}
+
+function ligarRecorrencia(c) {
+  const btnAtivar = document.querySelector('[data-rec-ativar]');
+  if (btnAtivar) btnAtivar.addEventListener('click', async () => {
+    const tipo = document.getElementById('rec-tipo').value;
+    const diaVenc = document.getElementById('rec-dia').value;
+    const valor = document.getElementById('rec-valor').value;
+    btnAtivar.disabled = true; btnAtivar.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Ativando...';
+    try {
+      const res = await fetch(API_BASE + '/api/recorrencia', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clientId: c.id, ativar: true, tipo, diaVenc, valor })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        if (data.error === 'demo_action_not_available') showToast('Recorrência não funciona no modo demo — precisa de login real.');
+        else if (data.error === 'asaas_not_configured') showToast('Configure a chave do Asaas antes de ativar recorrência.');
+        else if (data.error === 'valor_invalido') showToast('Informe um valor mensal maior que zero.');
+        else showToast('Não foi possível ativar a recorrência.');
+        btnAtivar.disabled = false; btnAtivar.innerHTML = '<i class="fa-solid fa-play"></i> Ativar';
+        return;
+      }
+      showToast('Acompanhamento recorrente ativado.');
+      await recarregarClientes();
+      renderCRM();
+    } catch (_) {
+      showToast('Falha de conexão ao ativar recorrência.');
+      btnAtivar.disabled = false; btnAtivar.innerHTML = '<i class="fa-solid fa-play"></i> Ativar';
+    }
+  });
+
+  const btnDesativar = document.querySelector('[data-rec-desativar]');
+  if (btnDesativar) btnDesativar.addEventListener('click', async () => {
+    if (!confirm('Desativar o acompanhamento recorrente e cancelar a cobrança automática?')) return;
+    btnDesativar.disabled = true;
+    try {
+      const res = await fetch(API_BASE + '/api/recorrencia', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clientId: c.id, ativar: false })
+      });
+      if (!res.ok) { showToast('Não foi possível desativar.'); btnDesativar.disabled = false; return; }
+      showToast('Acompanhamento recorrente desativado.');
+      await recarregarClientes();
+      renderCRM();
+    } catch (_) {
+      showToast('Falha de conexão ao desativar.');
+      btnDesativar.disabled = false;
+    }
+  });
+}
+
+let activeRecorrenteClientId = null;
+
+// Aba dedicada "Recorrentes" — lista os clientes com acompanhamento mensal
+// ativo (ou candidatos a ativar) e, no detalhe, junta controle de recorrência,
+// documentos e o histórico de guias mensais daquele cliente.
+async function renderRecorrentes() {
+  const list = document.getElementById('recorrentes-client-list');
+  const detail = document.getElementById('recorrentes-client-detail');
+  if (!list || !detail) return;
+
+  const all = Object.values(clientsData);
+  const ativos = all.filter(c => c.recorrente);
+  const candidatos = all.filter(c => !c.recorrente);
+
+  if (!activeRecorrenteClientId || !clientsData[activeRecorrenteClientId]) {
+    activeRecorrenteClientId = (ativos[0] || candidatos[0] || {}).id || null;
   }
 
-  document.getElementById("dossier-overlay").classList.add("active");
+  const itemHtml = (c) => `
+    <button type="button" class="chat-item ${c.id === activeRecorrenteClientId ? 'active' : ''}" data-recorrente-client="${safe(c.id)}" style="margin:0;border-radius:0;border-bottom:1px solid var(--color-border);width:100%;text-align:left;">
+      <div class="chat-item-avatar">${safe(c.avatar || initials(c.name))}</div><div style="flex:1;min-width:0"><h4>${safe(c.name)}</h4><p>${safe(c.recorrente ? (c.recorrenteTipo || 'Mensal') : (c.cpf || 'Sem recorrência'))}</p></div>
+      ${c.recorrente ? '<span class="status-badge" style="font-size:10px;background:var(--color-pine);color:#fff">Ativo</span>' : ''}
+    </button>`;
+
+  list.innerHTML = `
+    ${ativos.length ? `<p style="padding:12px 16px 4px;font-size:11px;color:var(--color-text-secondary);text-transform:uppercase">Ativos (${ativos.length})</p>${ativos.map(itemHtml).join('')}` : ''}
+    <p style="padding:12px 16px 4px;font-size:11px;color:var(--color-text-secondary);text-transform:uppercase">Demais clientes</p>
+    ${candidatos.length ? candidatos.map(itemHtml).join('') : '<p style="padding:16px;font-size:12px;color:var(--color-text-secondary)">Nenhum outro cliente.</p>'}`;
+
+  list.querySelectorAll('[data-recorrente-client]').forEach(btn => btn.addEventListener('click', () => {
+    activeRecorrenteClientId = btn.dataset.recorrenteClient;
+    renderRecorrentes();
+  }));
+
+  const c = clientsData[activeRecorrenteClientId];
+  if (!c) {
+    detail.innerHTML = '<p style="padding:32px;color:var(--color-text-secondary)">Nenhum cliente cadastrado ainda.</p>';
+    return;
+  }
+
+  detail.innerHTML = `
+    <div style="padding:28px 32px;border-bottom:1px solid var(--color-border);display:flex;justify-content:space-between;gap:16px;align-items:center;flex-wrap:wrap">
+      <div style="display:flex;gap:16px;align-items:center"><div class="chat-item-avatar" style="width:60px;height:60px;font-size:22px">${safe(c.avatar || initials(c.name))}</div><div><h1 style="font-size:22px;color:var(--color-pine);margin:0">${safe(c.name)}</h1><p style="margin:4px 0;color:var(--color-text-secondary);font-size:13px">${safe(c.cpf || c.email || '')}</p></div></div>
+      <button class="btn-utility" data-open-dossier-rec="${safe(c.id)}"><i class="fa-solid fa-folder-open"></i> Abrir dossiê</button>
+    </div>
+    <div style="padding:28px 32px 0;">${htmlRecorrencia(c)}</div>
+    <div style="padding:24px 32px;">
+      <h3 style="font-size:14px;color:var(--color-pine);border-bottom:2px solid var(--color-border);padding-bottom:8px;margin-bottom:12px;"><i class="fa-solid fa-file-invoice"></i> Guias mensais</h3>
+      <div id="recorrentes-guias-cliente"><p style="font-size:12px;color:var(--color-text-secondary)">Carregando…</p></div>
+    </div>
+    <div style="padding:0 32px 32px;">
+      <h3 style="font-size:14px;color:var(--color-pine);border-bottom:2px solid var(--color-border);padding-bottom:8px;margin-bottom:12px;"><i class="fa-solid fa-paperclip"></i> Documentos</h3>
+      <div id="recorrentes-docs-cliente"><p style="font-size:12px;color:var(--color-text-secondary)">Carregando…</p></div>
+    </div>`;
+
+  detail.querySelector('[data-open-dossier-rec]').addEventListener('click', () => openDossier(c.id));
+  ligarRecorrencia(c);
+  carregarGuiasDoClienteRecorrente(c.id);
+  carregarDocumentosDoClienteRecorrente(c.id);
+}
+
+async function carregarGuiasDoClienteRecorrente(clientId) {
+  const box = document.getElementById('recorrentes-guias-cliente');
+  if (!box) return;
+  let guias = [];
+  try {
+    const res = await fetch(API_BASE + '/api/guias-mensais');
+    if (res.ok) guias = await res.json();
+  } catch (_) { /* silencioso */ }
+  const doCliente = guias.filter(g => g.clientRef === clientId);
+  if (!doCliente.length) {
+    box.innerHTML = '<p style="font-size:12px;color:var(--color-text-secondary)">Nenhuma guia registrada ainda para este cliente.</p>';
+    return;
+  }
+  box.innerHTML = `<table class="financeiro-table"><thead><tr><th>Competência</th><th>Tipo</th><th>Status</th><th></th></tr></thead><tbody>${doCliente.map(g => `
+    <tr>
+      <td>${safe(g.competencia)}</td>
+      <td>${safe(g.tipo || 'Acompanhamento mensal')}</td>
+      <td>${g.status === 'gerada' ? '<span class="status-badge" style="background:var(--color-pine);color:#fff">Gerada</span>' : '<span class="sla-badge sla-yellow" style="margin:0;">Pendente</span>'}</td>
+      <td>${g.status !== 'gerada' ? `<button class="btn-doc-action" type="button" data-guia-concluir-rec="${g.id}"><i class="fa-solid fa-check"></i> Marcar gerada</button>` : ''}</td>
+    </tr>`).join('')}</tbody></table>`;
+  box.querySelectorAll('[data-guia-concluir-rec]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      btn.disabled = true;
+      try {
+        const res = await fetch(API_BASE + '/api/guias-mensais/' + btn.dataset.guiaConcluirRec + '/concluir', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({}) });
+        if (!res.ok) { showToast('Não foi possível marcar como gerada.'); btn.disabled = false; return; }
+        showToast('Guia marcada como gerada.');
+        carregarGuiasDoClienteRecorrente(clientId);
+        renderGuiasMensais();
+      } catch (_) {
+        showToast('Falha de conexão.');
+        btn.disabled = false;
+      }
+    });
+  });
+}
+
+async function carregarDocumentosDoClienteRecorrente(clientId) {
+  const box = document.getElementById('recorrentes-docs-cliente');
+  if (!box) return;
+  let docs = [];
+  try {
+    const res = await fetch(API_BASE + '/api/documentos?clientId=' + encodeURIComponent(clientId));
+    if (res.ok) docs = await res.json();
+  } catch (_) { /* silencioso */ }
+  box.innerHTML = docs.length ? `<table class="financeiro-table"><thead><tr><th>Arquivo</th><th>Enviado por</th><th>Data</th><th></th></tr></thead><tbody>${docs.map(d => `<tr><td>${safe(d.fileName)}</td><td>${d.uploadedBy === 'agent' ? 'Contador' : 'Cliente'}</td><td>${new Date(d.createdAt).toLocaleDateString('pt-BR')}</td><td>${d.url ? `<a class="btn-doc-action" href="${safe(d.url)}" target="_blank" rel="noopener">Abrir</a>` : ''}</td></tr>`).join('')}</tbody></table>` : '<p style="font-size:12px;color:var(--color-text-secondary)">Nenhum arquivo enviado.</p>';
+}
+
+// ============================================================================
+// Insights — histórico real de atendimentos finalizados (um registro por
+// finalização, diferente de client.ultimoFinalizadoEm que só guarda a data
+// mais recente). Sexo/cidade vêm do cadastro atual do cliente (preenchido no
+// checkout), não do histórico — por isso são calculados à parte, de clientsData.
+// ============================================================================
+const INSIGHTS_CORES = ['#0A3121', '#3498DB', '#E67E22', '#9B59B6', '#2ECC71', '#F1C40F', '#FF6A45', '#16697A'];
+function corInsights(i) { return INSIGHTS_CORES[i % INSIGHTS_CORES.length]; }
+
+function formatDuracao(segundos) {
+  if (segundos == null) return '—';
+  const h = Math.floor(segundos / 3600);
+  const m = Math.round((segundos % 3600) / 60);
+  return h > 0 ? `${h}h ${m}min` : `${m} min`;
+}
+
+function svgDonut(segmentos) {
+  const total = segmentos.reduce((s, x) => s + x.value, 0);
+  if (!total) return '<p style="font-size:12px;color:var(--color-text-secondary)">Sem dados no período.</p>';
+  const r = 55, cx = 65, cy = 65, strokeW = 24, circ = 2 * Math.PI * r;
+  let offset = 0;
+  const arcos = segmentos.map((s, i) => {
+    const dash = (s.value / total) * circ;
+    const el = `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${corInsights(i)}" stroke-width="${strokeW}" stroke-dasharray="${dash.toFixed(2)} ${(circ - dash).toFixed(2)}" stroke-dashoffset="${(-offset).toFixed(2)}" transform="rotate(-90 ${cx} ${cy})"></circle>`;
+    offset += dash;
+    return el;
+  }).join('');
+  const legenda = segmentos.map((s, i) => `
+    <div style="display:flex;align-items:center;gap:6px;font-size:12px;margin-bottom:5px;">
+      <span style="width:10px;height:10px;border-radius:50%;background:${corInsights(i)};flex:0 0 auto;"></span>
+      <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${safe(s.label)}</span>
+      <span style="font-weight:600;color:var(--color-pine);flex:0 0 auto;">${s.value} (${Math.round(s.value / total * 100)}%)</span>
+    </div>`).join('');
+  return `<div style="display:flex;gap:20px;align-items:center;flex-wrap:wrap;">
+    <svg width="130" height="130" viewBox="0 0 130 130" style="flex:0 0 auto;">${arcos}<text x="65" y="61" text-anchor="middle" font-size="19" font-weight="700" fill="var(--color-pine)">${total}</text><text x="65" y="77" text-anchor="middle" font-size="9" fill="var(--color-text-secondary)">total</text></svg>
+    <div style="flex:1;min-width:140px;">${legenda}</div>
+  </div>`;
+}
+
+function barListHTML(itens, formatValue) {
+  if (!itens.length) return '<p style="font-size:12px;color:var(--color-text-secondary)">Sem dados no período.</p>';
+  const max = Math.max(...itens.map(i => i.value));
+  return itens.map((it, i) => `
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;">
+      <span style="flex:0 0 170px;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${safe(it.label)}</span>
+      <div style="flex:1;background:var(--color-bg);border-radius:6px;height:16px;overflow:hidden;">
+        <div style="width:${max ? (it.value / max * 100).toFixed(0) : 0}%;background:${corInsights(i)};height:100%;border-radius:6px;"></div>
+      </div>
+      <span style="flex:0 0 76px;text-align:right;font-size:12px;font-weight:600;color:var(--color-pine);">${formatValue ? formatValue(it.value) : it.value}</span>
+    </div>`).join('');
+}
+
+let insightsPeriodo = 'ano';
+let insightsCustomDe = null;
+let insightsCustomAte = null;
+
+function rangeDoPeriodoInsights(periodo) {
+  const agora = new Date();
+  if (periodo === 'hoje') {
+    const ini = new Date(agora.getFullYear(), agora.getMonth(), agora.getDate());
+    return [ini, new Date(ini.getTime() + 86400000)];
+  }
+  if (periodo === 'semana') return [startOfWeekLocal(agora), endOfWeekLocal(agora)];
+  if (periodo === 'mes') return [new Date(agora.getFullYear(), agora.getMonth(), 1), new Date(agora.getFullYear(), agora.getMonth() + 1, 1)];
+  if (periodo === 'ano') return [new Date(agora.getFullYear(), 0, 1), new Date(agora.getFullYear() + 1, 0, 1)];
+  if (periodo === 'custom') return [insightsCustomDe, insightsCustomAte];
+  return [null, null]; // tudo
+}
+
+async function renderInsights() {
+  const totalEl = document.getElementById('insights-total-periodo');
+  if (!totalEl) return;
+
+  const filtroBar = document.getElementById('insights-filtro-periodo');
+  if (filtroBar && !filtroBar.dataset.bound) {
+    filtroBar.dataset.bound = '1';
+    filtroBar.querySelectorAll('[data-insights-periodo]').forEach(btn => btn.addEventListener('click', () => {
+      insightsPeriodo = btn.dataset.insightsPeriodo;
+      filtroBar.querySelectorAll('[data-insights-periodo]').forEach(b => b.classList.toggle('active', b === btn));
+      renderInsights();
+    }));
+    document.getElementById('insights-aplicar-periodo').addEventListener('click', () => {
+      const de = document.getElementById('insights-data-de').value;
+      const ate = document.getElementById('insights-data-ate').value;
+      if (!de && !ate) return;
+      insightsPeriodo = 'custom';
+      insightsCustomDe = de ? new Date(de + 'T00:00:00') : null;
+      insightsCustomAte = ate ? new Date(new Date(ate + 'T00:00:00').getTime() + 86400000) : null;
+      filtroBar.querySelectorAll('[data-insights-periodo]').forEach(b => b.classList.remove('active'));
+      renderInsights();
+    });
+  }
+
+  const [de, ate] = rangeDoPeriodoInsights(insightsPeriodo);
+  let historico = [];
+  try {
+    const res = await fetch(API_BASE + '/api/atendimentos-historico');
+    if (res.ok) historico = await res.json();
+  } catch (_) { /* silencioso */ }
+
+  const noPeriodo = historico.filter(r => {
+    if (!r.finalizadoEm) return false;
+    const d = new Date(r.finalizadoEm);
+    if (de && d < de) return false;
+    if (ate && d >= ate) return false;
+    return true;
+  });
+
+  totalEl.textContent = noPeriodo.length;
+
+  const duracoes = noPeriodo.map(r => r.duracaoSegundos).filter(v => v != null);
+  const duracaoMedia = duracoes.length ? duracoes.reduce((a, b) => a + b, 0) / duracoes.length : null;
+  document.getElementById('insights-duracao-media').textContent = formatDuracao(duracaoMedia);
+
+  const honorariosArr = noPeriodo.map(r => r.honorarios).filter(v => v != null);
+  const ticketMedio = honorariosArr.length ? honorariosArr.reduce((a, b) => a + b, 0) / honorariosArr.length : null;
+  document.getElementById('insights-ticket-medio').textContent = ticketMedio != null ? formatBRL(ticketMedio) : '—';
+
+  const totalHoras = duracoes.reduce((a, b) => a + b, 0) / 3600;
+  const totalHonor = honorariosArr.reduce((a, b) => a + b, 0);
+  document.getElementById('insights-rentabilidade').textContent = totalHoras > 0 ? formatBRL(totalHonor / totalHoras) : '—';
+
+  const porServico = {};
+  noPeriodo.forEach(r => { const k = r.taxType || 'Sem categoria'; porServico[k] = (porServico[k] || 0) + 1; });
+  const segmentosServico = Object.entries(porServico).sort((a, b) => b[1] - a[1]).map(([label, value]) => ({ label, value }));
+  document.getElementById('insights-donut-servico').innerHTML = svgDonut(segmentosServico);
+
+  const duracaoPorServico = {};
+  noPeriodo.forEach(r => {
+    if (r.duracaoSegundos == null) return;
+    const k = r.taxType || 'Sem categoria';
+    (duracaoPorServico[k] = duracaoPorServico[k] || []).push(r.duracaoSegundos);
+  });
+  const itensDuracao = Object.entries(duracaoPorServico)
+    .map(([label, arr]) => ({ label, value: arr.reduce((a, b) => a + b, 0) / arr.length }))
+    .sort((a, b) => b.value - a.value);
+  document.getElementById('insights-barras-duracao').innerHTML = barListHTML(itensDuracao, formatDuracao);
+
+  const mesmoDia = duracoes.filter(s => s <= 86400);
+  const estendido = duracoes.filter(s => s > 86400);
+  const mediaMesmoDia = mesmoDia.length ? mesmoDia.reduce((a, b) => a + b, 0) / mesmoDia.length : null;
+  const mediaEstendido = estendido.length ? estendido.reduce((a, b) => a + b, 0) / estendido.length : null;
+  document.getElementById('insights-mesmo-dia-vs-estendido').innerHTML = `
+    <div><p style="font-size:12px;color:var(--color-text-secondary);margin-bottom:4px">Resolvido no mesmo dia (${mesmoDia.length})</p><h2 style="font-size:22px;color:var(--color-pine);margin:0;">${formatDuracao(mediaMesmoDia)}</h2></div>
+    <div><p style="font-size:12px;color:var(--color-text-secondary);margin-bottom:4px">Se estende por mais de um dia (${estendido.length})</p><h2 style="font-size:22px;color:var(--color-coral);margin:0;">${formatDuracao(mediaEstendido)}</h2></div>`;
+
+  const dadosRentabServico = {};
+  noPeriodo.forEach(r => {
+    if (r.honorarios == null || !r.duracaoSegundos) return;
+    const k = r.taxType || 'Sem categoria';
+    dadosRentabServico[k] = dadosRentabServico[k] || { honor: 0, seg: 0 };
+    dadosRentabServico[k].honor += r.honorarios;
+    dadosRentabServico[k].seg += r.duracaoSegundos;
+  });
+  const rankingRentab = Object.entries(dadosRentabServico)
+    .map(([label, d]) => ({ label, value: d.honor / (d.seg / 3600) }))
+    .sort((a, b) => b.value - a.value);
+  document.getElementById('insights-ranking-rentabilidade').innerHTML = barListHTML(rankingRentab, v => formatBRL(v) + '/h');
+
+  // Sexo/cidade são atributos do cadastro atual (não têm "período" — refletem
+  // a base de clientes como ela está agora, independente do filtro de data acima).
+  const clientesArr = Object.values(clientsData);
+  const rotuloSexo = { feminino: 'Feminino', masculino: 'Masculino', outro: 'Outro' };
+  const porSexo = {};
+  clientesArr.forEach(c => { if (c.sexo && rotuloSexo[c.sexo]) porSexo[rotuloSexo[c.sexo]] = (porSexo[rotuloSexo[c.sexo]] || 0) + 1; });
+  const segmentosSexo = Object.entries(porSexo).map(([label, value]) => ({ label, value }));
+  document.getElementById('insights-donut-sexo').innerHTML = segmentosSexo.length
+    ? svgDonut(segmentosSexo)
+    : '<p style="font-size:12px;color:var(--color-text-secondary)">Ainda sem dados de sexo cadastrados — vem do checkout quando o cliente preenche.</p>';
+
+  const porCidade = {};
+  clientesArr.forEach(c => { if (c.cidade) porCidade[c.cidade] = (porCidade[c.cidade] || 0) + 1; });
+  const itensCidade = Object.entries(porCidade).map(([label, value]) => ({ label, value })).sort((a, b) => b.value - a.value);
+  document.getElementById('insights-barras-cidade').innerHTML = itensCidade.length
+    ? barListHTML(itensCidade)
+    : '<p style="font-size:12px;color:var(--color-text-secondary)">Ainda sem dados de cidade cadastrados — vem do checkout quando o cliente preenche.</p>';
+}
+
+function renderKanban() {
+  const board = document.querySelector('#section-acompanhamento .kanban-board');
+  if (!board) return;
+  board.innerHTML = KANBAN_STAGES.map(([status, label, color]) => {
+    // Só entra aqui quem foi explicitamente encaminhado pro Acompanhamento —
+    // atendimento resolvido na hora não aparece (fica só no histórico).
+    const items = Object.values(clientsData).filter(c => kanbanEtapas[c.id] && etapaDoCliente(c) === status);
+    return `<div class="kanban-col"><div class="kanban-col-header" style="border-top-color:${color}"><h4>${label}</h4><span class="kanban-badge" style="background:${color};color:#fff">${items.length}</span></div><div class="kanban-col-body" data-kanban-status="${status}">${items.map(c => `<button type="button" class="kanban-card ${status === 'done' ? 'done' : ''}" draggable="true" data-client-id="${safe(c.id)}"><div class="kanban-card-title">${safe(c.name)}</div><div class="kanban-card-tags"><span>${safe(c.taxType || 'Atendimento')}</span></div><div class="kanban-card-meta"><i class="fa-solid fa-folder-open"></i> ${safe(c.diagnosis || 'Sem diagnóstico')}</div></button>`).join('') || '<p style="font-size:12px;color:var(--color-text-secondary);padding:8px">Sem casos</p>'}</div></div>`;
+  }).join('');
+  let dragging = null;
+  board.querySelectorAll('[data-client-id]').forEach(card => {
+    card.addEventListener('click', () => openDossier(card.dataset.clientId));
+    card.addEventListener('dragstart', e => { dragging = card.dataset.clientId; e.dataTransfer.effectAllowed = 'move'; });
+  });
+  board.querySelectorAll('[data-kanban-status]').forEach(col => {
+    col.addEventListener('dragover', e => e.preventDefault());
+    col.addEventListener('drop', async e => { e.preventDefault(); if (dragging) await salvarStatusCliente(dragging, col.dataset.kanbanStatus); dragging = null; });
+  });
+}
+
+async function salvarStatusCliente(clientId, status) {
+  kanbanEtapas = { ...kanbanEtapas, [clientId]: status };
+  const res = await fetch(API_BASE + '/api/config', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ kanban_etapas: kanbanEtapas }) });
+  if (!res.ok) { showToast('Não foi possível atualizar a etapa.'); return; }
+  renderCRM(); renderKanban(); updateDashboardData();
+  showToast('Etapa do cliente atualizada.');
+  if (status === 'recorrencia') await moverParaRecorrencia(clientId);
+}
+
+// Segundo gatilho de recorrência (o primeiro é o botão "Ativar" manual em
+// Clientes/Recorrentes): mover o card no Kanban para "Recorrência" já ativa
+// o acompanhamento mensal sozinho, sem precisar abrir outra aba.
+async function moverParaRecorrencia(clientId) {
+  const c = clientsData[clientId];
+  if (!c || c.recorrente) return;
+  const valor = Number(c.honorarios) || 0;
+  if (!valor) {
+    showToast('Cliente movido para Recorrência. Defina o valor mensal na aba "Recorrentes" para ativar a cobrança.');
+    return;
+  }
+  try {
+    const res = await fetch(API_BASE + '/api/recorrencia', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ clientId, ativar: true, tipo: 'Acompanhamento mensal', diaVenc: 10, valor })
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      if (data.error === 'demo_action_not_available') showToast('Cliente movido para Recorrência. Ativação automática não funciona no modo demo — ative manualmente com login real.');
+      else showToast('Cliente movido para Recorrência. Não foi possível ativar a cobrança automática — ative manualmente na aba "Recorrentes".');
+      return;
+    }
+    await recarregarClientes();
+    renderCRM(); renderKanban();
+    if (document.getElementById('section-recorrentes')?.classList.contains('active')) renderRecorrentes();
+    showToast('Cliente movido para Recorrência e cobrança mensal ativada.');
+  } catch (_) {
+    showToast('Cliente movido para Recorrência. Falha de conexão ao ativar a cobrança — ative manualmente depois.');
+  }
+}
+
+async function refreshFinanceiro() {
+  const serviceList = document.getElementById('financeiro-servicos-lista');
+  if (!serviceList) return;
+  try {
+    const [servicesRes, chargesRes] = await Promise.all([
+      fetch(API_BASE + '/api/servicos?all=1'), fetch(API_BASE + '/api/cobrancas')
+    ]);
+    if (!servicesRes.ok || !chargesRes.ok) throw new Error('financeiro_indisponivel');
+    financeiro.servicos = await servicesRes.json();
+    financeiro.cobrancas = await chargesRes.json();
+    refreshCreditos();
+    serviceList.innerHTML = financeiro.servicos.length ? financeiro.servicos.map(s => `<tr>
+      <td><strong>${safe(s.name)}</strong>${s.description ? `<br><small>${safe(s.description)}</small>` : ''}</td>
+      <td>${formatBRL(s.price)}</td><td>${s.recurrence === 'monthly' ? 'Mensal' : 'Avulso'}</td>
+      <td><span class="status-badge ${s.active ? 'status-active' : 'status-docs'}">${s.active ? 'Ativo' : 'Pausado'}</span></td>
+      <td><button class="btn-doc-action" data-edit-service="${safe(s.id)}"><i class="fa-solid fa-pen"></i> Editar</button> <button class="btn-doc-action" data-copy-service="${safe(s.id)}"><i class="fa-solid fa-copy"></i> Link</button></td>
+    </tr>`).join('') : '<tr><td colspan="5">Nenhum serviço cadastrado.</td></tr>';
+    serviceList.querySelectorAll('[data-edit-service]').forEach(b => b.addEventListener('click', () => editarServico(b.dataset.editService)));
+    serviceList.querySelectorAll('[data-copy-service]').forEach(b => b.addEventListener('click', () => copiarLinkServico(b.dataset.copyService)));
+    const paid = financeiro.cobrancas.filter(c => c.status === 'paid').reduce((total, c) => total + (c.valueCents || 0), 0) / 100;
+    const open = financeiro.cobrancas.filter(c => c.status !== 'paid').reduce((total, c) => total + (c.valueCents || 0), 0) / 100;
+    document.getElementById('financeiro-recebido').textContent = formatBRL(paid);
+    document.getElementById('financeiro-recebido-info').textContent = `${financeiro.cobrancas.filter(c => c.status === 'paid').length} cobrança(s) paga(s)`;
+    document.getElementById('financeiro-aberto').textContent = formatBRL(open);
+    document.getElementById('financeiro-aberto-info').textContent = `${financeiro.cobrancas.filter(c => c.status !== 'paid').length} cobrança(s) em aberto`;
+    const clientsById = clientsData;
+    document.getElementById('financeiro-cobrancas-lista').innerHTML = financeiro.cobrancas.length ? `<table class="financeiro-table"><thead><tr><th>Cliente</th><th>Valor</th><th>Status</th><th>Data</th></tr></thead><tbody>${financeiro.cobrancas.slice(0, 12).map(c => `<tr><td>${safe(clientsById[c.clientRef]?.name || c.clientRef)}</td><td>${formatBRL((c.valueCents || 0) / 100)}</td><td>${safe(c.status)}</td><td>${c.createdAt ? new Date(c.createdAt).toLocaleDateString('pt-BR') : '—'}</td></tr>`).join('')}</tbody></table>` : 'Nenhuma cobrança criada ainda.';
+    updateDashboardFinanceiroKpis();
+    renderDashboardRemarketing();
+  } catch (e) {
+    serviceList.innerHTML = '<tr><td colspan="5">Não foi possível carregar o financeiro.</td></tr>';
+    updateDashboardFinanceiroKpis();
+    renderDashboardRemarketing();
+  }
+}
+
+async function salvarServico(service) {
+  const res = await fetch(API_BASE + '/api/servicos', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(service) });
+  if (!res.ok) { showToast('Não foi possível salvar o serviço.'); return; }
+  await refreshFinanceiro(); showToast('Serviço salvo.');
+}
+function editarServico(id) {
+  const s = financeiro.servicos.find(item => String(item.id) === String(id));
+  if (!s) return;
+  const name = prompt('Nome do serviço:', s.name); if (name == null || !name.trim()) return;
+  const price = prompt('Valor em reais:', String(s.price).replace('.', ',')); if (price == null) return;
+  const active = confirm('Deixar este serviço ativo no checkout?');
+  salvarServico({ ...s, name: name.trim(), priceCents: Math.round(Number(price.replace(',', '.')) * 100), active });
+}
+function novoServico() {
+  const name = prompt('Nome do novo serviço:'); if (!name || !name.trim()) return;
+  const price = prompt('Valor em reais:'); if (price == null) return;
+  salvarServico({ name: name.trim(), priceCents: Math.round(Number(price.replace(',', '.')) * 100), recurrence: 'once', active: true });
+}
+async function copiarLinkServico(id) {
+  const url = `${location.origin}/cliente?servico=${encodeURIComponent(id)}`;
+  try { await navigator.clipboard.writeText(url); showToast('Link do checkout copiado.'); }
+  catch (_) { prompt('Copie o link:', url); }
+}
+
+// ---------- Créditos de Atendimento ----------
+let creditosData = [];
+function linkCredito(codigo) {
+  return `${location.origin}/agendamento.html?credito=${encodeURIComponent(codigo)}`;
+}
+async function copiarTexto(texto, mensagem) {
+  try { await navigator.clipboard.writeText(texto); showToast(mensagem); }
+  catch (_) { prompt('Copie:', texto); }
+}
+async function refreshCreditos() {
+  const box = document.getElementById('financeiro-creditos-lista');
+  if (!box) return;
+  try {
+    const res = await fetch(API_BASE + '/api/creditos');
+    if (!res.ok) throw new Error('creditos_indisponivel');
+    creditosData = await res.json();
+    const statusInfo = { ativo: ['status-active', 'Ativo'], usado: ['status-docs', 'Usado'], cancelado: ['status-atrasado', 'Cancelado'] };
+    box.innerHTML = creditosData.length ? creditosData.map(c => {
+      const [classe, label] = statusInfo[c.status] || ['pending', c.status];
+      return `<tr>
+        <td><code>${safe(c.codigo)}</code>${c.observacao ? `<br><small>${safe(c.observacao)}</small>` : ''}</td>
+        <td>${formatBRL(c.valor)}</td>
+        <td><span class="status-badge ${classe}">${label}</span></td>
+        <td>${c.clienteNome ? safe(c.clienteNome) : '—'}</td>
+        <td>
+          <button class="btn-doc-action" data-copy-credito-codigo="${safe(c.codigo)}"><i class="fa-solid fa-copy"></i> Código</button>
+          <button class="btn-doc-action" data-copy-credito-link="${safe(c.codigo)}"><i class="fa-solid fa-link"></i> Link</button>
+          ${c.status === 'ativo' ? `<button class="btn-doc-action" data-cancelar-credito="${safe(c.id)}"><i class="fa-solid fa-ban"></i> Cancelar</button>` : ''}
+        </td>
+      </tr>`;
+    }).join('') : '<tr><td colspan="5">Nenhum crédito gerado ainda.</td></tr>';
+    box.querySelectorAll('[data-copy-credito-codigo]').forEach(b => b.addEventListener('click', () => copiarTexto(b.dataset.copyCreditoCodigo, 'Código copiado.')));
+    box.querySelectorAll('[data-copy-credito-link]').forEach(b => b.addEventListener('click', () => copiarTexto(linkCredito(b.dataset.copyCreditoLink), 'Link de resgate copiado.')));
+    box.querySelectorAll('[data-cancelar-credito]').forEach(b => b.addEventListener('click', () => cancelarCredito(b.dataset.cancelarCredito)));
+  } catch (e) {
+    box.innerHTML = '<tr><td colspan="5">Não foi possível carregar os créditos.</td></tr>';
+  }
+}
+async function gerarCredito() {
+  const valorStr = prompt('Valor do crédito em reais:');
+  if (valorStr == null) return;
+  const valorCents = Math.round(Number(String(valorStr).replace(',', '.')) * 100);
+  if (!valorCents || valorCents < 100) { showToast('Informe um valor válido (mínimo R$ 1,00).'); return; }
+  const observacao = prompt('Observação (opcional — ex.: "Cortesia indicação Maria"):') || '';
+  try {
+    const res = await fetch(API_BASE + '/api/creditos', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ valorCents, observacao })
+    });
+    if (!res.ok) throw new Error('falhou');
+    const credito = await res.json();
+    await refreshCreditos();
+    await copiarTexto(linkCredito(credito.codigo), `Crédito ${credito.codigo} gerado — link copiado.`);
+  } catch (e) {
+    showToast('Não foi possível gerar o crédito.');
+  }
+}
+async function cancelarCredito(id) {
+  if (!confirm('Cancelar este crédito? Ele deixa de poder ser resgatado.')) return;
+  try {
+    const res = await fetch(API_BASE + `/api/creditos/${id}/cancelar`, { method: 'POST' });
+    if (!res.ok) throw new Error('falhou');
+    await refreshCreditos();
+    showToast('Crédito cancelado.');
+  } catch (e) {
+    showToast('Não foi possível cancelar o crédito.');
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('btn-novo-servico')?.addEventListener('click', novoServico);
+  document.getElementById('btn-atualizar-financeiro')?.addEventListener('click', refreshFinanceiro);
+  document.getElementById('btn-gerar-credito')?.addEventListener('click', gerarCredito);
+});
+
+async function openDossier(clientId) {
+  const c = clientsData[clientId];
+  if (!c) return;
+  document.getElementById('dossier-name').textContent = c.name;
+  document.getElementById('dossier-doc').textContent = c.cpf || c.taxType || 'Sem documento';
+  document.getElementById('dossier-avatar').textContent = c.avatar || initials(c.name);
+  const [docsRes, relsRes] = await Promise.all([fetch(API_BASE + '/api/documentos?clientId=' + encodeURIComponent(c.id)), fetch(API_BASE + '/api/relatorios?clientId=' + encodeURIComponent(c.id))]);
+  const docs = docsRes.ok ? await docsRes.json() : [];
+  const reports = relsRes.ok ? await relsRes.json() : [];
+  const process = document.getElementById('dossier-processo');
+  const history = document.getElementById('dossier-historico');
+  const files = document.getElementById('dossier-arquivos');
+  process.innerHTML = `<div class="financeiro-card"><h3 style="font-size:14px;color:var(--color-text-secondary);margin-bottom:10px">Etapa do funil</h3><div style="display:flex;gap:10px;align-items:center"><select class="form-select" id="dossier-status-select" style="max-width:280px">${KANBAN_STAGES.map(s => `<option value="${s[0]}" ${s[0] === etapaDoCliente(c) ? 'selected' : ''}>${s[1]}</option>`).join('')}</select><button class="btn-utility primary" id="btn-dossier-save-status"><i class="fa-solid fa-save"></i> Salvar</button></div></div><h3 style="font-size:16px;margin:24px 0 10px;color:var(--color-pine)">Diagnóstico</h3><p style="font-size:13px;line-height:1.5">${safe(c.diagnosis || c.triagem?.descricao || 'Ainda não registrado.')}</p><h3 style="font-size:16px;margin:20px 0 10px;color:var(--color-pine)">Próximos passos</h3><p style="font-size:13px;line-height:1.5">${safe(c.treatment || 'Ainda não registrado.')}</p>`;
+  history.innerHTML = reports.length ? reports.map(r => `<div class="financeiro-card" style="margin-bottom:12px"><h3 style="font-size:14px;color:var(--color-pine)">${safe(r.titulo || 'Relatório de atendimento')}</h3><p style="font-size:12px;color:var(--color-text-secondary)">${new Date(r.createdAt).toLocaleDateString('pt-BR')} · ${safe(r.status || 'enviado')}</p><p style="font-size:13px">${safe(r.problema || r.solucao || '')}</p></div>`).join('') : '<p style="color:var(--color-text-secondary);font-size:13px">Nenhum relatório entregue ainda.</p>';
+  files.innerHTML = docs.length ? `<table class="financeiro-table"><thead><tr><th>Arquivo</th><th>Enviado por</th><th>Data</th><th></th></tr></thead><tbody>${docs.map(d => `<tr><td>${safe(d.fileName)}</td><td>${d.uploadedBy === 'agent' ? 'Contador' : 'Cliente'}</td><td>${new Date(d.createdAt).toLocaleDateString('pt-BR')}</td><td>${d.url ? `<a class="btn-doc-action" href="${safe(d.url)}" target="_blank" rel="noopener">Abrir</a>` : ''}</td></tr>`).join('')}</tbody></table>` : '<p style="color:var(--color-text-secondary);font-size:13px">Nenhum arquivo enviado.</p>';
+  const select = document.getElementById('dossier-status-select');
+  const save = document.getElementById('btn-dossier-save-status');
+  save.onclick = () => salvarStatusCliente(c.id, select.value);
+  document.getElementById('dossier-overlay').classList.add('active');
 }
 
 function closeDossier() {
@@ -1492,6 +3395,15 @@ document.addEventListener("DOMContentLoaded", () => {
   const btnToolDossie = document.getElementById("btn-tool-dossie");
   const panelContentFila = document.getElementById("panel-content-fila");
   const panelContentDossie = document.getElementById("panel-content-dossie");
+
+  // Route header profile to "Meu Perfil"
+  const headerAgentProfile = document.getElementById("header-agent-profile");
+  const navBtnPerfil = document.getElementById("nav-btn-perfil");
+  if (headerAgentProfile && navBtnPerfil) {
+    headerAgentProfile.addEventListener("click", () => {
+      navBtnPerfil.click();
+    });
+  }
 
   function toggleLeftPanel(targetId) {
     if (!sidePanelLeft) return;
@@ -1509,11 +3421,17 @@ document.addEventListener("DOMContentLoaded", () => {
     
     // Switch active button
     document.querySelectorAll(".btn-toolbar").forEach(btn => btn.classList.remove("active"));
-    document.getElementById("btn-tool-" + targetId).classList.add("active");
+    const activeBtn = document.getElementById("btn-tool-" + targetId);
+    if (activeBtn) activeBtn.classList.add("active");
     
     // Switch active content
     document.querySelectorAll(".side-panel-content").forEach(content => content.classList.remove("active"));
-    document.getElementById("panel-content-" + targetId).classList.add("active");
+    const targetContent = document.getElementById("panel-content-" + targetId);
+    if (targetContent) targetContent.classList.add("active");
+
+    // O Copiloto precisa de mais largura que a fila/dossiê (atalhos + input);
+    // o painel usa essa largura maior só enquanto ele estiver aberto.
+    sidePanelLeft.dataset.panel = targetId;
   }
 
   if (btnToolFila) {
@@ -1524,20 +3442,18 @@ document.addEventListener("DOMContentLoaded", () => {
     btnToolDossie.addEventListener("click", () => toggleLeftPanel("dossie"));
   }
 
-  // Copilot Toggle
-  const copilotPanel = document.getElementById("side-panel-copilot");
-  const btnToggleCopilot = document.getElementById("btn-toggle-copilot");
-  const btnCloseCopilot = document.getElementById("btn-close-copilot");
-
-  if (btnToggleCopilot && copilotPanel) {
-    btnToggleCopilot.addEventListener("click", () => {
-      copilotPanel.classList.toggle("collapsed");
-    });
+  const btnToolCopilot = document.getElementById("btn-tool-copilot");
+  if (btnToolCopilot) {
+    btnToolCopilot.addEventListener("click", () => toggleLeftPanel("copilot"));
   }
 
-  if (btnCloseCopilot && copilotPanel) {
+
+  // Legacy copilot close button from right panel (just in case)
+  const btnCloseCopilot = document.getElementById("btn-close-copilot");
+  if (btnCloseCopilot && sidePanelLeft) {
     btnCloseCopilot.addEventListener("click", () => {
-      copilotPanel.classList.add("collapsed");
+      sidePanelLeft.classList.add("collapsed");
+      document.querySelectorAll(".btn-toolbar").forEach(btn => btn.classList.remove("active"));
     });
   }
 });
@@ -1620,7 +3536,207 @@ function renderDashboardCharts() {
   });
 }
 
+// ============================================================================
+// STATUS ONLINE (PRESENÇA)
+// ============================================================================
+const presenceStore = {}; // { 'clientId': lastSeenTimestamp }
+
+function setupPresence() {
+  if (!window.sb) return;
+  if (window.OC_CONFIG?.TESTE_CONTADOR_SEM_LOGIN?.enabled && window.OC_ROLE === 'contador') return;
+  const ch = window.sb.channel('oc-presence', { config: { broadcast: { self: false } } });
+  
+  ch.on('broadcast', { event: 'ping' }, ({ payload }) => {
+    if (payload.role === 'client' && payload.id) {
+      presenceStore[payload.id] = Date.now();
+      updatePresenceUI(payload.id);
+    }
+  });
+  ch.subscribe();
+
+  // Contador avisa que está vivo a cada 5s
+  setInterval(() => {
+    if (document.visibilityState === 'visible') {
+      ch.send({ type: 'broadcast', event: 'ping', payload: { role: 'contador' } });
+    }
+  }, 5000);
+  
+  // Limpa offline a cada 10s
+  setInterval(() => {
+    if (activeClientId) updatePresenceUI(activeClientId);
+  }, 10000);
+}
+
+function updatePresenceUI(clientId) {
+  if (clientId !== activeClientId) return;
+  const statusEl = document.getElementById('active-client-status');
+  if (!statusEl) return;
+  
+  const lastSeen = presenceStore[clientId] || 0;
+  const isOnline = (Date.now() - lastSeen) < 15000; // 15s limite
+  
+  statusEl.style.display = 'flex';
+  const textEl = statusEl.querySelector('.status-text');
+  const dotEl = statusEl.querySelector('.dot');
+  
+  if (isOnline) {
+    statusEl.classList.remove('offline');
+    statusEl.classList.add('online');
+    dotEl.style.color = '#2ECC71';
+    textEl.textContent = 'Online';
+  } else {
+    statusEl.classList.remove('online');
+    statusEl.classList.add('offline');
+    dotEl.style.color = 'inherit';
+    if (lastSeen > 0) {
+      const min = Math.floor((Date.now() - lastSeen) / 60000);
+      textEl.textContent = min < 1 ? 'Visto agora mesmo' : `Visto há ${min} min`;
+    } else {
+      textEl.textContent = 'Offline';
+    }
+  }
+}
+
+// Bloqueio manual do chat
+window.toggleChatLock = async function() {
+  if (!activeClientId) return;
+  const client = clientsData[activeClientId];
+  if (!client) return;
+  
+  const isLocked = client.status === 'locked';
+  const newStatus = isLocked ? 'active' : 'locked';
+
+  try {
+    await atualizarStatusCliente(activeClientId, newStatus);
+    loadClient(activeClientId);
+    showToast(newStatus === 'locked' ? 'Chat bloqueado para o cliente.' : 'Chat liberado para o cliente.');
+  } catch (e) {
+    console.error('Falha ao alterar bloqueio do chat:', e);
+    showToast('Não consegui alterar o bloqueio do chat.');
+  }
+}
+
 // --- Copilot AI Logic ---
+// Sincroniza o Copiloto com o atendimento ativo: mostra de quem se trata e
+// reseta a conversa anterior — sem isso, trocar de cliente na fila deixava
+// a análise antiga na tela como se ainda fosse sobre o caso atual.
+function atualizarContextoCopilot(client) {
+  const barra = document.getElementById('copilot-context-bar');
+  const nomeEl = document.getElementById('copilot-context-nome');
+  if (!barra || !nomeEl) return;
+  if (client && client.name) {
+    nomeEl.textContent = client.name; // textContent já escapa, sem risco de HTML
+    barra.classList.remove('sem-atendimento');
+  } else {
+    nomeEl.textContent = 'nenhum atendimento aberto';
+    barra.classList.add('sem-atendimento');
+  }
+
+  // A skill não fica mais na escolha anterior: se o tema do atendimento bate
+  // com o tema cadastrado de alguma skill, ela ativa sozinha; senão, volta pro
+  // padrão. Evita responder um caso de MEI usando a skill que ficou selecionada
+  // do atendimento anterior de Malha Fina, por exemplo.
+  const skillSelect = document.getElementById('active-skill-selector');
+  const skillAuto = client ? skillPorTema(client.taxType) : null;
+  if (skillSelect) skillSelect.value = skillAuto ? skillAuto.id : '';
+
+  const chat = document.getElementById('copilot-chat');
+  if (chat) {
+    const avisoSkill = skillAuto
+      ? `<br><br><i class="fa-solid fa-brain" style="color: var(--color-pine);"></i> Skill <strong>${safe(skillAuto.name)}</strong> ativada automaticamente (tema: ${safe(client.taxType)}).`
+      : '';
+    chat.innerHTML = `
+      <div style="display: flex; gap: 12px; max-width: 90%;">
+        <div style="width: 28px; height: 28px; border-radius: 50%; background: var(--color-pine); display: flex; align-items: center; justify-content: center; flex-shrink: 0;"><svg viewBox="0 0 616 640" style="width: 15px; height: 15px;"><use href="#oc-logo-mark"></use></svg></div>
+        <div style="background: white; border: 1px solid var(--color-border); padding: 12px; border-radius: 8px; font-size: 13px; color: var(--color-text); line-height: 1.4;">
+          ${client && client.name ? `Estou acompanhando o atendimento de <strong>${safe(client.name)}</strong>.` : 'Nenhum atendimento aberto no momento.'}<br><br>Selecione um comando rápido abaixo ou me pergunte o que precisar.${avisoSkill}
+        </div>
+      </div>`;
+  }
+}
+
+// ===== Atalhos do Copiloto IA (configuráveis em Configurações → Aparência do Chat) =====
+const defaultCopilotShortcuts = [
+  { id: 'cp-1', label: 'Ganho Capital', prompt: 'Analise se este cliente tem direito à isenção de Ganho de Capital no caso relatado.', enabled: true },
+  { id: 'cp-2', label: 'PJ vs PF', prompt: 'Faça uma simulação rápida se vale mais a pena ele abrir um CNPJ (PJ) ou ficar na Pessoa Física (PF) com base nesses rendimentos.', enabled: true },
+  { id: 'cp-3', label: 'Checklist', prompt: 'Gere o checklist exato de documentos que eu preciso pedir para este caso específico.', enabled: true },
+  { id: 'cp-4', label: 'Resumir Chat', prompt: 'Faça um resumo rápido do que o cliente pediu.', enabled: true }
+];
+let copilotShortcuts = JSON.parse(localStorage.getItem('copilotShortcuts')) || defaultCopilotShortcuts;
+
+function saveCopilotShortcuts() {
+  localStorage.setItem('copilotShortcuts', JSON.stringify(copilotShortcuts));
+  renderCopilotPrompts();
+}
+
+// Chat: só os atalhos ligados aparecem como chip.
+function renderCopilotPrompts() {
+  const container = document.getElementById('copilot-prompts-container');
+  if (!container) return;
+  container.innerHTML = '';
+  copilotShortcuts.filter(s => s.enabled).forEach(s => {
+    const btn = document.createElement('button');
+    btn.className = 'btn-shortcut-tag';
+    btn.textContent = s.label;
+    btn.addEventListener('click', () => triggerCopilot(s.prompt));
+    container.appendChild(btn);
+  });
+}
+
+// Configurações: todos aparecem (ligados ou não), com toggle + edição + exclusão.
+function renderCopilotShortcutsConfig() {
+  const list = document.getElementById('cfg-copilot-shortcuts-list');
+  if (!list) return;
+  list.innerHTML = '';
+  copilotShortcuts.forEach(s => {
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex; gap:8px; align-items:center; padding:8px 12px; background:white; border:1px solid var(--color-border); border-radius:6px;';
+    row.innerHTML = `
+      <label class="theme-switch" style="flex-shrink:0;" title="Ativar/desativar">
+        <input type="checkbox" class="cp-shortcut-toggle" ${s.enabled ? 'checked' : ''}>
+        <span class="theme-slider"></span>
+      </label>
+      <input type="text" class="cfg-input cp-shortcut-label" value="${escapeHtml(s.label)}" style="flex: 1; font-size:12px;" placeholder="Rótulo">
+      <input type="text" class="cfg-input cp-shortcut-prompt" value="${escapeHtml(s.prompt)}" style="flex: 2; font-size:12px;" placeholder="Pergunta enviada à IA">
+      <button class="btn-utility" style="padding: 4px 8px; color: var(--color-coral); flex-shrink:0;" title="Remover"><i class="fa-solid fa-trash"></i></button>
+    `;
+    row.querySelector('.cp-shortcut-toggle').addEventListener('change', (e) => {
+      s.enabled = e.target.checked;
+      saveCopilotShortcuts();
+    });
+    row.querySelector('.cp-shortcut-label').addEventListener('change', (e) => {
+      s.label = e.target.value.trim() || s.label;
+      saveCopilotShortcuts();
+    });
+    row.querySelector('.cp-shortcut-prompt').addEventListener('change', (e) => {
+      s.prompt = e.target.value.trim() || s.prompt;
+      saveCopilotShortcuts();
+    });
+    row.querySelector('button').addEventListener('click', () => {
+      copilotShortcuts = copilotShortcuts.filter(x => x.id !== s.id);
+      saveCopilotShortcuts();
+      renderCopilotShortcutsConfig();
+    });
+    list.appendChild(row);
+  });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  renderCopilotPrompts();
+  renderCopilotShortcutsConfig();
+  const btnAddCp = document.getElementById('btn-add-copilot-shortcut');
+  if (btnAddCp) btnAddCp.addEventListener('click', () => {
+    const label = document.getElementById('new-copilot-shortcut-label').value.trim();
+    const prompt = document.getElementById('new-copilot-shortcut-prompt').value.trim();
+    if (!label || !prompt) return;
+    copilotShortcuts.push({ id: 'cp-' + Date.now(), label, prompt, enabled: true });
+    saveCopilotShortcuts();
+    renderCopilotShortcutsConfig();
+    document.getElementById('new-copilot-shortcut-label').value = '';
+    document.getElementById('new-copilot-shortcut-prompt').value = '';
+  });
+});
+
 function triggerCopilot(msg) {
   const input = document.getElementById("copilot-input");
   if (input) {
@@ -1645,34 +3761,707 @@ function submitCopilotMessage() {
   chat.appendChild(userDiv);
   chat.scrollTop = chat.scrollHeight;
 
-  // Simulate thinking
-  setTimeout(() => {
-    const aiDiv = document.createElement("div");
-    aiDiv.style.display = "flex";
-    aiDiv.style.gap = "12px";
-    aiDiv.style.maxWidth = "90%";
-    
-    // Simple mock responses
-    let responseText = "Entendido. Como inteligência artificial conectada a este atendimento, já analisei o histórico.";
-    if (msgText.toLowerCase().includes("resumo")) {
-      responseText = "<strong>Resumo do Chat:</strong> O cliente precisa regularizar um CNPJ Inativo e quer saber o valor dos honorários. Ele ainda não enviou nenhum documento.";
-    } else if (msgText.toLowerCase().includes("docs") || msgText.toLowerCase().includes("documentos")) {
-      responseText = "O cliente ainda não anexou nenhum documento válido. Faltam: <strong>RG, Comprovante de Residência e Última DAS</strong>.";
-    } else if (msgText.toLowerCase().includes("resposta") || msgText.toLowerCase().includes("rascunhar")) {
-      responseText = "<em>Sugestão de resposta:</em><br><br>Olá! Para avançarmos, precisarei que você me envie o extrato bancário em formato PDF, por favor. Pode enviar aqui mesmo pelo chat.";
+  // Bolha "pensando" enquanto a IA responde
+  const aiDiv = document.createElement("div");
+  aiDiv.style.display = "flex";
+  aiDiv.style.gap = "12px";
+  aiDiv.style.maxWidth = "90%";
+  aiDiv.innerHTML = `
+    <div style="width: 28px; height: 28px; border-radius: 50%; background: var(--color-pine); color: white; display: flex; align-items: center; justify-content: center; font-size: 12px; flex-shrink: 0;"><i class="fa-solid fa-robot"></i></div>
+    <div class="copilot-msg-bubble"><i class="fa-solid fa-spinner fa-spin"></i> Analisando o atendimento...</div>
+  `;
+  chat.appendChild(aiDiv);
+  chat.scrollTop = chat.scrollHeight;
+  const bubble = aiDiv.querySelector(".copilot-msg-bubble");
+
+  askCopilot(msgText, bubble, chat);
+}
+
+async function askCopilot(prompt, bubble, chat) {
+  try {
+    // A skill ativa (selecionada no topo do painel) vale pra qualquer pergunta
+    // feita aqui, seja digitada ou vinda de um atalho — é a mesma conversa.
+    const skillSelect = document.getElementById('active-skill-selector');
+    const skillAtiva = skillSelect && skillSelect.value ? iaSkills.find(s => s.id === skillSelect.value) : null;
+    const res = await fetch(API_BASE + '/api/copilot', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        clientId: activeClientId, mode: 'pergunta', prompt,
+        skill: skillAtiva ? { name: skillAtiva.name, content: skillAtiva.content } : null
+      })
+    });
+
+    if (res.status === 503) {
+      bubble.innerHTML = 'IA ainda não configurada. Adicione a <strong>OPENROUTER_API_KEY</strong> no .env do servidor para ativar o assistente.';
+      return;
     }
-    
-    aiDiv.innerHTML = `
-      <div style="width: 28px; height: 28px; border-radius: 50%; background: var(--color-pine); color: white; display: flex; align-items: center; justify-content: center; font-size: 12px; flex-shrink: 0;"><i class="fa-solid fa-robot"></i></div>
-      <div class="copilot-msg-bubble">${responseText}</div>
-    `;
-    
-    chat.appendChild(aiDiv);
-    chat.scrollTop = chat.scrollHeight;
-  }, 1000);
+    if (!res.ok) {
+      bubble.textContent = 'Não consegui responder agora. Tente novamente.';
+      return;
+    }
+    const data = await res.json();
+    // converte quebras de linha simples em <br> para leitura
+    bubble.innerHTML = (data.text || '').replace(/\n/g, '<br>');
+  } catch (e) {
+    bubble.textContent = 'Falha de conexão com o assistente.';
+  } finally {
+    if (chat) chat.scrollTop = chat.scrollHeight;
+  }
 }
 
 document.addEventListener("DOMContentLoaded", () => {
   setupAgendaMocks();
   renderDashboardCharts();
+  setupTarefas();
+});
+
+// ===== Tarefas Pendentes (dashboard) =====
+// Persistência em localStorage, mesmo padrão dos atalhos de chat (chatShortcuts).
+// Substitui os cards demo fixos que existiam no HTML.
+let ocTarefas = [];
+
+async function salvarTarefas() {
+  const res = await fetch(API_BASE + '/api/config', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ tarefas: ocTarefas }) });
+  if (!res.ok) throw new Error('tarefas_nao_salvas');
+}
+
+function renderTarefas() {
+  const lista = document.getElementById('tarefas-lista');
+  if (!lista) return;
+  lista.innerHTML = '';
+
+  if (ocTarefas.length === 0) {
+    lista.innerHTML = `
+      <div style="text-align: center; padding: 24px 12px; color: var(--color-text-secondary);">
+        <i class="fa-solid fa-list-check" style="font-size: 24px; opacity: .35; margin-bottom: 8px; display: block;"></i>
+        <p style="font-size: 13px; margin: 0;">Nenhuma tarefa pendente.</p>
+        <p style="font-size: 11px; margin: 4px 0 0;">Clique em <strong>+ Nova</strong> para anotar uma ação pós-atendimento.</p>
+      </div>`;
+    return;
+  }
+
+  ocTarefas.forEach((t, i) => {
+    const card = document.createElement('div');
+    card.style.cssText = 'display: flex; gap: 12px; align-items: flex-start; padding: 12px; border: 1px solid var(--color-border); border-radius: 8px; background: white;';
+
+    const check = document.createElement('input');
+    check.type = 'checkbox';
+    check.checked = !!t.feita;
+    check.style.cssText = 'margin-top: 4px; accent-color: var(--color-coral); width: 16px; height: 16px; cursor: pointer;';
+    check.addEventListener('change', () => {
+      ocTarefas[i].feita = check.checked;
+      salvarTarefas().catch(() => showToast('Não foi possível salvar a tarefa.'));
+      renderTarefas();
+    });
+
+    const info = document.createElement('div');
+    info.style.flex = '1';
+    const titulo = document.createElement('h4');
+    titulo.style.cssText = 'font-size: 13px; color: var(--color-pine); margin: 0;' + (t.feita ? ' text-decoration: line-through; opacity: .55;' : '');
+    titulo.textContent = t.texto;
+    info.appendChild(titulo);
+
+    const remover = document.createElement('button');
+    remover.title = 'Remover tarefa';
+    remover.innerHTML = '<i class="fa-solid fa-xmark"></i>';
+    remover.style.cssText = 'border: none; background: none; color: var(--color-text-secondary); cursor: pointer; font-size: 13px; padding: 2px 4px;';
+    remover.addEventListener('click', () => {
+      ocTarefas.splice(i, 1);
+      salvarTarefas().catch(() => showToast('Não foi possível salvar a tarefa.'));
+      renderTarefas();
+    });
+
+    card.append(check, info, remover);
+    lista.appendChild(card);
+  });
+}
+
+function setupTarefas() {
+  const btn = document.getElementById('btn-nova-tarefa');
+  if (btn) btn.addEventListener('click', () => {
+    const texto = prompt('Descreva a tarefa (ex.: "Enviar relatório — Ana Silva"):');
+    if (texto && texto.trim()) {
+      ocTarefas.unshift({ texto: texto.trim(), feita: false });
+      salvarTarefas().catch(() => showToast('Não foi possível salvar a tarefa.'));
+      renderTarefas();
+    }
+  });
+  renderTarefas();
+}
+
+function configArray(value) {
+  if (Array.isArray(value)) return value;
+  if (typeof value === 'string') { try { const parsed = JSON.parse(value); return Array.isArray(parsed) ? parsed : []; } catch (_) {} }
+  return [];
+}
+function configObject(value, fallback) {
+  if (value && typeof value === 'object' && !Array.isArray(value)) return value;
+  if (typeof value === 'string') { try { const parsed = JSON.parse(value); return parsed && typeof parsed === 'object' ? parsed : fallback; } catch (_) {} }
+  return fallback;
+}
+async function carregarWorkspacePersistente() {
+  try {
+    const res = await fetch(API_BASE + '/api/config');
+    if (!res.ok) throw new Error('config_indisponivel');
+    const cfg = await res.json();
+    ocTarefas = configArray(cfg.tarefas);
+    contadorProfile = { ...DEFAULT_PROFILE, ...configObject(cfg.perfil_contador, {}) };
+    iaSkills = configArray(cfg.ia_skills);
+    kanbanEtapas = configObject(cfg.kanban_etapas, {});
+    agendaDisponibilidade = configArray(cfg.agenda_disponibilidade);
+    if (!agendaDisponibilidade.length) agendaDisponibilidade = [...DEFAULT_AGENDA_SLOTS];
+    renderTarefas();
+    renderProfileToUI(contadorProfile);
+    renderSkillsTable();
+    updateSkillSelector();
+    renderDisponibilidadeAgenda();
+    renderCRM();
+    renderKanban();
+    updateDashboardData();
+  } catch (e) {
+    console.warn('Não consegui carregar as preferências compartilhadas:', e);
+    agendaDisponibilidade = [...DEFAULT_AGENDA_SLOTS];
+    renderDisponibilidadeAgenda();
+    updateDashboardData();
+  }
+}
+
+let contadorUnreadCount = 0;
+let originalTitle = document.title;
+
+function incrementContadorBadge() {
+  contadorUnreadCount++;
+  const badge = document.getElementById('badge-atendimentos-contador');
+  if (badge) {
+    badge.textContent = contadorUnreadCount;
+    badge.style.display = 'block';
+  }
+  document.title = `(${contadorUnreadCount}) Nova mensagem - Olá, Contador`;
+}
+
+function clearContadorBadge() {
+  contadorUnreadCount = 0;
+  const badge = document.getElementById('badge-atendimentos-contador');
+  if (badge) {
+    badge.style.display = 'none';
+    badge.textContent = '0';
+  }
+  document.title = originalTitle;
+}
+
+// ==========================================
+// PROFILE EDITING LOGIC
+// ==========================================
+
+const DEFAULT_PROFILE = {
+  name: "Filipe Heck",
+  crc: "CRC/RS 123456/O",
+  tags: "MEI, Imposto de Renda, Malha Fina",
+  bio: "Sou especialista em atendimento a pequenos e médios empreendedores. Com mais de 10 anos de atuação na área contábil, meu foco é traduzir a burocracia do Leão em linguagem simples e resultados reais para os clientes, sempre focando na economia legal e otimização fiscal.",
+  education: "Bacharelado em Ciências Contábeis - UFRGS (2015)\nPós-graduação em Direito Tributário (2018)",
+  logoDataUrl: "",
+  assinaturaDataUrl: ""
+};
+
+// Lê a imagem escolhida como data URI (guardado direto no JSON do perfil,
+// mesmo padrão de outras imagens pequenas do app — sem precisar de Storage).
+function lerImagemComoDataUrl(input) {
+  return new Promise((resolve, reject) => {
+    const file = input.files && input.files[0];
+    if (!file) return resolve(null);
+    if (file.size > 1024 * 1024) { showToast('Imagem muito grande (máx. 1MB).'); return reject(new Error('too_large')); }
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+function atualizarPreviaImagemPerfil(url, imgId, btnRemoverId) {
+  const img = document.getElementById(imgId);
+  const btn = document.getElementById(btnRemoverId);
+  if (!img) return;
+  if (url) { img.src = url; img.style.display = 'inline-block'; if (btn) btn.style.display = 'inline-flex'; }
+  else { img.src = ''; img.style.display = 'none'; if (btn) btn.style.display = 'none'; }
+}
+let contadorProfile = DEFAULT_PROFILE;
+
+function loadProfileData() {
+  return contadorProfile;
+}
+
+function renderProfileToUI(profile) {
+  // Update name and CRC
+  const headerInfo = document.querySelector('#section-perfil .profile-info');
+  if (!headerInfo) return;
+  
+  headerInfo.querySelector('h2').innerHTML = `${profile.name} <i class="fa-solid fa-circle-check" style="color:var(--color-coral); font-size:16px;" title="Contador Verificado"></i>`;
+  headerInfo.querySelector('p').innerHTML = `<i class="fa-solid fa-id-card"></i> ${profile.crc}`;
+  
+  // Update tags
+  const tagsContainer = headerInfo.querySelector('div');
+  tagsContainer.innerHTML = '';
+  const tags = profile.tags.split(',').map(t => t.trim()).filter(Boolean);
+  tags.forEach(tag => {
+    const span = document.createElement('span');
+    span.className = 'specialty-tag';
+    span.textContent = tag;
+    tagsContainer.appendChild(span);
+  });
+
+  // Update bio
+  const bioEl = document.querySelector('#section-perfil p[style*="line-height:1.6"]');
+  if (bioEl) bioEl.textContent = profile.bio;
+
+  // Update education
+  const eduUl = document.getElementById('profile-education');
+  if (eduUl) {
+    eduUl.innerHTML = '';
+    const lines = profile.education.split('\n').map(l => l.trim()).filter(Boolean);
+    lines.forEach(line => {
+      const li = document.createElement('li');
+      li.innerHTML = `<i class="fa-solid fa-graduation-cap" style="color:var(--color-coral); width:24px;"></i> ${line}`;
+      eduUl.appendChild(li);
+    });
+  }
+}
+
+// Override openModal specifically for the profile modal to prepopulate it
+let perfilLogoPendente, perfilAssinaturaPendente; // null=remover, undefined=manter, string=nova
+
+const originalOpenModal = window.openModal;
+window.openModal = function(id) {
+  if (id === 'modal-editar-perfil') {
+    const profile = loadProfileData();
+    document.getElementById('edit-profile-name').value = profile.name;
+    document.getElementById('edit-profile-crc').value = profile.crc;
+    document.getElementById('edit-profile-tags').value = profile.tags;
+    document.getElementById('edit-profile-bio').value = profile.bio;
+    document.getElementById('edit-profile-education').value = profile.education;
+    perfilLogoPendente = undefined;
+    perfilAssinaturaPendente = undefined;
+    document.getElementById('edit-profile-logo').value = '';
+    document.getElementById('edit-profile-assinatura').value = '';
+    atualizarPreviaImagemPerfil(profile.logoDataUrl, 'preview-profile-logo', 'btn-remover-logo');
+    atualizarPreviaImagemPerfil(profile.assinaturaDataUrl, 'preview-profile-assinatura', 'btn-remover-assinatura');
+  }
+  if (originalOpenModal) originalOpenModal(id);
+};
+
+document.addEventListener('DOMContentLoaded', () => {
+  const inputLogo = document.getElementById('edit-profile-logo');
+  const inputAssinatura = document.getElementById('edit-profile-assinatura');
+  if (inputLogo) inputLogo.addEventListener('change', async () => {
+    const url = await lerImagemComoDataUrl(inputLogo).catch(() => null);
+    if (url) { perfilLogoPendente = url; atualizarPreviaImagemPerfil(url, 'preview-profile-logo', 'btn-remover-logo'); }
+  });
+  if (inputAssinatura) inputAssinatura.addEventListener('change', async () => {
+    const url = await lerImagemComoDataUrl(inputAssinatura).catch(() => null);
+    if (url) { perfilAssinaturaPendente = url; atualizarPreviaImagemPerfil(url, 'preview-profile-assinatura', 'btn-remover-assinatura'); }
+  });
+  const btnRemLogo = document.getElementById('btn-remover-logo');
+  if (btnRemLogo) btnRemLogo.addEventListener('click', () => {
+    perfilLogoPendente = null; inputLogo.value = '';
+    atualizarPreviaImagemPerfil('', 'preview-profile-logo', 'btn-remover-logo');
+  });
+  const btnRemAssinatura = document.getElementById('btn-remover-assinatura');
+  if (btnRemAssinatura) btnRemAssinatura.addEventListener('click', () => {
+    perfilAssinaturaPendente = null; inputAssinatura.value = '';
+    atualizarPreviaImagemPerfil('', 'preview-profile-assinatura', 'btn-remover-assinatura');
+  });
+});
+
+window.saveProfileData = async function() {
+  const profile = {
+    name: document.getElementById('edit-profile-name').value.trim(),
+    crc: document.getElementById('edit-profile-crc').value.trim(),
+    tags: document.getElementById('edit-profile-tags').value.trim(),
+    bio: document.getElementById('edit-profile-bio').value.trim(),
+    education: document.getElementById('edit-profile-education').value.trim(),
+    logoDataUrl: perfilLogoPendente === null ? '' : (perfilLogoPendente || contadorProfile.logoDataUrl || ''),
+    assinaturaDataUrl: perfilAssinaturaPendente === null ? '' : (perfilAssinaturaPendente || contadorProfile.assinaturaDataUrl || '')
+  };
+
+  const res = await fetch(API_BASE + '/api/config', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ perfil_contador: profile }) });
+  if (!res.ok) { showToast('Não foi possível salvar o perfil.'); return; }
+  contadorProfile = profile;
+  PERFIL_PAINEL = profile; // o relatório usa esse cache; sem isso só pegaria a marca nova depois de recarregar a página
+  renderProfileToUI(profile);
+  closeModal('modal-editar-perfil');
+  showToast('Perfil atualizado com sucesso!');
+};
+
+// ============================================================================
+// BASES DE CONHECIMENTO (SKILLS IA)
+// ============================================================================
+let iaSkills = [];
+
+async function saveSkills() {
+  const res = await fetch(API_BASE + '/api/config', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ia_skills: iaSkills }) });
+  if (!res.ok) { showToast('Não foi possível salvar a skill.'); return; }
+  renderSkillsTable();
+  updateSkillSelector();
+}
+
+function renderSkillsTable() {
+  const tbody = document.getElementById('skills-table-body');
+  if (!tbody) return;
+  tbody.innerHTML = '';
+  if (iaSkills.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: var(--color-text-secondary);">Nenhuma skill cadastrada.</td></tr>';
+    return;
+  }
+  
+  iaSkills.forEach(skill => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td style="font-weight: 500; color: var(--color-pine);">${skill.name}</td>
+      <td style="color: var(--color-text-secondary); font-size: 13px;">${skill.desc}</td>
+      <td>${skill.tema ? `<span style="background: var(--color-pine-ultra-light); color: var(--color-pine); padding: 2px 6px; border-radius: 4px; font-size: 11px;">Auto: ${skill.tema}</span>` : '<span style="color: var(--color-text-secondary); font-size: 11px;">Manual</span>'}</td>
+      <td>
+        <button class="btn-utility" style="padding: 4px 8px; font-size: 11px;" onclick="editSkill('${skill.id}')"><i class="fa-solid fa-pen"></i></button>
+        <button class="btn-utility" style="padding: 4px 8px; font-size: 11px; color: var(--color-coral);" onclick="deleteSkill('${skill.id}')"><i class="fa-solid fa-trash"></i></button>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+function updateSkillSelector() {
+  const select = document.getElementById('active-skill-selector');
+  if (!select) return;
+  select.innerHTML = '<option value="">Sem skill ativa — resposta padrão</option>';
+  iaSkills.forEach(skill => {
+    const opt = document.createElement('option');
+    opt.value = skill.id;
+    opt.textContent = 'Skill: ' + skill.name + (skill.tema ? ' (auto: ' + skill.tema + ')' : '');
+    select.appendChild(opt);
+  });
+}
+
+// Acha a skill marcada pra ativar sozinha quando o tema bate com o do atendimento.
+// taxType é texto livre (ex.: "Malha Fina IR2025"), não bate exato com o tema
+// cadastrado na skill ("Malha Fina") — por isso comparamos por trecho.
+function skillPorTema(taxType) {
+  if (!taxType) return null;
+  const alvo = taxType.toLowerCase();
+  return iaSkills.find(s => s.tema && alvo.includes(s.tema.toLowerCase())) || null;
+}
+
+window.openSkillModal = function() {
+  document.getElementById('skill-id').value = '';
+  document.getElementById('form-skill').reset();
+  openModal('modal-skill-overlay');
+}
+
+window.editSkill = function(id) {
+  const skill = iaSkills.find(s => s.id === id);
+  if (!skill) return;
+  document.getElementById('skill-id').value = skill.id;
+  document.getElementById('skill-name').value = skill.name;
+  document.getElementById('skill-desc').value = skill.desc;
+  document.getElementById('skill-content').value = skill.content;
+  document.getElementById('skill-tema').value = skill.tema || '';
+  openModal('modal-skill-overlay');
+}
+
+window.deleteSkill = function(id) {
+  if (confirm('Tem certeza que deseja apagar esta Skill?')) {
+    iaSkills = iaSkills.filter(s => s.id !== id);
+    saveSkills();
+  }
+}
+
+const formSkill = document.getElementById('form-skill');
+if (formSkill) {
+  formSkill.addEventListener('submit', function(e) {
+    e.preventDefault();
+    const id = document.getElementById('skill-id').value;
+    const name = document.getElementById('skill-name').value;
+    const desc = document.getElementById('skill-desc').value;
+    const content = document.getElementById('skill-content').value;
+    const tema = document.getElementById('skill-tema').value;
+
+    if (id) {
+      const skill = iaSkills.find(s => s.id === id);
+      if (skill) {
+        skill.name = name; skill.desc = desc; skill.content = content; skill.tema = tema;
+      }
+    } else {
+      iaSkills.push({ id: Date.now().toString(), name, desc, content, tema });
+    }
+    
+    saveSkills();
+    closeModal('modal-skill-overlay');
+  });
+}
+
+// Abre o painel do Copiloto direto na aba "copilot" (sem fechar se já tiver
+// aberta nela) — usado quando a IA precisa mostrar o raciocínio dela ali.
+function abrirPainelCopiloto() {
+  const sidePanelLeft = document.getElementById('side-panel-left');
+  if (!sidePanelLeft) return;
+  sidePanelLeft.classList.remove('collapsed');
+  document.querySelectorAll('.btn-toolbar').forEach(btn => btn.classList.remove('active'));
+  const activeBtn = document.getElementById('btn-tool-copilot');
+  if (activeBtn) activeBtn.classList.add('active');
+  document.querySelectorAll('.side-panel-content').forEach(c => c.classList.remove('active'));
+  const targetContent = document.getElementById('panel-content-copilot');
+  if (targetContent) targetContent.classList.add('active');
+  sidePanelLeft.dataset.panel = 'copilot';
+}
+
+// Botão "Olá" dentro do chat — a IA assume a leitura do atendimento e sugere
+// a próxima resposta, sempre em modo supervisionado: o texto vai pro campo de
+// mensagem pra eu revisar/editar, nunca é enviado sozinho. O raciocínio dela
+// (a mesma resposta) também aparece no painel do Copiloto, que abre pra isso.
+window.triggerInlineCopilot = async function() {
+  if (!activeClientId || !clientsData[activeClientId]) return;
+  const input = document.getElementById('message-input');
+  const btn = document.getElementById('btn-inline-ai');
+  if (btn) btn.disabled = true;
+  const placeholderOriginal = input.placeholder;
+  input.placeholder = 'A IA está lendo o atendimento...';
+
+  abrirPainelCopiloto();
+  const chat = document.getElementById('copilot-chat');
+  const aiDiv = document.createElement('div');
+  aiDiv.style.display = 'flex'; aiDiv.style.gap = '12px'; aiDiv.style.maxWidth = '90%';
+  aiDiv.innerHTML = `
+    <div style="width: 28px; height: 28px; border-radius: 50%; background: var(--color-pine); display: flex; align-items: center; justify-content: center; flex-shrink: 0;"><svg viewBox="0 0 616 640" style="width: 15px; height: 15px;"><use href="#oc-logo-mark"></use></svg></div>
+    <div class="copilot-msg-bubble"><i class="fa-solid fa-spinner fa-spin"></i> Assumindo o atendimento — lendo a conversa e preparando uma sugestão de resposta...</div>`;
+  if (chat) { chat.appendChild(aiDiv); chat.scrollTop = chat.scrollHeight; }
+  const bubble = aiDiv.querySelector('.copilot-msg-bubble');
+
+  const skillSelect = document.getElementById('active-skill-selector');
+  const skillAtiva = skillSelect && skillSelect.value ? iaSkills.find(s => s.id === skillSelect.value) : null;
+
+  try {
+    const res = await fetch(API_BASE + '/api/copilot', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        clientId: activeClientId, mode: 'pergunta',
+        prompt: 'Assuma o atendimento agora: com base em toda a conversa até aqui, escreva a próxima resposta que devo enviar ao cliente. Responda só com o texto pronto pra eu revisar e enviar — sem explicações, sem aspas.',
+        skill: skillAtiva ? { name: skillAtiva.name, content: skillAtiva.content } : null
+      })
+    });
+    if (res.status === 503) {
+      if (bubble) bubble.innerHTML = 'IA ainda não configurada. Adicione a <strong>OPENROUTER_API_KEY</strong> no .env do servidor.';
+      return;
+    }
+    if (!res.ok) {
+      if (bubble) bubble.textContent = 'Não consegui gerar a sugestão agora. Tente de novo.';
+      return;
+    }
+    const data = await res.json();
+    const sugestao = (data.text || '').trim();
+    if (bubble) bubble.innerHTML = 'Sugestão enviada pro campo de mensagem — revise antes de enviar:<br><em>' + safe(sugestao).replace(/\n/g, '<br>') + '</em>';
+    input.value = sugestao;
+    input.style.border = '1px solid var(--color-coral)';
+    input.style.backgroundColor = '#FFF6F6';
+    setTimeout(() => { input.style.border = ''; input.style.backgroundColor = ''; }, 2000);
+  } catch (e) {
+    if (bubble) bubble.textContent = 'Falha de conexão com o assistente.';
+  } finally {
+    input.placeholder = placeholderOriginal;
+    if (btn) btn.disabled = false;
+    if (chat) chat.scrollTop = chat.scrollHeight;
+  }
+}
+
+// Initialize profile on load
+document.addEventListener("DOMContentLoaded", () => {
+  renderProfileToUI(loadProfileData());
+  renderSkillsTable();
+  updateSkillSelector();
+  renderShortcuts();
+});
+
+// ==========================================
+// CHAT CONFIGURATIONS (Shortcuts & Colors)
+// ==========================================
+
+const defaultShortcuts = [
+  { id: '1', action: 'reply', text: '/boasvindas', label: '/boasvindas', icon: 'fa-hand-holding-hand' },
+  { id: '2', action: 'reply', text: '/doc-malha', label: '/doc-malha', icon: 'fa-file-invoice' },
+  { id: '3', action: 'reply', text: '/honorarios', label: '/honorarios', icon: 'fa-dollar-sign' },
+  { id: '4', action: 'doc', text: 'CPF e RG', label: 'Pedir CPF/RG', icon: 'fa-id-card' },
+  { id: '5', action: 'doc', text: 'Notificação da Receita', label: 'Pedir Notificação', icon: 'fa-triangle-exclamation' }
+];
+
+let chatShortcuts = JSON.parse(localStorage.getItem('chatShortcuts')) || defaultShortcuts;
+
+function saveShortcuts() {
+  localStorage.setItem('chatShortcuts', JSON.stringify(chatShortcuts));
+  renderShortcuts();
+}
+
+function renderShortcuts() {
+  const container = document.getElementById('chat-shortcuts-container');
+  const cfgList = document.getElementById('cfg-shortcuts-list');
+  
+  if (container) {
+    container.innerHTML = '';
+    chatShortcuts.forEach(sc => {
+      const btn = document.createElement('button');
+      btn.className = 'btn-shortcut-tag';
+      if (sc.action === 'doc') {
+        btn.setAttribute('data-action', 'doc');
+        btn.setAttribute('data-doc', sc.text);
+      } else {
+        btn.setAttribute('data-action', 'reply');
+        btn.setAttribute('data-text', sc.text);
+      }
+      btn.innerHTML = `<i class="fa-solid ${sc.icon}"></i> ${sc.label}`;
+      
+      btn.addEventListener("click", () => {
+        if (sc.action === 'doc') {
+          sendDocumentRequest(sc.text);
+        } else {
+          // If the text matches a canned response key, replace [VALOR], otherwise just insert text.
+          const client = clientsData[activeClientId];
+          let cannedText = cannedResponses[sc.text] || sc.text;
+          if (client && client.honorarios) {
+             // O template já escreve "R$ [VALOR]" — repetir o R$ aqui gerava
+             // "R$ R$ 150,00" na mensagem enviada ao cliente.
+             cannedText = cannedText.replace("[VALOR]", `${client.honorarios},00`);
+          }
+          document.getElementById("message-input").value = cannedText;
+          document.getElementById("message-input").focus();
+        }
+      });
+      
+      container.appendChild(btn);
+    });
+    
+    // Add default audio button
+    const audioBtn = document.createElement('button');
+    audioBtn.className = 'btn-shortcut-tag';
+    audioBtn.id = 'btn-send-audio-shortcut';
+    audioBtn.innerHTML = '<i class="fa-solid fa-microphone"></i> Enviar Áudio';
+    audioBtn.addEventListener("click", () => sendAudioMessage("agent", "0:45"));
+    container.appendChild(audioBtn);
+  }
+  
+  if (cfgList) {
+    cfgList.innerHTML = '';
+    chatShortcuts.forEach(sc => {
+      const div = document.createElement('div');
+      div.style.display = 'flex';
+      div.style.justifyContent = 'space-between';
+      div.style.alignItems = 'center';
+      div.style.padding = '8px 12px';
+      div.style.background = 'white';
+      div.style.border = '1px solid var(--color-border)';
+      div.style.borderRadius = '6px';
+      div.innerHTML = `
+        <div style="font-size: 12px; color: var(--color-pine);">
+          <i class="fa-solid ${sc.icon}" style="margin-right: 6px;"></i> 
+          <strong>${sc.label}</strong> <span style="color: var(--color-text-secondary); margin-left: 8px;">(${sc.text})</span>
+        </div>
+        <button class="btn-utility" style="padding: 4px 8px; color: #E74C3C;" onclick="deleteShortcut('${sc.id}')"><i class="fa-solid fa-trash"></i></button>
+      `;
+      cfgList.appendChild(div);
+    });
+  }
+}
+
+window.deleteShortcut = function(id) {
+  chatShortcuts = chatShortcuts.filter(sc => sc.id !== id);
+  saveShortcuts();
+};
+
+document.addEventListener("DOMContentLoaded", () => {
+  const btnAdd = document.getElementById('btn-add-shortcut');
+  if (btnAdd) {
+    btnAdd.addEventListener('click', () => {
+      const text = document.getElementById('new-shortcut-text').value;
+      const label = document.getElementById('new-shortcut-label').value;
+      const icon = document.getElementById('new-shortcut-icon').value || 'fa-bolt';
+      
+      if (!text || !label) return;
+      
+      chatShortcuts.push({
+        id: Date.now().toString(),
+        text,
+        label,
+        icon
+      });
+      
+      document.getElementById('new-shortcut-text').value = '';
+      document.getElementById('new-shortcut-label').value = '';
+      document.getElementById('new-shortcut-icon').value = 'fa-bolt';
+      
+      saveShortcuts();
+    });
+  }
+  
+  // Setup Dark Mode
+  const darkModeToggle = document.getElementById('dark-mode-toggle');
+  
+  // Check localStorage for dark mode
+  if (localStorage.getItem('darkMode') === 'enabled') {
+    document.body.classList.add('dark-mode');
+    if (darkModeToggle) darkModeToggle.checked = true;
+  }
+  
+  if (darkModeToggle) {
+    darkModeToggle.addEventListener('change', () => {
+      if (darkModeToggle.checked) {
+        document.body.classList.add('dark-mode');
+        localStorage.setItem('darkMode', 'enabled');
+      } else {
+        document.body.classList.remove('dark-mode');
+        localStorage.setItem('darkMode', 'disabled');
+      }
+    });
+  }
+
+  // Setup colors
+  const defaultColors = {
+    chatBg: '#FFFFFF',
+    bubbleContador: '#164E37',
+    bubbleCliente: '#F0EDE6',
+    copilotBg: '#EAF1F6'
+  };
+
+  const savedColors = { ...defaultColors, ...(JSON.parse(localStorage.getItem('chatColors')) || {}) };
+
+  function applyColors(colors) {
+    document.documentElement.style.setProperty('--chat-bg-color', colors.chatBg);
+    document.documentElement.style.setProperty('--chat-bubble-contador-bg', colors.bubbleContador);
+    document.documentElement.style.setProperty('--chat-bubble-cliente-bg', colors.bubbleCliente);
+    document.documentElement.style.setProperty('--copilot-bg-color', colors.copilotBg);
+  }
+
+  applyColors(savedColors);
+
+  const inputBg = document.getElementById('cfg-color-chat-bg');
+  const inputContador = document.getElementById('cfg-color-bubble-contador');
+  const inputCliente = document.getElementById('cfg-color-bubble-cliente');
+  const inputCopilot = document.getElementById('cfg-color-copilot-bg');
+
+  if (inputBg) {
+    inputBg.value = savedColors.chatBg;
+    inputContador.value = savedColors.bubbleContador;
+    inputCliente.value = savedColors.bubbleCliente;
+    if (inputCopilot) inputCopilot.value = savedColors.copilotBg;
+
+    function updateAndSaveColors() {
+      const colors = {
+        chatBg: inputBg.value,
+        bubbleContador: inputContador.value,
+        bubbleCliente: inputCliente.value,
+        copilotBg: inputCopilot ? inputCopilot.value : savedColors.copilotBg
+      };
+      applyColors(colors);
+      localStorage.setItem('chatColors', JSON.stringify(colors));
+    }
+
+    inputBg.addEventListener('input', updateAndSaveColors);
+    inputContador.addEventListener('input', updateAndSaveColors);
+    inputCliente.addEventListener('input', updateAndSaveColors);
+    if (inputCopilot) inputCopilot.addEventListener('input', updateAndSaveColors);
+  }
 });

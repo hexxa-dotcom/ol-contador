@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Planos e preços — Olá, Contador</title>
+<meta name="description" content="Preço fixo por atendimento, combinado antes. Chat seguro com contador, relatório assinado com CRC e área do cliente para acompanhar tudo. PF R$ 199, PJ R$ 399." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Hanken+Grotesk:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:#F4EEE1;font-family:"Hanken Grotesk",sans-serif;color:#17231C}
+  a{text-decoration:none;color:inherit}
+  .wrap{max-width:1200px;margin:0 auto;padding:0 32px}
+  .topo{position:sticky;top:0;z-index:50;background:rgba(244,238,225,.88);backdrop-filter:blur(12px);border-bottom:1px solid rgba(23,35,28,.08)}
+  .topo-in{display:flex;align-items:center;justify-content:space-between;padding:14px 32px;max-width:1200px;margin:0 auto}
+  .marca{display:flex;align-items:center;gap:10px}
+  .marca img{width:36px;display:block}
+  .marca b{font-family:"Bricolage Grotesque",sans-serif;font-weight:800;font-size:21px;letter-spacing:-.02em;color:#093726}
+  .marca b i{font-style:normal;color:#FF6A45}
+  .btnp{transition:transform .15s ease,box-shadow .15s ease}
+  .btnp:hover{transform:translateY(-2px);box-shadow:0 16px 30px -14px rgba(255,106,69,.6)}
+  .btng{transition:transform .15s ease}
+  .btng:hover{transform:translateY(-2px)}
+  .card{transition:transform .2s ease}
+  .card:hover{transform:translateY(-4px)}
+
+  .passos{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;margin-top:56px;text-align:left}
+  .passo{background:#FFFDF8;border:1px solid rgba(23,35,28,.08);border-radius:18px;padding:22px}
+  .passo-n{width:30px;height:30px;border-radius:50%;background:#0E5C43;color:#F7F1E6;font-weight:800;font-size:14px;display:flex;align-items:center;justify-content:center;margin-bottom:12px}
+  .passo b{font-family:"Bricolage Grotesque",sans-serif;font-size:16.5px;color:#093726;display:block;margin-bottom:6px}
+  .passo p{font-size:14px;color:#3A463F;line-height:1.5}
+
+  .planos{display:grid;grid-template-columns:repeat(3,1fr);gap:28px;align-items:stretch;text-align:left;margin-top:56px}
+  .plano{display:flex;flex-direction:column;border-radius:28px;padding:44px 40px}
+  .preco-num{font-family:"Bricolage Grotesque",sans-serif;font-weight:800;font-size:84px;line-height:.95;letter-spacing:-.04em}
+  .ent{display:flex;gap:12px;align-items:flex-start;line-height:1.45}
+  .ent b{display:block;font-size:16px}
+  .ent small{display:block;font-size:13.5px;opacity:.78;margin-top:2px}
+  .selo-check{font-weight:800;flex-shrink:0;margin-top:2px}
+  .resolve-rotulo{font-size:11.5px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;margin:26px 0 10px}
+  .chips{display:flex;flex-wrap:wrap;gap:7px}
+  .chip{font-size:12.5px;font-weight:600;padding:5px 11px;border-radius:20px}
+
+  .faq{max-width:760px;margin:0 auto;text-align:left}
+  .faq details{background:#FFFDF8;border:1px solid rgba(23,35,28,.09);border-radius:16px;padding:0;margin-bottom:12px;overflow:hidden}
+  .faq summary{cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center;gap:16px;padding:20px 24px;font-family:"Bricolage Grotesque",sans-serif;font-weight:700;font-size:17px;color:#093726}
+  .faq summary::-webkit-details-marker{display:none}
+  .faq summary::after{content:'+';font-size:22px;color:#FF6A45;font-weight:700;flex-shrink:0;transition:transform .2s}
+  .faq details[open] summary::after{transform:rotate(45deg)}
+  .faq details p{padding:0 24px 20px;font-size:15.5px;color:#3A463F;line-height:1.6}
+
+  @media (max-width:960px){
+    .planos{grid-template-columns:1fr;max-width:520px;margin-left:auto;margin-right:auto}
+    .passos{grid-template-columns:1fr 1fr;max-width:560px;margin-left:auto;margin-right:auto}
+    .preco-num{font-size:72px}
+    h1{font-size:36px !important}
+    h2{font-size:30px !important}
+    .topo-in{padding:12px 16px}
+    .volta{display:none}
+    .wrap{padding:0 18px}
+  }
+  @media (max-width:520px){.passos{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<div class="topo">
+  <div class="topo-in">
+    <a class="marca" href="index.html"><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2MTYgNjQwIj48cGF0aCBmaWxsPSIjMDkzNzI2IiBkPSJNMjg3IDY0LjkzQzI4OS4yMSA2NC42NiAyOTMuNjIgNjQuMTcgMjk2Ljk0IDY0LjAyQzMwMC4yNyA2My44NiAzMDMuNjEgNjQgMzA2Ljk0IDY0QzMxMC4yOCA2NCAzMTMuNjEgNjQgMzE2Ljk0IDY0QzMyMC4yOCA2NCAzMjMuNjEgNjQgMzI2Ljk0IDY0QzMzMC4yOCA2NCAzMzMuNjEgNjQgMzM2Ljk0IDY0QzM0MC4yOCA2NCAzNDMuNjIgNjMuODQgMzQ2Ljk0IDY0LjAyQzM1MC4yNyA2NC4xOSAzNTMuNTkgNjQuNTEgMzU2Ljg3IDY1LjA2QzM2MC4xNSA2NS42MSAzNjMuMzQgNjYuNjkgMzY2LjYxIDY3LjMyQzM2OS44OCA2Ny45NSAzNzMuMjQgNjguMTUgMzc2LjUgNjguODNDMzc5Ljc1IDY5LjUxIDM4Mi45NCA3MC41MiAzODYuMTUgNzEuNEMzODkuMzcgNzIuMjkgMzkyLjU3IDczLjIyIDM5NS43NyA3NC4xN0MzOTguOTYgNzUuMTIgNDAyLjE2IDc2LjA1IDQwNS4zMiA3Ny4xMUM0MDguNDggNzguMTcgNDExLjYyIDc5LjMgNDE0LjczIDgwLjUxQzQxNy44MyA4MS43MSA0MjAuOTMgODIuOTcgNDIzLjk3IDg0LjMyQzQyNy4wMiA4NS42NyA0MzAuMDIgODcuMTMgNDMzIDg4LjYxQzQzNS45OCA5MC4xIDQzOC45NCA5MS42NSA0NDEuODcgOTMuMjJDNDQ0LjgxIDk0Ljc5IDQ0Ny43NSA5Ni4zOCA0NTAuNjIgOTguMDZDNDUzLjUgOTkuNzQgNDU2LjMzIDEwMS41IDQ1OS4xNCAxMDMuM0M0NjEuOTQgMTA1LjExIDQ2NC43MSAxMDYuOTcgNDY3LjQ0IDEwOC44OEM0NzAuMTcgMTEwLjc5IDQ3Mi44NSAxMTIuNzggNDc1LjUyIDExNC43N0M0NzguMTkgMTE2Ljc2IDQ4MC44IDExOC44MyA0ODMuNDYgMTIwLjg1QzQ4Ni4xMiAxMjIuODYgNDg4Ljg4IDEyNC43NCA0OTEuNDUgMTI2Ljg2QzQ5NC4wMiAxMjguOTcgNDk2LjQ4IDEzMS4yNCA0OTguOSAxMzMuNTJDNTAxLjMyIDEzNS44MSA1MDMuNjUgMTM4LjIgNTA1Ljk5IDE0MC41OEM1MDguMzIgMTQyLjk2IDUxMC43MiAxNDUuMjkgNTEyLjkgMTQ3LjhDNTE1LjA4IDE1MC4zMSA1MTcuMDUgMTUzLjAxIDUxOS4wOSAxNTUuNjVDNTIxLjEyIDE1OC4yOSA1MjMuMSAxNjAuOTcgNTI1LjExIDE2My42M0M1MjcuMTIgMTY2LjI5IDUyOS4yMSAxNjguODkgNTMxLjEzIDE3MS42MkM1MzMuMDQgMTc0LjM0IDUzNC44NCAxNzcuMTYgNTM2LjYxIDE3OS45OEM1MzguMzggMTgyLjggNTQwLjE3IDE4NS42MyA1NDEuNzUgMTg4LjU2QzU0My4zNCAxOTEuNDggNTQ0Ljg2IDE5NC40NyA1NDYuMTIgMTk3LjU0QzU0Ny4zOCAyMDAuNjIgNTQ4LjUyIDIwMy43OSA1NDkuMzIgMjA3LjAxQzU1MC4xMiAyMTAuMjMgNTUwLjY5IDIxMy41NiA1NTAuOTIgMjE2Ljg2QzU1MS4xNCAyMjAuMTcgNTUxLjA5IDIyMy41NiA1NTAuNjggMjI2Ljg1QzU1MC4yNyAyMzAuMTQgNTQ5LjM5IDIzMy4zOSA1NDguNDYgMjM2LjU4QzU0Ny41MiAyMzkuNzcgNTQ2LjQyIDI0Mi45NSA1NDUuMDcgMjQ1Ljk4QzU0My43MSAyNDkuMDIgNTQyLjE5IDI1Mi4wMyA1NDAuMzQgMjU0Ljc4QzUzOC41IDI1Ny41MyA1MzYuMjggMjYwLjA4IDUzNCAyNjIuNUM1MzEuNzEgMjY0LjkxIDUyOS4yNiAyNjcuMjEgNTI2LjY1IDI2OS4yN0M1MjQuMDQgMjcxLjMyIDUyMS4yNiAyNzMuMjQgNTE4LjM1IDI3NC44M0M1MTUuNDQgMjc2LjQxIDUxMi4zMSAyNzcuNjUgNTA5LjE5IDI3OC43OUM1MDYuMDYgMjc5LjkzIDUwMi44NiAyODAuOTkgNDk5LjYxIDI4MS42N0M0OTYuMzcgMjgyLjM2IDQ5My4wMSAyODIuOTEgNDg5LjcxIDI4Mi44OUM0ODYuNDIgMjgyLjg2IDQ4My4wOCAyODIuMjEgNDc5LjgzIDI4MS41M0M0NzYuNTggMjgwLjg1IDQ3My4zNSAyNzkuODkgNDcwLjIxIDI3OC44QzQ2Ny4wNyAyNzcuNzIgNDYzLjkxIDI3Ni41NSA0NjAuOTggMjc1QzQ1OC4wNSAyNzMuNDUgNDU1LjI2IDI3MS41NCA0NTIuNjQgMjY5LjUxQzQ1MC4wMiAyNjcuNDcgNDQ3LjU2IDI2NS4xNyA0NDUuMjYgMjYyLjc3QzQ0Mi45NiAyNjAuMzcgNDQwLjgzIDI1Ny43OCA0MzguODQgMjU1LjExQzQzNi44NCAyNTIuNDUgNDM1LjE1IDI0OS41NiA0MzMuMyAyNDYuNzlDNDMxLjQ1IDI0NC4wMiA0MjkuNzMgMjQxLjE0IDQyNy43NCAyMzguNDhDNDI1Ljc1IDIzNS44MiA0MjMuNTggMjMzLjI3IDQyMS4zMyAyMzAuODFDNDE5LjA5IDIyOC4zNSA0MTYuNjggMjI2LjA0IDQxNC4yNyAyMjMuNzNDNDExLjg3IDIyMS40MiA0MDkuNDUgMjE5LjEyIDQwNi45IDIxNi45N0M0MDQuMzYgMjE0LjgzIDQwMS43IDIxMi44IDM5OSAyMTAuODZDMzk2LjI5IDIwOC45MiAzOTMuNSAyMDcuMDkgMzkwLjY1IDIwNS4zNUMzODcuOCAyMDMuNjIgMzg0Ljg5IDIwMS45OCAzODEuOTIgMjAwLjQ3QzM3OC45NSAxOTguOTYgMzc1LjkyIDE5Ny41NiAzNzIuODQgMTk2LjI5QzM2OS43NiAxOTUuMDMgMzY2LjYxIDE5My45MSAzNjMuNDUgMTkyLjg3QzM2MC4yOCAxOTEuODMgMzU3LjA2IDE5MC45NSAzNTMuODQgMTkwLjA4QzM1MC42MyAxODkuMjEgMzQ3LjQzIDE4OC4xNiAzNDQuMTUgMTg3LjY0QzM0MC44OCAxODcuMTMgMzM3LjUxIDE4Ny4xMSAzMzQuMTkgMTg3QzMzMC44NiAxODYuODkgMzI3LjUyIDE4NyAzMjQuMTkgMTg3QzMyMC44NSAxODcgMzE3LjUyIDE4Ni45OSAzMTQuMTkgMTg3QzMxMC44NSAxODcuMDEgMzA3LjUgMTg2LjggMzA0LjE5IDE4Ny4wOEMzMDAuODggMTg3LjM1IDI5Ny41OSAxODcuOTUgMjk0LjMzIDE4OC42NEMyOTEuMDggMTg5LjMzIDI4Ny44NyAxOTAuMjkgMjg0LjY3IDE5MS4yMkMyODEuNDcgMTkyLjE0IDI3OC4yNSAxOTMuMDMgMjc1LjEyIDE5NC4xN0MyNzIgMTk1LjMxIDI2OC45NCAxOTYuNjcgMjY1LjkyIDE5OC4wOEMyNjIuOSAxOTkuNDggMjU5Ljg5IDIwMC45MyAyNTcuMDEgMjAyLjU5QzI1NC4xMiAyMDQuMjUgMjUxLjM2IDIwNi4xNCAyNDguNjIgMjA4LjAzQzI0NS44OCAyMDkuOTIgMjQzLjIyIDIxMS45MyAyNDAuNTYgMjEzLjk1QzIzNy45MSAyMTUuOTYgMjM1LjIzIDIxNy45NSAyMzIuNzEgMjIwLjEzQzIzMC4xOSAyMjIuMzEgMjI3Ljc3IDIyNC42MiAyMjUuNDQgMjI3QzIyMy4xMiAyMjkuMzkgMjIwLjg3IDIzMS44NiAyMTguNzYgMjM0LjQzQzIxNi42NCAyMzcgMjE0LjY5IDIzOS43MiAyMTIuNzYgMjQyLjQzQzIxMC44MyAyNDUuMTQgMjA4Ljg3IDI0Ny44NiAyMDcuMTYgMjUwLjcxQzIwNS40NCAyNTMuNTYgMjAzLjk0IDI1Ni41NSAyMDIuNDUgMjU5LjUzQzIwMC45NiAyNjIuNTEgMTk5LjUzIDI2NS41MiAxOTguMjIgMjY4LjU5QzE5Ni45MiAyNzEuNjUgMTk1LjcgMjc0Ljc2IDE5NC42NCAyNzcuOTJDMTkzLjU3IDI4MS4wNyAxOTIuNTQgMjg0LjI2IDE5MS44MyAyODcuNUMxOTEuMTEgMjkwLjc1IDE5MC45NSAyOTQuMTIgMTkwLjM0IDI5Ny4zOUMxODkuNzIgMzAwLjY2IDE4OC42OSAzMDMuODYgMTg4LjE0IDMwNy4xNEMxODcuNTggMzEwLjQyIDE4Ny4xOSAzMTMuNzUgMTg3LjAzIDMxNy4wN0MxODYuODggMzIwLjM4IDE4Ni44NiAzMjMuNzYgMTg3LjIxIDMyNy4wNkMxODcuNTUgMzMwLjM2IDE4OC40NiAzMzMuNiAxODkuMDkgMzM2Ljg2QzE4OS43MyAzNDAuMTMgMTkwLjM0IDM0My40MSAxOTEuMDEgMzQ2LjY3QzE5MS42OCAzNDkuOTMgMTkyLjIxIDM1My4yMyAxOTMuMSAzNTYuNDRDMTkzLjk4IDM1OS42NCAxOTUuMTUgMzYyLjc5IDE5Ni4zNCAzNjUuOUMxOTcuNTMgMzY5LjAxIDE5OC44NSAzNzIuMDggMjAwLjI2IDM3NS4wOUMyMDEuNjggMzc4LjExIDIwMy4yIDM4MS4wOCAyMDQuODIgMzgzLjk5QzIwNi40NCAzODYuOSAyMDguMTggMzg5Ljc1IDIwOS45OSAzOTIuNTVDMjExLjgxIDM5NS4zNCAyMTMuNyAzOTguMSAyMTUuNzEgNDAwLjc1QzIxNy43MiA0MDMuNCAyMTkuODQgNDA1Ljk5IDIyMi4wNyA0MDguNDZDMjI0LjI5IDQxMC45NCAyMjYuODQgNDEzLjE0IDIyOS4wNyA0MTUuNkMyMzEuMjkgNDE4LjA3IDIzNC4yNCA0MjAuMzYgMjM1LjQ0IDQyMy4yNkMyMzYuNjQgNDI2LjE1IDIzNi41MyA0MjkuNzYgMjM2LjI1IDQzM0MyMzUuOTcgNDM2LjIzIDIzNC42NCA0MzkuNDYgMjMzLjc4IDQ0Mi42OEMyMzIuOTIgNDQ1LjkgMjMxLjk5IDQ0OS4xMSAyMzEuMTEgNDUyLjMyQzIzMC4yMiA0NTUuNTMgMjI5LjA2IDQ1OC43MSAyMjguNDYgNDYxLjk3QzIyNy44NyA0NjUuMjIgMjI2LjU0IDQ2OS4yMyAyMjcuNTEgNDcxLjg1QzIyOC40OSA0NzQuNDYgMjMxLjYyIDQ3Ny4yOSAyMzQuMjkgNDc3LjY2QzIzNi45NyA0NzguMDMgMjQwLjU0IDQ3NS40MyAyNDMuNTcgNDc0LjA3QzI0Ni42IDQ3Mi43MSAyNDkuNTEgNDcxLjAzIDI1Mi40NyA0NjkuNTFDMjU1LjQzIDQ2Ny45OSAyNTguNDEgNDY2LjQ4IDI2MS4zNSA0NjQuOTJDMjY0LjMgNDYzLjM2IDI2Ny4yIDQ2MS43MiAyNzAuMTQgNDYwLjE1QzI3My4wOCA0NTguNTkgMjc1Ljk4IDQ1Ni45MSAyNzkuMDEgNDU1LjUzQzI4Mi4wMyA0NTQuMTUgMjg1LjA5IDQ1Mi41NSAyODguMjkgNDUxLjg4QzI5MS40OSA0NTEuMiAyOTQuOTEgNDUxLjQ1IDI5OC4yMyA0NTEuNDdDMzAxLjU1IDQ1MS40OSAzMDQuODggNDUxLjkxIDMwOC4yMSA0NTJDMzExLjU0IDQ1Mi4wOCAzMTQuODggNDUyIDMxOC4yMSA0NTJDMzIxLjU1IDQ1MiAzMjQuODggNDUyLjAxIDMyOC4yMSA0NTJDMzMxLjU1IDQ1MS45OSAzMzQuOSA0NTIuMjEgMzM4LjIxIDQ1MS45M0MzNDEuNTIgNDUxLjY1IDM0NC44MSA0NTEuMDQgMzQ4LjA2IDQ1MC4zM0MzNTEuMzEgNDQ5LjYyIDM1NC41IDQ0OC42MSAzNTcuNyA0NDcuNjdDMzYwLjkgNDQ2Ljc0IDM2NC4xMSA0NDUuODMgMzY3LjI1IDQ0NC43MUMzNzAuMzggNDQzLjU4IDM3My40OCA0NDIuMzMgMzc2LjUgNDQwLjkzQzM3OS41MiA0MzkuNTMgMzgyLjQ3IDQzNy45NSAzODUuMzcgNDM2LjMzQzM4OC4yOCA0MzQuNyAzOTEuMTMgNDMyLjk3IDM5My45NSA0MzEuMThDMzk2Ljc2IDQyOS4zOSAzOTkuNTggNDI3LjYgNDAyLjI0IDQyNS42QzQwNC45IDQyMy42IDQwNy40MyA0MjEuNDEgNDA5LjkyIDQxOS4yQzQxMi40MSA0MTYuOTggNDE0Ljg0IDQxNC42OSA0MTcuMTcgNDEyLjMxQzQxOS41IDQwOS45NCA0MjEuODEgNDA3LjUxIDQyMy45MiA0MDQuOTRDNDI2LjAzIDQwMi4zNyA0MjcuOTEgMzk5LjYgNDI5Ljg1IDM5Ni44OUM0MzEuNzkgMzk0LjE4IDQzMy42MSAzOTEuMzkgNDM1LjU1IDM4OC42N0M0MzcuNDggMzg1Ljk2IDQzOS4zMSAzODMuMTUgNDQxLjQ2IDM4MC42MUM0NDMuNjEgMzc4LjA4IDQ0NS45NiAzNzUuNjggNDQ4LjQ0IDM3My40N0M0NTAuOTIgMzcxLjI2IDQ1My41OCAzNjkuMiA0NTYuMzUgMzY3LjM2QzQ1OS4xMiAzNjUuNTMgNDYyLjAzIDM2My44MyA0NjUuMDUgMzYyLjQ1QzQ2OC4wNyAzNjEuMDggNDcxLjI4IDM2MC4wOSA0NzQuNDcgMzU5LjEzQzQ3Ny42NSAzNTguMTYgNDgwLjg4IDM1Ny4xIDQ4NC4xNSAzNTYuNjVDNDg3LjQyIDM1Ni4yIDQ5MC44MiAzNTYuMTIgNDk0LjExIDM1Ni40NEM0OTcuMzkgMzU2Ljc2IDUwMC42NSAzNTcuNzIgNTAzLjg2IDM1OC41OUM1MDcuMDcgMzU5LjQ3IDUxMC4zMiAzNjAuMzkgNTEzLjM2IDM2MS42OUM1MTYuNDEgMzYzIDUxOS4zOCAzNjQuNjEgNTIyLjE2IDM2Ni40M0M1MjQuOTMgMzY4LjI1IDUyNy41NCAzNzAuMzggNTMwLjAxIDM3Mi42MUM1MzIuNDcgMzc0LjgzIDUzNC44MyAzNzcuMjMgNTM2Ljk2IDM3OS43OEM1MzkuMDkgMzgyLjMzIDU0MS4xMSAzODUuMDMgNTQyLjc4IDM4Ny44OUM1NDQuNDYgMzkwLjc1IDU0NS44IDM5My44NSA1NDcgMzk2Ljk1QzU0OC4yIDQwMC4wNSA1NDkuMzEgNDAzLjI0IDU0OS45OCA0MDYuNDhDNTUwLjY0IDQwOS43MyA1NTAuODYgNDEzLjA5IDU1MC45OSA0MTYuNDFDNTUxLjExIDQxOS43MyA1NTEuMTYgNDIzLjEyIDU1MC43MiA0MjYuNEM1NTAuMjkgNDI5LjY5IDU0OS40IDQzMi45NCA1NDguNCA0MzYuMUM1NDcuMzkgNDM5LjI3IDU0Ni4xIDQ0Mi4zNyA1NDQuNjggNDQ1LjM4QzU0My4yNiA0NDguMzkgNTQxLjU5IDQ1MS4yOSA1MzkuODkgNDU0LjE1QzUzOC4xOSA0NTcuMDEgNTM2LjM0IDQ1OS43OSA1MzQuNDcgNDYyLjU1QzUzMi42IDQ2NS4zMSA1MzAuNjkgNDY4LjA1IDUyOC42OCA0NzAuNzFDNTI2LjY4IDQ3My4zNyA1MjQuNTEgNDc1LjkgNTIyLjQ0IDQ3OC41MUM1MjAuMzYgNDgxLjEyIDUxOC4zMyA0ODMuNzYgNTE2LjI1IDQ4Ni4zN0M1MTQuMTcgNDg4Ljk3IDUxMi4xNSA0OTEuNjMgNTA5Ljk1IDQ5NC4xM0M1MDcuNzUgNDk2LjYzIDUwNS4zOSA0OTkgNTAzLjA0IDUwMS4zNkM1MDAuNjkgNTAzLjcyIDQ5OC4zMyA1MDYuMDkgNDk1Ljg0IDUwOC4zQzQ5My4zNCA1MTAuNSA0OTAuNjggNTEyLjUxIDQ4OC4wNyA1MTQuNTlDNDg1LjQ3IDUxNi42NyA0ODIuODQgNTE4LjcxIDQ4MC4yMyA1MjAuNzlDNDc3LjYxIDUyMi44NiA0NzUuMSA1MjUuMDYgNDcyLjQxIDUyNy4wMkM0NjkuNzIgNTI4Ljk5IDQ2Ni45IDUzMC43NyA0NjQuMTEgNTMyLjU5QzQ2MS4zMSA1MzQuNCA0NTguNDggNTM2LjE3IDQ1NS42NCA1MzcuOTFDNDUyLjc5IDUzOS42NCA0NDkuOTMgNTQxLjM1IDQ0Ny4wMiA1NDIuOThDNDQ0LjExIDU0NC42MSA0NDEuMTYgNTQ2LjE1IDQzOC4yIDU0Ny42OEM0MzUuMjQgNTQ5LjIyIDQzMi4yOSA1NTAuNzggNDI5LjI4IDU1Mi4xOUM0MjYuMjYgNTUzLjYgNDIzLjE4IDU1NC44OCA0MjAuMSA1NTYuMTRDNDE3LjAxIDU1Ny40MSA0MTMuOTEgNTU4LjYyIDQxMC43OCA1NTkuNzdDNDA3LjY1IDU2MC45MiA0MDQuNSA1NjIuMDEgNDAxLjMzIDU2My4wNUMzOTguMTcgNTY0LjA5IDM5NC45OCA1NjUuMDYgMzkxLjc4IDU2Ni4wMkMzODguNTkgNTY2Ljk3IDM4NS40MSA1NjggMzgyLjE4IDU2OC44MUMzNzguOTUgNTY5LjYxIDM3NS42OCA1NzAuMjQgMzcyLjQxIDU3MC44NUMzNjkuMTMgNTcxLjQ2IDM2NS44MiA1NzEuODUgMzYyLjU1IDU3Mi40N0MzNTkuMjggNTczLjEgMzU2LjA4IDU3NC4xOSAzNTIuNzkgNTc0LjYxQzM0OS41IDU3NS4wMyAzNDYuMTMgNTc0Ljk0IDM0Mi44IDU3NUMzMzkuNDcgNTc1LjA2IDMzNi4xMyA1NzUgMzMyLjggNTc1QzMyOS40NyA1NzUgMzI2LjEzIDU3NSAzMjIuOCA1NzVDMzE5LjQ3IDU3NSAzMTYuMTMgNTc1IDMxMi44IDU3NUMzMDkuNDcgNTc1IDMwNi4xMyA1NzUuMDIgMzAyLjggNTc1QzI5OS40NyA1NzQuOTggMjk2LjExIDU3NS4xNSAyOTIuOCA1NzQuODZDMjg5LjUgNTc0LjU2IDI4Ni4yMyA1NzMuODIgMjgyLjk2IDU3My4yMkMyNzkuNjggNTcyLjYyIDI3Ni40MyA1NzEuODggMjczLjE2IDU3MS4yNUMyNjkuODkgNTcwLjYyIDI2Ni41OCA1NzAuMTcgMjYzLjMzIDU2OS40M0MyNjAuMDkgNTY4LjcgMjU2Ljg5IDU2Ny43MyAyNTMuNjcgNTY2Ljg1QzI1MC40NiA1NjUuOTggMjQ3LjIyIDU2NS4xNyAyNDQuMDQgNTY0LjE3QzI0MC44NiA1NjMuMTggMjM3Ljc0IDU2MiAyMzQuNiA1NjAuODdDMjMxLjQ3IDU1OS43NCAyMjguMzMgNTU4LjYyIDIyNS4yMyA1NTcuMzhDMjIyLjE0IDU1Ni4xNSAyMTkuMDYgNTU0Ljg1IDIxNi4wMyA1NTMuNDdDMjEzIDU1Mi4wOCAyMTAuMDMgNTUwLjU4IDIwNy4wNSA1NDkuMDdDMjA0LjA4IDU0Ny41NiAyMDEuMTMgNTQ2LjAyIDE5OC4yIDU0NC40MkMxOTUuMjggNTQyLjgyIDE5Mi4zNiA1NDEuMiAxODkuNSA1MzkuNDhDMTg2LjY1IDUzNy43NyAxODMuODQgNTM1Ljk3IDE4MS4wNSA1MzQuMTVDMTc4LjI2IDUzMi4zMiAxNzUuNDkgNTMwLjQ2IDE3Mi43OCA1MjguNTNDMTcwLjA2IDUyNi41OSAxNjcuNDIgNTI0LjU2IDE2NC43NyA1MjIuNTVDMTYyLjExIDUyMC41MyAxNTkuNDcgNTE4LjQ5IDE1Ni44NiA1MTYuNDJDMTU0LjI1IDUxNC4zNSAxNTEuNTkgNTEyLjM0IDE0OS4wOCA1MTAuMTRDMTQ2LjU4IDUwNy45NCAxNDQuMjEgNTA1LjU5IDE0MS44NCA1MDMuMjRDMTM5LjQ4IDUwMC45IDEzNy4xMSA0OTguNTQgMTM0Ljg4IDQ5Ni4wN0MxMzIuNjQgNDkzLjYgMTMwLjU2IDQ5MSAxMjguNDYgNDg4LjQxQzEyNi4zNiA0ODUuODIgMTI0LjM2IDQ4My4xNSAxMjIuMjggNDgwLjU1QzEyMC4xOSA0NzcuOTUgMTE3Ljk4IDQ3NS40NSAxMTUuOTQgNDcyLjgxQzExMy45IDQ3MC4xOCAxMTEuOTQgNDY3LjQ4IDExMC4wMyA0NjQuNzVDMTA4LjEyIDQ2Mi4wMiAxMDYuMjcgNDU5LjI0IDEwNC40OCA0NTYuNDNDMTAyLjY5IDQ1My42MiAxMDAuOTYgNDUwLjc3IDk5LjI4IDQ0Ny44OUM5Ny42IDQ0NS4wMSA5NS45NCA0NDIuMTIgOTQuNCA0MzkuMTZDOTIuODUgNDM2LjIxIDkxLjQ0IDQzMy4xOSA5MC4wMyA0MzAuMTdDODguNjEgNDI3LjE1IDg3LjIzIDQyNC4xMiA4NS45MSA0MjEuMDZDODQuNiA0MTggODMuMzcgNDE0LjkgODIuMTQgNDExLjhDODAuOTIgNDA4LjcgNzkuNjcgNDA1LjYgNzguNTYgNDAyLjQ2Qzc3LjQ2IDM5OS4zMiA3Ni40NyAzOTYuMTMgNzUuNTIgMzkyLjk0Qzc0LjU3IDM4OS43NCA3My42MSAzODYuNTUgNzIuODQgMzgzLjMxQzcyLjA3IDM4MC4wNyA3MS42MSAzNzYuNzUgNzAuOSAzNzMuNUM3MC4xOSAzNzAuMjQgNjkuMTEgMzY3LjA1IDY4LjU4IDM2My43N0M2OC4wNSAzNjAuNDkgNjguMTMgMzU3LjEyIDY3LjcyIDM1My44MkM2Ny4zMSAzNTAuNTEgNjYuNjQgMzQ3LjI0IDY2LjEyIDM0My45NUM2NS42IDM0MC42NiA2NC45NSAzMzcuMzggNjQuNjEgMzM0LjA3QzY0LjI2IDMzMC43NiA2NC4xNCAzMjcuNDIgNjQuMDQgMzI0LjA5QzYzLjk0IDMyMC43NiA2My45MyAzMTcuNDIgNjQuMDEgMzE0LjA5QzY0LjA4IDMxMC43NiA2NC4xMSAzMDcuNDEgNjQuNSAzMDQuMTFDNjQuODkgMzAwLjgxIDY1LjggMjk3LjU3IDY2LjM2IDI5NC4yOUM2Ni45MSAyOTEgNjcuNDcgMjg3LjcxIDY3LjgzIDI4NC40MUM2OC4xOSAyODEuMSA2OC4wNCAyNzcuNzIgNjguNTMgMjc0LjQ0QzY5LjAyIDI3MS4xNSA3MC4wNCAyNjcuOTUgNzAuNzggMjY0LjdDNzEuNTMgMjYxLjQ1IDcyLjE2IDI1OC4xNyA3My4wMSAyNTQuOTVDNzMuODYgMjUxLjczIDc0Ljg5IDI0OC41NiA3NS44OCAyNDUuMzdDNzYuODcgMjQyLjE5IDc3LjkgMjM5LjAyIDc4Ljk4IDIzNS44N0M4MC4wNiAyMzIuNzEgODEuMTYgMjI5LjU3IDgyLjM3IDIyNi40NkM4My41OCAyMjMuMzYgODQuOSAyMjAuMyA4Ni4yMyAyMTcuMjRDODcuNTUgMjE0LjE4IDg4Ljg2IDIxMS4xMSA5MC4yOSAyMDguMUM5MS43MiAyMDUuMDkgOTMuMjUgMjAyLjEzIDk0LjgzIDE5OS4xOUM5Ni40MSAxOTYuMjYgOTguMDQgMTkzLjM1IDk5Ljc1IDE5MC40OUMxMDEuNDcgMTg3LjY0IDEwMy4zMiAxODQuODYgMTA1LjEyIDE4Mi4wNkMxMDYuOTMgMTc5LjI1IDEwOC43MSAxNzYuNDMgMTEwLjU3IDE3My42N0MxMTIuNDQgMTcwLjkxIDExNC4zNiAxNjguMTggMTE2LjMyIDE2NS40OUMxMTguMjkgMTYyLjggMTIwLjMzIDE2MC4xNiAxMjIuMzYgMTU3LjUyQzEyNC40IDE1NC44OCAxMjYuMzcgMTUyLjE5IDEyOC41MyAxNDkuNjVDMTMwLjY5IDE0Ny4xMSAxMzMgMTQ0LjcxIDEzNS4zMSAxNDIuMzFDMTM3LjYyIDEzOS45IDEzOS45OSAxMzcuNTUgMTQyLjM4IDEzNS4yM0MxNDQuNzcgMTMyLjkxIDE0Ny4xNSAxMzAuNTYgMTQ5LjY3IDEyOC4zOUMxNTIuMTggMTI2LjIxIDE1NC44NyAxMjQuMjIgMTU3LjQ5IDEyMi4xNkMxNjAuMTEgMTIwLjEgMTYyLjczIDExOC4wNCAxNjUuMzkgMTE2LjA0QzE2OC4wNiAxMTQuMDMgMTcwLjc1IDExMi4wNyAxNzMuNDcgMTEwLjE0QzE3Ni4xOCAxMDguMjEgMTc4LjkyIDEwNi4zMSAxODEuNyAxMDQuNDZDMTg0LjQ4IDEwMi42MiAxODcuMjcgMTAwLjc5IDE5MC4xMyA5OS4wOUMxOTIuOTkgOTcuMzggMTk1Ljk1IDk1LjgzIDE5OC44OCA5NC4yNUMyMDEuODIgOTIuNjcgMjA0Ljc1IDkxLjA5IDIwNy43NCA4OS42MUMyMTAuNzIgODguMTMgMjEzLjc1IDg2LjczIDIxNi43OSA4NS4zN0MyMTkuODMgODQuMDEgMjIyLjkxIDgyLjcyIDIyNiA4MS40N0MyMjkuMDkgODAuMjIgMjMyLjIxIDc5LjA0IDIzNS4zMiA3Ny44NkMyMzguNDQgNzYuNjkgMjQxLjUzIDc1LjQxIDI0NC43MSA3NC40MUMyNDcuODkgNzMuNDIgMjUxLjE1IDcyLjcyIDI1NC4zOCA3MS44OUMyNTcuNjEgNzEuMDYgMjYwLjgyIDcwLjE1IDI2NC4wOCA2OS40NUMyNjcuMzMgNjguNzQgMjcwLjY0IDY4LjMgMjczLjkxIDY3LjY2QzI3Ny4xOCA2Ny4wMyAyODEuNTIgNjYuMTEgMjgzLjcgNjUuNjZDMjg1Ljg4IDY1LjIgMjg0Ljc5IDY1LjIgMjg3IDY0LjkzWiI+PC9wYXRoPjxjaXJjbGUgZmlsbD0iIzA5MzcyNiIgY3g9IjI1OS41IiBjeT0iMzA3LjUiIHI9IjI3LjUiPjwvY2lyY2xlPjxjaXJjbGUgZmlsbD0iIzA5MzcyNiIgY3g9IjMzMS41IiBjeT0iMzA3LjUiIHI9IjI3LjUiPjwvY2lyY2xlPjxjaXJjbGUgZmlsbD0iIzA5MzcyNiIgY3g9IjQwMy41IiBjeT0iMzA3LjUiIHI9IjI3LjUiPjwvY2lyY2xlPjwvc3ZnPg==" alt="Olá, Contador" /><b>Olá<i>,</i> Contador<i>.</i></b></a>
+    <div style="display:flex;align-items:center;gap:26px;font-size:15px;font-weight:500;color:#3A463F;">
+      <a class="volta" href="index.html">← Voltar ao site</a>
+      <a class="btnp" href="#planos" style="background:#FF6A45;color:#fff;font-weight:700;font-size:15px;padding:11px 22px;border-radius:12px;box-shadow:0 10px 22px -14px rgba(255,106,69,.7);">Escolher plano</a>
+    </div>
+  </div>
+</div>
+
+<main class="wrap" style="padding-top:84px;padding-bottom:20px;text-align:center;">
+
+  <!-- ================= HERO ================= -->
+  <div style="font-size:13px;letter-spacing:.24em;text-transform:uppercase;color:#FF6A45;font-weight:700;margin-bottom:16px;">Planos e preços</div>
+  <h1 style="font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:52px;letter-spacing:-.03em;color:#093726;line-height:1.04;max-width:820px;margin:0 auto;">Problema com a Receita tem solução. E a solução tem preço fixo.</h1>
+  <p style="font-size:19px;color:#3A463F;max-width:640px;margin:22px auto 0;">Você sabe quanto custa antes de começar e recebe tudo por escrito no fim — inclusive um relatório assinado por contador com registro CRC. Sem mensalidade, sem fidelidade, sem surpresa.</p>
+
+  <!-- ================= COMO FUNCIONA ================= -->
+  <div class="passos">
+    <div class="passo"><div class="passo-n">1</div><b>Agende</b><p>Escolha o dia e o horário que funcionam para você. Leva menos de um minuto.</p></div>
+    <div class="passo"><div class="passo-n">2</div><b>Conte seu caso</b><p>Com o horário garantido, você escreve o que está acontecendo com as suas palavras e anexa o que tiver. Não precisa saber os termos técnicos — é justo para isso que você contratou alguém.</p></div>
+    <div class="passo"><div class="passo-n">3</div><b>Resolva no chat</b><p>No horário marcado, você fala direto com o contador no chat seguro. Documentos entram e saem por ali, sem e-mail perdido.</p></div>
+    <div class="passo"><div class="passo-n">4</div><b>Receba o relatório</b><p>No fim, um PDF assinado com CRC: o que aconteceu, o que foi feito e os próximos passos. Seu, para sempre, na área do cliente.</p></div>
+  </div>
+
+  <!-- ================= PLANOS ================= -->
+  <div class="planos" id="planos">
+
+    <!-- Pessoa Física -->
+    <div class="plano card" style="background:#FFFDF8;border:1px solid rgba(23,35,28,.09);box-shadow:0 18px 40px -34px rgba(23,35,28,.5);">
+      <div style="font-family:'Bricolage Grotesque',sans-serif;font-weight:700;font-size:24px;color:#093726;">Pessoa Física</div>
+      <div style="font-size:15px;color:#3A463F;margin-top:6px;line-height:1.5;">Para quem recebeu uma carta da Receita, travou no IR ou vendeu um bem e não sabe o que fazer agora.</div>
+      <div style="margin:28px 0 6px;color:#0E5C43;">
+        <span style="font-size:20px;font-weight:700;vertical-align:top;line-height:2.6;">R$&nbsp;</span><span class="preco-num">199</span>
+      </div>
+      <div style="font-size:16px;color:#3A463F;margin-bottom:4px;">por atendimento</div>
+      <div style="font-size:13.5px;color:#0E5C43;font-weight:600;margin-bottom:8px;">no Pix ou em até 3x no cartão</div>
+      <div class="resolve-rotulo" style="color:#0E5C43;">Resolve, por exemplo</div>
+      <div class="chips"><span class="chip" style="background:#EAF1EC;color:#0E5C43;">Malha fina e cartas da Receita</span><span class="chip" style="background:#EAF1EC;color:#0E5C43;">Declarar ou corrigir o IR</span><span class="chip" style="background:#EAF1EC;color:#0E5C43;">Vendi imóvel, carro ou outro bem</span><span class="chip" style="background:#EAF1EC;color:#0E5C43;">Recebo como autônomo (carnê-leão)</span></div>
+      <div style="display:flex;flex-direction:column;gap:16px;color:#17231C;flex:1;margin-top:26px;"><div class="ent"><span class="selo-check" style="color:#0E5C43;">✓</span><span><b>Pré-atendimento guiado</b><small>Você conta o caso antes, com suas palavras, e anexa o que tiver. O contador chega sabendo de tudo.</small></span></div><div class="ent"><span class="selo-check" style="color:#0E5C43;">✓</span><span><b>Atendimento individual no chat seguro</b><small>Direto com o contador, do celular ou do computador — com envio de documentos e confirmação de leitura.</small></span></div><div class="ent"><span class="selo-check" style="color:#0E5C43;">✓</span><span><b>Relatório do atendimento em PDF</b><small>O que aconteceu, o que foi feito e os próximos passos — assinado por contador com registro CRC.</small></span></div><div class="ent"><span class="selo-check" style="color:#0E5C43;">✓</span><span><b>Conclusão em até 24 horas</b><small>Muitos casos se resolvem no mesmo dia.</small></span></div><div class="ent"><span class="selo-check" style="color:#0E5C43;">✓</span><span><b>Transparência total, do começo ao fim</b><small>Cada etapa registrada na sua área do cliente: linha do tempo do caso, documentos e lembretes de vencimentos. Você nunca fica no escuro.</small></span></div><div class="ent"><span class="selo-check" style="color:#0E5C43;">✓</span><span><b>Sigilo e segurança dos seus dados</b><small>Conversa e documentos protegidos, visíveis só para você e para o contador responsável pelo caso.</small></span></div><div class="ent"><span class="selo-check" style="color:#0E5C43;">✓</span><span><b>Retorno grátis em até 7 dias</b><small>Ficou dúvida depois do atendimento? Volta sem pagar de novo.</small></span></div></div>
+      <a class="btng" href="agendamento.html?plano=pf" style="display:block;text-align:center;margin-top:34px;background:#0E5C43;color:#F7F1E6;font-weight:700;font-size:16px;padding:16px;border-radius:14px;">Agendar Pessoa Física</a>
+    </div>
+
+    <!-- Pessoa Jurídica -->
+    <div class="plano card" style="background:#093726;box-shadow:0 24px 50px -30px rgba(9,55,38,.7);">
+      <div style="font-family:'Bricolage Grotesque',sans-serif;font-weight:700;font-size:24px;color:#F7F1E6;">Pessoa Jurídica</div>
+      <div style="font-size:15px;color:#8FB3A0;margin-top:6px;line-height:1.5;">Para MEI e pequenas empresas que precisam de alguém cuidando das guias, dos prazos e das pendências.</div>
+      <div style="margin:28px 0 6px;color:#FF9C7E;">
+        <span style="font-size:20px;font-weight:700;vertical-align:top;line-height:2.6;">R$&nbsp;</span><span class="preco-num">399</span>
+      </div>
+      <div style="font-size:16px;color:#CFE0D4;margin-bottom:4px;">por atendimento</div>
+      <div style="font-size:13.5px;color:#FF9C7E;font-weight:600;margin-bottom:8px;">no Pix ou em até 3x no cartão</div>
+      <div class="resolve-rotulo" style="color:#FF9C7E;">Resolve, por exemplo</div>
+      <div class="chips"><span class="chip" style="background:rgba(255,156,126,.16);color:#FF9C7E;">Guias DAS atrasadas</span><span class="chip" style="background:rgba(255,156,126,.16);color:#FF9C7E;">Declaração anual (DASN)</span><span class="chip" style="background:rgba(255,156,126,.16);color:#FF9C7E;">Desenquadramento do MEI</span><span class="chip" style="background:rgba(255,156,126,.16);color:#FF9C7E;">Dúvidas do Simples</span></div>
+      <div style="display:flex;flex-direction:column;gap:16px;color:#EAF1EC;flex:1;margin-top:26px;"><div class="ent"><span class="selo-check" style="color:#FF9C7E;">✓</span><span><b>Tudo do plano Pessoa Física</b><small>Pré-atendimento, chat seguro, relatório assinado, transparência total e retorno grátis.</small></span></div><div class="ent"><span class="selo-check" style="color:#FF9C7E;">✓</span><span><b>Contador especialista em empresas</b><small>MEI, Simples Nacional e a rotina fiscal do seu negócio.</small></span></div><div class="ent"><span class="selo-check" style="color:#FF9C7E;">✓</span><span><b>Conclusão em até 48 horas</b><small>Da abertura do caso à entrega do relatório.</small></span></div><div class="ent"><span class="selo-check" style="color:#FF9C7E;">✓</span><span><b>Emissão de guias quando necessário</b><small>DAS e guias do Simples emitidos e enviados pela sua área do cliente.</small></span></div><div class="ent"><span class="selo-check" style="color:#FF9C7E;">✓</span><span><b>Acompanhamento das obrigações do mês*</b><small>Lembretes de prazos e pendências para você não perder data — nem pagar multa boba.</small></span></div></div>
+      <a class="btnp" href="agendamento.html?plano=pj" style="display:block;text-align:center;margin-top:34px;background:#FF6A45;color:#fff;font-weight:700;font-size:16px;padding:16px;border-radius:14px;">Agendar Pessoa Jurídica</a>
+    </div>
+
+    <!-- Sob demanda -->
+    <div class="plano card" style="background:#FFFDF8;border:1px solid rgba(23,35,28,.09);box-shadow:0 18px 40px -34px rgba(23,35,28,.5);">
+      <div style="font-family:'Bricolage Grotesque',sans-serif;font-weight:700;font-size:24px;color:#093726;">Sob demanda</div>
+      <div style="font-size:15px;color:#3A463F;margin-top:6px;line-height:1.5;">Para o caso que não cabe em um atendimento: anos de declaração atrasada, escopo grande, situação específica.</div>
+      <div style="margin:28px 0 6px;">
+        <span style="font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:44px;letter-spacing:-.03em;color:#0E5C43;line-height:1.15;display:block;">Sob consulta</span>
+      </div>
+      <div style="font-size:16px;color:#3A463F;margin-bottom:8px;">orçamento fechado antes de começar</div>
+      <div class="resolve-rotulo" style="color:#0E5C43;">Resolve, por exemplo</div>
+      <div class="chips"><span class="chip" style="background:#EAF1EC;color:#0E5C43;">Vários anos de IR atrasados</span><span class="chip" style="background:#EAF1EC;color:#0E5C43;">Regularizações extensas</span><span class="chip" style="background:#EAF1EC;color:#0E5C43;">Demanda recorrente sob medida</span></div>
+      <div style="display:flex;flex-direction:column;gap:16px;color:#17231C;flex:1;margin-top:26px;"><div class="ent"><span class="selo-check" style="color:#0E5C43;">✓</span><span><b>Diagnóstico do caso por R$ 199</b><small>O contador analisa sua situação e devolve escopo, prazo e valor por escrito. Aprovou o orçamento? Os R$ 199 são abatidos do total.</small></span></div><div class="ent"><span class="selo-check" style="color:#0E5C43;">✓</span><span><b>Escopo, prazo e valor por escrito</b><small>Orçamento fechado antes de qualquer cobrança — sem surpresa no fim.</small></span></div><div class="ent"><span class="selo-check" style="color:#0E5C43;">✓</span><span><b>A mesma estrutura dos outros planos</b><small>Chat seguro, área do cliente e relatório final assinado com CRC.</small></span></div><div class="ent"><span class="selo-check" style="color:#0E5C43;">✓</span><span><b>Sem compromisso de fechar</b><small>Você decide com a proposta na mão. Se não seguir, o diagnóstico por escrito é seu.</small></span></div></div>
+      <a class="btng" href="agendamento.html?plano=sob-demanda" style="display:block;text-align:center;margin-top:34px;background:transparent;color:#0E5C43;border:1.5px solid #0E5C43;font-weight:700;font-size:16px;padding:14.5px;border-radius:14px;">Agendar diagnóstico</a>
+    </div>
+
+  </div>
+
+  <div style="text-align:left;font-size:13px;color:#3A463F;opacity:.85;margin-top:16px;">* O acompanhamento das obrigações do mês é feito via pagamento de recorrência mensal, combinado com o contador no atendimento.</div>
+
+  <!-- ================= FAQ ================= -->
+  <div style="margin-top:96px;">
+    <h2 style="font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:38px;letter-spacing:-.03em;color:#093726;line-height:1.05;">Perguntas de quem chegou até aqui</h2>
+    <div class="faq" style="margin-top:36px;">
+      <details>
+        <summary>Preciso entender de imposto para ser atendido?</summary>
+        <p>Não. Você conta o que aconteceu com as suas palavras — "recebi uma carta assustadora", "vendi meu carro", "não declarei ano passado" — e anexa o que tiver. Traduzir a burocracia é o nosso trabalho, não o seu.</p>
+      </details>
+      <details>
+        <summary>O que é o relatório do atendimento?</summary>
+        <p>É um PDF assinado por contador com registro CRC dizendo o que aconteceu, o que foi feito e o que vem agora — como uma receita médica, só que do seu imposto. Fica guardado na sua área do cliente para baixar quando quiser.</p>
+      </details>
+      <details>
+        <summary>Como funciona o pagamento?</summary>
+        <p>Preço fixo, combinado antes, pago na hora de agendar — no Pix ou no cartão, em até 3x. Sem mensalidade e sem fidelidade: você paga pelo atendimento que usar. No plano sob demanda, o valor é fechado por escrito antes de qualquer cobrança.</p>
+      </details>
+      <details>
+        <summary>O diagnóstico do plano sob demanda é cobrado?</summary>
+        <p>Sim: R$ 199, o mesmo valor de um atendimento avulso — porque é trabalho de contador de verdade. Ele analisa o seu caso e devolve um plano por escrito, com escopo, prazo e valor fechados. Se você aprovar o orçamento, esses R$ 199 são abatidos do total: na prática, o diagnóstico sai de graça para quem segue. Se preferir não seguir, o diagnóstico é seu.</p>
+      </details>
+      <details>
+        <summary>Em quanto tempo meu caso é resolvido?</summary>
+        <p>Para pessoa física, em até 24 horas — muitos casos se resolvem no mesmo dia. Para empresas, em até 48 horas. E você não fica no escuro: pela área do cliente acompanha cada etapa, do pré-atendimento ao relatório entregue.</p>
+      </details>
+      <details>
+        <summary>E se eu ficar com dúvida depois?</summary>
+        <p>Você tem retorno grátis em até 7 dias após o atendimento. E como os próximos passos ficam por escrito no relatório, você não depende da memória — nem da nossa, nem da sua.</p>
+      </details>
+    </div>
+  </div>
+
+  <!-- ================= CTA FINAL ================= -->
+  <div style="margin-top:80px;background:#093726;border-radius:28px;padding:56px 40px;box-shadow:0 24px 50px -30px rgba(9,55,38,.7);">
+    <h2 style="font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:36px;letter-spacing:-.03em;color:#F7F1E6;line-height:1.1;max-width:560px;margin:0 auto;">Quanto custa continuar adiando isso?</h2>
+    <p style="font-size:17px;color:#CFE0D4;max-width:520px;margin:16px auto 0;">Multa e juros da Receita não esperam. Um atendimento com preço fixo resolve — e você sai com o caminho por escrito.</p>
+    <a class="btnp" href="#planos" style="display:inline-block;margin-top:30px;background:#FF6A45;color:#fff;font-weight:700;font-size:17px;padding:16px 36px;border-radius:14px;">Escolher meu plano</a>
+    <div style="font-size:14px;color:#8FB3A0;margin-top:16px;">ou <a href="mailto:ola@olacontador.com.br?subject=Pedido%20de%20or%C3%A7amento" style="color:#FF9C7E;font-weight:600;text-decoration:underline;">peça um orçamento sob demanda</a></div>
+  </div>
+
+</main>
+
+<footer style="text-align:center;padding:38px 20px 44px;font-size:13.5px;color:#3A463F;">
+  © 2026 Olá, Contador · Contadores com registro CRC · <a href="mailto:ola@olacontador.com.br" style="color:#0E5C43;font-weight:600;">ola@olacontador.com.br</a>
+</footer>
+
+</body>
+</html>
