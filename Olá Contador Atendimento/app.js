@@ -1295,9 +1295,11 @@ async function renderClientDocs(clientId) {
           <a href="${d.url}" target="_blank" style="display:flex;align-items:center;gap:8px;color:var(--color-pine);font-size:13px;text-decoration:none;">
             <i class="fa-solid ${icon}"></i> ${d.fileName}
           </a>
+          ${!d.ai ? `
           <button class="btn-utility" style="font-size:11px;white-space:nowrap;" onclick="analisarDocumentoIA(${d.id}, this)">
             <i class="fa-solid fa-wand-magic-sparkles"></i> Ler com IA
           </button>
+          ` : ''}
         </div>
         <div class="doc-ai-result">${aiHtml}</div>
       `;

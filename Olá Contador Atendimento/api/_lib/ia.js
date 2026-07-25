@@ -11,7 +11,7 @@ const PROVIDERS = {
     baseURL: 'https://api.groq.com/openai/v1',
     key: process.env.GROQ_API_KEY || '',
     model: process.env.GROQ_MODEL || 'llama-3.3-70b-versatile',
-    visionModel: process.env.GROQ_VISION_MODEL || 'meta-llama/llama-4-maverick-17b-128e-instruct'
+    visionModel: process.env.GROQ_VISION_MODEL || 'llama-3.2-90b-vision-preview'
   },
   openrouter: {
     baseURL: 'https://openrouter.ai/api/v1',

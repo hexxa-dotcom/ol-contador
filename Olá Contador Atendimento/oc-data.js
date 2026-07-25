@@ -549,6 +549,10 @@ async function uploadDocumento(body) {
     text: `Arquivo enviado: ${fileName}`, time: nowTime(), type: 'doc-upload',
     doc_name: checklistItem || fileName
   });
+  // Gatilho automático para a IA ler o documento via Visão Computacional / OCR
+  // Disparado no background (sem await) para não atrasar a resposta da triagem.
+  fetch(API_BASE + `/api/documentos/${doc.id}/analisar`, { method: 'POST' }).catch(e => console.error('Auto OCR falhou:', e));
+
   return mapDocumento(doc);
 }
 
