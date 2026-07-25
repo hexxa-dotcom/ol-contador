@@ -13,7 +13,11 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
       teamList.innerHTML = '<div style="padding: 12px; color: var(--color-text-secondary); font-size: 13px;">Carregando equipe...</div>';
       
-      const res = await fetch('/api/equipe');
+      const res = await fetch('/api/copilot', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mode: 'equipe', action: 'listar' })
+      });
       if (res.status === 403) {
          // Oculta a área de equipe se não for admin
          const configEquipe = document.getElementById('config-equipe');
@@ -71,7 +75,11 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!confirm('Tem certeza que deseja remover o acesso desta pessoa?')) return;
     
     try {
-      const res = await fetch(`/api/equipe?id=${id}`, { method: 'DELETE' });
+      const res = await fetch('/api/copilot', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mode: 'equipe', action: 'remover', payload: { id } })
+      });
       if (!res.ok) {
         const data = await res.json();
         throw new Error(data.error || 'Erro ao remover');
@@ -98,10 +106,10 @@ document.addEventListener('DOMContentLoaded', () => {
       btn.disabled = true;
 
       try {
-        const res = await fetch('/api/equipe', {
+        const res = await fetch('/api/copilot', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ nome, email, role: permissao })
+          body: JSON.stringify({ mode: 'equipe', action: 'convidar', payload: { nome, email, role: permissao } })
         });
         
         const data = await res.json();
