@@ -3431,11 +3431,24 @@ async function openDossier(clientId) {
   const history = document.getElementById('dossier-historico');
   const files = document.getElementById('dossier-arquivos');
   process.innerHTML = `<div class="financeiro-card"><h3 style="font-size:14px;color:var(--color-text-secondary);margin-bottom:10px">Etapa do funil</h3><div style="display:flex;gap:10px;align-items:center"><select class="form-select" id="dossier-status-select" style="max-width:280px">${KANBAN_STAGES.map(s => `<option value="${s[0]}" ${s[0] === etapaDoCliente(c) ? 'selected' : ''}>${s[1]}</option>`).join('')}</select><button class="btn-utility primary" id="btn-dossier-save-status"><i class="fa-solid fa-save"></i> Salvar</button></div></div><h3 style="font-size:16px;margin:24px 0 10px;color:var(--color-pine)">Diagnóstico</h3><p style="font-size:13px;line-height:1.5">${safe(c.diagnosis || c.triagem?.descricao || 'Ainda não registrado.')}</p><h3 style="font-size:16px;margin:20px 0 10px;color:var(--color-pine)">Próximos passos</h3><p style="font-size:13px;line-height:1.5">${safe(c.treatment || 'Ainda não registrado.')}</p>`;
+  document.getElementById('dossier-status-select').value = etapaDoCliente(c);
+  document.getElementById('btn-dossier-save-status').onclick = () => {
+    salvarStatusCliente(c.id, document.getElementById('dossier-status-select').value);
+  };
+  
+  // Reseta a tab de Radar Fiscal para o estado inicial sempre que abrir um novo dossiê
+  const radarContent = document.getElementById('dossier-radar-content');
+  if (radarContent) {
+    radarContent.innerHTML = `
+      <i class="fa-solid fa-satellite-dish" style="font-size: 32px; color: var(--color-text-secondary); opacity: 0.3; margin-bottom: 12px;"></i>
+      <p style="font-size: 14px; color: var(--color-text-secondary); margin: 0;">Clique em "Puxar Capivara" para consultar os dados oficiais em tempo real (Simulação).</p>
+    `;
+  }
+
+  // Preenche histórico
+  const hist = document.getElementById('dossier-historico-content');
   history.innerHTML = reports.length ? reports.map(r => `<div class="financeiro-card" style="margin-bottom:12px"><h3 style="font-size:14px;color:var(--color-pine)">${safe(r.titulo || 'Relatório de atendimento')}</h3><p style="font-size:12px;color:var(--color-text-secondary)">${new Date(r.createdAt).toLocaleDateString('pt-BR')} · ${safe(r.status || 'enviado')}</p><p style="font-size:13px">${safe(r.problema || r.solucao || '')}</p></div>`).join('') : '<p style="color:var(--color-text-secondary);font-size:13px">Nenhum relatório entregue ainda.</p>';
   files.innerHTML = docs.length ? `<table class="financeiro-table"><thead><tr><th>Arquivo</th><th>Enviado por</th><th>Data</th><th></th></tr></thead><tbody>${docs.map(d => `<tr><td>${safe(d.fileName)}</td><td>${d.uploadedBy === 'agent' ? 'Contador' : 'Cliente'}</td><td>${new Date(d.createdAt).toLocaleDateString('pt-BR')}</td><td>${d.url ? `<a class="btn-doc-action" href="${safe(d.url)}" target="_blank" rel="noopener">Abrir</a>` : ''}</td></tr>`).join('')}</tbody></table>` : '<p style="color:var(--color-text-secondary);font-size:13px">Nenhum arquivo enviado.</p>';
-  const select = document.getElementById('dossier-status-select');
-  const save = document.getElementById('btn-dossier-save-status');
-  save.onclick = () => salvarStatusCliente(c.id, select.value);
   document.getElementById('dossier-overlay').classList.add('active');
 }
 
@@ -4543,3 +4556,76 @@ document.addEventListener("DOMContentLoaded", () => {
     if (inputCopilot) inputCopilot.addEventListener('input', updateAndSaveColors);
   }
 });
+
+// ========== RADAR FISCAL (Serpro) ==========
+async function consultarRadarFiscalDossie() {
+  if (!activeClientId) return;
+  const c = clientsData[activeClientId];
+  if (!c || !c.cpf) {
+    showToast('Cliente não possui CPF/CNPJ cadastrado para consulta.');
+    return;
+  }
+
+  const container = document.getElementById('dossier-radar-content');
+  container.innerHTML = `
+    <div style="text-align: center; padding: 24px;">
+      <i class="fa-solid fa-circle-notch fa-spin" style="font-size: 24px; color: var(--color-coral); margin-bottom: 12px;"></i>
+      <p style="font-size: 14px; color: var(--color-text-secondary);">Comunicando com Serpro/Integra Contador via mTLS...</p>
+    </div>
+  `;
+
+  try {
+    const res = await fetch(`/api/radar-fiscal?documento=${encodeURIComponent(c.cpf)}`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${localStorage.getItem('sb_session_token')}` }
+    });
+    if (!res.ok) throw new Error('Falha ao consultar Serpro');
+    
+    const radar = await res.json();
+    const isAlert = radar.status === 'alert';
+
+    container.innerHTML = `
+      <div style="text-align: left;">
+        ${isAlert ? `
+          <div style="background: #FDEDEC; padding: 16px; border-radius: var(--radius-md); border: 1px solid #E74C3C; margin-bottom: 24px; display: flex; gap: 16px; align-items: center;">
+             <div style="font-size: 32px; color: #E74C3C;"><i class="fa-solid fa-circle-exclamation"></i></div>
+             <div>
+               <h3 style="color: #C0392B; font-size: 16px; margin: 0 0 4px 0;">Alerta: Pendências Encontradas</h3>
+               <p style="color: #E74C3C; font-size: 13px; margin: 0;">Foi detectada uma pendência nos sistemas do Governo.</p>
+             </div>
+          </div>
+        ` : `
+          <div style="background: #E8F8F5; padding: 16px; border-radius: var(--radius-md); border: 1px solid #2ECC71; margin-bottom: 24px; display: flex; gap: 16px; align-items: center;">
+             <div style="font-size: 32px; color: #2ECC71;"><i class="fa-solid fa-circle-check"></i></div>
+             <div>
+               <h3 style="color: #27AE60; font-size: 16px; margin: 0 0 4px 0;">Tudo Certo!</h3>
+               <p style="color: #2ECC71; font-size: 13px; margin: 0;">CPF/CNPJ está regular e sem pendências ativas.</p>
+             </div>
+          </div>
+        `}
+
+        <div style="background: white; padding: 16px; border-radius: var(--radius-sm); border: 1px solid var(--color-border); border-left: 4px solid ${isAlert ? '#E74C3C' : '#2ECC71'}; margin-bottom: 16px;">
+           <h4 style="font-size: 14px; color: var(--color-text-primary); margin-bottom: 12px;"><i class="fa-solid fa-building-columns"></i> CND - Receita Federal e PGFN</h4>
+           <p style="font-size: 13px; margin: 0; color: var(--color-text-secondary);"><strong>Status:</strong> ${radar.cnd.status === 'negativa' ? 'Regular (Negativa)' : 'Com Pendências'}</p>
+           <p style="font-size: 12px; margin-top: 4px; color: var(--color-text-secondary);">${radar.cnd.mensagem}</p>
+        </div>
+
+        <div style="background: white; padding: 16px; border-radius: var(--radius-sm); border: 1px solid var(--color-border); border-left: 4px solid var(--color-pine);">
+           <h4 style="font-size: 14px; color: var(--color-text-primary); margin-bottom: 12px;"><i class="fa-solid fa-envelope-open-text"></i> Caixa Postal (e-CAC)</h4>
+           ${radar.caixaPostal.mensagens.length > 0 
+              ? radar.caixaPostal.mensagens.map(m => `<div style="font-size: 12px; padding: 4px 0; border-bottom: 1px solid #eee;"><strong>${new Date(m.data).toLocaleDateString('pt-BR')}</strong> - ${m.assunto}</div>`).join('')
+              : '<p style="font-size: 12px; color: var(--color-text-secondary);">Sem mensagens.</p>'
+           }
+        </div>
+      </div>
+    `;
+  } catch (e) {
+    container.innerHTML = `
+      <div style="color: #E74C3C; text-align: center; padding: 24px;">
+        <i class="fa-solid fa-triangle-exclamation" style="font-size: 32px; margin-bottom: 12px;"></i>
+        <p>Não foi possível consultar os dados. ${e.message}</p>
+      </div>
+    `;
+  }
+}
+

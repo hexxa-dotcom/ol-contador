@@ -2,6 +2,9 @@
 let CLIENT_ID = null;
 // Ids já renderizados, para não duplicar mensagens ecoadas pelo Realtime.
 const renderedMessageIds = new Set();
+let currentChatStatus = 'active';
+let ultimoDiaDesenhado = null;
+let clienteLogado = null; // Guardará as configs e dados do cliente
 
 document.addEventListener('DOMContentLoaded', async () => {
   // Exige login de cliente; redireciona pro login se não autorizado.
@@ -45,6 +48,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   carregarRelatorios();
   montarLinhaDoTempo();
   carregarHistoricoAtendimentos();
+  carregarRadarFiscal();
 });
 
 // ------------------------------------------------------------------ relatórios
@@ -947,10 +951,104 @@ async function gerarPagamentoPix() {
   } catch (e) {
     msg.textContent = 'Falha de conexão ao gerar o pagamento.';
     msg.style.display = 'block';
-  } finally {
+  } catch (e) {
     btn.disabled = false;
-    btn.innerHTML = '<i class="fa-solid fa-qrcode"></i> Gerar pagamento Pix';
+    btn.innerHTML = '<i class="fa-solid fa-headset"></i> Assinar Radar Fiscal (R$ 29,90/mês)';
+    alert(e.message);
   }
+}
+
+// ==== RADAR FISCAL (Serpro Mock) ====
+async function carregarRadarFiscal() {
+  if (!clienteLogado) return;
+  const section = document.getElementById('section-radar');
+  if (!section) return;
+
+  // Se o cliente não tem a assinatura, mostra a tela estática/demo (vender assinatura)
+  if (!clienteLogado.recorrente) {
+    // A tela original já é a de venda, não precisamos mexer no HTML base.
+    return;
+  }
+
+  // Se tiver assinatura, busca os dados da API simulando o Serpro
+  try {
+    const res = await fetch('/api/radar-fiscal', {
+      headers: { 'Authorization': `Bearer ${localStorage.getItem('sb_session_token')}` }
+    });
+    if (!res.ok) throw new Error('Falha ao carregar Radar Fiscal');
+    
+    const radar = await res.json();
+    renderRadarAtivo(radar);
+  } catch (e) {
+    console.error('Radar Fiscal erro:', e);
+  }
+}
+
+function renderRadarAtivo(radar) {
+  const container = document.getElementById('section-radar');
+  const isAlert = radar.status === 'alert';
+  
+  let caixasHtml = '';
+  if (radar.caixaPostal && radar.caixaPostal.mensagens.length > 0) {
+    caixasHtml = radar.caixaPostal.mensagens.map(m => `
+      <div style="padding: 16px; border-bottom: 1px solid var(--color-border); display: flex; gap: 16px; align-items: center; background: #fff;">
+        <div style="width: 40px; height: 40px; border-radius: 50%; background: var(--color-coral); color: white; display: flex; align-items: center; justify-content: center;"><i class="fa-solid fa-envelope-open-text"></i></div>
+        <div>
+           <h4 style="font-size: 14px; margin: 0; color: var(--color-pine);">${m.assunto}</h4>
+           <span style="font-size: 11px; color: var(--color-text-secondary);">${new Date(m.data).toLocaleDateString('pt-BR')}</span>
+        </div>
+      </div>
+    `).join('');
+  } else {
+    caixasHtml = `<div style="padding: 16px; font-size: 13px; color: var(--color-text-secondary); text-align: center;">Nenhuma nova mensagem na caixa postal.</div>`;
+  }
+
+  container.innerHTML = `
+    <div class="panel-header-desc" style="display: flex; justify-content: space-between; align-items: flex-start;">
+      <div>
+        <h2><i class="fa-solid fa-shield-halved" style="color: var(--color-coral); margin-right: 8px;"></i> Radar Fiscal</h2>
+        <p>Monitoramento 24h da saúde do seu <strong>${radar.documento}</strong> (Sincronizado com Serpro/e-CAC).</p>
+      </div>
+      <span class="status-badge" style="background: rgba(46,204,113,0.1); color: #27AE60; border: 1px solid rgba(46,204,113,0.3); padding: 6px 12px; font-size: 13px; font-weight: 600;">
+        <i class="fa-solid fa-satellite-dish fa-beat"></i> Monitoramento Ativo
+      </span>
+    </div>
+
+    ${isAlert ? `
+      <div style="background: #FDEDEC; padding: 16px; border-radius: var(--radius-md); border: 1px solid #E74C3C; margin-bottom: 24px; display: flex; gap: 16px; align-items: center;">
+         <div style="font-size: 32px; color: #E74C3C;"><i class="fa-solid fa-circle-exclamation"></i></div>
+         <div>
+           <h3 style="color: #C0392B; font-size: 16px; margin: 0 0 4px 0;">Alerta: Pendências Encontradas</h3>
+           <p style="color: #E74C3C; font-size: 13px; margin: 0;">Foi detectada uma pendência nos sistemas do Governo. Consulte seu contador no chat para resolver.</p>
+         </div>
+      </div>
+    ` : `
+      <div style="background: #E8F8F5; padding: 16px; border-radius: var(--radius-md); border: 1px solid #2ECC71; margin-bottom: 24px; display: flex; gap: 16px; align-items: center;">
+         <div style="font-size: 32px; color: #2ECC71;"><i class="fa-solid fa-circle-check"></i></div>
+         <div>
+           <h3 style="color: #27AE60; font-size: 16px; margin: 0 0 4px 0;">Tudo Certo!</h3>
+           <p style="color: #2ECC71; font-size: 13px; margin: 0;">Seu CPF/CNPJ está regular e sem pendências ativas.</p>
+         </div>
+      </div>
+    `}
+
+    <h3 style="font-size: 16px; color: var(--color-pine); margin-bottom: 16px;">Situação das Certidões (CNDs)</h3>
+    <div class="responsive-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px; margin-bottom: 32px;">
+      <div style="background: white; padding: 16px; border-radius: var(--radius-sm); border: 1px solid var(--color-border); border-left: 4px solid ${isAlert ? '#E74C3C' : '#2ECC71'};">
+         <h4 style="font-size: 14px; color: var(--color-text-primary); margin-bottom: 12px;"><i class="fa-solid fa-building-columns" style="color: ${isAlert ? '#E74C3C' : '#2ECC71'}; margin-right: 6px;"></i> Receita Federal e PGFN</h4>
+         <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span style="font-size: 12px; color: var(--color-text-secondary);">Status:</span>
+            <span style="font-size: 12px; font-weight: 600; color: ${isAlert ? '#C0392B' : '#27AE60'}; background: ${isAlert ? 'rgba(231,76,60,0.1)' : 'rgba(46,204,113,0.1)'}; padding: 4px 8px; border-radius: 8px;">${radar.cnd.status === 'negativa' ? 'Regular (Negativa)' : 'Com Pendências'}</span>
+         </div>
+         <p style="font-size: 11px; margin-top: 8px; color: var(--color-text-secondary);">${radar.cnd.mensagem}</p>
+      </div>
+    </div>
+
+    <h3 style="font-size: 16px; color: var(--color-pine); margin-bottom: 16px;">Caixa Postal (e-CAC)</h3>
+    <div style="background: white; border-radius: var(--radius-md); border: 1px solid var(--color-border); overflow: hidden;">
+      ${caixasHtml}
+    </div>
+  `;
 }
 
 function startPolling(cobrancaId, date, time, servicoName) {
@@ -1003,7 +1101,10 @@ async function loadClientHistory() {
     const res = await fetch('/api/clients');
     const clients = await res.json();
     const client = clients[CLIENT_ID];
-    if (!client || !Array.isArray(client.messages)) return;
+    if (!client) return;
+
+    clienteLogado = client; // Guarda globalmente para outras features (ex: Radar Fiscal)
+    if (!Array.isArray(client.messages)) return;
 
     // Atualiza o cabeçalho com a identidade do cliente ativo.
     const nameEl = document.getElementById('client-header-name');

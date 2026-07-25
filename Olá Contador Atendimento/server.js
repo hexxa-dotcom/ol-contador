@@ -994,6 +994,38 @@ app.post('/api/documentos/:id/analisar', async (req, res) => {
   }
 });
 
+// ============ RADAR FISCAL (Serpro) ============
+app.post('/api/radar-fiscal', async (req, res) => {
+  // Mesmo do arquivo serverless
+  if (!supabaseAdmin) return res.status(503).json({ error: 'service_role_not_configured' });
+
+  try {
+    let documento = req.query.documento || (req.body && req.body.documento);
+    
+    // Auth check via header
+    const token = (req.headers.authorization || '').replace('Bearer ', '');
+    if (!token) return res.status(401).json({ error: 'unauthorized' });
+    const { data: { user }, error } = await supabase.auth.getUser(token);
+    if (error || !user) return res.status(401).json({ error: 'unauthorized' });
+
+    if (!documento) {
+      const { data: cli } = await supabaseAdmin.from('clientes').select('cpf').eq('id', user.id).single();
+      if (cli && cli.cpf) {
+        documento = cli.cpf;
+      } else {
+        return res.status(400).json({ error: 'documento_required', detail: 'Forneça o CPF/CNPJ para o Radar Fiscal.' });
+      }
+    }
+
+    const serpro = require('./api/_lib/serpro');
+    const dadosRadar = await serpro.consultarRadarFiscal(documento);
+    res.json(dadosRadar);
+  } catch (e) {
+    console.error('[Radar Fiscal API Error]', e.message);
+    res.status(500).json({ error: 'radar_fiscal_failed', detail: e.message });
+  }
+});
+
 // ============ NOTIFICAÇÕES EXTERNAS (status + teste) ============
 app.get('/api/notify/status', (req, res) => {
   res.json({ email: notify.emailConfigured(), whatsapp: notify.whatsappConfigured() });
