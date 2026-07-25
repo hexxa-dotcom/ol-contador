@@ -25,34 +25,42 @@ async function sendEmail(to, subject, html) {
   return { ok: true, id: data.id };
 }
 
-// ---------- WHATSAPP (Twilio) ----------
-const TWILIO_SID = process.env.TWILIO_ACCOUNT_SID || '';
-const TWILIO_TOKEN = process.env.TWILIO_AUTH_TOKEN || '';
-// Número/sandbox do WhatsApp no Twilio, ex.: 'whatsapp:+14155238886'
-const TWILIO_WA_FROM = process.env.TWILIO_WHATSAPP_FROM || '';
+// ---------- WHATSAPP (Meta Cloud API - Integração Nativa) ----------
+const META_WA_TOKEN = process.env.META_WA_TOKEN || '';
+const META_WA_PHONE_ID = process.env.META_WA_PHONE_ID || ''; // ID do telefone remetente
 
-function whatsappConfigured() { return !!(TWILIO_SID && TWILIO_TOKEN && TWILIO_WA_FROM); }
+function whatsappConfigured() { return !!(META_WA_TOKEN && META_WA_PHONE_ID); }
 
 async function sendWhatsApp(toPhone, body) {
   if (!whatsappConfigured() || !toPhone) return { skipped: true };
-  const url = `https://api.twilio.com/2010-04-01/Accounts/${TWILIO_SID}/Messages.json`;
-  const form = new URLSearchParams({
-    From: TWILIO_WA_FROM,
-    To: `whatsapp:${toPhone}`,
-    Body: body
-  });
-  const auth = Buffer.from(`${TWILIO_SID}:${TWILIO_TOKEN}`).toString('base64');
+  
+  // Limpa o número de telefone (apenas números)
+  const cleanPhone = toPhone.replace(/\D/g, '');
+  
+  const url = `https://graph.facebook.com/v19.0/${META_WA_PHONE_ID}/messages`;
+  const payload = {
+    messaging_product: "whatsapp",
+    recipient_type: "individual",
+    to: cleanPhone,
+    type: "text",
+    text: { preview_url: false, body: body }
+  };
+
   const res = await fetch(url, {
     method: 'POST',
-    headers: { 'Authorization': `Basic ${auth}`, 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: form.toString()
+    headers: {
+      'Authorization': `Bearer ${META_WA_TOKEN}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(payload)
   });
+  
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
-    console.error('[whatsapp] erro:', data && (data.message || JSON.stringify(data)));
+    console.error('[whatsapp meta] erro:', data && (data.error ? data.error.message : JSON.stringify(data)));
     return { ok: false, error: data };
   }
-  return { ok: true, sid: data.sid };
+  return { ok: true, messageId: data.messages ? data.messages[0].id : null };
 }
 
 // ---------- ORQUESTRADOR ----------
