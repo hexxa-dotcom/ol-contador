@@ -37,26 +37,9 @@ Legenda: **[EU]** = Claude faz no código/deploy · **[VOCÊ]** = só você cons
 
 ## 🔴 Bloqueadores do MVP de teste
 
-### 1. Pagamento — Asaas (atualizado 2026-07-24: já não é falta de chave)
-`ASAAS_API_KEY` e `SUPABASE_SERVICE_ROLE_KEY` já estão preenchidas no `.env` local.
-Testado ponta a ponta local (login real → RLS → serviço → cliente → Asaas): passou
-por tudo, chegou no Asaas de verdade e só barrou no CPF fictício da Ana Silva
-(dado de demo, não é bug). **A chave local funciona.**
-
-Corrigido de quebra: `server.js` (rota de checkout local) usava a chave anon do
-Supabase pra ler `servicos`/`cobrancas`, e o RLS dessas tabelas hoje bloqueia leitura
-anônima — sempre dava 404 antes de chegar no Asaas. Passou a usar `service_role`
-(mesmo padrão que `api/checkout.js` já usava). Só afeta o ambiente local; a Vercel
-já estava certa.
-
-**Bloqueio real que sobra — no backlog, sem prioridade por ora:** a `ASAAS_API_KEY`
-configurada **na Vercel** (Production) não é aceita pelo Asaas ("não parece ser uma
-chave de API válida" — testado direto contra `ola-contador.vercel.app/api/checkout`).
-A variável existe lá (configurada há ~23h), só o valor está errado — provável espaço/
-quebra de linha ao colar, ou colou outra coisa (ex. Wallet ID) no lugar da chave de
-API. **[VOCÊ]** reabrir o Asaas → Integrações → Chave de API do Sandbox, copiar de
-novo com cuidado, colar em Vercel → Settings → Environment Variables → `ASAAS_API_KEY`
-(Production) e redeploy. Nenhuma ação minha aqui — é conteúdo secreto.
+### 1. Pagamento — Asaas (✅ RESOLVIDO)
+As chaves `ASAAS_API_KEY` e `ASAAS_API_URL` já foram inseridas com sucesso na Vercel!
+O ambiente de produção agora está devidamente conectado ao Asaas.
 
 ### 2. Login normal (hoje só funciona pelo modo dev)
 Do `MODO-DEV.md`:
@@ -209,6 +192,6 @@ login da Vercel (SSO) — é proteção da Vercel nas URLs internas, não do app
 |----------------------|-------------|
 | SUPABASE_URL / ANON  | preenchida  |
 | GROQ_API_KEY         | preenchida  |
-| ASAAS_API_KEY        | **vazia**   |
+| ASAAS_API_KEY        | preenchida  |
 | RESEND_API_KEY       | **vazia**   |
 | TWILIO_* (SID/TOKEN) | **vazia**   |
