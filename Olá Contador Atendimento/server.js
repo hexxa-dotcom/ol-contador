@@ -46,6 +46,17 @@ function mapMessage(row) {
   };
 }
 
+function mapTriagem(row) {
+  return {
+    id: row.id,
+    clienteId: row.cliente_id,
+    resumoAtendimento: row.resumo_atendimento,
+    etapaFunil: row.etapa_funil,
+    descricao: row.descricao,
+    createdAt: row.created_at
+  };
+}
+
 function mapClient(row, messages) {
   return {
     id: row.id,
@@ -136,28 +147,37 @@ function mapCredito(r) {
 
 // Todos os clientes no formato { id: {...cliente, messages:[...] } }
 app.get('/api/clients', async (req, res) => {
-  const { data: clients, error } = await supabase.from('clientes').select('*');
+  const { data: clients, error } = await supabaseAdmin.from('clientes').select('*');
   if (error) { console.error(error); return res.status(500).json({}); }
 
-  const { data: msgs } = await supabase.from('mensagens').select('*').order('seq', { ascending: true });
+  const { data: msgs } = await supabaseAdmin.from('mensagens').select('*').order('seq', { ascending: true });
   const byClient = {};
   (msgs || []).forEach(m => {
     (byClient[m.cliente_id] = byClient[m.cliente_id] || []).push(mapMessage(m));
   });
 
+  const { data: triagens } = await supabaseAdmin.from('triagens').select('*');
+  const triagemByClient = {};
+  (triagens || []).forEach(t => { triagemByClient[t.cliente_id] = mapTriagem(t); });
+
   const out = {};
-  (clients || []).forEach(c => { out[c.id] = mapClient(c, byClient[c.id] || []); });
+  (clients || []).forEach(c => { 
+    const mapped = mapClient(c, byClient[c.id] || []);
+    mapped.triagem = triagemByClient[c.id] || null;
+    out[c.id] = mapped; 
+  });
   res.json(out);
 });
 
 app.get('/api/appointments', async (req, res) => {
-  const { data, error } = await supabase.from('agendamentos').select('*').order('id', { ascending: true });
+  const { data, error } = await supabaseAdmin.from('agendamentos').select('*').order('id', { ascending: true });
   if (error) { console.error(error); return res.status(500).json([]); }
   res.json((data || []).map(mapAppointment));
 });
 
 app.get('/api/notifications', async (req, res) => {
-  const { data, error } = await supabase.from('notificacoes').select('*').order('id', { ascending: false });
+  const { data, error } = await supabaseAdmin.from('notificacoes').select('*').order('id', { ascending: false });
+
   if (error) { console.error(error); return res.status(500).json([]); }
   res.json((data || []).map(mapNotification));
 });

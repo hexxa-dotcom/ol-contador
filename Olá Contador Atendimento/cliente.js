@@ -951,10 +951,9 @@ async function gerarPagamentoPix() {
   } catch (e) {
     msg.textContent = 'Falha de conexão ao gerar o pagamento.';
     msg.style.display = 'block';
-  } catch (e) {
+  } finally {
     btn.disabled = false;
-    btn.innerHTML = '<i class="fa-solid fa-headset"></i> Assinar Radar Fiscal (R$ 29,90/mês)';
-    alert(e.message);
+    btn.innerHTML = '<i class="fa-solid fa-qrcode"></i> Gerar pagamento Pix';
   }
 }
 
