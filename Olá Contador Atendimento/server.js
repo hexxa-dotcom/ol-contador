@@ -647,6 +647,15 @@ async function confirmCobranca(cob) {
       time: nowTime(), unread: true, cliente_ref: cob.cliente_ref
     });
 
+    if (cliente) {
+      await notify.notifyCliente(
+        cliente, 
+        'Agendamento Confirmado - Olá, Contador', 
+        `Seu pagamento foi confirmado com sucesso. O seu atendimento do serviço <strong>${servico ? servico.name : 'Atendimento'}</strong> está agendado.<br><br>
+        Acesse sua área do cliente em nosso site para acompanhar sua triagem e falar diretamente com o contador.`
+      );
+    }
+
     io.emit('appointments_updated');
     io.emit('notifications_updated');
     io.emit('payment_confirmed', { cobrancaId: cob.id, clientId: cob.cliente_ref, appointmentId });
