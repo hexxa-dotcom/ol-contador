@@ -4268,13 +4268,20 @@ window.deleteSkill = function(id) {
 
 const formSkill = document.getElementById('form-skill');
 if (formSkill) {
-  formSkill.addEventListener('submit', function(e) {
+  formSkill.addEventListener('submit', async function(e) {
     e.preventDefault();
+    const btn = formSkill.querySelector('button[type="submit"]');
+    const originalText = btn.innerHTML;
+    
     const id = document.getElementById('skill-id').value;
     const name = document.getElementById('skill-name').value;
     const desc = document.getElementById('skill-desc').value;
     const content = document.getElementById('skill-content').value;
     const tema = document.getElementById('skill-tema').value;
+    const fileInput = document.getElementById('skill-pdf');
+
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Salvando...';
 
     if (id) {
       const skill = iaSkills.find(s => s.id === id);
@@ -4285,7 +4292,34 @@ if (formSkill) {
       iaSkills.push({ id: Date.now().toString(), name, desc, content, tema });
     }
     
-    saveSkills();
+    await saveSkills();
+
+    if (fileInput && fileInput.files && fileInput.files.length > 0) {
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Vetorizando PDF (Isso pode demorar)...';
+      try {
+        const base64 = await lerImagemComoDataUrl(fileInput); // Lê o arquivo como base64 (funciona pra PDF também)
+        const res = await fetch(API_BASE + '/api/skills/upload', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ skillName: name, base64 })
+        });
+        
+        if (res.status === 503) {
+          showToast('OPENAI_API_KEY não configurada. Arquivo não vetorizado.');
+        } else if (!res.ok) {
+          showToast('Erro ao processar PDF da Skill.');
+        } else {
+          const data = await res.json();
+          showToast(`PDF vetorizado com sucesso! ${data.chunksProcessed} blocos salvos.`);
+        }
+      } catch (err) {
+        console.error(err);
+        showToast('Falha no upload do PDF.');
+      }
+    }
+
+    btn.disabled = false;
+    btn.innerHTML = originalText;
     closeModal('modal-skill-overlay');
   });
 }

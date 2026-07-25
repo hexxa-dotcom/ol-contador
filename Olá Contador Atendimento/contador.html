@@ -1846,6 +1846,11 @@
             <label class="form-label" for="skill-content">Base de Conhecimento (Regras, Leis, Textos)</label>
             <textarea class="form-textarea" id="skill-content" rows="8" placeholder="Cole aqui a legislação, normas da Receita, ou instruções de como a IA deve responder..." required style="font-family: monospace; font-size: 12px;"></textarea>
           </div>
+          <div class="form-group" style="background:var(--color-pine-ultra-light); padding:12px; border-radius:8px; border:1px dashed var(--color-pine);">
+            <label class="form-label" for="skill-pdf" style="color:var(--color-pine);"><i class="fa-solid fa-file-pdf"></i> Enviar Legislação (PDF)</label>
+            <input type="file" id="skill-pdf" accept="application/pdf" style="font-size:12px;">
+            <small style="display:block; margin-top:4px; color:var(--color-text-secondary); font-size:11px;">Opcional. Se você anexar um PDF, a IA vai quebrar o arquivo e salvar no banco de dados vetorial para leitura rápida.</small>
+          </div>
           <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px;">
             <button type="button" class="btn-utility" onclick="closeModal('modal-skill-overlay')">Cancelar</button>
             <button type="submit" class="btn-utility primary">Salvar Skill</button>
