@@ -1168,8 +1168,8 @@ window.OCAuth = {
     if (!session && testeClienteSemLogin()) return { user: null, isTest: true, clientId: clienteTesteAtual() };
     if (!session && testeContadorSemLogin()) return { user: null, isStaff: true, isTest: true, clientId: null };
     if (!session) return { user: null };
-    const [staffRes, cidRes] = await Promise.all([sb.rpc('is_staff'), sb.rpc('my_client_id')]);
-    return { user: session.user, isStaff: !!staffRes.data, clientId: cidRes.data || null };
+    const [staffRes, roleRes, cidRes] = await Promise.all([sb.rpc('is_staff'), sb.rpc('my_role'), sb.rpc('my_client_id')]);
+    return { user: session.user, isStaff: !!staffRes.data, staffRole: roleRes.data || null, clientId: cidRes.data || null };
   },
   // Protege a página. Os portais podem usar dados locais demonstrativos enquanto
   // as chaves de teste estiverem habilitadas; fora disso, exige sessão.
@@ -1191,8 +1191,8 @@ window.OCAuth = {
       return null;
     }
 
-    const [staffRes, cidRes] = await Promise.all([sb.rpc('is_staff'), sb.rpc('my_client_id')]);
-    return { user: session.user, isStaff: !!staffRes.data, clientId: cidRes.data || null };
+    const [staffRes, roleRes, cidRes] = await Promise.all([sb.rpc('is_staff'), sb.rpc('my_role'), sb.rpc('my_client_id')]);
+    return { user: session.user, isStaff: !!staffRes.data, staffRole: roleRes.data || null, clientId: cidRes.data || null };
   },
   sendCode(email) { return sb.auth.signInWithOtp({ email: email.trim(), options: { shouldCreateUser: true } }); },
   verifyCode(email, token) { return sb.auth.verifyOtp({ email: email.trim(), token: token.trim(), type: 'email' }); },

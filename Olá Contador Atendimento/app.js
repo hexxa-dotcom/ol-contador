@@ -160,6 +160,15 @@ document.addEventListener("DOMContentLoaded", async () => {
   // Exige login de contador (staff); redireciona se não autorizado.
   const ctx = await OCAuth.guard('contador');
   if (!ctx) return;
+  
+  // RBAC: Oculta itens restritos para parceiros
+  if (ctx.staffRole === 'parceiro') {
+    const targetsToHide = ['section-financeiro', 'section-config', 'section-dossie', 'section-recorrentes'];
+    targetsToHide.forEach(target => {
+      const btn = document.querySelector(`button.nav-item[data-target="${target}"]`);
+      if (btn) btn.style.display = 'none';
+    });
+  }
 
   setupNavigation();
   setupEventListeners();
