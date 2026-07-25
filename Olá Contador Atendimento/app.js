@@ -2445,6 +2445,19 @@ async function moverParaAcompanhamento() {
   });
   if (!res.ok) { showToast('Não foi possível encaminhar para o Acompanhamento.'); return; }
   await postSystemMessageToChat("Caso encaminhado para o Acompanhamento — vai aparecer no quadro de pós-atendimento.");
+  
+  // SLA Automático: Criar tarefa no painel
+  const clienteNome = clientsData[clientId] ? clientsData[clientId].name : 'Cliente';
+  const deadline = new Date();
+  deadline.setHours(deadline.getHours() + 48); // Padrão: 48 horas úteis (SLA)
+  ocTarefas.unshift({
+    texto: `SLA 48h (Acompanhamento): ${clienteNome}`,
+    feita: false,
+    clientId: clientId,
+    deadline: deadline.toISOString()
+  });
+  await salvarTarefas();
+
   renderKanban(); renderCRM();
   showToast('Cliente encaminhado para o Acompanhamento.', 'success');
 }
@@ -2477,6 +2490,18 @@ async function finishActiveChat() {
     ]);
 
     await postSystemMessageToChat("Atendimento encerrado. O chat foi bloqueado e o caso entrou no histórico do cliente.");
+
+    // SLA Automático: Criar tarefa no painel
+    const clienteNome = clientsData[clientId] ? clientsData[clientId].name : 'Cliente';
+    const deadline = new Date();
+    deadline.setHours(deadline.getHours() + 48); // Padrão: 48 horas úteis (SLA)
+    ocTarefas.unshift({
+      texto: `SLA 48h: Concluir serviço de ${clienteNome}`,
+      feita: false,
+      clientId: clientId,
+      deadline: deadline.toISOString()
+    });
+    await salvarTarefas();
 
     await refreshAllData();
     if (clientsData[clientId]) loadClient(clientId);
@@ -3172,10 +3197,27 @@ function renderKanban() {
   const board = document.querySelector('#section-acompanhamento .kanban-board');
   if (!board) return;
   board.innerHTML = KANBAN_STAGES.map(([status, label, color]) => {
-    // Só entra aqui quem foi explicitamente encaminhado pro Acompanhamento —
-    // atendimento resolvido na hora não aparece (fica só no histórico).
     const items = Object.values(clientsData).filter(c => kanbanEtapas[c.id] && etapaDoCliente(c) === status);
-    return `<div class="kanban-col"><div class="kanban-col-header" style="border-top-color:${color}"><h4>${label}</h4><span class="kanban-badge" style="background:${color};color:#fff">${items.length}</span></div><div class="kanban-col-body" data-kanban-status="${status}">${items.map(c => `<button type="button" class="kanban-card ${status === 'done' ? 'done' : ''}" draggable="true" data-client-id="${safe(c.id)}"><div class="kanban-card-title">${safe(c.name)}</div><div class="kanban-card-tags"><span>${safe(c.taxType || 'Atendimento')}</span></div><div class="kanban-card-meta"><i class="fa-solid fa-folder-open"></i> ${safe(c.diagnosis || 'Sem diagnóstico')}</div></button>`).join('') || '<p style="font-size:12px;color:var(--color-text-secondary);padding:8px">Sem casos</p>'}</div></div>`;
+    return `<div class="kanban-col"><div class="kanban-col-header" style="border-top-color:${color}"><h4>${label}</h4><span class="kanban-badge" style="background:${color};color:#fff">${items.length}</span></div><div class="kanban-col-body" data-kanban-status="${status}">${items.map(c => {
+      
+      // SLA logic para o Kanban
+      let slaHtml = '';
+      const t = ocTarefas.find(task => task.clientId === c.id && !task.feita);
+      if (t && t.deadline && status !== 'done') {
+        const diffHours = (new Date(t.deadline) - new Date()) / (1000 * 60 * 60);
+        let slaColor = '#2ECC71';
+        let slaLabel = Math.floor(diffHours) + 'h';
+        if (diffHours <= 0) { slaColor = '#E74C3C'; slaLabel = 'Atrasado'; }
+        else if (diffHours <= 12) { slaColor = '#F1C40F'; }
+        slaHtml = `<span style="background:${slaColor}; color:#fff; font-size:10px; padding:2px 4px; border-radius:4px; margin-left:4px;"><i class="fa-solid fa-clock"></i> ${slaLabel}</span>`;
+      }
+
+      return `<button type="button" class="kanban-card ${status === 'done' ? 'done' : ''}" draggable="true" data-client-id="${safe(c.id)}">
+        <div class="kanban-card-title">${safe(c.name)}</div>
+        <div class="kanban-card-tags"><span>${safe(c.taxType || 'Atendimento')}</span>${slaHtml}</div>
+        <div class="kanban-card-meta"><i class="fa-solid fa-folder-open"></i> ${safe(c.diagnosis || 'Sem diagnóstico')}</div>
+      </button>`;
+    }).join('') || '<p style="font-size:12px;color:var(--color-text-secondary);padding:8px">Sem casos</p>'}</div></div>`;
   }).join('');
   let dragging = null;
   board.querySelectorAll('[data-client-id]').forEach(card => {
@@ -3192,6 +3234,19 @@ async function salvarStatusCliente(clientId, status) {
   kanbanEtapas = { ...kanbanEtapas, [clientId]: status };
   const res = await fetch(API_BASE + '/api/config', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ kanban_etapas: kanbanEtapas }) });
   if (!res.ok) { showToast('Não foi possível atualizar a etapa.'); return; }
+  
+  // Automação: Se foi para "Concluído" (done), dar baixa automática na tarefa SLA
+  if (status === 'done') {
+    let taskUpdated = false;
+    ocTarefas.forEach(t => {
+      if (t.clientId === clientId && !t.feita) {
+        t.feita = true;
+        taskUpdated = true;
+      }
+    });
+    if (taskUpdated) await salvarTarefas();
+  }
+
   renderCRM(); renderKanban(); updateDashboardData();
   showToast('Etapa do cliente atualizada.');
   if (status === 'recorrencia') await moverParaRecorrencia(clientId);
@@ -3861,6 +3916,29 @@ function renderTarefas() {
     titulo.style.cssText = 'font-size: 13px; color: var(--color-pine); margin: 0;' + (t.feita ? ' text-decoration: line-through; opacity: .55;' : '');
     titulo.textContent = t.texto;
     info.appendChild(titulo);
+
+    // SLA Badge Visual
+    if (t.deadline && !t.feita) {
+      const now = new Date();
+      const dead = new Date(t.deadline);
+      const diffMs = dead - now;
+      const diffHours = diffMs / (1000 * 60 * 60);
+
+      let color = '#2ECC71'; // Verde (OK)
+      let label = Math.floor(diffHours) + 'h restantes';
+      
+      if (diffHours <= 0) {
+        color = '#E74C3C'; // Vermelho (Estourado)
+        label = 'Atrasado';
+      } else if (diffHours <= 12) {
+        color = '#F1C40F'; // Amarelo (Atenção)
+      }
+
+      const badge = document.createElement('div');
+      badge.innerHTML = `<i class="fa-solid fa-clock"></i> SLA: ${label}`;
+      badge.style.cssText = `display: inline-block; margin-top: 6px; padding: 2px 6px; font-size: 10px; font-weight: 700; border-radius: 4px; color: #fff; background-color: ${color};`;
+      info.appendChild(badge);
+    }
 
     const remover = document.createElement('button');
     remover.title = 'Remover tarefa';
