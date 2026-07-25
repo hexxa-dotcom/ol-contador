@@ -8,10 +8,15 @@ module.exports = async (req, res) => {
   const auth = await requireUser(req, res);
   if (!auth) return;
 
-  const { clientId, mode, prompt, skill } = req.body || {};
-  if (!clientId || !mode) return res.status(400).json({ error: 'invalid_params' });
+  const { clientId, mode, prompt, skill, skillName, base64 } = req.body || {};
+  if (!mode) return res.status(400).json({ error: 'invalid_params' });
   if (!ia.isConfigured()) return res.status(503).json({ error: 'ia_not_configured' });
 
+  if (mode === 'skill_upload') {
+    return res.json(await ia.uploadSkillPDF(skillName, base64));
+  }
+
+  if (!clientId) return res.status(400).json({ error: 'invalid_params' });
   const cliente = await fetchClient(auth.sb, clientId);
   if (!cliente) return res.status(404).json({ error: 'client_not_found' });
 

@@ -290,6 +290,62 @@ async function analisarDocumento(buffer, mime) {
   }
 }
 
+// ============================================================================
+// UPLOAD DE SKILLS PDF
+// ============================================================================
+const pdfParse = require('pdf-parse/lib/pdf-parse.js');
+
+async function uploadSkillPDF(skillName, base64) {
+  if (!skillName || !base64) throw new Error('Faltam parâmetros.');
+  const supabaseAdmin = require('@supabase/supabase-js').createClient(
+    process.env.SUPABASE_URL,
+    process.env.SUPABASE_SERVICE_ROLE_KEY
+  );
+
+  const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+  if (!OPENAI_API_KEY) {
+    const e = new Error('OPENAI_API_KEY_MISSING');
+    e.code = 'ia_not_configured';
+    throw e;
+  }
+
+  const buffer = Buffer.from(base64.split(',')[1] || base64, 'base64');
+  const parsed = await pdfParse(buffer);
+  const text = parsed.text || '';
+  if (text.length < 50) throw new Error('PDF sem texto legível.');
+
+  const paragraphs = text.split(/\n\s*\n/);
+  const chunks = [];
+  let currentChunk = '';
+  for (const p of paragraphs) {
+    if (currentChunk.length + p.length > 1200 && currentChunk.length > 0) {
+      chunks.push(currentChunk.trim());
+      currentChunk = '';
+    }
+    currentChunk += p + '\n\n';
+  }
+  if (currentChunk.trim().length > 0) chunks.push(currentChunk.trim());
+
+  let successCount = 0;
+  for (const chunk of chunks) {
+    if (chunk.length < 50) continue;
+    const embRes = await fetch('https://api.openai.com/v1/embeddings', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${OPENAI_API_KEY}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model: 'text-embedding-3-small', input: chunk })
+    });
+    const embData = await embRes.json();
+    const embedding = embData.data?.[0]?.embedding;
+    if (embedding) {
+      await supabaseAdmin.from('skills_embeddings').insert({
+        skill_name: skillName, chunk_text: chunk, embedding: embedding
+      });
+      successCount++;
+    }
+  }
+  return { success: true, chunksProcessed: successCount };
+}
+
 module.exports = {
   isConfigured,
   resumirCaso,
@@ -298,5 +354,6 @@ module.exports = {
   sugerirDiagnostico,
   gerarRelatorioCliente,
   analisarDocumento,
+  uploadSkillPDF,
   MODEL
 };
