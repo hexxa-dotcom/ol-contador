@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Entrar — Olá, Contador</title>
+  <meta name="robots" content="noindex" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Hanken+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
@@ -16,9 +17,10 @@
     .card { background: #fff; border: 1px solid var(--border); border-radius: 16px; padding: 36px 32px;
       width: 100%; max-width: 400px; box-shadow: 0 12px 40px rgba(31,77,61,0.08); }
     .brand { display: flex; align-items: center; gap: 10px; margin-bottom: 18px; }
-    .brand .dot { width: 36px; height: 36px; border-radius: 50%; background: var(--coral); color: #fff;
-      display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 19px; }
-    .brand h1 { font-family: 'Bricolage Grotesque', system-ui, sans-serif; font-size: 19px; font-weight: 800; color: var(--pine); }
+    .brand img { width: 34px; display: block; }
+    .brand h1 { font-family: 'Bricolage Grotesque', system-ui, sans-serif; font-size: 19px; font-weight: 800;
+      color: var(--pine); letter-spacing: -.02em; }
+    .brand h1 i { font-style: normal; color: var(--coral); }
     h2 { font-family: 'Bricolage Grotesque', system-ui, sans-serif; font-size: 22px; font-weight: 800; margin-bottom: 6px; }
     p.sub { font-size: 13px; color: var(--muted); margin-bottom: 22px; line-height: 1.5; }
     label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; }
@@ -40,7 +42,7 @@
 </head>
 <body>
   <div class="card">
-    <div class="brand"><span class="dot">C</span><h1>Olá, Contador.</h1></div>
+    <div class="brand"><img src="logo.svg" alt="" /><h1>Olá<i>,</i> Contador<i>.</i></h1></div>
     <h2 id="titulo">Entrar</h2>
     <p class="sub" id="subtitulo">Use o e-mail da sua conta. Levamos você direto para a sua área.</p>
 
@@ -108,7 +110,35 @@
     // Cobre os dois casos: sessão que já existia e magic link recém-clicado
     // (o Supabase processa o link e dispara este evento).
     sb.auth.onAuthStateChange((_evento, sessao) => { if (sessao) levarParaMinhaArea(); });
-    levarParaMinhaArea();
+
+    // Formato antigo (link apontava direto pro Supabase): se o provedor de e-mail
+    // abriu o link sozinho antes do clique (comum em scanner de segurança), o
+    // Supabase já consumiu o token e volta aqui com #error=... em vez de sessão.
+    (function avisarLinkJaConsumido() {
+      const hp = new URLSearchParams(location.hash.slice(1));
+      if (hp.get('error')) {
+        history.replaceState({}, '', location.pathname);
+        aviso('Esse link já tinha sido aberto (provavelmente pelo seu provedor de e-mail, '
+            + 'antes do seu clique) e por isso expirou. Peça um novo link de acesso.', 'err');
+      }
+    })();
+
+    // Formato novo: o e-mail traz token_hash+type em vez do link de uso único do
+    // Supabase. Só consumimos aqui, com JavaScript de verdade rodando — um scanner
+    // de e-mail que só baixa a página não executa isto, então não gasta o link.
+    (async function consumirLinkDoEmail() {
+      const params = new URLSearchParams(location.search);
+      const tokenHash = params.get('token_hash');
+      const type = params.get('type');
+      if (!tokenHash || !type) { levarParaMinhaArea(); return; }
+      history.replaceState({}, '', location.pathname);
+      const { error } = await sb.auth.verifyOtp({ token_hash: tokenHash, type });
+      if (error) {
+        aviso('Esse link já tinha sido aberto (provavelmente pelo seu provedor de e-mail, '
+            + 'antes do seu clique) e por isso expirou. Peça um novo link de acesso.', 'err');
+      }
+      // Se deu certo, o onAuthStateChange acima já cuida do redirecionamento.
+    })();
 
     btnSenha.addEventListener('click', async () => {
       if (!email.value.trim().includes('@')) { aviso('Digite um e-mail válido.', 'err'); return; }

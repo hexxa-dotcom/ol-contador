@@ -42,4 +42,9 @@ function validarCpfCnpj(valor) {
   return { valido: false, digitos };
 }
 
-module.exports = { somenteDigitos, validarCPF, validarCNPJ, validarCpfCnpj };
+// Roda nos dois lados: `require()` no servidor e `<script src>` no checkout, que
+// valida o CPF/CNPJ antes de chamar a API — assim a pessoa vê o erro na hora, e
+// um documento inválido não chega a virar cliente no Asaas.
+const OCDocumento = { somenteDigitos, validarCPF, validarCNPJ, validarCpfCnpj };
+if (typeof module !== 'undefined' && module.exports) module.exports = OCDocumento;
+if (typeof window !== 'undefined') window.OCDocumento = OCDocumento;

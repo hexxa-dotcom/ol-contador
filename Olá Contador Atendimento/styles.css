@@ -372,6 +372,19 @@ body {
   color: var(--color-text-secondary);
 }
 
+/* Rótulo de cada grupo do dashboard (Faturamento / Operação do dia / Pendências externas) */
+.dashboard-group-title {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--color-coral);
+  margin: 28px 0 12px;
+}
+.dashboard-group-title:first-of-type {
+  margin-top: 4px;
+}
+
 /* SECTION 1: KPI Dashboard Cards Grid */
 .kpi-cards-grid {
   display: grid;
@@ -791,6 +804,13 @@ body {
   display: flex;
   flex-direction: column;
   flex: 1;
+}
+
+/* [hidden] e ".calendar-grid" têm a mesma especificidade (0,1,0); sem o
+   !important, quem vem depois no arquivo vence e a visão Mês continuava
+   aparecendo por baixo da visão Lista mesmo com o atributo hidden aplicado. */
+.calendar-grid[hidden] {
+  display: none !important;
 }
 
 .calendar-days-header {
@@ -1507,6 +1527,14 @@ body {
   gap: 8px;
 }
 
+/* [hidden] e ".btn-utility" têm a mesma especificidade (0,1,0) — sem o
+   !important, o display:inline-flex daqui vence e o botão continua visível
+   mesmo com o atributo hidden (o wizard de relatório liga/desliga botões por
+   passo assim). Mesmo caso do .calendar-grid[hidden] logo abaixo. */
+.btn-utility[hidden] {
+  display: none !important;
+}
+
 .btn-utility:hover {
   background-color: var(--color-border);
 }
@@ -1534,21 +1562,104 @@ body {
   color: var(--color-text-secondary);
 }
 
-.form-select, .form-textarea, .input-message {
+.form-input, .form-select, .form-textarea, .input-message {
   width: 100%;
   padding: 10px 12px;
   border: 1px solid var(--color-border);
   border-radius: 6px;
   font-size: 14px;
   font-family: var(--font-body);
+  color: var(--color-text-primary);
   transition: border-color 0.2s;
   background-color: white;
 }
 
-.form-select:focus, .form-textarea:focus, .input-message:focus {
+.form-input:focus, .form-select:focus, .form-textarea:focus, .input-message:focus {
   outline: none;
   border-color: var(--color-pine-light);
   box-shadow: 0 0 0 3px var(--color-pine-ultra-light);
+}
+
+/* Anotações ricas do atendimento (prontuário): toolbar + área contenteditable.
+   Cores só aparecem nos swatches de destaque — o resto segue o flat branco/preto
+   do resto do painel. */
+.notas-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+.notas-toolbar .btn-utility {
+  padding: 6px 10px;
+  font-size: 12px;
+}
+.notas-toolbar-sep {
+  width: 1px;
+  height: 20px;
+  background: var(--color-border);
+  margin: 0 2px;
+}
+.notas-color-swatch {
+  width: 22px;
+  height: 22px;
+  border-radius: 5px;
+  border: 1px solid var(--color-border);
+  cursor: pointer;
+  padding: 0;
+}
+.notas-color-swatch:hover {
+  border-color: var(--color-pine);
+}
+.notas-editor {
+  width: 100%;
+  min-height: 120px;
+  padding: 12px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  font-size: 14px;
+  font-family: var(--font-body);
+  color: var(--color-text-primary);
+  background-color: white;
+  line-height: 1.6;
+}
+.notas-editor:focus {
+  outline: none;
+  border-color: var(--color-pine-light);
+  box-shadow: 0 0 0 3px var(--color-pine-ultra-light);
+}
+.notas-editor:empty::before {
+  content: attr(data-placeholder);
+  color: var(--color-text-secondary);
+}
+.notas-editor ol {
+  padding-left: 22px;
+  margin: 8px 0;
+}
+
+/* Botão de fechar dos modais mais novos (Editar Perfil, Skill, Plano/Itens,
+   Convite de Equipe) usa um ícone <i> em vez do "&times;" — tinha a classe
+   ".btn-modal-close" no HTML mas nenhuma regra com esse nome existia (só
+   ".btn-close-modal", usada nos modais mais antigos), então renderizava como
+   um botão cru do navegador. */
+.btn-modal-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: none;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-modal-close:hover {
+  background-color: var(--color-bg);
+  color: var(--color-coral);
 }
 
 /* Calculators inside Modal */
@@ -2403,6 +2514,218 @@ body {
   background-color: var(--color-pine-light);
 }
 
+/* Relatório do Cliente — página cheia (aba "Novo Relatório" dentro de
+   Relatórios), edição + prévia lado a lado. Era um modal pequeno; virou
+   seção, então usa a altura que tiver disponível em vez de um teto fixo. */
+.relatorio-page-body {
+  display: flex;
+  gap: 0;
+  min-height: 60vh;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  background: white;
+}
+
+.relatorio-page-footer {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding: 20px 0;
+  flex-wrap: wrap;
+}
+
+.relatorio-editor-col {
+  flex: 1;
+  padding: 20px;
+  overflow-y: auto;
+  border-right: 1px solid var(--color-border);
+}
+
+.relatorio-btn-ia {
+  width: 100%;
+  margin-bottom: 12px;
+}
+
+.relatorio-ia-hint {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  margin-bottom: 16px;
+}
+
+.relatorio-label-spaced {
+  margin-top: 12px;
+}
+
+.relatorio-label-hint {
+  font-weight: 400;
+  color: var(--color-text-secondary);
+}
+
+.relatorio-preview-col {
+  flex: 1.05;
+  padding: 20px;
+  overflow-y: auto;
+  background: var(--color-bg);
+}
+
+.relatorio-preview-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: .5px;
+  color: var(--color-text-secondary);
+  margin-bottom: 10px;
+}
+
+.relatorio-preview-wrap {
+  overflow: hidden;
+}
+
+/* Wizard passo a passo: cliente -> descrever -> enviar/arquivar */
+.relatorio-steps {
+  display: flex;
+  gap: 4px;
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-bg);
+}
+.relatorio-step-pill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  padding: 6px 12px;
+  border-radius: 999px;
+}
+.relatorio-step-pill span {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--color-border);
+  color: var(--color-text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 700;
+}
+.relatorio-step-pill.active {
+  color: var(--color-pine);
+  font-weight: 600;
+  background: white;
+}
+.relatorio-step-pill.active span {
+  background: var(--color-coral);
+  color: white;
+}
+.relatorio-step {
+  padding: 24px;
+}
+.relatorio-cliente-lista {
+  margin-top: 12px;
+  max-height: 320px;
+  overflow-y: auto;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+}
+.relatorio-cliente-item {
+  width: 100%;
+  text-align: left;
+  padding: 12px 16px;
+  border: none;
+  border-bottom: 1px solid var(--color-border);
+  background: white;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-body);
+}
+.relatorio-cliente-item:last-child { border-bottom: none; }
+.relatorio-cliente-item:hover { background: var(--color-bg); }
+.relatorio-cliente-item.selected {
+  background: var(--color-pine-ultra-light);
+}
+.relatorio-cliente-item h4 { font-size: 13px; color: var(--color-pine); margin: 0 0 2px; }
+.relatorio-cliente-item p { font-size: 11px; color: var(--color-text-secondary); margin: 0; }
+.relatorio-cliente-chip {
+  font-size: 12px;
+  color: var(--color-pine);
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  padding: 8px 12px;
+  margin-bottom: 12px;
+}
+.relatorio-envio-opcoes {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-width: 420px;
+}
+.relatorio-envio-opcao {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  padding: 12px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  cursor: pointer;
+}
+.relatorio-envio-opcao:hover {
+  border-color: var(--color-pine-light);
+}
+
+/* Aba "Aguardando Relatório": um card por cliente finalizado sem relatório. */
+.relatorio-fila-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+}
+.relatorio-fila-card {
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  padding: 16px;
+  background: white;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.relatorio-fila-card h4 {
+  font-size: 14px;
+  color: var(--color-pine);
+  margin: 0;
+}
+.relatorio-fila-card p {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  margin: 0;
+}
+
+/* Aba "Relatórios Finalizados": histórico em tabela. */
+.relatorio-finalizados-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.relatorio-finalizados-table th {
+  text-align: left;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: .5px;
+  color: var(--color-text-secondary);
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--color-border);
+}
+.relatorio-finalizados-table td {
+  padding: 12px;
+  font-size: 13px;
+  border-bottom: 1px solid var(--color-border);
+  vertical-align: middle;
+}
+
 /* Receita Fiscal Document (Memed style) */
 .receita-document {
   background-color: white;
@@ -2604,6 +2927,22 @@ body {
   padding-right: 24px;
 }
 
+/* Contêiner ".settings-tabs" (plural) é usado como barra de abas HORIZONTAL
+   (dossiê do cliente, Financeiro) — diferente do ".settings-sidebar", que
+   empilha as mesmas .settings-tab verticalmente (Configurações). Sem esta
+   regra as abas aqui também empilhavam, porque .settings-tab é display:flex
+   (ocupa a linha toda) e nada limitava a largura ou virava a direção pra linha. */
+.settings-tabs {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  border-bottom: 1px solid var(--color-border);
+}
+.settings-tabs .settings-tab {
+  flex: none;
+  border-radius: 8px 8px 0 0;
+}
+
 .settings-tab {
   display: flex;
   align-items: center;
@@ -2648,6 +2987,24 @@ body {
 
 .settings-pane.active {
   display: block;
+}
+
+/* A aba "Mensagens" da Caixa Postal precisa de layout em duas colunas (lista +
+   thread) — mais específico que .settings-pane.active (id + classe > 2 classes),
+   então sobrescreve o "display:block" só pra essa aba. */
+#cp-mensagens.active {
+  display: flex;
+}
+
+/* As abas de Clientes (Visão Geral / Clientes Recorrentes) precisam ocupar a
+   altura restante do painel pra lista+detalhe rolarem cada um por conta —
+   mesma razão do #cp-mensagens acima. */
+#clientes-pane-geral.active,
+#clientes-pane-recorrentes.active {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
 }
 
 .setting-block {
@@ -3828,8 +4185,8 @@ input:checked + .slider:before {
   body.pagina-contador .calendar-dashboard-layout,
   body.pagina-contador .settings-layout { flex-direction: column; }
 
-  /* Cabeçalho do card em linha rígida: no dashboard o título "Remarketing:
-     Carrinhos Abandonados" chegava a montar por cima do texto ao lado. */
+  /* Cabeçalho do card em linha rígida: títulos longos do dashboard (ex.:
+     "Mensagens de Processos em Aberto") chegavam a montar por cima do texto ao lado. */
   body.pagina-contador .dash-card-header { flex-wrap: wrap; gap: 8px; }
   body.pagina-contador .dash-card-header h3 { font-size: 15px; }
 
@@ -4104,31 +4461,26 @@ input:checked + .slider:before {
   /* Relatório do Cliente: editor e prévia empilhados, nesta ordem — preenche em
      cima, confere embaixo. Lado a lado em 375px sobravam ~150px para cada um: o
      formulário ficava sem onde escrever e a prévia (um documento de 720px
-     reduzido) virava uma miniatura ilegível.
-     As duas colunas são um div SEM CLASSE com display:flex inline, daí o
-     seletor pelo filho e o !important. */
-  body.pagina-contador #modal-relatorio-overlay .modal-container {
-    max-width: none !important; width: 100% !important;
+     reduzido) virava uma miniatura ilegível. */
+  body.pagina-contador .relatorio-page-body {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
   }
-  body.pagina-contador #modal-relatorio-overlay .modal-body { overflow-y: auto; }
-  body.pagina-contador #modal-relatorio-overlay .modal-body > div {
-    display: flex !important;
-    flex-direction: column !important;
-    max-height: none !important;
+  body.pagina-contador .relatorio-editor-col,
+  body.pagina-contador .relatorio-preview-col {
+    width: 100%;
+    max-width: none;
+    border-left: none;
+    border-right: none;
   }
-  body.pagina-contador #modal-relatorio-overlay .modal-body > div > * {
-    width: 100% !important;
-    max-width: none !important;
-    border-left: none !important;
-    border-right: none !important;
-  }
-  body.pagina-contador #modal-relatorio-overlay #rel-previa-wrap {
+  body.pagina-contador #rel-previa-wrap {
     border-top: 1px solid var(--color-border);
     padding-top: 14px;
   }
-  body.pagina-contador #modal-relatorio-overlay textarea { min-height: 84px; font-size: 16px; }
-  body.pagina-contador #modal-relatorio-overlay .modal-footer { flex-wrap: wrap; gap: 8px; }
-  body.pagina-contador #modal-relatorio-overlay .modal-footer button { flex: 1 1 140px; }
+  body.pagina-contador #section-dossie textarea { min-height: 84px; font-size: 16px; }
+  body.pagina-contador .relatorio-page-footer { flex-wrap: wrap; gap: 8px; }
+  body.pagina-contador .relatorio-page-footer button { flex: 1 1 140px; }
 }
 
 @media (max-width: 360px) {

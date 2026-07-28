@@ -1,0 +1,150 @@
+/* Estilos compartilhados pelas duas etapas da contratação:
+   agendamento.html (etapa 1 — o que e quando) e checkout.html (etapa 2 — quem e
+   pagamento). Ficam num arquivo só para as duas telas não divergirem com o tempo. */
+
+*{box-sizing:border-box}
+/* Precisa vir com !important: regras como `.field{display:flex}` têm mais
+   especificidade que o `display:none` que o navegador dá ao atributo [hidden],
+   e sem isto os blocos escondidos (campo de crédito, telas de pagamento)
+   apareciam todos de uma vez. */
+[hidden]{display:none!important}
+html{scroll-behavior:smooth}
+body{margin:0;background:#FFFFFF;font-family:'Hanken Grotesk',sans-serif;color:#344C4B;-webkit-font-smoothing:antialiased}
+a{text-decoration:none;color:inherit}
+button,input,select,textarea{font:inherit}
+:root{--pinho:#344C4B;--verde:#344C4B;--coral:#E5765C;--coral-claro:#EDA894;--creme:#E4DED2;
+  --texto:#344C4B;--muted:#344C4B;--borda:rgba(52,76,75,.2);--card:#E4DED2;--erro:#B32620}
+
+/* ---------- topo e rodapé (mesmos do site) ---------- */
+.lk:hover{color:var(--verde)!important}
+.btnp{transition:transform .15s ease,box-shadow .15s ease}
+.btnp:hover{transform:translateY(-2px);box-shadow:0 16px 30px -14px rgba(229,118,92,.6)}
+.nav-wrap{position:sticky;top:0;z-index:50;background:rgba(255,255,255,.86);backdrop-filter:blur(12px);border-bottom:1px solid rgba(52,76,75,.07)}
+.nav-container{max-width:1200px;margin:0 auto;padding:16px 32px;display:flex;align-items:center;justify-content:space-between;gap:24px}
+.brand{display:flex;align-items:center;gap:10px;font-family:'Bricolage Grotesque',sans-serif;font-weight:800;color:var(--pinho);font-size:21px;letter-spacing:-.02em}
+.brand img{width:36px;display:block}
+.brand i{font-style:normal;color:var(--coral)}
+.nav-links{display:flex;align-items:center;gap:26px;color:var(--muted);font-weight:600;font-size:15px}
+footer{text-align:center;padding:34px 20px 44px;font-size:13.5px;color:var(--muted)}
+
+/* ---------- moldura das etapas ---------- */
+.shell{max-width:760px;margin:0 auto;padding:48px 32px 64px}
+.etapa-topo{text-align:center;margin-bottom:34px}
+.etapa-topo h1{font-family:'Bricolage Grotesque',sans-serif;font-size:42px;line-height:1.02;letter-spacing:-.045em;color:var(--pinho);margin:0}
+.etapa-topo p{font-size:17px;line-height:1.5;color:var(--muted);margin:14px auto 0;max-width:560px}
+
+/* trilha "1 Atendimento — 2 Dados e pagamento" */
+.trilha{display:flex;align-items:center;justify-content:center;gap:10px;margin:0 0 30px;padding:0;list-style:none}
+.trilha li{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:700;color:var(--muted)}
+.trilha li span{display:grid;place-items:center;width:26px;height:26px;border-radius:50%;
+  background:#fff;border:1px solid var(--borda);font-size:13px;font-weight:800}
+.trilha li.atual{color:var(--pinho)}
+.trilha li.atual span{background:var(--coral);border-color:var(--coral);color:#fff}
+.trilha li.feita{color:var(--verde)}
+.trilha li.feita span{background:#FDF4F2;border-color:rgba(229,118,92,.34);color:var(--verde)}
+.trilha .tracinho{width:34px;height:1px;background:var(--borda)}
+
+/* ---------- blocos ---------- */
+.bloco{background:var(--card);border:1px solid var(--borda);border-radius:24px;padding:26px;margin-bottom:18px;
+  box-shadow:0 20px 48px -40px rgba(52,76,75,.6)}
+.bloco h2{font-family:'Bricolage Grotesque',sans-serif;font-size:22px;letter-spacing:-.03em;color:var(--pinho);margin:0 0 4px}
+.bloco .ajuda{color:var(--muted);font-size:14px;line-height:1.45;margin:0 0 18px}
+
+/* contador de caracteres do resumo do caso */
+.contador{align-self:flex-end;font-size:12px;font-weight:600;color:var(--muted)}
+.contador.perto{color:var(--coral)}
+
+/* ---------- dia e horário ---------- */
+/* O card agora é creme (--card, #E4DED2); os botões ficam brancos por cima
+   pra se destacar do card, em vez de quase se fundir nele como antes. */
+.day-strip{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+.day-btn{border:1px solid rgba(52,76,75,.28);background:#fff;border-radius:15px;padding:10px 7px;cursor:pointer;color:var(--muted);font-weight:700}
+.day-btn small{display:block;font-weight:700;font-size:11px;opacity:.68;text-transform:uppercase;letter-spacing:.04em}
+.day-btn.active{background:#FDF4F2;border-color:rgba(229,118,92,.5);color:var(--verde);box-shadow:inset 0 0 0 1px rgba(229,118,92,.15)}
+.slot-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.slot-btn{border:1px solid rgba(52,76,75,.28);background:#fff;border-radius:13px;padding:11px 8px;cursor:pointer;font-weight:800;color:var(--pinho)}
+.slot-btn:hover:not(:disabled){border-color:rgba(229,118,92,.65)}
+.slot-btn.active{background:var(--coral);border-color:var(--coral);color:#fff}
+.slot-btn:disabled{opacity:.4;text-decoration:line-through;cursor:not-allowed;background:#E0DACB}
+.slot-vazio{color:var(--muted);font-size:14px;grid-column:1/-1}
+
+/* ---------- campos ---------- */
+.field{display:flex;flex-direction:column;gap:7px;margin-bottom:15px}
+.field label{font-weight:700;color:var(--pinho);font-size:13px}
+.field input,.field select,.field textarea{width:100%;border:1px solid rgba(52,76,75,.14);background:#fff;
+  border-radius:14px;padding:13px 14px;color:var(--texto);outline:none;transition:border-color .15s ease,box-shadow .15s ease}
+.field textarea{min-height:96px;resize:vertical}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:rgba(229,118,92,.75);box-shadow:0 0 0 4px rgba(229,118,92,.12)}
+.field input[aria-invalid="true"]{border-color:var(--erro)}
+.field .erro{color:var(--erro);font-size:12.5px;font-weight:600}
+.dupla{display:flex;gap:10px}
+
+/* ---------- resumo do pedido (etapa 2) ---------- */
+.resumo{background:#FDF4F2;border:1px solid rgba(229,118,92,.18);border-radius:20px;padding:18px 19px;margin-bottom:18px;color:var(--pinho)}
+.resumo-topo{display:flex;justify-content:space-between;align-items:baseline;gap:12px}
+.resumo-topo span{font-size:11.5px;text-transform:uppercase;letter-spacing:.08em;font-weight:800;color:var(--verde)}
+.resumo-topo a{font-size:13px;font-weight:700;color:var(--verde);text-decoration:underline}
+.resumo strong{display:block;font-family:'Bricolage Grotesque',sans-serif;font-size:20px;letter-spacing:-.02em;margin:5px 0 2px}
+.resumo-linha{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;margin-top:8px}
+.resumo-quando{font-size:14px;color:var(--muted)}
+.resumo-preco{font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:24px;color:var(--coral);white-space:nowrap}
+.resumo-preco.coberto{font-size:17px;color:var(--verde)}
+
+/* ---------- botões e avisos ---------- */
+.submit{width:100%;border:0;border-radius:15px;background:var(--coral);color:#fff;font-weight:800;padding:16px;
+  cursor:pointer;box-shadow:0 15px 30px -18px rgba(229,118,92,.8)}
+.submit:disabled{opacity:.62;cursor:wait}
+.voltar{display:inline-block;margin-top:16px;font-size:14px;font-weight:700;color:var(--verde)}
+.voltar:hover{text-decoration:underline}
+.note{font-size:12.5px;line-height:1.45;color:var(--muted);margin-top:14px}
+.alerta{display:none;background:#FDECEC;border:1px solid rgba(179,38,32,.25);color:var(--erro);
+  border-radius:14px;padding:12px 14px;font-size:13.5px;line-height:1.45;margin-bottom:16px;font-weight:600}
+.alerta.on{display:block}
+
+/* link discreto "tenho um código de crédito" */
+.link-credito{background:none;border:0;padding:0;color:var(--verde);font-weight:700;font-size:13px;cursor:pointer;text-decoration:underline}
+
+/* escolha da forma de pagamento (Pix com desconto x cartão) */
+.metodo-pagamento{display:flex;gap:10px}
+.metodo-opcao{flex:1;display:flex;align-items:center;gap:10px;border:1px solid rgba(52,76,75,.28);
+  border-radius:14px;padding:12px 14px;cursor:pointer;background:#fff;transition:border-color .15s ease,box-shadow .15s ease}
+.metodo-opcao:has(input:checked){border-color:var(--coral);background:rgba(229,118,92,.06);box-shadow:0 0 0 2px rgba(229,118,92,.14)}
+.metodo-opcao input{accent-color:var(--coral);width:16px;height:16px;flex:none;cursor:pointer}
+.metodo-opcao strong{display:block;font-size:14px;color:var(--pinho)}
+.metodo-opcao small{display:block;font-size:12.5px;color:var(--muted);margin-top:2px}
+@media(max-width:420px){.metodo-pagamento{flex-direction:column}}
+
+/* ---------- tela de pagamento / confirmação ---------- */
+.pagamento{text-align:center}
+.pagamento h2{margin-bottom:8px}
+.pagamento .qr{width:210px;height:210px;display:block;margin:18px auto 14px;border-radius:12px;border:1px solid var(--borda)}
+.pix-copia{display:flex;gap:8px;align-items:center}
+.pix-copia input{flex:1;font-size:11.5px;font-family:ui-monospace,monospace;border:1px solid var(--borda);
+  background:#fff;border-radius:12px;padding:11px 12px;color:var(--muted);min-width:0}
+.pix-copia button{border:1px solid var(--verde);background:#fff;color:var(--verde);font-weight:800;font-size:13px;
+  border-radius:12px;padding:11px 14px;cursor:pointer;white-space:nowrap}
+.status-pag{font-weight:800;color:var(--verde);margin-top:16px}
+.ok-selo{display:grid;place-items:center;width:56px;height:56px;border-radius:50%;background:#FDF4F2;
+  color:var(--verde);font-size:28px;margin:0 auto 14px}
+.btn-entrar{display:inline-block;background:var(--verde);color:var(--creme);border-radius:13px;padding:13px 20px;font-weight:800;margin-top:16px}
+
+@media(max-width:760px){
+  .nav-links .hide-mobile{display:none}
+  .nav-container{padding:12px 18px}
+  .shell{padding:34px 18px 48px}
+  .etapa-topo h1{font-size:31px}
+  .etapa-topo p{font-size:16px}
+  .bloco{padding:21px 17px;border-radius:20px}
+  .day-strip{grid-template-columns:repeat(3,1fr)}
+  .slot-grid{grid-template-columns:repeat(3,1fr)}
+  .trilha li span{width:24px;height:24px}
+  .trilha .tracinho{width:18px}
+}
+@media(max-width:520px){
+  /* No resumo, a data por extenso quebrava em duas linhas e esbarrava no preço. */
+  .resumo-linha{flex-direction:column;align-items:flex-start;gap:6px}
+}
+@media(max-width:420px){
+  .trilha li{font-size:12.5px}
+  .dupla{flex-direction:column;gap:0}
+}

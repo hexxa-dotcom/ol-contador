@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Finalizar contratação — Olá, Contador</title>
+<meta name="robots" content="noindex" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Hanken+Grotesk:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="booking.css" />
+</head>
+<body>
+  <header class="nav-wrap">
+    <div class="nav-container">
+      <a class="brand" href="index.html" aria-label="Voltar para a página inicial">
+        <img src="logo.svg" alt="" />
+        <span>Olá<i>,</i> Contador<i>.</i></span>
+      </a>
+      <nav class="nav-links" aria-label="Navegação principal">
+        <a class="lk" href="login.html">Entrar</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="shell">
+    <!-- ETAPA 2: formulário de dados + pagamento -->
+    <div id="tela-dados">
+      <ol class="trilha" aria-label="Etapas da contratação">
+        <li class="feita"><span>✓</span>Atendimento</li>
+        <li class="tracinho" aria-hidden="true"></li>
+        <li class="atual"><span>2</span>Seus dados e pagamento</li>
+      </ol>
+
+      <div class="etapa-topo">
+        <h1>Falta só confirmar quem é você.</h1>
+        <p>Com esses dados criamos seu acesso e o contador já sabe com quem vai falar.</p>
+      </div>
+
+      <div class="resumo" id="resumo-pedido"></div>
+      <div class="alerta" id="alerta"></div>
+
+      <form id="form-checkout" novalidate>
+        <section class="bloco">
+          <h2>Seus dados</h2>
+          <p class="ajuda">Usamos o e-mail para te mandar o link de acesso à sua área assim que o pagamento confirmar.</p>
+
+          <div class="field">
+            <label for="nome">Nome completo</label>
+            <input id="nome" autocomplete="name" placeholder="Ex.: Ana Silva" />
+            <span class="erro" id="erro-nome" hidden>Escreva seu nome completo.</span>
+          </div>
+          <div class="field">
+            <label for="cpf">CPF ou CNPJ</label>
+            <input id="cpf" inputmode="numeric" autocomplete="off" placeholder="000.000.000-00" />
+            <span class="erro" id="erro-cpf" hidden>Confira os números — esse CPF/CNPJ não é válido.</span>
+          </div>
+          <div class="field">
+            <label for="email">E-mail</label>
+            <input id="email" type="email" autocomplete="email" placeholder="voce@email.com" />
+            <span class="erro" id="erro-email" hidden>Digite um e-mail válido.</span>
+          </div>
+          <div class="field">
+            <label for="telefone">WhatsApp</label>
+            <input id="telefone" inputmode="tel" autocomplete="tel" placeholder="(51) 99999-9999" />
+            <span class="erro" id="erro-telefone" hidden>Digite um telefone com DDD.</span>
+          </div>
+          <!-- Endereço: opcional pro cliente, mas usado como dado do tomador na nota
+               fiscal de serviço (Asaas) quando o contador emite — sem isso a nota pode
+               ser recusada pela prefeitura em municípios que exigem endereço completo. -->
+          <div class="dupla">
+            <div class="field" style="flex:1">
+              <label for="cep">CEP <span style="font-weight:500;color:var(--muted)">(opcional)</span></label>
+              <input id="cep" inputmode="numeric" autocomplete="postal-code" placeholder="00000-000" />
+            </div>
+            <div class="field" style="flex:2">
+              <label for="bairro">Bairro <span style="font-weight:500;color:var(--muted)">(opcional)</span></label>
+              <input id="bairro" autocomplete="address-level3" placeholder="Ex.: Centro" />
+            </div>
+          </div>
+          <div class="dupla">
+            <div class="field" style="flex:3">
+              <label for="endereco">Endereço <span style="font-weight:500;color:var(--muted)">(opcional)</span></label>
+              <input id="endereco" autocomplete="address-line1" placeholder="Ex.: Rua das Flores" />
+            </div>
+            <div class="field" style="flex:1">
+              <label for="numero">Número <span style="font-weight:500;color:var(--muted)">(opcional)</span></label>
+              <input id="numero" autocomplete="address-line2" placeholder="123" />
+            </div>
+          </div>
+          <div class="dupla">
+            <div class="field" style="flex:2">
+              <label for="cidade">Cidade <span style="font-weight:500;color:var(--muted)">(opcional)</span></label>
+              <input id="cidade" autocomplete="address-level2" placeholder="Ex.: Porto Alegre" />
+            </div>
+            <div class="field" style="flex:1">
+              <label for="uf">UF <span style="font-weight:500;color:var(--muted)">(opcional)</span></label>
+              <input id="uf" autocomplete="address-level1" maxlength="2" placeholder="RS" style="text-transform:uppercase" />
+            </div>
+          </div>
+        </section>
+
+        <section class="bloco">
+          <h2>Pagamento</h2>
+          <p class="ajuda" id="ajuda-pagamento">Escolha como prefere pagar. A confirmação é automática nos dois casos.</p>
+
+          <div class="field" id="campo-metodo-pagamento">
+            <label>Forma de pagamento</label>
+            <div class="metodo-pagamento">
+              <label class="metodo-opcao">
+                <input type="radio" name="metodo" value="pix" checked>
+                <span><strong>Pix</strong><small id="preco-pix"></small></span>
+              </label>
+              <label class="metodo-opcao">
+                <input type="radio" name="metodo" value="cartao">
+                <span><strong>Cartão de crédito</strong><small id="preco-cartao">à vista ou em até 3x</small></span>
+              </label>
+            </div>
+          </div>
+
+          <div id="credito-fechado">
+            <button type="button" class="link-credito" id="btn-abrir-credito">Tenho um código de crédito de atendimento</button>
+          </div>
+          <div class="field" id="credito-aberto" hidden style="margin-bottom:0">
+            <label for="credito">Código do crédito</label>
+            <div class="pix-copia">
+              <input id="credito" placeholder="OC-XXXXXXXX" style="text-transform:uppercase" />
+              <button type="button" id="btn-aplicar-credito">Aplicar</button>
+            </div>
+            <span id="credito-feedback" style="font-size:12.5px;font-weight:600"></span>
+          </div>
+        </section>
+
+        <button class="submit btnp" type="submit" id="btn-pagar">Ir para o pagamento</button>
+        <a class="voltar" id="link-voltar" href="agendamento.html">← Voltar e mudar o horário</a>
+        <p class="note">O horário escolhido só fica reservado depois que o pagamento é confirmado. Se você não concluir, ele continua disponível para outras pessoas.</p>
+      </form>
+    </div>
+
+    <!-- ETAPA 3: QR code do Pix (mesma página, substitui o formulário) -->
+    <div id="tela-pagamento" class="bloco pagamento" hidden>
+      <h2 id="pag-titulo">Pague com Pix para confirmar</h2>
+      <p class="ajuda" id="pag-desc"></p>
+      <div id="pag-pix-bloco">
+        <img class="qr" id="pag-qr" alt="QR code do Pix" />
+        <p class="ajuda" style="margin-bottom:8px">Ou copie o código e cole no app do seu banco:</p>
+        <div class="pix-copia">
+          <input id="pix-payload" readonly aria-label="Código Pix copia e cola" />
+          <button type="button" id="btn-copiar-pix">Copiar</button>
+        </div>
+      </div>
+      <div id="pag-cartao-bloco" hidden>
+        <a class="submit btnp" id="link-cartao" target="_blank" rel="noopener" style="display:block;text-align:center;text-decoration:none;margin-bottom:14px">Abrir pagamento seguro</a>
+        <p class="ajuda">Abrimos a página segura do Asaas em outra aba pra você inserir os dados do cartão (à vista ou parcelado). Depois de pagar, volte pra esta aba.</p>
+      </div>
+      <p class="status-pag" id="pag-status">Aguardando a confirmação do pagamento…</p>
+      <p class="note">Pode deixar esta tela aberta — ela confirma sozinha assim que o pagamento cair. O comprovante e o acesso chegam no seu e-mail.</p>
+    </div>
+
+    <!-- ETAPA 4: tudo certo -->
+    <div id="tela-pronto" class="bloco pagamento" hidden>
+      <div class="ok-selo" aria-hidden="true">✓</div>
+      <h2 id="pronto-titulo">Atendimento confirmado!</h2>
+      <p class="ajuda" id="pronto-desc"></p>
+      <a class="btn-entrar" href="login.html">Já recebi o e-mail, entrar</a>
+    </div>
+  </main>
+
+  <footer>
+    © 2026 Olá, Contador · Contadores com registro CRC · <a href="mailto:ola@olacontador.com.br" style="color:#0E5C43;font-weight:700;">ola@olacontador.com.br</a>
+  </footer>
+
+<script src="documento.js"></script>
+<script>
+(function(){
+  const CHAVE = 'oc_agendamento';
+  const CHAVE_CREDITO = 'oc_credito_codigo';
+
+  const $ = id => document.getElementById(id);
+  const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const money = cents => new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(cents/100);
+
+  let pedido = null;      // o que veio da etapa 1
+  let credito = null;     // { codigo, valorCents }
+  let poll = null;
+
+  function labelDia(isoDate){
+    const [y,m,d] = isoDate.split('-').map(Number);
+    return new Date(y, m-1, d).toLocaleDateString('pt-BR',{weekday:'long',day:'2-digit',month:'2-digit'});
+  }
+  function avisar(msg){
+    const el = $('alerta');
+    if(!msg){ el.classList.remove('on'); el.textContent = ''; return; }
+    el.textContent = msg;
+    el.classList.add('on');
+    window.scrollTo({top:0,behavior:'smooth'});
+  }
+
+  // ---------- máscaras (ajudam quem digita no celular) ----------
+  function mascaraDocumento(v){
+    const d = v.replace(/\D/g,'').slice(0,14);
+    if(d.length <= 11){
+      return d.replace(/(\d{3})(\d)/,'$1.$2').replace(/(\d{3})(\d)/,'$1.$2').replace(/(\d{3})(\d{1,2})$/,'$1-$2');
+    }
+    return d.replace(/(\d{2})(\d)/,'$1.$2').replace(/(\d{3})(\d)/,'$1.$2')
+            .replace(/(\d{3})(\d)/,'$1/$2').replace(/(\d{4})(\d{1,2})$/,'$1-$2');
+  }
+  function mascaraTelefone(v){
+    const d = v.replace(/\D/g,'').slice(0,11);
+    if(d.length <= 10) return d.replace(/(\d{2})(\d)/,'($1) $2').replace(/(\d{4})(\d{1,4})$/,'$1-$2');
+    return d.replace(/(\d{2})(\d)/,'($1) $2').replace(/(\d{5})(\d{1,4})$/,'$1-$2');
+  }
+
+  // Mesmo desconto aplicado no backend (api/signup-checkout.js) — só pra
+  // mostrar o preço de cada forma de pagamento antes de enviar o formulário.
+  const DESCONTO_PIX = 0.05;
+
+  // ---------- resumo do pedido ----------
+  function renderResumo(){
+    const coberto = credito && credito.valorCents >= pedido.precoCents;
+    $('resumo-pedido').innerHTML = `
+      <div class="resumo-topo">
+        <span>Seu atendimento</span>
+        <a href="agendamento?servico=${esc(pedido.servicoId)}">alterar</a>
+      </div>
+      <strong>${esc(pedido.servicoNome)}</strong>
+      <div class="resumo-linha">
+        <span class="resumo-quando">${esc(labelDia(pedido.dia))} às ${esc(pedido.hora)}</span>
+        <span class="resumo-preco ${coberto ? 'coberto' : ''}">${coberto ? 'Coberto pelo crédito' : money(pedido.precoCents)}</span>
+      </div>`;
+    $('btn-pagar').textContent = coberto ? 'Confirmar atendimento' : 'Ir para o pagamento';
+    $('ajuda-pagamento').textContent = coberto
+      ? 'Seu crédito cobre este atendimento — não há nada a pagar.'
+      : 'Escolha como prefere pagar. A confirmação é automática nos dois casos.';
+    // Crédito já cobre tudo — não faz sentido escolher forma de pagamento.
+    $('campo-metodo-pagamento').hidden = !!coberto;
+    if(!coberto){
+      $('preco-pix').textContent = money(Math.round(pedido.precoCents * (1 - DESCONTO_PIX)));
+      $('preco-cartao').textContent = money(pedido.precoCents) + ' — à vista ou em até 3x';
+    }
+  }
+
+  // ---------- crédito ----------
+  async function aplicarCredito(){
+    const codigo = $('credito').value.trim().toUpperCase();
+    const fb = $('credito-feedback');
+    if(!codigo){ fb.textContent = ''; return; }
+    fb.style.color = 'var(--muted)';
+    fb.textContent = 'Verificando…';
+    try {
+      const res = await fetch('/api/status?codigo=' + encodeURIComponent(codigo));
+      const data = await res.json();
+      if(!res.ok || !data.valido){
+        credito = null;
+        fb.style.color = 'var(--erro)';
+        fb.textContent = data.error === 'credito_indisponivel'
+          ? 'Este crédito já foi usado ou cancelado.'
+          : 'Código inválido — confira e tente de novo.';
+        renderResumo();
+        return;
+      }
+      if(data.valorCents < pedido.precoCents){
+        credito = null;
+        fb.style.color = 'var(--erro)';
+        fb.textContent = `Este crédito é de ${money(data.valorCents)} e não cobre este atendimento (${money(pedido.precoCents)}). Volte e escolha um atendimento dentro desse valor.`;
+        renderResumo();
+        return;
+      }
+      credito = { codigo, valorCents: data.valorCents };
+      fb.style.color = 'var(--verde)';
+      fb.textContent = `Crédito de ${money(data.valorCents)} aplicado.`;
+      renderResumo();
+    } catch(_){
+      credito = null;
+      fb.style.color = 'var(--erro)';
+      fb.textContent = 'Falha de conexão ao verificar o código.';
+      renderResumo();
+    }
+  }
+
+  // ---------- validação ----------
+  function validar(){
+    let ok = true;
+    const campos = ['nome','cpf','email','telefone'];
+    campos.forEach(c => { $('erro-'+c).hidden = true; $(c).setAttribute('aria-invalid','false'); });
+
+    const nome = $('nome').value.trim();
+    if(nome.length < 3 || !nome.includes(' ')){ $('erro-nome').hidden = false; $('nome').setAttribute('aria-invalid','true'); ok = false; }
+
+    const doc = window.OCDocumento.validarCpfCnpj($('cpf').value);
+    if(!doc.valido){ $('erro-cpf').hidden = false; $('cpf').setAttribute('aria-invalid','true'); ok = false; }
+
+    const email = $('email').value.trim();
+    if(!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)){ $('erro-email').hidden = false; $('email').setAttribute('aria-invalid','true'); ok = false; }
+
+    const tel = $('telefone').value.replace(/\D/g,'');
+    if(tel.length < 10){ $('erro-telefone').hidden = false; $('telefone').setAttribute('aria-invalid','true'); ok = false; }
+
+    if(!ok){
+      const primeiro = campos.map(c => $(c)).find(el => el.getAttribute('aria-invalid') === 'true');
+      if(primeiro) primeiro.focus();
+    }
+    return ok;
+  }
+
+  function montarPayload(){
+    return {
+      name: $('nome').value.trim(),
+      cpfCnpj: $('cpf').value.trim(),
+      email: $('email').value.trim(),
+      phone: $('telefone').value.trim(),
+      cep: $('cep').value.trim() || null,
+      endereco: $('endereco').value.trim() || null,
+      numero: $('numero').value.trim() || null,
+      bairro: $('bairro').value.trim() || null,
+      cidade: $('cidade').value.trim() || null,
+      estado: $('uf').value.trim().toUpperCase() || null,
+      servicoId: pedido.servicoId,
+      taxType: pedido.servicoNome,
+      assunto: pedido.assuntoId || null,
+      summary: pedido.resumo,
+      date: pedido.dia,
+      time: pedido.hora,
+      metodoPagamento: document.querySelector('input[name="metodo"]:checked')?.value || 'pix'
+    };
+  }
+
+  const ERROS = {
+    cpf_cnpj_invalido:'CPF/CNPJ inválido — confira os números digitados.',
+    invalid_params:'Preencha nome, e-mail, WhatsApp e CPF/CNPJ para continuar.',
+    asaas_not_configured:'Os pagamentos estão indisponíveis por instantes. Tente de novo em alguns minutos.',
+    servico_not_found:'Esse atendimento ficou indisponível. Volte e escolha outro.',
+    credito_not_found:'Código de crédito não encontrado.',
+    credito_indisponivel:'Este crédito já foi usado ou cancelado.',
+    credito_insuficiente:'O valor do crédito não cobre esse atendimento.'
+  };
+
+  // ---------- envio ----------
+  async function enviar(e){
+    e.preventDefault();
+    avisar('');
+    if(!validar()) return;
+
+    const btn = $('btn-pagar');
+    const textoOriginal = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = credito ? 'Confirmando…' : 'Gerando o Pix…';
+
+    const rota = credito ? '/api/resgatar-credito' : '/api/signup-checkout';
+    const corpo = credito ? { ...montarPayload(), codigo: credito.codigo } : montarPayload();
+
+    try {
+      const res = await fetch(rota, {
+        method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(corpo)
+      });
+      const data = await res.json();
+      if(!res.ok){
+        avisar(ERROS[data.error] || 'Não consegui concluir agora. Tente novamente.');
+        btn.disabled = false; btn.textContent = textoOriginal;
+        return;
+      }
+      sessionStorage.removeItem(CHAVE);
+      sessionStorage.removeItem(CHAVE_CREDITO);
+      if(credito) mostrarPronto(corpo.email);
+      else mostrarPagamento(data, corpo.email);
+    } catch(_){
+      avisar('Falha de conexão. Confira sua internet e tente novamente.');
+      btn.disabled = false; btn.textContent = textoOriginal;
+    }
+  }
+
+  function mostrarPagamento(data, email){
+    $('tela-dados').hidden = true;
+    $('tela-pagamento').hidden = false;
+    $('pag-desc').textContent = `${money(Math.round(data.valor * 100))} — ${pedido.servicoNome}, ${labelDia(pedido.dia)} às ${pedido.hora}.`;
+
+    const ehCartao = data.metodoPagamento === 'cartao';
+    $('pag-titulo').textContent = ehCartao ? 'Pague com cartão para confirmar' : 'Pague com Pix para confirmar';
+    $('pag-pix-bloco').hidden = ehCartao;
+    $('pag-cartao-bloco').hidden = !ehCartao;
+    if(ehCartao){
+      $('link-cartao').href = data.invoiceUrl;
+      window.open(data.invoiceUrl, '_blank');
+    } else {
+      $('pag-qr').src = 'data:image/png;base64,' + data.pixImage;
+      $('pix-payload').value = data.pixPayload;
+    }
+    window.scrollTo({top:0,behavior:'smooth'});
+
+    poll = setInterval(async () => {
+      try {
+        const res = await fetch('/api/status?cobrancaId=' + data.cobrancaId);
+        if(!res.ok) return;
+        const st = await res.json();
+        if(st.status === 'paid'){
+          clearInterval(poll);
+          $('tela-pagamento').hidden = true;
+          mostrarPronto(email, true);
+        }
+      } catch(_){ /* segue tentando */ }
+    }, 4000);
+  }
+
+  function mostrarPronto(email, pago){
+    $('tela-dados').hidden = true;
+    $('tela-pagamento').hidden = true;
+    $('tela-pronto').hidden = false;
+    $('pronto-titulo').textContent = pago ? 'Pagamento confirmado!' : 'Atendimento confirmado!';
+    $('pronto-desc').innerHTML = `Seu atendimento está marcado para <b>${esc(labelDia(pedido.dia))} às ${esc(pedido.hora)}</b>. `
+      + `Mandamos um e-mail para <b>${esc(email)}</b> com o link de acesso — é só abrir e clicar que você entra na sua área, sem precisar de senha.`;
+    window.scrollTo({top:0,behavior:'smooth'});
+  }
+
+  // ---------- início ----------
+  function iniciar(){
+    try { pedido = JSON.parse(sessionStorage.getItem(CHAVE) || 'null'); } catch(_){ pedido = null; }
+    // Chegou aqui sem passar pela etapa 1 (link direto, aba reaberta): manda
+    // escolher primeiro, senão não há o que cobrar.
+    if(!pedido || !pedido.servicoId || !pedido.dia || !pedido.hora){
+      location.replace('agendamento.html');
+      return;
+    }
+    renderResumo();
+    // Voltar tem que levar o plano junto, senão a etapa 1 não sabe o que agendar.
+    $('link-voltar').href = 'agendamento?servico=' + encodeURIComponent(pedido.servicoId);
+
+    $('cpf').addEventListener('input', e => { e.target.value = mascaraDocumento(e.target.value); });
+    $('telefone').addEventListener('input', e => { e.target.value = mascaraTelefone(e.target.value); });
+    $('form-checkout').addEventListener('submit', enviar);
+
+    $('btn-abrir-credito').addEventListener('click', () => {
+      $('credito-fechado').hidden = true;
+      $('credito-aberto').hidden = false;
+      $('credito').focus();
+    });
+    $('btn-aplicar-credito').addEventListener('click', aplicarCredito);
+    $('credito').addEventListener('keydown', e => { if(e.key === 'Enter'){ e.preventDefault(); aplicarCredito(); } });
+
+    $('btn-copiar-pix').addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText($('pix-payload').value);
+        $('btn-copiar-pix').textContent = 'Copiado!';
+        setTimeout(() => { $('btn-copiar-pix').textContent = 'Copiar'; }, 2000);
+      } catch(_){
+        $('pix-payload').select();
+      }
+    });
+
+    // Veio de um link com ?credito= na etapa 1: já abre e valida o campo.
+    const cod = sessionStorage.getItem(CHAVE_CREDITO);
+    if(cod){
+      $('credito-fechado').hidden = true;
+      $('credito-aberto').hidden = false;
+      $('credito').value = cod;
+      aplicarCredito();
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', iniciar);
+})();
+</script>
+</body>
+</html>

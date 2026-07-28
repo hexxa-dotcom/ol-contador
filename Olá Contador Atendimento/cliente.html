@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Portal do Cliente - Olá Contador</title>
-  
+  <meta name="robots" content="noindex" />
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="cliente.css">
   
@@ -74,6 +74,10 @@
         <i class="fa-solid fa-comments"></i> <span class="nav-label">Atendimento</span>
         <span class="chat-unread-badge" id="badge-atendimentos-cliente">0</span>
       </button>
+      <button class="nav-item" data-target="section-caixa-postal" title="Avisos" style="position: relative;">
+        <i class="fa-solid fa-envelope"></i> <span class="nav-label">Avisos</span>
+        <span class="chat-unread-badge" id="badge-caixa-postal-cliente" style="display:none;">0</span>
+      </button>
       <button class="nav-item" data-target="section-documentos" title="Meus Documentos">
         <i class="fa-solid fa-folder-open"></i> <span class="nav-label">Documentos</span>
       </button>
@@ -113,6 +117,26 @@
           </div>
           <button type="button" class="btn-utility primary" id="case-next-action-button" disabled>Carregando</button>
         </section>
+
+        <!-- Acesso: por padrão você entra pelo link no e-mail (sem senha). Criar uma
+             senha aqui é opcional — só pra quem preferir entrar assim depois. -->
+        <div class="tracking-card" id="card-criar-senha" style="border-radius: 24px; margin-bottom: 24px;">
+          <div class="tracking-header">
+            <h3><i class="fa-solid fa-key" style="color: var(--color-coral); margin-right: 8px;"></i>Acesso à sua conta</h3>
+          </div>
+          <p style="font-size: 13px; color: var(--color-text-secondary); margin: 10px 0 14px;">
+            Você pode continuar entrando só com o link que chega no seu e-mail — não precisa de senha.
+            Se preferir, crie uma senha abaixo pra também poder entrar digitando e-mail e senha da próxima vez.
+          </p>
+          <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end;">
+            <div style="flex: 1; min-width: 180px;">
+              <label style="display:block;font-size:12px;font-weight:600;color:var(--color-pine);margin-bottom:6px;" for="nova-senha">Nova senha</label>
+              <input type="password" id="nova-senha" class="form-select" placeholder="mínimo 6 caracteres" style="width:100%;" />
+            </div>
+            <button class="btn-utility primary" id="btn-criar-senha" style="white-space:nowrap;">Criar senha</button>
+          </div>
+          <p style="font-size: 12px; margin-top: 10px; display:none;" id="msg-criar-senha"></p>
+        </div>
 
         <div class="dashboard-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(450px, 1fr)); gap: 24px; align-items: start;">
           
@@ -358,6 +382,29 @@
                 </form>
               </div>
             </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SECTION: Caixa Postal — avisos/mensagens fora do chat ao vivo, que só
+           abre no horário agendado. Fica sempre disponível, sem depender de sessão. -->
+      <section class="content-panel" id="section-caixa-postal">
+        <div class="chat-container" style="position: relative; height: 100%;">
+          <div class="chat-header">
+            <div class="chat-header-avatar"><i class="fa-solid fa-envelope"></i></div>
+            <div class="chat-header-info">
+              <div class="chat-header-nome"><h3>Avisos e mensagens</h3></div>
+              <p style="font-size: 11px; margin: 0; color: rgba(255,255,255,0.8);">Fora do horário do chat ao vivo — fica aqui até você ler.</p>
+            </div>
+          </div>
+          <div class="chat-history" id="caixa-postal-cliente-historico">
+            <p style="font-size:13px;color:var(--color-text-secondary);text-align:center;padding:40px 0;">Carregando...</p>
+          </div>
+          <div class="chat-input-area">
+            <form class="chat-form" id="form-caixa-postal-cliente">
+              <input type="text" id="caixa-postal-cliente-mensagem" placeholder="Escreva uma mensagem para o contador..." autocomplete="off">
+              <button type="submit" class="btn-send"><i class="fa-solid fa-paper-plane"></i></button>
+            </form>
           </div>
         </div>
       </section>

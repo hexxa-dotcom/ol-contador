@@ -127,6 +127,25 @@ function slugify(str) {
     .toLowerCase().trim().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
 }
 
+// Mesmo teto do campo no site. O maxlength do navegador só barra digitação —
+// quem chamar a API direto passa por cima dele, então o corte é aqui também.
+const LIMITE_RESUMO = 150;
+
+const SITE_URL = process.env.SITE_URL || 'https://ola-contador.vercel.app';
+// Login mais simples possível: o link de acesso já chega pronto no e-mail
+// assim que o pagamento (ou resgate de crédito) confirma — um clique, sem senha.
+async function enviarLinkDeAcesso(email) {
+  if (!email || !supabaseAdmin) return;
+  try {
+    const { error } = await supabaseAdmin.auth.signInWithOtp({
+      email, options: { shouldCreateUser: false, emailRedirectTo: SITE_URL + '/login.html' }
+    });
+    if (error) console.error('envio do link de acesso falhou:', error.message);
+  } catch (e) {
+    console.error('envio do link de acesso falhou:', e.message);
+  }
+}
+
 // Código de crédito legível (sem 0/O/1/I, que se confundem ao digitar).
 function gerarCodigoCredito() {
   const alfabeto = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -336,6 +355,23 @@ app.delete('/api/appointments', async (req, res) => {
 
 // ============ PAGAMENTOS (Asaas) — fluxo "cliente paga -> agenda" ============
 
+// O painel manda os itens como texto livre; aqui viram {id, titulo, resumo}.
+// O id sai do próprio título quando não vem pronto, pra continuar estável entre
+// edições que só mexem no resumo.
+function normalizarItens(lista) {
+  return (lista || [])
+    .map(item => {
+      const titulo = String((item && item.titulo) || '').trim();
+      if (!titulo) return null;
+      return {
+        id: String((item && item.id) || '').trim() || slugify(titulo) || 'item',
+        titulo,
+        resumo: String((item && item.resumo) || '').trim()
+      };
+    })
+    .filter(Boolean);
+}
+
 function mapServico(row) {
   return {
     id: row.id,
@@ -343,7 +379,9 @@ function mapServico(row) {
     description: row.description,
     priceCents: row.price_cents,
     price: row.price_cents / 100,
-    recurrence: row.recurrence
+    recurrence: row.recurrence,
+    // Serviços que o plano abarca — o painel edita, o agendamento consome.
+    itens: Array.isArray(row.itens) ? row.itens : []
   };
 }
 
@@ -352,6 +390,53 @@ app.get('/api/servicos', async (req, res) => {
   const { data, error } = await supabase.from('servicos').select('*').eq('active', true).order('price_cents');
   if (error) { console.error(error); return res.status(500).json([]); }
   res.json((data || []).map(mapServico));
+});
+
+// `itens` (o que cada plano abarca) chegou depois. Enquanto a migração não roda,
+// pedir a coluna derruba a consulta inteira e a tela fica sem nada — então cai
+// para a consulta antiga em vez de quebrar. Some quando a coluna existir.
+async function buscarServicosAvulsos() {
+  const buscar = colunas => supabaseAdmin.from('servicos').select(colunas)
+    .eq('active', true).eq('recurrence', 'avulso').order('price_cents');
+  const comItens = await buscar('id,name,description,price_cents,itens');
+  if (!comItens.error || !/itens/.test(comItens.error.message || '')) return comItens;
+  return buscar('id,name,description,price_cents');
+}
+
+// Espelho local de api/agendamento-opcoes.js — alimenta a tela pública de
+// agendamento (catálogo avulso + horários + o que já está ocupado).
+app.get('/api/agendamento-opcoes', async (req, res) => {
+  const HORARIOS_PADRAO = ['09:00', '10:00', '11:00', '14:00', '15:00', '16:30'];
+  const hoje = new Date().toISOString().slice(0, 10);
+  const [servicosRes, configRes, apptRes, assuntosRes, diasBloqueadosRes] = await Promise.all([
+    buscarServicosAvulsos(),
+    supabaseAdmin.from('configuracoes').select('valor').eq('chave', 'agenda_disponibilidade').maybeSingle(),
+    supabaseAdmin.from('agendamentos').select('date,time').neq('status', 'done').gte('date', hoje),
+    // Lista genérica — usada quando o plano ainda não tem `itens` cadastrados.
+    supabaseAdmin.from('configuracoes').select('valor').eq('chave', 'triagem_assuntos').maybeSingle(),
+    // Feriados/folgas marcados pelo contador — a tela pública pula esses dias.
+    supabaseAdmin.from('configuracoes').select('valor').eq('chave', 'agenda_dias_bloqueados').maybeSingle()
+  ]);
+  if (servicosRes.error) { console.error(servicosRes.error); return res.status(502).json({ error: 'db_error' }); }
+
+  const cfg = configRes.data && configRes.data.valor;
+  const ocupados = {};
+  (apptRes.data || []).forEach(a => {
+    if (!a.date || !a.time) return;
+    (ocupados[a.date] = ocupados[a.date] || []).push(a.time);
+  });
+  const assuntosCfg = assuntosRes.data && assuntosRes.data.valor;
+  const assuntosPadrao = (Array.isArray(assuntosCfg) ? assuntosCfg : [])
+    .map(a => ({ id: a.id, titulo: a.titulo, resumo: a.resumo || '' }));
+  const diasBloqueadosCfg = diasBloqueadosRes.data && diasBloqueadosRes.data.valor;
+  res.json({
+    servicos: (servicosRes.data || []).map(s => ({
+      ...s, itens: Array.isArray(s.itens) && s.itens.length ? s.itens : assuntosPadrao
+    })),
+    horarios: Array.isArray(cfg) && cfg.length ? cfg : HORARIOS_PADRAO,
+    ocupados,
+    diasBloqueados: Array.isArray(diasBloqueadosCfg) ? diasBloqueadosCfg : []
+  });
 });
 
 // Cria/edita um serviço no painel Financeiro. Faltava por completo neste
@@ -363,6 +448,7 @@ app.post('/api/servicos', async (req, res) => {
     price_cents: Math.max(0, Math.round(Number(body.priceCents) || 0)),
     recurrence: body.recurrence || 'once', active: body.active !== false
   };
+  if (Array.isArray(body.itens)) payload.itens = normalizarItens(body.itens);
   if (!payload.name) return res.status(400).json({ error: 'name_required' });
 
   try {
@@ -388,6 +474,23 @@ app.post('/api/servicos', async (req, res) => {
   }
 });
 
+// Exclui um serviço/plano. Recusa (409) se já existir cobrança gerada com ele —
+// nesse caso o certo é desativar (active:false via POST), não excluir.
+app.delete('/api/servicos', async (req, res) => {
+  const id = req.query.id;
+  if (!id) return res.status(400).json({ error: 'id_required' });
+  try {
+    const { count } = await supabaseAdmin.from('cobrancas').select('id', { count: 'exact', head: true }).eq('servico_id', id);
+    if (count) return res.status(409).json({ error: 'servico_em_uso', detail: `Existem ${count} cobrança(s) geradas com este plano — desative em vez de excluir.` });
+    const { error } = await supabaseAdmin.from('servicos').delete().eq('id', id);
+    if (error) throw error;
+    res.json({ ok: true });
+  } catch (e) {
+    console.error('servicos DELETE error:', e.message);
+    res.status(500).json({ error: 'delete_failed', detail: e.message });
+  }
+});
+
 // Cria a cobrança Pix para um serviço + horário pretendido.
 // body: { clientId, servicoId, date, time }
 app.post('/api/checkout', async (req, res) => {
@@ -405,13 +508,20 @@ app.post('/api/checkout', async (req, res) => {
   }
 
   try {
+    // 10% de desconto pra quem já teve pelo menos uma cobrança paga antes —
+    // incentivo pra quem precisar de um novo serviço voltar por aqui.
+    const { data: pagas } = await supabaseAdmin.from('cobrancas').select('id')
+      .eq('cliente_ref', clientId).eq('status', 'paid').limit(1);
+    const desconto = !!(pagas && pagas.length);
+    const precoCents = desconto ? Math.round(servico.price_cents * 0.9) : servico.price_cents;
+
     // 1) cliente no Asaas
-    const customerId = await asaas.createCustomer({ name: cliente.name, cpfCnpj: cliente.cpf });
+    const customerId = await asaas.createCustomer({ name: cliente.name, cpfCnpj: cliente.cpf, email: cliente.email });
     // 2) cobrança Pix
     const payment = await asaas.createPixPayment({
       customerId,
-      value: servico.price_cents / 100,
-      description: `${servico.name} — ${cliente.name}`,
+      value: precoCents / 100,
+      description: `${servico.name} — ${cliente.name}${desconto ? ' (10% cliente recorrente)' : ''}`,
       dueDate: new Date().toISOString().slice(0, 10)
     });
     // 3) QR code Pix
@@ -423,7 +533,7 @@ app.post('/api/checkout', async (req, res) => {
       servico_id: servicoId,
       asaas_customer_id: customerId,
       asaas_payment_id: payment.id,
-      valor_cents: servico.price_cents,
+      valor_cents: precoCents,
       status: 'pending',
       pix_payload: qr.payload,
       pix_image: qr.encodedImage,
@@ -436,7 +546,9 @@ app.post('/api/checkout', async (req, res) => {
     res.json({
       cobrancaId: cob.id,
       servico: mapServico(servico),
-      valor: servico.price_cents / 100,
+      valor: precoCents / 100,
+      valorOriginal: servico.price_cents / 100,
+      desconto,
       pixPayload: qr.payload,
       pixImage: qr.encodedImage,
       invoiceUrl: payment.invoiceUrl,
@@ -455,40 +567,11 @@ app.post('/api/checkout', async (req, res) => {
 // dentro de confirmCobranca — nunca aqui, pra não criar conta órfã de quem
 // não pagou.
 // body: { name, cpfCnpj, email, phone, sexo, cidade, estado, servicoId, date, time, summary }
-app.post('/api/subscribe-radar', async (req, res) => {
-  const { cliente_ref, name, cpfCnpj, email } = req.body;
-  if (!cliente_ref || !cpfCnpj) return res.status(400).send('Invalid params');
-  if (!asaas.isConfigured()) return res.status(503).json({ error: 'asaas_not_configured' });
-
-  try {
-    const { digitos } = validarCpfCnpj(cpfCnpj);
-    const customerId = await asaas.createCustomer({ name: name || 'Cliente Radar Fiscal', cpfCnpj: digitos, email });
-    const nextDueDate = new Date().toISOString().slice(0, 10);
-    const sub = await asaas.createSubscription({
-      customerId,
-      value: 29.90,
-      description: 'Assinatura Mensal - Radar Fiscal (Prevenção e Monitoramento)',
-      nextDueDate
-    });
-
-    // Registra a assinatura no cliente usando o client_ref (que é o ID no Supabase)
-    await supabaseAdmin.from('clientes')
-      .update({ 
-        recorrente: true, 
-        recorrente_tipo: 'Radar Fiscal',
-        recorrente_dia_venc: new Date().getDate()
-      })
-      .eq('id', cliente_ref);
-
-    res.json({ success: true, subscriptionId: sub.id });
-  } catch (e) {
-    console.error('subscribe-radar error:', e.message);
-    res.status(500).json({ error: e.message });
-  }
-});
+// Pix sai mais barato pro cliente — mesmo desconto usado em toda a base.
+const DESCONTO_PIX = 0.05;
 
 app.post('/api/signup-checkout', async (req, res) => {
-  const { name, cpfCnpj, email, phone, sexo, cidade, estado, servicoId, date, time, summary } = req.body || {};
+  const { name, cpfCnpj, email, phone, sexo, cep, endereco, numero, bairro, cidade, estado, servicoId, date, time, summary, assunto, metodoPagamento } = req.body || {};
   if (!name || !email || !phone || !servicoId) return res.status(400).json({ error: 'invalid_params' });
   const { valido, digitos } = validarCpfCnpj(cpfCnpj);
   if (!valido) return res.status(400).json({ error: 'cpf_cnpj_invalido' });
@@ -497,46 +580,53 @@ app.post('/api/signup-checkout', async (req, res) => {
   const { data: servico } = await supabaseAdmin.from('servicos').select('*').eq('id', servicoId).single();
   if (!servico) return res.status(404).json({ error: 'servico_not_found' });
 
+  const cartao = metodoPagamento === 'cartao';
+  const precoCents = cartao ? servico.price_cents : Math.round(servico.price_cents * (1 - DESCONTO_PIX));
+
   try {
     const clientId = digitos;
-    const { data: existente } = await supabaseAdmin.from('clientes').select('id').eq('id', clientId).maybeSingle();
-    if (!existente) {
-      const { error: erroInsert } = await supabaseAdmin.from('clientes').insert({
-        id: clientId, name, cpf: digitos, email, phone,
-        sexo: sexo || null, cidade: cidade || null, estado: estado || null,
-        tax_type: servico.name, honorarios: Math.round(servico.price_cents / 100),
-        status: 'pending'
-      });
-      if (erroInsert) throw erroInsert;
-    } else {
-      // Já existe (comprou de novo) — atualiza só o contato, preserva o resto do prontuário.
-      await supabaseAdmin.from('clientes').update({ email, phone, sexo: sexo || null, cidade: cidade || null, estado: estado || null }).eq('id', clientId);
-    }
-    if (summary) {
-      await supabaseAdmin.from('triagens').insert({
-        cliente_ref: clientId, assunto: servico.name, descricao: summary, status: 'enviada', enviada_at: new Date().toISOString()
-      });
-    }
-
-    const customerId = await asaas.createCustomer({ name, cpfCnpj: digitos });
-    const payment = await asaas.createPixPayment({
-      customerId, value: servico.price_cents / 100,
-      description: `${servico.name} — ${name}`, dueDate: new Date().toISOString().slice(0, 10)
+    const customerId = await asaas.createCustomer({
+      name, cpfCnpj: digitos, email,
+      postalCode: cep, address: endereco, addressNumber: numero, province: bairro
     });
-    const qr = await asaas.getPixQrCode(payment.id);
+    const descricao = `${servico.name} — ${name}${cartao ? '' : ' (5% Pix)'}`;
+    const dadosCliente = {
+      name, email, phone, sexo: sexo || null,
+      cep: cep || null, endereco: endereco || null, numero: numero || null, bairro: bairro || null,
+      cidade: cidade || null, estado: estado || null, assunto: assunto || null, summary: summary || null
+    };
 
+    // Cliente e triagem só nascem quando o pagamento confirmar (dentro de
+    // confirmCobranca) — até lá os dados ficam guardados aqui na cobrança.
+    if (cartao) {
+      const payment = await asaas.createCardPayment({ customerId, value: precoCents / 100, description: descricao });
+      const { data: cob, error } = await supabaseAdmin.from('cobrancas').insert({
+        cliente_ref: clientId, servico_id: servicoId, asaas_customer_id: customerId,
+        asaas_payment_id: payment.id, valor_cents: precoCents, status: 'pending',
+        billing_type: 'CREDIT_CARD', invoice_url: payment.invoiceUrl,
+        appt_date: date || null, appt_time: time || null, dados_cliente: dadosCliente
+      }).select().single();
+      if (error) throw error;
+      return res.json({
+        clientId, cobrancaId: cob.id, servico: mapServico(servico),
+        valor: precoCents / 100, metodoPagamento: 'cartao', invoiceUrl: payment.invoiceUrl, status: 'pending'
+      });
+    }
+
+    const payment = await asaas.createPixPayment({ customerId, value: precoCents / 100, description: descricao });
+    const qr = await asaas.getPixQrCode(payment.id);
     const { data: cob, error } = await supabaseAdmin.from('cobrancas').insert({
       cliente_ref: clientId, servico_id: servicoId, asaas_customer_id: customerId,
-      asaas_payment_id: payment.id, valor_cents: servico.price_cents, status: 'pending',
-      pix_payload: qr.payload, pix_image: qr.encodedImage, invoice_url: payment.invoiceUrl,
-      appt_date: date || null, appt_time: time || null
+      asaas_payment_id: payment.id, valor_cents: precoCents, status: 'pending',
+      billing_type: 'PIX', pix_payload: qr.payload, pix_image: qr.encodedImage, invoice_url: payment.invoiceUrl,
+      appt_date: date || null, appt_time: time || null, dados_cliente: dadosCliente
     }).select().single();
     if (error) throw error;
 
     res.json({
       clientId, cobrancaId: cob.id, servico: mapServico(servico),
-      valor: servico.price_cents / 100, pixPayload: qr.payload, pixImage: qr.encodedImage,
-      invoiceUrl: payment.invoiceUrl, status: 'pending'
+      valor: precoCents / 100, valorOriginal: servico.price_cents / 100, metodoPagamento: 'pix',
+      pixPayload: qr.payload, pixImage: qr.encodedImage, invoiceUrl: payment.invoiceUrl, status: 'pending'
     });
   } catch (e) {
     console.error('signup-checkout error:', e.message);
@@ -568,7 +658,7 @@ app.post('/api/recorrencia', async (req, res) => {
     const valorNum = Number(valor) || (cliente.honorarios || 0);
     if (!valorNum) return res.status(400).json({ error: 'valor_invalido' });
 
-    const customerId = await asaas.createCustomer({ name: cliente.name, cpfCnpj: cliente.cpf });
+    const customerId = await asaas.createCustomer({ name: cliente.name, cpfCnpj: cliente.cpf, email: cliente.email });
     const hoje = new Date();
     let proximo = new Date(hoje.getFullYear(), hoje.getMonth(), dia);
     if (proximo <= hoje) proximo = new Date(hoje.getFullYear(), hoje.getMonth() + 1, dia);
@@ -646,8 +736,38 @@ async function confirmCobranca(cob) {
   // Pago: cria o agendamento (se ainda não criou)
   let appointmentId = cob.appointment_id;
   if (!appointmentId) {
-    const { data: cliente } = await supabaseAdmin.from('clientes').select('*').eq('id', cob.cliente_ref).single();
     const { data: servico } = await supabaseAdmin.from('servicos').select('*').eq('id', cob.servico_id).single();
+    let { data: cliente } = await supabaseAdmin.from('clientes').select('*').eq('id', cob.cliente_ref).maybeSingle();
+
+    // O cliente só nasce agora — pagamento confirmado — pra nunca sobrar
+    // registro de quem gerou o Pix e desistiu. Os dados do formulário ficaram
+    // guardados em cobrancas.dados_cliente desde o checkout.
+    if (cob.dados_cliente) {
+      const d = cob.dados_cliente;
+      if (!cliente) {
+        const { data: novoCliente, error: erroCliente } = await supabaseAdmin.from('clientes').insert({
+          id: cob.cliente_ref, name: d.name, cpf: cob.cliente_ref, email: d.email, phone: d.phone,
+          sexo: d.sexo || null, cidade: d.cidade || null, estado: d.estado || null,
+          tax_type: servico ? servico.name : null,
+          honorarios: servico ? Math.round(servico.price_cents / 100) : null,
+          status: 'pending'
+        }).select().single();
+        if (erroCliente) console.error('criação do cliente na confirmação falhou:', erroCliente.message);
+        cliente = novoCliente || null;
+      } else {
+        await supabaseAdmin.from('clientes').update({
+          email: d.email, phone: d.phone, sexo: d.sexo || null, cidade: d.cidade || null, estado: d.estado || null
+        }).eq('id', cliente.id);
+      }
+      if (cliente && (d.assunto || d.summary)) {
+        await supabaseAdmin.from('triagens').insert({
+          cliente_ref: cliente.id, assunto: d.assunto || (servico ? servico.name : ''),
+          descricao: d.summary ? String(d.summary).slice(0, LIMITE_RESUMO) : null,
+          status: 'enviada', enviada_at: new Date().toISOString()
+        });
+      }
+    }
+
     const { data: appt } = await supabaseAdmin.from('agendamentos').insert({
       cliente_ref: cob.cliente_ref,
       client_name: cliente ? cliente.name : cob.cliente_ref,
@@ -697,6 +817,7 @@ async function confirmCobranca(cob) {
         console.error('criação de conta do cliente falhou:', e.message);
       }
     }
+    if (cliente && cliente.email) await enviarLinkDeAcesso(cliente.email);
 
     // Aviso externo ao cliente: pagamento confirmado + agendamento.
     if (notify.anyConfigured()) {
@@ -710,25 +831,37 @@ async function confirmCobranca(cob) {
   return { status: 'paid', appointmentId };
 }
 
-// Polling público do checkout de agendamento (sem login) — mesmo par de nome
-// usado em produção (api/signup-status.js), pra agendamento.html chamar igual
-// nos dois ambientes.
-app.get('/api/signup-status', async (req, res) => {
-  const { data: cob } = await supabaseAdmin.from('cobrancas').select('*').eq('id', parseInt(req.query.cobrancaId, 10)).single();
-  if (!cob) return res.status(404).json({ error: 'cobranca_not_found' });
-  if (!asaas.isConfigured()) return res.status(503).json({ error: 'asaas_not_configured' });
-  try {
-    res.json(await confirmCobranca(cob));
-  } catch (e) {
-    console.error('signup-status error:', e.message);
-    res.status(502).json({ error: 'asaas_error', detail: e.message });
+// Polling público do checkout de agendamento (sem login) — espelha
+// api/status.js. Os dois endpoints antigos (signup-status/credito-status)
+// viraram um só em produção pra caber no teto de 12 funções do plano Hobby;
+// aqui não há esse limite, mas mantemos a mesma rota pra checkout.html chamar
+// igual nos dois ambientes.
+app.get('/api/status', async (req, res) => {
+  if (req.query.cobrancaId) {
+    const { data: cob } = await supabaseAdmin.from('cobrancas').select('*').eq('id', parseInt(req.query.cobrancaId, 10)).single();
+    if (!cob) return res.status(404).json({ error: 'cobranca_not_found' });
+    if (!asaas.isConfigured()) return res.status(503).json({ error: 'asaas_not_configured' });
+    try {
+      return res.json(await confirmCobranca(cob));
+    } catch (e) {
+      console.error('status (cobranca) error:', e.message);
+      return res.status(502).json({ error: 'asaas_error', detail: e.message });
+    }
   }
+  if (req.query.codigo) {
+    const codigo = String(req.query.codigo).trim().toUpperCase();
+    const { data: credito } = await supabaseAdmin.from('creditos').select('*').eq('codigo', codigo).maybeSingle();
+    if (!credito) return res.status(404).json({ error: 'credito_not_found' });
+    if (credito.status !== 'ativo') return res.status(410).json({ error: 'credito_indisponivel', status: credito.status });
+    return res.json({ valido: true, valorCents: credito.valor_cents, valor: credito.valor_cents / 100 });
+  }
+  res.status(400).json({ error: 'invalid_params' });
 });
 
 // ============ Créditos de atendimento ============
 // Gerados manualmente pelo contador no painel financeiro (ex.: cortesia,
 // reembolso, parceria). O cliente resgata com o código OU com um link direto
-// (/agendamento.html?credito=CODE) e cai direto no sistema, sem passar pelo
+// (/agendamento?credito=CODE) e cai direto no sistema, sem passar pelo
 // checkout/pagamento — o valor do crédito cobre o serviço escolhido.
 app.get('/api/creditos', async (req, res) => {
   const { data, error } = await supabaseAdmin.from('creditos').select('*, clientes(name)').order('created_at', { ascending: false });
@@ -761,21 +894,11 @@ app.post('/api/creditos/:id/cancelar', async (req, res) => {
   res.json({ ok: true });
 });
 
-// Validação pública do código (tela de agendamento, sem login).
-app.get('/api/credito-status', async (req, res) => {
-  const codigo = String(req.query.codigo || '').trim().toUpperCase();
-  if (!codigo) return res.status(400).json({ error: 'invalid_params' });
-  const { data: credito } = await supabaseAdmin.from('creditos').select('*').eq('codigo', codigo).maybeSingle();
-  if (!credito) return res.status(404).json({ error: 'credito_not_found' });
-  if (credito.status !== 'ativo') return res.status(410).json({ error: 'credito_indisponivel', status: credito.status });
-  res.json({ valido: true, valorCents: credito.valor_cents, valor: credito.valor_cents / 100 });
-});
-
 // Resgate público do crédito — mesma coisa que o checkout pago, mas sem Asaas:
 // o crédito já cobre o valor, então o cliente cai direto confirmado no sistema.
 // body: { codigo, name, cpfCnpj, email, phone, sexo, cidade, estado, servicoId, date, time, summary }
 app.post('/api/resgatar-credito', async (req, res) => {
-  const { codigo, name, cpfCnpj, email, phone, sexo, cidade, estado, servicoId, date, time, summary } = req.body || {};
+  const { codigo, name, cpfCnpj, email, phone, sexo, cidade, estado, servicoId, date, time, summary, assunto } = req.body || {};
   if (!codigo || !name || !email || !phone || !servicoId) return res.status(400).json({ error: 'invalid_params' });
   const { valido, digitos } = validarCpfCnpj(cpfCnpj);
   if (!valido) return res.status(400).json({ error: 'cpf_cnpj_invalido' });
@@ -802,9 +925,11 @@ app.post('/api/resgatar-credito', async (req, res) => {
     } else {
       await supabaseAdmin.from('clientes').update({ email, phone, sexo: sexo || null, cidade: cidade || null, estado: estado || null }).eq('id', clientId);
     }
-    if (summary) {
+    if (assunto || summary) {
       await supabaseAdmin.from('triagens').insert({
-        cliente_ref: clientId, assunto: servico.name, descricao: summary, status: 'enviada', enviada_at: new Date().toISOString()
+        cliente_ref: clientId, assunto: assunto || servico.name,
+        descricao: summary ? String(summary).slice(0, LIMITE_RESUMO) : null,
+        status: 'enviada', enviada_at: new Date().toISOString()
       });
     }
 
@@ -848,6 +973,7 @@ app.post('/api/resgatar-credito', async (req, res) => {
         console.error('criação de conta via crédito falhou:', e.message);
       }
     }
+    if (email) await enviarLinkDeAcesso(email);
 
     res.json({ clientId, appointmentId: appt ? appt.id : null, servico: mapServico(servico), valor: servico.price_cents / 100, status: 'confirmado' });
   } catch (e) {
@@ -916,7 +1042,16 @@ app.post('/api/copilot', async (req, res) => {
 
 // ============ DOCUMENTOS (upload real + leitura por IA) ============
 
-function mapDocumento(row) {
+// Bucket "documentos" é privado (RLS por pasta do cliente) — a URL é assinada
+// na hora de listar, nunca guardada fixa (uma public_url salva no upload não
+// abriria mais depois que o bucket deixou de ser público).
+async function signedDocUrl(storagePath) {
+  if (!storagePath) return null;
+  const { data, error } = await supabase.storage.from('documentos').createSignedUrl(storagePath, 3600);
+  if (error) { console.error('Falha ao assinar URL do documento:', error); return null; }
+  return data.signedUrl;
+}
+async function mapDocumento(row) {
   return {
     id: row.id,
     clientRef: row.cliente_ref,
@@ -924,7 +1059,7 @@ function mapDocumento(row) {
     mime: row.mime,
     size: row.size_bytes,
     uploadedBy: row.uploaded_by,
-    url: row.public_url,
+    url: await signedDocUrl(row.storage_path),
     ai: row.ai_extracted || null,
     createdAt: row.created_at
   };
@@ -937,16 +1072,22 @@ app.get('/api/documentos', async (req, res) => {
   const { data, error } = await supabase.from('documentos')
     .select('*').eq('cliente_ref', clientId).order('created_at', { ascending: false });
   if (error) { console.error(error); return res.status(500).json([]); }
-  res.json((data || []).map(mapDocumento));
+  res.json(await Promise.all((data || []).map(mapDocumento)));
 });
 
 // Upload de um documento. body: { clientId, fileName, mime, dataBase64, uploadedBy }
+// Mesmo limite/whitelist do cliente.js — repetidos aqui porque quem chama a
+// API direto (sem passar pela tela) pula a checagem do JS do navegador.
+const MIME_ACEITOS = /^(application\/pdf|image\/png|image\/jpeg)$/;
+const TAMANHO_MAX_BYTES = 10 * 1024 * 1024;
 app.post('/api/documentos', async (req, res) => {
   const { clientId, fileName, mime, dataBase64, uploadedBy } = req.body;
   if (!clientId || !fileName || !dataBase64) return res.status(400).send('Invalid params');
+  if (!MIME_ACEITOS.test(mime || '')) return res.status(400).json({ error: 'Formato não aceito. Envie PDF, JPG ou PNG.' });
 
   try {
     const buffer = Buffer.from(dataBase64, 'base64');
+    if (buffer.length > TAMANHO_MAX_BYTES) return res.status(400).json({ error: 'Arquivo maior que 10MB.' });
     const safeName = fileName.replace(/[^a-zA-Z0-9._-]/g, '_');
     const storagePath = `${clientId}/${Date.now()}_${safeName}`;
 
@@ -954,16 +1095,13 @@ app.post('/api/documentos', async (req, res) => {
       .upload(storagePath, buffer, { contentType: mime || 'application/octet-stream', upsert: false });
     if (up.error) throw up.error;
 
-    const publicUrl = supabase.storage.from('documentos').getPublicUrl(storagePath).data.publicUrl;
-
     const { data: doc, error } = await supabase.from('documentos').insert({
       cliente_ref: clientId,
       file_name: fileName,
       storage_path: storagePath,
       mime: mime || null,
       size_bytes: buffer.length,
-      uploaded_by: uploadedBy || 'client',
-      public_url: publicUrl
+      uploaded_by: uploadedBy || 'client'
     }).select().single();
     if (error) throw error;
 
@@ -984,7 +1122,7 @@ app.post('/api/documentos', async (req, res) => {
     io.emit('notifications_updated');
     io.emit('documentos_updated', { clientId });
 
-    res.json(mapDocumento(doc));
+    res.json(await mapDocumento(doc));
   } catch (e) {
     console.error('upload error:', e.message);
     res.status(500).json({ error: 'upload_failed', detail: e.message });
@@ -1006,7 +1144,7 @@ app.post('/api/documentos/:id/analisar', async (req, res) => {
     const extracted = await ia.analisarDocumento(buffer, doc.mime);
     await supabase.from('documentos').update({ ai_extracted: extracted }).eq('id', doc.id);
 
-    res.json({ ...mapDocumento(doc), ai: extracted });
+    res.json({ ...(await mapDocumento(doc)), ai: extracted });
   } catch (e) {
     console.error('analisar error:', e.message);
     if (e.code === 'ia_not_configured') return res.status(503).json({ error: 'ia_not_configured' });

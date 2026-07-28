@@ -72,9 +72,13 @@ module.exports = async (req, res) => {
   const admin = adminClient();
   if (!admin) return res.status(503).json({ error: 'service_role_not_configured' });
 
-  // Autoriza: cron da Vercel (header) OU contador logado.
-  const isCron = !!req.headers['x-vercel-cron'] ||
-    (process.env.CRON_SECRET && req.headers.authorization === `Bearer ${process.env.CRON_SECRET}`);
+  // Autoriza: cron da Vercel OU contador logado. O header "x-vercel-cron" NÃO
+  // é usado sozinho pra provar isso — é só um header comum, qualquer chamada
+  // de fora pode mandar ele também. A prova real é o CRON_SECRET: quando essa
+  // variável existe na Vercel, ela mesma anexa "Authorization: Bearer
+  // <CRON_SECRET>" nas chamadas do cron agendado — só o cron de verdade sabe
+  // esse valor.
+  const isCron = !!(process.env.CRON_SECRET && req.headers.authorization === `Bearer ${process.env.CRON_SECRET}`);
   if (!isCron) {
     const auth = await requireUser(req, res);
     if (!auth) return;

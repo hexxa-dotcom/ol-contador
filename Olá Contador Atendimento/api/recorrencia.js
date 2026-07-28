@@ -6,6 +6,14 @@
 const asaas = require('./_lib/asaas');
 const { requireUser, adminClient } = require('./_lib/auth');
 
+// Preços de autoatendimento (o cliente ativa sozinho, ex. botão "Radar Fiscal"
+// na área dele) — vêm SEMPRE daqui, nunca do valor que o navegador mandar.
+// Só a equipe (is_staff()) pode informar um valor livre no corpo da
+// requisição, pro caso de acompanhamento sob medida (ex. Assessoria MEI).
+const PRECOS_AUTOATENDIMENTO_CENTS = {
+  'Radar Fiscal': 2990
+};
+
 module.exports = async (req, res) => {
   if (req.method !== 'POST') return res.status(405).json({ error: 'method_not_allowed' });
   const auth = await requireUser(req, res);
@@ -31,7 +39,20 @@ module.exports = async (req, res) => {
 
     if (!asaas.isConfigured()) return res.status(503).json({ error: 'asaas_not_configured' });
     const dia = Math.min(28, Math.max(1, parseInt(diaVenc, 10) || 10));
-    const valorNum = Number(valor) || (cliente.honorarios || 0);
+
+    // O valor só é livre pra equipe (acompanhamento sob medida). Pra qualquer
+    // outro chamador — o próprio cliente ativando um produto de autoatendimento
+    // como o Radar Fiscal — o preço vem do catálogo fixo acima, nunca do corpo
+    // da requisição (senão dava pra ativar por R$0,01 só trocando o valor).
+    const { data: souStaff } = await admin.from('staff').select('id').eq('id', auth.user.id).maybeSingle();
+    let valorNum;
+    if (souStaff) {
+      valorNum = Number(valor) || (cliente.honorarios || 0);
+    } else {
+      const precoCatalogo = PRECOS_AUTOATENDIMENTO_CENTS[tipo];
+      if (!precoCatalogo) return res.status(403).json({ error: 'tipo_nao_permitido_para_cliente' });
+      valorNum = precoCatalogo / 100;
+    }
     if (!valorNum) return res.status(400).json({ error: 'valor_invalido' });
 
     const customerId = await asaas.createCustomer({ name: cliente.name, cpfCnpj: cliente.cpf });

@@ -39,6 +39,7 @@ let testAppointmentsStore = null;
 let testNotificationsStore = null;
 let testRelatoriosStore = [];
 let testAvaliacoesStore = [];
+let testCaixaPostalStore = null;
 let testHistoricoStore = null;
 let testCreditosStore = null;
 let testConfigStore = {
@@ -53,7 +54,8 @@ const TEST_KEYS = {
   ratings: 'oc_demo_ratings',
   config: 'oc_demo_config',
   historico: 'oc_demo_historico',
-  creditos: 'oc_demo_creditos'
+  creditos: 'oc_demo_creditos',
+  caixaPostal: 'oc_demo_caixa_postal'
 };
 function carregarDemo(key, fallback) {
   try {
@@ -139,6 +141,11 @@ function avaliacoesTeste() {
   testAvaliacoesStore = carregarDemo(TEST_KEYS.ratings, testAvaliacoesStore || []);
   return testAvaliacoesStore;
 }
+function caixaPostalTeste() {
+  if (testCaixaPostalStore) return testCaixaPostalStore;
+  testCaixaPostalStore = carregarDemo(TEST_KEYS.caixaPostal, []);
+  return testCaixaPostalStore;
+}
 function configTeste() {
   testConfigStore = carregarDemo(TEST_KEYS.config, testConfigStore);
   return testConfigStore;
@@ -197,6 +204,22 @@ async function routeTesteCliente(path, method, q, body) {
     { id: 'mei', name: 'Regularização MEI', description: 'Orientação para DAS, declaração anual e pendências do MEI.', price: 147, priceCents: 14700, recurrence: 'once', active: true }
   ]);
   if (path === '/api/config' && method === 'GET') return jsonResponse({});
+  if (path === '/api/caixa-postal' && method === 'GET') {
+    return jsonResponse(caixaPostalTeste().filter(m => m.clientRef === clientId));
+  }
+  if (path === '/api/caixa-postal' && method === 'POST') {
+    const m = { id: 'demo-cp-' + Date.now(), clientRef: body.clienteId, remetente: body.remetente === 'cliente' ? 'cliente' : 'contador',
+      assunto: body.assunto || null, mensagem: body.mensagem, lida: false, createdAt: new Date().toISOString() };
+    caixaPostalTeste().push(m);
+    salvarDemo(TEST_KEYS.caixaPostal, testCaixaPostalStore);
+    return jsonResponse(m);
+  }
+  if (path === '/api/caixa-postal/marcar-lida' && method === 'POST') {
+    const contrario = body.remetente === 'cliente' ? 'contador' : 'cliente';
+    caixaPostalTeste().forEach(m => { if (m.clientRef === body.clienteId && m.remetente === contrario) m.lida = true; });
+    salvarDemo(TEST_KEYS.caixaPostal, testCaixaPostalStore);
+    return jsonResponse({ ok: true });
+  }
   return jsonResponse({ error: 'demo_action_not_available' }, 403);
 }
 async function routeTesteContador(path, method, q, body) {
@@ -218,16 +241,22 @@ async function routeTesteContador(path, method, q, body) {
         const inicio = new Date((primeiraDoCliente && primeiraDoCliente.createdAt) || agora);
         historicoTeste().unshift({
           id: 'demo-hist-' + Date.now(), clienteId: body.clientId, clienteNome: c.name,
-          taxType: c.taxType, finalizadoEm: c.ultimoFinalizadoEm,
-          duracaoSegundos: Math.max(0, Math.round((agora - inicio) / 1000)), honorarios: c.honorarios || 0
+          taxType: c.taxType, finalizadoEm: c.ultimoFinalizadoEm, iniciadoEm: inicio.toISOString(),
+          duracaoSegundos: Math.max(0, Math.round((agora - inicio) / 1000)), honorarios: c.honorarios || 0,
+          notas: c.notas || null
         });
         salvarDemo(TEST_KEYS.historico, testHistoricoStore);
+        c.notas = null;
       }
     }
     salvarDemo(TEST_KEYS.clients, data);
     return jsonResponse(data[body.clientId] || {});
   }
-  if (path === '/api/atendimentos-historico' && method === 'GET') return jsonResponse(historicoTeste());
+  if (path === '/api/atendimentos-historico' && method === 'GET') {
+    const lista = historicoTeste();
+    const filtroCliente = q.get('clientId');
+    return jsonResponse(filtroCliente ? lista.filter(h => h.clienteId === filtroCliente) : lista);
+  }
   if (path === '/api/messages' && method === 'POST' && data[body.clientId]) {
     const msg = { ...body.message, id: body.message.id || genId(), createdAt: new Date().toISOString() };
     data[body.clientId].messages = data[body.clientId].messages || [];
@@ -236,14 +265,19 @@ async function routeTesteContador(path, method, q, body) {
     return jsonResponse(data[body.clientId]);
   }
   if (path === '/api/prontuario' && method === 'POST' && data[body.clientId]) {
-    Object.assign(data[body.clientId], {
-      diagnosis: body.diagnosis !== undefined ? body.diagnosis : data[body.clientId].diagnosis,
-      honorarios: body.honorarios !== undefined ? parseInt(body.honorarios) || 0 : data[body.clientId].honorarios,
-      treatment: body.treatment !== undefined ? body.treatment : data[body.clientId].treatment,
-      evidences: body.evidences !== undefined ? body.evidences : data[body.clientId].evidences
+    const c = data[body.clientId];
+    Object.assign(c, {
+      diagnosis: body.diagnosis !== undefined ? body.diagnosis : c.diagnosis,
+      honorarios: body.honorarios !== undefined ? parseInt(body.honorarios) || 0 : c.honorarios,
+      treatment: body.treatment !== undefined ? body.treatment : c.treatment,
+      evidences: body.evidences !== undefined ? body.evidences : c.evidences,
+      notas: body.notas !== undefined ? body.notas : c.notas
+    });
+    ['phone', 'email', 'cep', 'cidade', 'endereco', 'numero', 'bairro', 'estado'].forEach(campo => {
+      if (body[campo] !== undefined) c[campo] = body[campo] || null;
     });
     salvarDemo(TEST_KEYS.clients, data);
-    return jsonResponse(data[body.clientId]);
+    return jsonResponse(c);
   }
   if (path === '/api/checklist' && method === 'POST' && data[body.clientId]) {
     data[body.clientId].checklist = data[body.clientId].checklist || {};
@@ -295,6 +329,25 @@ async function routeTesteContador(path, method, q, body) {
     return jsonResponse({ ok: true });
   }
 
+  if (path === '/api/caixa-postal' && method === 'GET') {
+    const clienteId = q.get('clientId');
+    const lista = clienteId ? caixaPostalTeste().filter(m => m.clientRef === clienteId) : caixaPostalTeste();
+    return jsonResponse(lista);
+  }
+  if (path === '/api/caixa-postal' && method === 'POST') {
+    const m = { id: 'demo-cp-' + Date.now(), clientRef: body.clienteId, remetente: body.remetente === 'cliente' ? 'cliente' : 'contador',
+      assunto: body.assunto || null, mensagem: body.mensagem, lida: false, createdAt: new Date().toISOString() };
+    caixaPostalTeste().push(m);
+    salvarDemo(TEST_KEYS.caixaPostal, testCaixaPostalStore);
+    return jsonResponse(m);
+  }
+  if (path === '/api/caixa-postal/marcar-lida' && method === 'POST') {
+    const contrario = body.remetente === 'cliente' ? 'contador' : 'cliente';
+    caixaPostalTeste().forEach(m => { if (m.clientRef === body.clienteId && m.remetente === contrario) m.lida = true; });
+    salvarDemo(TEST_KEYS.caixaPostal, testCaixaPostalStore);
+    return jsonResponse({ ok: true });
+  }
+
   if (path === '/api/documentos' && method === 'GET') return jsonResponse((data[q.get('clientId')] || {}).documentos || []);
   if (path === '/api/triagem' && method === 'GET') return jsonResponse((data[q.get('clientId')] || {}).triagem || null);
   if (path === '/api/triagem/aplicar' && method === 'POST' && data[body.clientId]) {
@@ -312,7 +365,8 @@ async function routeTesteContador(path, method, q, body) {
   }
 
   if (path === '/api/relatorios' && method === 'GET') {
-    return jsonResponse(relatoriosTeste().filter(r => r.clientRef === q.get('clientId')));
+    const filtroCliente = q.get('clientId');
+    return jsonResponse(filtroCliente ? relatoriosTeste().filter(r => r.clientRef === filtroCliente) : relatoriosTeste());
   }
   if (path === '/api/relatorios' && method === 'POST') {
     const rel = { ...body, id: 'demo-rel-' + Date.now(), clientRef: body.clientId, createdAt: new Date().toISOString() };
@@ -347,6 +401,7 @@ async function routeTesteContador(path, method, q, body) {
     { id: 'mei', name: 'Regularização MEI', description: 'Orientação para DAS, declaração anual e pendências do MEI.', price: 147, priceCents: 14700, recurrence: 'once', active: true }
   ]);
   if (path === '/api/servicos' && method === 'POST') return jsonResponse({ ...body, id: body.id || 'demo-serv-' + Date.now() });
+  if (path === '/api/servicos' && method === 'DELETE') return jsonResponse({ ok: true });
   if (path === '/api/cobrancas' && method === 'GET') return jsonResponse([]);
   if (path === '/api/creditos' && method === 'GET') return jsonResponse(creditosTeste());
   if (path === '/api/creditos' && method === 'POST') {
@@ -397,6 +452,8 @@ function mapClient(r, messages, triagem) {
     recorrenteDiaVenc: r.recorrente_dia_venc || null,
     ultimoFinalizadoEm: r.ultimo_atendimento_finalizado_em || null,
     sexo: r.sexo || null, cidade: r.cidade || null, estado: r.estado || null,
+    cep: r.cep || null, endereco: r.endereco || null, numero: r.numero || null,
+    bairro: r.bairro || null, notas: r.notas || null,
     messages: messages || [], triagem: triagem || null };
 }
 function mapTriagem(r) {
@@ -419,18 +476,35 @@ function mapAppointment(r) {
 function mapNotification(r) {
   return { id: r.id, text: r.text, time: r.time, unread: r.unread, clientRef: r.cliente_ref };
 }
+function mapCaixaPostal(r) {
+  return { id: r.id, clientRef: r.cliente_ref, remetente: r.remetente, assunto: r.assunto,
+    mensagem: r.mensagem, lida: r.lida, createdAt: r.created_at };
+}
 function mapServico(r) {
   return { id: r.id, name: r.name, description: r.description, priceCents: r.price_cents,
-    price: r.price_cents / 100, recurrence: r.recurrence, active: r.active !== false };
+    price: r.price_cents / 100, recurrence: r.recurrence, active: r.active !== false,
+    // Serviços que o plano abarca — alimentam a lista do agendamento.
+    itens: Array.isArray(r.itens) ? r.itens : [] };
 }
 function mapCobranca(r) {
   return { id: r.id, clientRef: r.cliente_ref, serviceId: r.servico_id,
     valueCents: r.valor_cents, status: r.status, paidAt: r.paid_at,
-    createdAt: r.created_at, invoiceUrl: r.invoice_url, appointmentId: r.appointment_id };
+    createdAt: r.created_at, invoiceUrl: r.invoice_url, appointmentId: r.appointment_id,
+    dadosCliente: r.dados_cliente || null };
 }
-function mapDocumento(r) {
+// O bucket "documentos" é privado (RLS por pasta do cliente) — um public_url
+// fixo, salvo no upload, não abre mais depois disso. Por isso o link é
+// assinado na hora de listar, sempre com validade curta.
+async function signedDocUrl(storagePath) {
+  if (!storagePath) return null;
+  const { data, error } = await sb.storage.from('documentos').createSignedUrl(storagePath, 3600);
+  if (error) { console.error('Falha ao assinar URL do documento:', error); return null; }
+  return data.signedUrl;
+}
+async function mapDocumento(r) {
   return { id: r.id, clientRef: r.cliente_ref, fileName: r.file_name, mime: r.mime,
-    size: r.size_bytes, uploadedBy: r.uploaded_by, url: r.public_url, ai: r.ai_extracted || null,
+    size: r.size_bytes, uploadedBy: r.uploaded_by, url: await signedDocUrl(r.storage_path),
+    ai: r.ai_extracted || null,
     checklistItem: r.checklist_item || null, createdAt: r.created_at };
 }
 function mapCredito(r) {
@@ -527,17 +601,23 @@ function base64ToBlob(b64, mime) {
   for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
   return new Blob([bytes], { type: mime || 'application/octet-stream' });
 }
+// Mesmo limite/whitelist já checados no navegador (cliente.js) — repetidos
+// aqui porque quem chama a API direto (sem passar pela tela) pula a checagem
+// do JS. Sem isso dava pra subir qualquer tipo/tamanho de arquivo pro bucket.
+const MIME_ACEITOS = /^(application\/pdf|image\/png|image\/jpeg)$/;
+const TAMANHO_MAX_BYTES = 10 * 1024 * 1024;
 async function uploadDocumento(body) {
   const { clientId, fileName, mime, dataBase64, uploadedBy, checklistItem } = body;
+  if (!MIME_ACEITOS.test(mime || '')) { const e = new Error('Formato não aceito. Envie PDF, JPG ou PNG.'); e.code = 'mime_invalido'; throw e; }
   const blob = base64ToBlob(dataBase64, mime);
+  if (blob.size > TAMANHO_MAX_BYTES) { const e = new Error('Arquivo maior que 10MB.'); e.code = 'arquivo_grande'; throw e; }
   const safe = fileName.replace(/[^a-zA-Z0-9._-]/g, '_');
   const path = `${clientId}/${Date.now()}_${safe}`;
   const up = await sb.storage.from('documentos').upload(path, blob, { contentType: mime || 'application/octet-stream', upsert: false });
   if (up.error) throw up.error;
-  const publicUrl = sb.storage.from('documentos').getPublicUrl(path).data.publicUrl;
   const { data: doc, error } = await sb.from('documentos').insert({
     cliente_ref: clientId, file_name: fileName, storage_path: path, mime: mime || null,
-    size_bytes: blob.size, uploaded_by: uploadedBy || 'client', public_url: publicUrl,
+    size_bytes: blob.size, uploaded_by: uploadedBy || 'client',
     checklist_item: checklistItem || null
   }).select().single();
   if (error) throw error;
@@ -553,7 +633,7 @@ async function uploadDocumento(body) {
   // Disparado no background (sem await) para não atrasar a resposta da triagem.
   fetch(API_BASE + `/api/documentos/${doc.id}/analisar`, { method: 'POST' }).catch(e => console.error('Auto OCR falhou:', e));
 
-  return mapDocumento(doc);
+  return await mapDocumento(doc);
 }
 
 // ============================================================================
@@ -612,10 +692,14 @@ async function routeApi(u, init, _fetch) {
       const finalizando = body.status === 'done' || body.status === 'locked';
       const finalizadoEm = new Date();
       if (finalizando) patch.ultimo_atendimento_finalizado_em = finalizadoEm.toISOString();
-      const { data: atualizado, error } = await sb.from('clientes').update(patch).eq('id', body.clientId).select('id,name,tax_type,honorarios,created_at').single();
+      // As anotações do atendimento migram para o histórico na finalização, então
+      // o rascunho volta vazio para o próximo caso do mesmo cliente.
+      if (finalizando) patch.notas = null;
+      const { data: atualizado, error } = await sb.from('clientes').update(patch).eq('id', body.clientId).select('id,name,tax_type,honorarios,created_at,notas').single();
       if (error) throw error;
-      // Um registro por finalização — vira o histórico permanente (aba Insights),
-      // diferente de ultimo_atendimento_finalizado_em que só guarda a mais recente.
+      // Um registro por finalização — vira o histórico permanente (aba Insights
+      // e timeline por cliente), diferente de ultimo_atendimento_finalizado_em
+      // que só guarda a mais recente.
       // Duração = da 1ª mensagem do cliente até a finalização (tempo de calendário,
       // não tempo de tela ativa — o cronômetro do chat reseta a cada reload/troca).
       if (finalizando && atualizado) {
@@ -626,19 +710,25 @@ async function routeApi(u, init, _fetch) {
         const duracaoSegundos = Math.max(0, Math.round((finalizadoEm - inicio) / 1000));
         await sb.from('atendimentos_historico').insert({
           cliente_id: atualizado.id, cliente_nome: atualizado.name, tax_type: atualizado.tax_type,
-          duracao_segundos: duracaoSegundos, honorarios: atualizado.honorarios || 0
+          duracao_segundos: duracaoSegundos, honorarios: atualizado.honorarios || 0,
+          iniciado_em: inicio.toISOString(), notas: atualizado.notas || null
         }).catch(() => {});
       }
       return jsonResponse(await fetchClient(body.clientId));
     }
 
-    // ---------- HISTÓRICO DE ATENDIMENTOS (Insights) ----------
+    // ---------- HISTÓRICO DE ATENDIMENTOS (Insights + timeline por cliente) ----------
+    // Sem clientId: visão geral (Insights). Com clientId: só os atendimentos
+    // daquele cliente, usado na aba Clientes para montar a timeline de cada caso.
     if (path === '/api/atendimentos-historico' && method === 'GET') {
-      const { data, error } = await sb.from('atendimentos_historico').select('*').order('finalizado_em', { ascending: false });
+      let query = sb.from('atendimentos_historico').select('*').order('finalizado_em', { ascending: false });
+      if (q.get('clientId')) query = query.eq('cliente_id', q.get('clientId'));
+      const { data, error } = await query;
       if (error) throw error;
       return jsonResponse((data || []).map(r => ({
         id: r.id, clienteId: r.cliente_id, clienteNome: r.cliente_nome, taxType: r.tax_type,
-        finalizadoEm: r.finalizado_em, duracaoSegundos: r.duracao_segundos, honorarios: r.honorarios
+        finalizadoEm: r.finalizado_em, iniciadoEm: r.iniciado_em, duracaoSegundos: r.duracao_segundos,
+        honorarios: r.honorarios, notas: r.notas || null
       })));
     }
 
@@ -648,13 +738,19 @@ async function routeApi(u, init, _fetch) {
       return jsonResponse(client);
     }
 
-    // ---------- PRONTUÁRIO ----------
+    // ---------- PRONTUÁRIO (também usado pela aba Cadastro do CRM: mesmo
+    // "patch parcial na linha do cliente", só que os campos são endereço/
+    // contato em vez de diagnóstico/tratamento) ----------
     if (path === '/api/prontuario' && method === 'POST') {
       const patch = {};
       if (body.diagnosis !== undefined) patch.diagnosis = body.diagnosis;
       if (body.honorarios !== undefined) patch.honorarios = parseInt(body.honorarios) || 0;
       if (body.treatment !== undefined) patch.treatment = body.treatment;
       if (body.evidences !== undefined) patch.evidences = body.evidences;
+      if (body.notas !== undefined) patch.notas = body.notas;
+      ['phone', 'email', 'cep', 'cidade', 'endereco', 'numero', 'bairro', 'estado'].forEach(campo => {
+        if (body[campo] !== undefined) patch[campo] = body[campo] || null;
+      });
       await sb.from('clientes').update(patch).eq('id', body.clientId);
       return jsonResponse(await fetchClient(body.clientId));
     }
@@ -714,10 +810,41 @@ async function routeApi(u, init, _fetch) {
       return jsonResponse({ ok: true });
     }
 
+    // ---------- CAIXA POSTAL (mensagens contador ↔ cliente, fora do chat ao vivo) ----------
+    // Sem clientId: visão geral do contador (todas as caixas, mais recente primeiro).
+    // Com clientId: a thread de um cliente (ordem cronológica, como um chat) — usado
+    // tanto pelo contador ao abrir uma conversa quanto pelo próprio cliente na área dele.
+    if (path === '/api/caixa-postal' && method === 'GET') {
+      const clienteId = q.get('clientId');
+      let query = sb.from('caixa_postal').select('*');
+      query = clienteId ? query.eq('cliente_ref', clienteId).order('created_at', { ascending: true })
+                        : query.order('created_at', { ascending: false });
+      const { data, error } = await query;
+      if (error) throw error;
+      return jsonResponse((data || []).map(mapCaixaPostal));
+    }
+    if (path === '/api/caixa-postal' && method === 'POST') {
+      if (!body.clienteId || !body.mensagem) return jsonResponse({ error: 'invalid_params' }, 400);
+      const { data, error } = await sb.from('caixa_postal').insert({
+        cliente_ref: body.clienteId, remetente: body.remetente === 'cliente' ? 'cliente' : 'contador',
+        assunto: body.assunto || null, mensagem: body.mensagem, lida: false
+      }).select().single();
+      if (error) throw error;
+      return jsonResponse(mapCaixaPostal(data));
+    }
+    // Marca como lida tudo que veio do OUTRO lado — quem abre a thread (contador
+    // vendo o que o cliente escreveu, ou vice-versa) é quem "lê", nunca as próprias mensagens.
+    if (path === '/api/caixa-postal/marcar-lida' && method === 'POST') {
+      const remetenteContrario = body.remetente === 'cliente' ? 'contador' : 'cliente';
+      await sb.from('caixa_postal').update({ lida: true })
+        .eq('cliente_ref', body.clienteId).eq('remetente', remetenteContrario).eq('lida', false);
+      return jsonResponse({ ok: true });
+    }
+
     // ---------- DOCUMENTOS (lista + upload; a leitura por IA é passthrough) ----------
     if (path === '/api/documentos' && method === 'GET') {
       const { data } = await sb.from('documentos').select('*').eq('cliente_ref', q.get('clientId')).order('created_at', { ascending: false });
-      return jsonResponse((data || []).map(mapDocumento));
+      return jsonResponse(await Promise.all((data || []).map(mapDocumento)));
     }
     if (path === '/api/documentos' && method === 'POST') {
       return jsonResponse(await uploadDocumento(body));
@@ -782,12 +909,16 @@ async function routeApi(u, init, _fetch) {
       return jsonResponse({ ok: true });
     }
 
-    // ---------- RELATÓRIOS DO CLIENTE ----------
-    // Lista os relatórios de um cliente (o mais novo primeiro). O RLS entrega só
-    // os que a pessoa pode ver: o contador vê todos, o cliente só os seus.
+    // ---------- RELATÓRIOS ----------
+    // Sem clientId: todos os relatórios (fila "Aguardando Relatório" e o
+    // histórico "Relatórios Finalizados", na aba Relatórios do contador). Com
+    // clientId: só os daquele cliente (dossiê). O RLS entrega só o que a
+    // pessoa pode ver: o contador vê todos, o cliente só os seus.
     if (path === '/api/relatorios' && method === 'GET') {
-      const { data } = await sb.from('relatorios').select('*')
-        .eq('cliente_ref', q.get('clientId')).order('created_at', { ascending: false });
+      let query = sb.from('relatorios').select('*').order('created_at', { ascending: false });
+      if (q.get('clientId')) query = query.eq('cliente_ref', q.get('clientId'));
+      const { data, error } = await query;
+      if (error) throw error;
       return jsonResponse((data || []).map(mapRelatorio));
     }
 
@@ -868,6 +999,16 @@ async function routeApi(u, init, _fetch) {
         price_cents: Math.max(0, Math.round(Number(body.priceCents) || 0)),
         recurrence: body.recurrence || 'once', active: body.active !== false
       };
+      // Chega do painel como texto livre; vira [{id, titulo, resumo}]. O id sai
+      // do título quando não vem pronto, pra continuar estável entre edições.
+      if (Array.isArray(body.itens)) {
+        payload.itens = body.itens.map(i => {
+          const titulo = String((i && i.titulo) || '').trim();
+          if (!titulo) return null;
+          return { id: String((i && i.id) || '').trim() || slugify(titulo) || 'item',
+            titulo, resumo: String((i && i.resumo) || '').trim() };
+        }).filter(Boolean);
+      }
       if (!payload.name) return jsonResponse({ error: 'name_required' }, 400);
 
       let query;
@@ -887,6 +1028,17 @@ async function routeApi(u, init, _fetch) {
       const { data, error } = await query.select().single();
       if (error) throw error;
       return jsonResponse(mapServico(data));
+    }
+    if (path === '/api/servicos' && method === 'DELETE') {
+      const id = q.get('id');
+      if (!id) return jsonResponse({ error: 'id_required' }, 400);
+      // Recusa excluir se já existe cobrança gerada com este plano — senão a
+      // cobrança fica órfã (servico_id apontando pra um id que não existe mais).
+      const { count } = await sb.from('cobrancas').select('id', { count: 'exact', head: true }).eq('servico_id', id);
+      if (count) return jsonResponse({ error: 'servico_em_uso', detail: `Existem ${count} cobrança(s) geradas com este plano — desative em vez de excluir.` }, 409);
+      const { error } = await sb.from('servicos').delete().eq('id', id);
+      if (error) throw error;
+      return jsonResponse({ ok: true });
     }
 
     // ---------- CRÉDITOS DE ATENDIMENTO ----------
@@ -956,9 +1108,11 @@ async function routeApi(u, init, _fetch) {
       return jsonResponse({ ok: true });
     }
 
-    // ---------- COBRANÇAS (painel administrativo) ----------
+    // ---------- COBRANÇAS (painel administrativo + histórico por cliente) ----------
     if (path === '/api/cobrancas' && method === 'GET') {
-      const { data, error } = await sb.from('cobrancas').select('*').order('created_at', { ascending: false });
+      let query = sb.from('cobrancas').select('*').order('created_at', { ascending: false });
+      if (q.get('clientId')) query = query.eq('cliente_ref', q.get('clientId'));
+      const { data, error } = await query;
       if (error) throw error;
       return jsonResponse((data || []).map(mapCobranca));
     }
@@ -1187,7 +1341,7 @@ window.OCAuth = {
 
     if (!session) {
       // Login normal (dev desligado) ou o auto-login falhou: vai pro login.
-      location.href = 'login.html?role=' + role;
+      location.href = 'login?role=' + role;
       return null;
     }
 

@@ -94,13 +94,16 @@ let currentScheduleFilter = "today";
 const DEFAULT_AGENDA_SLOTS = ['09:00', '10:00', '11:00', '14:00', '15:00', '16:30'];
 const AGENDA_SLOT_OPTIONS = ['08:00', '09:00', '10:00', '11:00', '13:30', '14:00', '15:00', '16:00', '16:30', '17:00'];
 let agendaDisponibilidade = [...DEFAULT_AGENDA_SLOTS];
+// Dias (feriados, folgas) que somem da agenda pública — ver renderDiasBloqueados.
+let agendaDiasBloqueados = [];
 let calendarMonthDate = new Date();
 
 // Chat Timer State
 let chatTimerInterval = null;
-let currentChatSeconds = 0;
-let hasSent30MinWarning = false;
-let hasSent35MinWarning = false;
+let currentChatSeconds = 0; // sempre o tempo DECORRIDO, mesmo em contagem decrescente (a exibição é derivada em updateTimerUI)
+let hasSentAvisoPrazo = false;
+// Configurável em Configurações → Geral → Cronômetro do Atendimento (chave 'timer_config').
+let timerConfig = { autoIniciar: true, direcao: 'crescente', duracaoMinutos: 40, avisoMinutosAntes: 5, avisoSonoro: true, avisarCliente: true };
 
 // Predefined Canned Responses
 const cannedResponses = {
@@ -163,7 +166,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   
   // RBAC: Oculta itens restritos para parceiros
   if (ctx.staffRole === 'parceiro') {
-    const targetsToHide = ['section-financeiro', 'section-config', 'section-dossie', 'section-recorrentes'];
+    const targetsToHide = ['section-financeiro', 'section-config', 'section-dossie'];
     targetsToHide.forEach(target => {
       const btn = document.querySelector(`button.nav-item[data-target="${target}"]`);
       if (btn) btn.style.display = 'none';
@@ -175,7 +178,12 @@ document.addEventListener("DOMContentLoaded", async () => {
   setupCalculators();
   setupTimer();
   setupLogout();
+  setupCriarSenhaContador();
+  setupNovoCliente();
+  setupResetarSenhaCliente();
   setupAbasDoPainel();
+  setupClientesSecaoTabs();
+  setupRelatorioSecaoTabs();
 
   // Chat + eventos em tempo real via Supabase Realtime (substitui o Socket.io).
   OCRealtime.subscribe({
@@ -243,6 +251,116 @@ function setupLogout() {
   });
 }
 
+// Deixa o contador logado (via link mágico) opcionalmente criar uma senha,
+// pro mesmo padrão do portal do cliente.
+function setupCriarSenhaContador() {
+  const input = document.getElementById('nova-senha-contador');
+  const btn = document.getElementById('btn-criar-senha-contador');
+  const msg = document.getElementById('msg-criar-senha-contador');
+  if (!btn || !input) return;
+  function aviso(texto, cor) { msg.style.display = 'block'; msg.style.color = cor; msg.textContent = texto; }
+  btn.addEventListener('click', async () => {
+    const senha = input.value;
+    if (senha.length < 6) { aviso('A senha precisa ter pelo menos 6 caracteres.', '#B32620'); return; }
+    btn.disabled = true; btn.textContent = 'Salvando...';
+    const { error } = await sb.auth.updateUser({ password: senha });
+    btn.disabled = false; btn.textContent = 'Criar senha';
+    if (error) { aviso('Não foi possível salvar a senha. Tente novamente.', '#B32620'); return; }
+    input.value = '';
+    aviso('Senha criada! Da próxima vez você pode entrar com e-mail e senha, ou continuar usando o link do e-mail.', '#1F8A5F');
+  });
+  input.addEventListener('keydown', e => { if (e.key === 'Enter') btn.click(); });
+}
+
+// Cadastro manual de cliente (fora do checkout público) — cria a conta de
+// acesso já com senha (opcional) em vez de esperar o primeiro pagamento.
+function setupNovoCliente() {
+  const btnAbrir = document.getElementById('btn-crm-novo-cliente');
+  const form = document.getElementById('form-novo-cliente');
+  const msg = document.getElementById('msg-novo-cliente');
+  if (!form) return;
+  function aviso(texto, cor) { msg.style.display = 'block'; msg.style.color = cor; msg.textContent = texto; }
+
+  if (btnAbrir) btnAbrir.addEventListener('click', () => {
+    form.reset();
+    msg.style.display = 'none';
+    openModal('modal-novo-cliente');
+  });
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById('btn-salvar-novo-cliente');
+    const payload = {
+      name: document.getElementById('novo-cliente-nome').value.trim(),
+      cpfCnpj: document.getElementById('novo-cliente-cpf').value.trim(),
+      email: document.getElementById('novo-cliente-email').value.trim(),
+      phone: document.getElementById('novo-cliente-telefone').value.trim(),
+      senha: document.getElementById('novo-cliente-senha').value
+    };
+    btn.disabled = true; btn.textContent = 'Criando...';
+    try {
+      const res = await fetch(API_BASE + '/api/copilot', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mode: 'clientes_acesso', action: 'criar', payload })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) { aviso(data.error || 'Não foi possível criar o cliente.', '#B32620'); return; }
+      closeModal('modal-novo-cliente');
+      showToast('Cliente criado com sucesso.');
+      await recarregarClientes();
+      renderCRM();
+    } catch (_) {
+      aviso('Falha de conexão. Tente novamente.', '#B32620');
+    } finally {
+      btn.disabled = false; btn.textContent = 'Criar cliente';
+    }
+  });
+}
+
+// Resetar a senha de acesso de um cliente já existente, direto do card dele
+// no CRM — usa o mesmo endpoint admin do cadastro manual.
+let clienteParaResetarSenha = null;
+function abrirResetarSenhaCliente(clientId, nomeCliente) {
+  clienteParaResetarSenha = clientId;
+  const nomeEl = document.getElementById('resetar-senha-cliente-nome');
+  if (nomeEl) nomeEl.textContent = 'Definir uma nova senha de acesso para ' + (nomeCliente || 'este cliente') + '.';
+  const input = document.getElementById('resetar-senha-cliente-input');
+  if (input) input.value = '';
+  const msg = document.getElementById('msg-resetar-senha-cliente');
+  if (msg) msg.style.display = 'none';
+  openModal('modal-resetar-senha-cliente');
+}
+
+function setupResetarSenhaCliente() {
+  const form = document.getElementById('form-resetar-senha-cliente');
+  const msg = document.getElementById('msg-resetar-senha-cliente');
+  if (!form) return;
+  function aviso(texto, cor) { msg.style.display = 'block'; msg.style.color = cor; msg.textContent = texto; }
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (!clienteParaResetarSenha) return;
+    const btn = document.getElementById('btn-confirmar-resetar-senha-cliente');
+    const novaSenha = document.getElementById('resetar-senha-cliente-input').value;
+    if (novaSenha.length < 6) { aviso('A senha precisa ter pelo menos 6 caracteres.', '#B32620'); return; }
+    btn.disabled = true; btn.textContent = 'Salvando...';
+    try {
+      const res = await fetch(API_BASE + '/api/copilot', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mode: 'clientes_acesso', action: 'resetar_senha', payload: { clientId: clienteParaResetarSenha, novaSenha } })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) { aviso(data.error || 'Não foi possível resetar a senha.', '#B32620'); return; }
+      closeModal('modal-resetar-senha-cliente');
+      showToast('Senha do cliente atualizada.');
+    } catch (_) {
+      aviso('Falha de conexão. Tente novamente.', '#B32620');
+    } finally {
+      btn.disabled = false; btn.textContent = 'Salvar nova senha';
+    }
+  });
+}
+
 // Load everything from the backend
 async function refreshAllData() {
   try {
@@ -261,9 +379,11 @@ async function refreshAllData() {
     renderKanban();
     renderAppointments();
     renderCalendarioAgendamentos();
+    if (calendarViewMode === 'lista') renderAgendaListaCompleta();
     renderAgendaDoDia();
     renderNotificationsLog();
     updateNotificationBadge();
+    carregarCaixaPostal();
     setupPresence();
     refreshFinanceiro();
   } catch (e) {
@@ -292,8 +412,13 @@ function setupNavigation() {
           const h = document.getElementById('chat-messages');
           if (h) h.scrollTop = h.scrollHeight;
         }
-        if (targetSectionId === 'section-recorrentes') renderRecorrentes();
         if (targetSectionId === 'section-insights') renderInsights();
+        // Ao entrar em Relatórios pelo menu (não pelo botão "Novo relatório"),
+        // atualiza a aba que estiver visível no momento — por padrão é "fila".
+        if (targetSectionId === 'section-dossie') {
+          const abaAtiva = document.querySelector('#relatorio-secao-tabs .settings-tab.active');
+          ativarAbaRelatorio(abaAtiva ? abaAtiva.dataset.relatorioSecaoTab : 'fila');
+        }
       }
       
       document.getElementById("noti-dropdown").classList.remove("active");
@@ -329,10 +454,18 @@ function isThisWeek(dateLike) {
   return d >= startOfWeekLocal() && d < endOfWeekLocal();
 }
 
-function docsPendentesDoCliente(client) {
-  return Object.entries(client.checklist || {})
-    .filter(([, ok]) => !ok)
-    .map(([name]) => name);
+function isToday(dateLike) {
+  const d = dateLike instanceof Date ? dateLike : new Date(dateLike);
+  if (isNaN(d)) return false;
+  const now = new Date();
+  return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth() && d.getDate() === now.getDate();
+}
+
+function isThisMonth(dateLike) {
+  const d = dateLike instanceof Date ? dateLike : new Date(dateLike);
+  if (isNaN(d)) return false;
+  const now = new Date();
+  return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
 }
 
 function clientTemMensagemNaoRespondida(client) {
@@ -343,6 +476,21 @@ function clientTemMensagemNaoRespondida(client) {
 
 function dashboardClientButton(clientId, label = 'Abrir') {
   return `<button class="btn-doc-action" type="button" onclick="actionTimelineChat('${safe(clientId)}')"><i class="fa-solid fa-comments"></i> ${label}</button>`;
+}
+
+// Contato direto por e-mail/WhatsApp — usado quando ainda não existe chat aberto
+// com o cliente (ex.: pagamento não finalizado, antes do cliente nascer no CRM).
+function whatsappDigits(phone) {
+  const digitos = String(phone || '').replace(/\D/g, '');
+  if (!digitos) return '';
+  return digitos.length <= 11 ? '55' + digitos : digitos;
+}
+function dashboardContatoLinks(nome, email, phone) {
+  const links = [];
+  if (email) links.push(`<a class="btn-doc-action" href="mailto:${safe(email)}"><i class="fa-solid fa-envelope"></i> E-mail</a>`);
+  const wa = whatsappDigits(phone);
+  if (wa) links.push(`<a class="btn-doc-action" href="https://wa.me/${wa}" target="_blank" rel="noopener"><i class="fa-brands fa-whatsapp"></i> WhatsApp</a>`);
+  return links.join(' ');
 }
 
 // Checklist mensal dos clientes recorrentes (parcelamento/obrigação mensal).
@@ -402,122 +550,88 @@ function updateDashboardFinanceiroKpis() {
   const faturamentoEl = document.getElementById("kpi-faturamento");
   if (!faturamentoEl) return;
 
-  const paidWeekCents = financeiro.cobrancas
-    .filter(c => c.status === 'paid')
-    .filter(c => isThisWeek(c.paidAt || c.createdAt))
-    .reduce((total, c) => total + (c.valueCents || 0), 0);
-
-  const honorariosSemana = appointments
-    .filter(a => a.status === 'done' && isThisWeek(parseDateTimeLocal(a.date, a.time)))
-    .reduce((total, a) => total + (Number(clientsData[a.clientRef]?.honorarios) || 0), 0);
-
+  const pagas = financeiro.cobrancas.filter(c => c.status === 'paid');
   const fallbackHonorariosAtivos = Object.values(clientsData)
     .filter(c => ['active', 'ready', 'done'].includes(etapaDoCliente(c)))
     .reduce((total, c) => total + (Number(c.honorarios) || 0), 0);
 
-  const valor = paidWeekCents > 0 ? paidWeekCents / 100 : (honorariosSemana || fallbackHonorariosAtivos);
-  faturamentoEl.textContent = formatBRL(valor);
-
-  const trend = faturamentoEl.parentElement?.querySelector('.kpi-trend');
-  if (trend) {
-    if (paidWeekCents > 0) {
-      const qtd = financeiro.cobrancas.filter(c => c.status === 'paid' && isThisWeek(c.paidAt || c.createdAt)).length;
+  function preencherFaturamento(elId, trendSelector, cobrancasNoPeriodo, honorariosNoPeriodo, rotuloPeriodo) {
+    const el = document.getElementById(elId);
+    if (!el) return;
+    const centavos = cobrancasNoPeriodo.reduce((total, c) => total + (c.valueCents || 0), 0);
+    const valor = centavos > 0 ? centavos / 100 : (honorariosNoPeriodo || (elId === 'kpi-faturamento' ? fallbackHonorariosAtivos : 0));
+    el.textContent = formatBRL(valor);
+    const trend = el.parentElement?.querySelector(trendSelector);
+    if (!trend) return;
+    if (centavos > 0) {
       trend.className = 'kpi-trend positive';
-      trend.innerHTML = `<i class="fa-solid fa-circle-check"></i> ${qtd} cobrança${qtd !== 1 ? 's' : ''} paga${qtd !== 1 ? 's' : ''} nesta semana`;
+      trend.innerHTML = `<i class="fa-solid fa-circle-check"></i> ${cobrancasNoPeriodo.length} cobrança${cobrancasNoPeriodo.length !== 1 ? 's' : ''} paga${cobrancasNoPeriodo.length !== 1 ? 's' : ''} ${rotuloPeriodo}`;
     } else {
       trend.className = 'kpi-trend warning';
-      trend.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> Estimado por honorários até o financeiro registrar pagamentos';
+      trend.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> Nenhuma cobrança paga ainda';
     }
+  }
+
+  preencherFaturamento('kpi-faturamento-dia', '.kpi-trend', pagas.filter(c => isToday(c.paidAt || c.createdAt)), 0, 'hoje');
+  preencherFaturamento('kpi-faturamento', '.kpi-trend', pagas.filter(c => isThisWeek(c.paidAt || c.createdAt)),
+    appointments.filter(a => a.status === 'done' && isThisWeek(parseDateTimeLocal(a.date, a.time)))
+      .reduce((total, a) => total + (Number(clientsData[a.clientRef]?.honorarios) || 0), 0), 'nesta semana');
+  preencherFaturamento('kpi-faturamento-mes', '.kpi-trend', pagas.filter(c => isThisMonth(c.paidAt || c.createdAt)), 0, 'neste mês');
+}
+
+function updateDashboardAtendimentosMes() {
+  const el = document.getElementById('kpi-atendimentos-mes');
+  if (!el) return;
+  const doMes = appointments.filter(a => isThisMonth(parseDateTimeLocal(a.date, a.time)));
+  el.textContent = String(doMes.length);
+  const concluidos = doMes.filter(a => a.status === 'done').length;
+  const trend = el.parentElement?.querySelector('.kpi-trend');
+  if (trend) {
+    trend.className = concluidos ? 'kpi-trend positive' : 'kpi-trend warning';
+    trend.innerHTML = `<i class="fa-solid fa-circle-check"></i> ${concluidos} concluído${concluidos !== 1 ? 's' : ''} até agora`;
   }
 }
 
-function renderDashboardSlaAlerts() {
-  const list = document.getElementById('sla-alerts-list');
-  const badge = document.getElementById('sla-alerts-badge');
-  if (!list || !badge) return;
+// Mensagens de processos em aberto: clientes com atendimento ainda não
+// concluído cuja última mensagem veio do cliente (aguardando resposta do contador).
+function renderMensagensAbertas() {
+  const list = document.getElementById('mensagens-abertas-lista');
+  const badge = document.getElementById('mensagens-abertas-badge');
+  if (!list) return;
 
-  const now = new Date();
-  const alerts = [];
+  const pendentes = Object.values(clientsData)
+    .filter(client => etapaDoCliente(client) !== 'done' && clientTemMensagemNaoRespondida(client));
 
-  appointments.forEach(app => {
-    if (app.status === 'done') return;
-    const when = parseDateTimeLocal(app.date, app.time);
-    if (!when) return;
-    const diffHours = (when - now) / 36e5;
-    if (diffHours < -0.25) {
-      alerts.push({
-        level: 'red',
-        sort: diffHours,
-        clientRef: app.clientRef,
-        name: app.clientName,
-        badge: `Atrasado ${Math.max(1, Math.round(Math.abs(diffHours)))}h`,
-        desc: `${app.taxType || 'Atendimento'} deveria ter iniciado às ${app.time || '--:--'}`
-      });
-    } else if (diffHours >= 0 && diffHours <= 4) {
-      alerts.push({
-        level: 'yellow',
-        sort: diffHours,
-        clientRef: app.clientRef,
-        name: app.clientName,
-        badge: diffHours < 1 ? 'Começa em breve' : `Restam ${Math.round(diffHours)}h`,
-        desc: `${app.taxType || 'Atendimento'} agendado para ${app.time || '--:--'}`
-      });
-    }
-  });
+  if (badge) badge.textContent = `${pendentes.length} pendente${pendentes.length !== 1 ? 's' : ''}`;
 
-  Object.values(clientsData).forEach(client => {
-    const pendingDocs = docsPendentesDoCliente(client);
-    if (etapaDoCliente(client) === 'docs' && pendingDocs.length) {
-      alerts.push({
-        level: 'yellow',
-        sort: 24,
-        clientRef: client.id,
-        name: client.name,
-        badge: `${pendingDocs.length} pendente${pendingDocs.length !== 1 ? 's' : ''}`,
-        desc: `Aguardando: ${pendingDocs.slice(0, 2).join(', ')}${pendingDocs.length > 2 ? '…' : ''}`
-      });
-    }
-    if (clientTemMensagemNaoRespondida(client) && etapaDoCliente(client) !== 'done') {
-      alerts.push({
-        level: 'green',
-        sort: 12,
-        clientRef: client.id,
-        name: client.name,
-        badge: 'Responder',
-        desc: 'Última mensagem veio do cliente'
-      });
-    }
-  });
-
-  alerts.sort((a, b) => a.sort - b.sort);
-  const critical = alerts.filter(a => a.level === 'red').length;
-  badge.textContent = critical ? `${critical} atrasado${critical !== 1 ? 's' : ''}` : `${alerts.length} alerta${alerts.length !== 1 ? 's' : ''}`;
-  badge.style.background = critical ? 'var(--color-coral)' : 'var(--color-pine)';
-
-  if (!alerts.length) {
+  if (!pendentes.length) {
     list.innerHTML = `
       <div class="dashboard-empty-state">
-        <i class="fa-solid fa-shield-heart"></i>
-        <p>Nenhum prazo crítico agora.</p>
-        <span>Atendimentos, documentos e mensagens estão dentro do esperado.</span>
+        <i class="fa-solid fa-comment-dots"></i>
+        <p>Nenhuma mensagem aguardando resposta.</p>
+        <span>Quando um cliente com processo em aberto mandar mensagem, ela aparece aqui.</span>
       </div>`;
     return;
   }
 
-  list.innerHTML = alerts.slice(0, 8).map(a => `
+  list.innerHTML = pendentes.slice(0, 8).map(client => `
     <div class="dashboard-alert-card">
       <div class="dashboard-alert-card-top">
-        <span>${safe(a.name || 'Cliente')}</span>
-        <span class="sla-badge sla-${a.level}" style="margin: 0;">${safe(a.badge)}</span>
+        <span>${safe(client.name || 'Cliente')}</span>
+        <span class="sla-badge sla-green" style="margin: 0;">Responder</span>
       </div>
-      <p>${safe(a.desc)}</p>
-      ${a.clientRef ? dashboardClientButton(a.clientRef, 'Ver caso') : ''}
+      <p>${safe(client.taxType || 'Atendimento')} · última mensagem veio do cliente</p>
+      ${dashboardClientButton(client.id, 'Ver caso')}
     </div>
   `).join('');
 }
 
-function renderDashboardRemarketing() {
-  const list = document.getElementById('remarketing-lista');
+// Pagamentos não finalizados: cobranças ainda não pagas. Enquanto o pagamento
+// não confirma, o cliente ainda não existe no CRM (ver signup-checkout.js) —
+// por isso o contato aqui é direto por e-mail/WhatsApp, usando os dados
+// guardados na própria cobrança (dados_cliente), e não o chat interno.
+function renderPagamentosNaoFinalizados() {
+  const list = document.getElementById('pagamentos-pendentes-lista');
   if (!list) return;
 
   const abertas = financeiro.cobrancas
@@ -527,64 +641,93 @@ function renderDashboardRemarketing() {
   if (!abertas.length) {
     list.innerHTML = `
       <div class="dashboard-empty-state">
-        <i class="fa-solid fa-cart-shopping"></i>
-        <p>Nenhum carrinho abandonado no momento.</p>
-        <span>Quando houver cobrança aberta ou checkout iniciado sem pagamento, ela aparece aqui.</span>
+        <i class="fa-solid fa-file-invoice-dollar"></i>
+        <p>Nenhum pagamento em aberto no momento.</p>
+        <span>Quando houver cobrança gerada sem pagamento confirmado, ela aparece aqui.</span>
       </div>`;
     return;
   }
 
   list.innerHTML = abertas.slice(0, 8).map(c => {
     const client = clientsData[c.clientRef] || {};
+    const dados = c.dadosCliente || {};
+    const nome = client.name || dados.name || c.clientRef || 'Cliente';
+    const email = client.email || dados.email;
+    const phone = client.phone || dados.phone;
     const dias = c.createdAt ? Math.max(0, Math.floor((Date.now() - new Date(c.createdAt).getTime()) / 86400000)) : null;
     return `
       <div class="dashboard-alert-card">
         <div class="dashboard-alert-card-top">
-          <span>${safe(client.name || c.clientRef || 'Cliente')}</span>
+          <span>${safe(nome)}</span>
           <span class="sla-badge sla-yellow" style="margin: 0;">${formatBRL((c.valueCents || 0) / 100)}</span>
         </div>
         <p>${dias == null ? 'Cobrança em aberto' : `Cobrança aberta há ${dias} dia${dias !== 1 ? 's' : ''}`} · status: ${safe(c.status || 'aberta')}</p>
         <div class="dashboard-card-actions">
-          ${c.clientRef ? dashboardClientButton(c.clientRef, 'Contato') : ''}
+          ${dashboardContatoLinks(nome, email, phone)}
           ${c.invoiceUrl ? `<a class="btn-doc-action" href="${safe(c.invoiceUrl)}" target="_blank" rel="noopener"><i class="fa-solid fa-link"></i> Cobrança</a>` : ''}
         </div>
       </div>`;
   }).join('');
 }
 
+// Aba "Cobranças em Aberto" do Financeiro: mesma fonte de dados do card do
+// dashboard, mas em tabela completa com filtro por tempo em aberto (aging) —
+// útil pra priorizar quem cobrar primeiro.
+let financeiroAbertasFiltro = 'todas';
+
+function renderFinanceiroCobrancasAbertas() {
+  const tbody = document.getElementById('financeiro-abertas-lista');
+  const badge = document.getElementById('financeiro-abertas-badge');
+  if (!tbody) return;
+
+  const comDias = financeiro.cobrancas
+    .filter(c => c.status !== 'paid')
+    .map(c => ({ ...c, dias: c.createdAt ? Math.max(0, Math.floor((Date.now() - new Date(c.createdAt).getTime()) / 86400000)) : null }));
+
+  if (badge) badge.textContent = String(comDias.length);
+
+  const filtradas = comDias
+    .filter(c => {
+      if (financeiroAbertasFiltro === '0-3') return c.dias != null && c.dias <= 3;
+      if (financeiroAbertasFiltro === '4-7') return c.dias != null && c.dias >= 4 && c.dias <= 7;
+      if (financeiroAbertasFiltro === '8+') return c.dias != null && c.dias >= 8;
+      return true;
+    })
+    .sort((a, b) => (b.dias || 0) - (a.dias || 0));
+
+  if (!filtradas.length) {
+    tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--color-text-secondary);">Nenhuma cobrança em aberto${financeiroAbertasFiltro === 'todas' ? '' : ' nesse período'}.</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = filtradas.map(c => {
+    const client = clientsData[c.clientRef] || {};
+    const dados = c.dadosCliente || {};
+    const nome = client.name || dados.name || c.clientRef || 'Cliente';
+    const email = client.email || dados.email;
+    const phone = client.phone || dados.phone;
+    return `<tr>
+      <td><strong>${safe(nome)}</strong></td>
+      <td>${formatBRL((c.valueCents || 0) / 100)}</td>
+      <td><span class="status-badge status-docs">${safe(c.status || 'aberta')}</span></td>
+      <td>${c.dias == null ? '—' : `${c.dias} dia${c.dias !== 1 ? 's' : ''}`}</td>
+      <td style="display:flex;gap:6px;flex-wrap:wrap;">
+        ${dashboardContatoLinks(nome, email, phone)}
+        ${c.invoiceUrl ? `<a class="btn-doc-action" href="${safe(c.invoiceUrl)}" target="_blank" rel="noopener"><i class="fa-solid fa-link"></i> Cobrança</a>` : ''}
+      </td>
+    </tr>`;
+  }).join('');
+}
+
 // Update executive dashboard KPIs and timeline
 function updateDashboardData() {
   updateDashboardFinanceiroKpis();
-
-  const completedWeekCount = appointments
-    .filter(a => a.status === "done" && isThisWeek(parseDateTimeLocal(a.date, a.time)))
-    .length;
-  const todayApps = appointments.filter(a => OCTempo.ehHoje(normalizeAppointmentDate(a.date)));
-  const activeTodayCount = todayApps.filter(a => a.status === 'active').length;
-  const concluidosEl = document.getElementById("kpi-concluidos");
-  if (concluidosEl) concluidosEl.textContent = `${completedWeekCount} na semana`;
-  const concluidosTrend = concluidosEl?.parentElement?.querySelector('.kpi-trend');
-  if (concluidosTrend) {
-    concluidosTrend.className = activeTodayCount ? 'kpi-trend positive' : 'kpi-trend warning';
-    concluidosTrend.innerHTML = `<i class="fa-solid fa-circle-play"></i> ${activeTodayCount} atendimento${activeTodayCount !== 1 ? 's' : ''} ativo${activeTodayCount !== 1 ? 's' : ''} hoje`;
-  }
-
-  const pendingDocsClients = Object.values(clientsData).filter(c => etapaDoCliente(c) === "docs" || docsPendentesDoCliente(c).length);
-  const pendentesEl = document.getElementById("kpi-pendentes");
-  if (pendentesEl) pendentesEl.textContent = `${pendingDocsClients.length} cliente${pendingDocsClients.length !== 1 ? 's' : ''}`;
-  const pendentesTrend = pendentesEl?.parentElement?.querySelector('.kpi-trend');
-  if (pendentesTrend) {
-    const docsCount = pendingDocsClients.reduce((total, c) => total + docsPendentesDoCliente(c).length, 0);
-    pendentesTrend.className = docsCount ? 'kpi-trend warning' : 'kpi-trend positive';
-    pendentesTrend.innerHTML = docsCount
-      ? `<i class="fa-solid fa-file-circle-exclamation"></i> ${docsCount} documento${docsCount !== 1 ? 's' : ''} pendente${docsCount !== 1 ? 's' : ''}`
-      : '<i class="fa-solid fa-circle-check"></i> Nenhum documento pendente';
-  }
-  carregarNPS();
-  renderDashboardSlaAlerts();
-  renderDashboardRemarketing();
+  updateDashboardAtendimentosMes();
+  renderMensagensAbertas();
+  renderPagamentosNaoFinalizados();
   renderGuiasMensais();
 
+  const todayApps = appointments.filter(a => OCTempo.ehHoje(normalizeAppointmentDate(a.date)));
   const timelineContainer = document.getElementById("dashboard-timeline");
   if (!timelineContainer) return;
   timelineContainer.innerHTML = "";
@@ -687,15 +830,11 @@ function setupEventListeners() {
     updateProntuarioTagsAndTreatment(e.target.value);
   });
 
-  document.getElementById("btn-generate-prontuario").addEventListener("click", abrirRelatorio);
+  setupAnotacoesAtendimento();
+
+  document.getElementById("btn-generate-prontuario").addEventListener("click", () => abrirRelatorio());
   document.getElementById("btn-sugerir-ia").addEventListener("click", sugerirProntuarioIA);
-  // Modal do Relatório do Cliente
-  document.getElementById("btn-rel-ia").addEventListener("click", preencherRelatorioComIA);
-  document.getElementById("btn-rel-baixar").addEventListener("click", baixarRelatorioAtual);
-  document.getElementById("btn-rel-enviar").addEventListener("click", gerarEnviarRelatorio);
-  ["rel-titulo", "rel-problema", "rel-solucao", "rel-oquefeito", "rel-comofeito"].forEach(id => {
-    document.getElementById(id).addEventListener("input", atualizarPreviaRelatorio);
-  });
+  setupRelatorioWizard();
 
   document.getElementById("btn-noti-trigger").addEventListener("click", (e) => {
     e.stopPropagation();
@@ -751,10 +890,27 @@ function setupEventListeners() {
     });
   }
 
+  // Alterna entre a visão em grid (Mês) e a visão em Lista dos agendamentos.
+  document.querySelectorAll('[data-calendar-view]').forEach(btn => {
+    btn.addEventListener('click', () => setCalendarViewMode(btn.dataset.calendarView));
+  });
+
+  document.querySelectorAll('[data-agenda-lista-filtro]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('[data-agenda-lista-filtro]').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      agendaListaFiltro = btn.dataset.agendaListaFiltro;
+      renderAgendaListaCompleta();
+    });
+  });
+
   const btnSaveAvailability = document.getElementById("btn-save-availability");
   if (btnSaveAvailability) {
     btnSaveAvailability.addEventListener("click", salvarDisponibilidadeAgenda);
   }
+  document.getElementById("btn-add-dia-bloqueado")?.addEventListener("click", adicionarDiaBloqueado);
+  const inputBloqueio = document.getElementById("bloqueio-dia-input");
+  if (inputBloqueio) inputBloqueio.min = new Date().toISOString().slice(0, 10);
 
   document.querySelectorAll(".schedule-filters .btn-filter-tag").forEach(btn => {
     btn.addEventListener("click", () => {
@@ -1213,12 +1369,15 @@ function loadClient(clientId) {
     disableChatInput(client.status);
   } else {
     enableChatInput();
-    // Auto-start timer
-    startChatTimer();
-    const btnStart = document.getElementById("btn-start-timer");
-    const btnStop = document.getElementById("btn-stop-timer");
-    if(btnStart) btnStart.style.display = "none";
-    if(btnStop) btnStop.style.display = "block";
+    // Auto-start timer — configurável em Configurações → Geral (timerConfig.autoIniciar).
+    // Se desligado, resetChatTimer() (chamado acima) já deixou o botão de play visível.
+    if (timerConfig.autoIniciar) {
+      startChatTimer();
+      const btnStart = document.getElementById("btn-start-timer");
+      const btnStop = document.getElementById("btn-stop-timer");
+      if(btnStart) btnStart.style.display = "none";
+      if(btnStop) btnStop.style.display = "block";
+    }
   }
 
   
@@ -1270,6 +1429,7 @@ function loadClient(clientId) {
 
   updateProntuarioChecklist();
   document.getElementById("prontuario-tratamento").value = client.treatment;
+  document.getElementById("prontuario-notas-editor").innerHTML = client.notas || "";
 
   renderClientDocs(clientId);
 }
@@ -1362,7 +1522,7 @@ function renderMessages() {
     if (msg.sender === "agent") bubbleClass = "sent";
     else if (msg.sender === "system") bubbleClass = "system";
 
-    let messageBody = `<p>${msg.text}</p>`;
+    let messageBody = `<p>${safe(msg.text)}</p>`;
 
     if (msg.type === "doc-request") {
       messageBody = `
@@ -1370,11 +1530,11 @@ function renderMessages() {
           <div class="doc-info">
             <i class="fa-solid fa-file-arrow-up doc-icon"></i>
             <div>
-              <span class="doc-title">Solicitação: ${msg.docName}</span>
+              <span class="doc-title">Solicitação: ${safe(msg.docName)}</span>
               <p class="doc-subtitle">Aguardando o envio do comprovante pelo cliente</p>
             </div>
           </div>
-          <button class="btn-doc-action" onclick="simulateUploadAction('${msg.docName}')">Enviar PDF</button>
+          <button class="btn-doc-action" onclick="simulateUploadAction('${safe(msg.docName).replace(/'/g, "&#39;")}')">Enviar PDF</button>
         </div>
       `;
     } else if (msg.type === "doc-upload") {
@@ -1383,7 +1543,7 @@ function renderMessages() {
           <div class="doc-info">
             <i class="fa-solid fa-file-circle-check doc-icon" style="color: #2ECC71"></i>
             <div>
-              <span class="doc-title">${msg.docName}</span>
+              <span class="doc-title">${safe(msg.docName)}</span>
               <p class="doc-subtitle">Tamanho: 1.2 MB · Formato: PDF</p>
             </div>
           </div>
@@ -1415,11 +1575,20 @@ function renderMessages() {
             <i class="fa-solid fa-receipt" style="color: var(--color-coral); font-size: 20px"></i>
             <span style="font-family: var(--font-title); font-weight: 700; color: var(--color-pine)">RECEITA FISCAL DE REGULARIZAÇÃO</span>
           </div>
-          <p style="font-size: 13px; font-weight: 600; color: var(--color-pine); margin-bottom: 6px">${msg.diagnosis}</p>
+          <p style="font-size: 13px; font-weight: 600; color: var(--color-pine); margin-bottom: 6px">${safe(msg.diagnosis)}</p>
           <p style="font-size: 12px; color: var(--color-text-primary); margin-bottom: 12px">Documento oficial de prontuário e orientações de pendência gerado pelo profissional responsável.</p>
           <div style="display: flex; gap: 8px;">
             <button class="btn-doc-action" onclick="abrirRelatorio()"><i class="fa-solid fa-file-lines"></i> Abrir Relatório do Cliente</button>
           </div>
+        </div>
+      `;
+    } else if (msg.type === "avaliacao-card") {
+      // Do lado do contador é só um aviso — quem interage com as estrelas é o
+      // cliente, na tela dele (ver cliente.js).
+      messageBody = `
+        <div style="background-color: var(--color-bg); border: 1px solid var(--color-border); border-radius: 10px; padding: 12px 14px; margin-top: 6px; display: flex; align-items: center; gap: 10px;">
+          <i class="fa-solid fa-star" style="color: #F1C40F; font-size: 16px;"></i>
+          <span style="font-size: 13px; color: var(--color-text-secondary);">${safe(msg.text)}</span>
         </div>
       `;
     }
@@ -1646,6 +1815,65 @@ async function simulateClientAudioMessage() {
   loadClient(activeClientId);
 }
 
+// Anotações ricas do atendimento (prontuário): negrito, lista numerada e cor
+// de destaque via document.execCommand — sem dependência externa, o editor é
+// só um <div contenteditable>. Salva com debounce (parar de digitar) e no blur,
+// pra não bater na API a cada tecla.
+let notasSalvarTimer = null;
+function setupAnotacoesAtendimento() {
+  const editor = document.getElementById("prontuario-notas-editor");
+  const toolbar = document.getElementById("notas-toolbar");
+  if (!editor || !toolbar) return;
+
+  toolbar.querySelectorAll("[data-notas-cmd]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      editor.focus();
+      document.execCommand(btn.dataset.notasCmd, false, null);
+      agendarSalvarNotas();
+    });
+  });
+  toolbar.querySelectorAll("[data-notas-color]").forEach(btn => {
+    btn.style.backgroundColor = btn.dataset.notasColor;
+    btn.addEventListener("click", () => {
+      editor.focus();
+      // hiliteColor é o nome padrão (Firefox); a maioria dos Chromium aceita os
+      // dois, mas backColor é o fallback histórico do WebKit/Blink antigo.
+      if (!document.execCommand("hiliteColor", false, btn.dataset.notasColor)) {
+        document.execCommand("backColor", false, btn.dataset.notasColor);
+      }
+      agendarSalvarNotas();
+    });
+  });
+  editor.addEventListener("input", agendarSalvarNotas);
+  editor.addEventListener("blur", salvarNotasAtendimento);
+}
+
+function agendarSalvarNotas() {
+  const status = document.getElementById("notas-save-status");
+  if (status) status.textContent = "Salvando…";
+  clearTimeout(notasSalvarTimer);
+  notasSalvarTimer = setTimeout(salvarNotasAtendimento, 800);
+}
+
+async function salvarNotasAtendimento() {
+  if (!activeClientId) return;
+  clearTimeout(notasSalvarTimer);
+  const editor = document.getElementById("prontuario-notas-editor");
+  const status = document.getElementById("notas-save-status");
+  const notas = editor.innerHTML;
+  if (clientsData[activeClientId]) clientsData[activeClientId].notas = notas;
+  try {
+    await fetch(API_BASE + '/api/prontuario', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ clientId: activeClientId, notas })
+    });
+    if (status) status.textContent = "Anotações salvas.";
+  } catch (e) {
+    if (status) status.textContent = "Falha ao salvar — tente novamente.";
+  }
+}
+
 // Save Prontuario modifications via API
 async function saveProntuarioChanges() {
   const client = clientsData[activeClientId];
@@ -1811,26 +2039,6 @@ async function sugerirProntuarioIA() {
 }
 
 // Generate Memed-Style Recipe / Prontuário modal
-// NPS real: média das avaliações que os clientes deram após receber o relatório.
-// Antes este KPI era um número fixo ("9.8 / 10") escrito no HTML.
-async function carregarNPS() {
-  const valor = document.getElementById("kpi-nps");
-  const detalhe = document.getElementById("kpi-nps-detalhe");
-  if (!valor) return;
-  try {
-    const { media, total } = await (await fetch(API_BASE + '/api/avaliacoes/resumo')).json();
-    if (!total) {
-      valor.textContent = "—";
-      detalhe.innerHTML = '<i class="fa-solid fa-heart"></i> Sem avaliações ainda';
-      return;
-    }
-    valor.textContent = media.toFixed(1) + " / 5";
-    detalhe.innerHTML = `<i class="fa-solid fa-heart"></i> ${total} avaliaç${total === 1 ? 'ão' : 'ões'} de clientes`;
-  } catch (e) {
-    valor.textContent = "—";
-  }
-}
-
 // ===========================================================================
 // RELATÓRIO DO CLIENTE — a IA preenche, o contador revisa, vira PDF branded e
 // é entregue ao cliente (tabela `relatorios` + card no chat + Meus Documentos).
@@ -1849,12 +2057,22 @@ async function carregarPerfilPainel() {
   return PERFIL_PAINEL;
 }
 
-// Lê os campos do editor e devolve o objeto do relatório (o mesmo que vira PDF).
+// ============================================================================
+// RELATÓRIO DE CONCLUSÃO — wizard em 3 passos: Cliente -> Descrever o caso ->
+// Enviar ou arquivar. O cliente selecionado no passo 1 é o dono de tudo daqui
+// pra frente (relWizardClientId), independente de qual conversa está aberta
+// na tela (activeClientId) — o contador pode gerar o relatório de um cliente
+// sem precisar ter o chat dele aberto no momento.
+// ============================================================================
+let relWizardClientId = null;
+let relWizardStep = 'cliente';
+let relatorioGeradoId = null;
+
 function relatorioObjAtual() {
-  const client = clientsData[activeClientId] || {};
+  const client = clientsData[relWizardClientId] || {};
   return {
     id: 'previa',
-    clientRef: activeClientId,
+    clientRef: relWizardClientId,
     clienteNome: client.name || '',
     clienteCpf: client.cpf || '',
     titulo: document.getElementById("rel-titulo").value.trim(),
@@ -1871,7 +2089,7 @@ function relatorioObjAtual() {
 }
 
 function atualizarPreviaRelatorio() {
-  const client = clientsData[activeClientId] || {};
+  const client = clientsData[relWizardClientId] || {};
   const inner = document.getElementById("rel-previa");
   const wrap = document.getElementById("rel-previa-wrap");
   inner.innerHTML = OCRelatorio.montarHTML(relatorioObjAtual(), client);
@@ -1885,19 +2103,71 @@ function atualizarPreviaRelatorio() {
   inner.style.height = (doc.offsetHeight * escala) + "px";
 }
 
-async function abrirRelatorio() {
-  if (!activeClientId) { showToast("Abra um atendimento primeiro."); return; }
+function renderRelatorioClienteLista(query) {
+  const box = document.getElementById('rel-cliente-lista');
+  if (!box) return;
+  const q = (query || '').trim().toLowerCase();
+  const filtrados = Object.values(clientsData).filter(c =>
+    !q || [c.name, c.cpf, c.email].some(v => String(v || '').toLowerCase().includes(q)));
+  box.innerHTML = filtrados.length ? filtrados.map(c => `
+    <button type="button" class="relatorio-cliente-item ${c.id === relWizardClientId ? 'selected' : ''}" data-rel-cliente="${safe(c.id)}">
+      <div><h4>${safe(c.name)}</h4><p>${safe(c.cpf || c.email || 'Sem documento')}</p></div>
+      ${c.id === relWizardClientId ? '<i class="fa-solid fa-circle-check" style="color:var(--color-pine)"></i>' : ''}
+    </button>`).join('') : '<p style="padding:16px;font-size:12px;color:var(--color-text-secondary)">Nenhum cliente encontrado.</p>';
+  box.querySelectorAll('[data-rel-cliente]').forEach(btn => btn.addEventListener('click', () => {
+    relWizardClientId = btn.dataset.relCliente;
+    renderRelatorioClienteLista(document.getElementById('rel-cliente-busca').value);
+  }));
+}
+
+function irParaPassoRelatorio(passo) {
+  relWizardStep = passo;
+  document.querySelectorAll('[data-rel-step]').forEach(el => { el.hidden = el.dataset.relStep !== passo; });
+  document.querySelectorAll('[data-rel-step-pill]').forEach(el => el.classList.toggle('active', el.dataset.relStepPill === passo));
+
+  const mostrar = (id, sim) => { const b = document.getElementById(id); if (b) b.hidden = !sim; };
+  mostrar('btn-rel-avancar-cliente', passo === 'cliente');
+  mostrar('btn-rel-voltar', passo !== 'cliente');
+  mostrar('btn-rel-baixar', passo === 'descrever');
+  mostrar('btn-rel-gerar', passo === 'descrever');
+  mostrar('btn-rel-arquivar', passo === 'enviar');
+  mostrar('btn-rel-enviar', passo === 'enviar');
+
+  if (passo === 'descrever') {
+    const client = clientsData[relWizardClientId] || {};
+    document.getElementById('rel-cliente-chip').innerHTML = `<i class="fa-solid fa-user"></i> ${safe(client.name || 'Cliente')} ${client.cpf ? '· ' + safe(client.cpf) : ''}`;
+    atualizarPreviaRelatorio();
+    // Desenha já e corrige a escala quando o modal ganha layout. Só com rAF a
+    // prévia ficaria vazia se a aba estivesse em segundo plano (rAF não dispara).
+    requestAnimationFrame(() => requestAnimationFrame(atualizarPreviaRelatorio));
+    setTimeout(atualizarPreviaRelatorio, 150);
+  }
+}
+
+// Abre o wizard, dentro da aba "Relatórios" -> "Novo Relatório" (página
+// cheia, não mais modal). Se já sabemos o cliente (veio da fila de
+// pendentes, do CRM ou do prontuário do atendimento aberto), pula direto pro
+// passo de descrever o caso — o passo "Cliente" continua acessível pelo
+// "Voltar", pra quem quiser trocar. Sem cliente nenhum, abre no passo 1 pra
+// a pessoa escolher.
+async function abrirRelatorio(clientId) {
+  relWizardClientId = clientId || activeClientId || null;
   await carregarPerfilPainel();
-  const client = clientsData[activeClientId] || {};
-  // Semente: título do diagnóstico se o campo estiver vazio.
-  const tit = document.getElementById("rel-titulo");
-  if (!tit.value && client.diagnosis) tit.value = client.diagnosis;
-  openModal("modal-relatorio-overlay");
-  // Desenha já e corrige a escala quando o modal ganha layout. Só com rAF a
-  // prévia ficaria vazia se a aba estivesse em segundo plano (rAF não dispara).
-  atualizarPreviaRelatorio();
-  requestAnimationFrame(() => requestAnimationFrame(atualizarPreviaRelatorio));
-  setTimeout(atualizarPreviaRelatorio, 150);
+  relatorioGeradoId = null;
+  const client = clientsData[relWizardClientId] || {};
+  ['rel-titulo', 'rel-problema', 'rel-solucao', 'rel-oquefeito', 'rel-comofeito'].forEach(id => { document.getElementById(id).value = ''; });
+  document.getElementById('rel-titulo').value = client.diagnosis || '';
+  document.getElementById('rel-envio-chat').checked = true;
+  document.getElementById('rel-envio-caixa-postal').checked = false;
+  document.getElementById('rel-envio-email').checked = false;
+  document.getElementById('rel-envio-status').innerHTML = '&nbsp;';
+  document.getElementById('rel-cliente-busca').value = '';
+  renderRelatorioClienteLista('');
+  closeDossier();
+  const navBtn = document.querySelector('[data-target="section-dossie"]');
+  if (navBtn) navBtn.click();
+  ativarAbaRelatorio('novo');
+  irParaPassoRelatorio(relWizardClientId ? 'descrever' : 'cliente');
 }
 
 async function preencherRelatorioComIA() {
@@ -1909,7 +2179,7 @@ async function preencherRelatorioComIA() {
     const res = await fetch(API_BASE + '/api/copilot', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ clientId: activeClientId, mode: 'relatorio' })
+      body: JSON.stringify({ clientId: relWizardClientId, mode: 'relatorio' })
     });
     if (res.status === 503) { showToast("IA não configurada."); return; }
     if (!res.ok) { showToast("Não consegui gerar o relatório."); return; }
@@ -1930,59 +2200,266 @@ async function preencherRelatorioComIA() {
 }
 
 function baixarRelatorioAtual() {
-  const client = clientsData[activeClientId] || {};
+  const client = clientsData[relWizardClientId] || {};
   OCRelatorio.baixarPDF(relatorioObjAtual(), client);
 }
 
-async function gerarEnviarRelatorio() {
+// Envia uma mensagem pro chat de um cliente específico, sem depender de qual
+// conversa está aberta na tela (ao contrário de postMessageToBackend, que
+// sempre usa activeClientId — errado aqui, já que o relatório pode ser de um
+// cliente diferente do que está aberto no momento).
+async function enviarMensagemParaCliente(clientId, message) {
+  if (!message.id) message.id = 'msg_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
+  if (!message.createdAt) message.createdAt = new Date().toISOString();
+  const res = await fetch(API_BASE + '/api/messages', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ clientId, message })
+  });
+  if (!res.ok) throw new Error('resposta ' + res.status);
+  clientsData[clientId] = await res.json();
+  if (activeClientId === clientId) renderMessages();
+  renderClientList();
+}
+
+async function gerarRelatorio() {
   const rel = relatorioObjAtual();
   if (!rel.titulo || !rel.problema) {
     showToast("Preencha ao menos o título e o que aconteceu.");
     return;
   }
-  const btn = document.getElementById("btn-rel-enviar");
+  const btn = document.getElementById("btn-rel-gerar");
   const original = btn.innerHTML;
   btn.disabled = true;
-  btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Enviando...';
+  btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Gerando...';
   try {
     const res = await fetch(API_BASE + '/api/relatorios', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ clientId: activeClientId, ...rel })
+      body: JSON.stringify({ clientId: relWizardClientId, ...rel })
     });
     if (!res.ok) throw new Error('resposta ' + res.status);
     const salvo = await res.json();
-
-    // Card no chat avisando o cliente que o documento está pronto.
-    const now = new Date();
-    await postMessageToBackend({
-      sender: "agent",
-      text: `📄 Seu relatório de atendimento está pronto: "${rel.titulo}". Baixe em PDF na aba Meus Documentos.`,
-      time: `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`,
-      type: "relatorio-card",
-      relatorioId: salvo.id
-    });
-    // Encerra o atendimento — o relatório é o fecho do serviço.
-    await fetch(API_BASE + '/api/appointments/done', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ clientRef: activeClientId })
-    }).catch(() => {});
-    await atualizarStatusCliente(activeClientId, 'done').catch(() => {});
-    await fetch(API_BASE + '/api/triagem/arquivar', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ clientId: activeClientId })
-    }).catch(() => {});
-
-    closeModal("modal-relatorio-overlay");
-    showToast("Relatório enviado e atendimento encerrado.");
-    await refreshAllData();
-    loadClient(activeClientId);
+    relatorioGeradoId = salvo.id;
+    showToast("Relatório gerado. Escolha como entregar ao cliente.");
+    irParaPassoRelatorio('enviar');
   } catch (e) {
-    showToast("Não consegui enviar o relatório.");
+    showToast("Não consegui gerar o relatório.");
   } finally {
     btn.disabled = false;
     btn.innerHTML = original;
   }
+}
+
+// Comum a "enviar" e "arquivar": o relatório já fechou o caso, então o
+// atendimento é encerrado nos dois casos — a diferença é só se o cliente é
+// avisado ou não.
+// Se o cliente já veio finalizado da fila "Aguardando Relatório" (relatório
+// atrasado de um atendimento já encerrado), NÃO finaliza de novo — senão criaria
+// um 2º registro no histórico e atualizaria ultimoFinalizadoEm pra depois da
+// data do relatório, fazendo esse mesmo cliente voltar a aparecer como
+// "pendente" (a fila compara relatório × última finalização).
+async function encerrarAtendimentoPosRelatorio(clientId) {
+  const jaFinalizado = ['done', 'locked'].includes((clientsData[clientId] || {}).status);
+  await fetch(API_BASE + '/api/appointments/done', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ clientRef: clientId })
+  }).catch(() => {});
+  if (!jaFinalizado) await atualizarStatusCliente(clientId, 'done').catch(() => {});
+  await fetch(API_BASE + '/api/triagem/arquivar', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ clientId })
+  }).catch(() => {});
+}
+
+async function arquivarRelatorioSemEnviar() {
+  const btn = document.getElementById('btn-rel-arquivar');
+  btn.disabled = true;
+  try {
+    await encerrarAtendimentoPosRelatorio(relWizardClientId);
+    showToast("Relatório arquivado e atendimento encerrado.");
+    await refreshAllData();
+    if (activeClientId) loadClient(activeClientId);
+    ativarAbaRelatorio('fila');
+  } catch (e) {
+    showToast("Não consegui arquivar. Tente novamente.");
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function confirmarEnvioRelatorio() {
+  const rel = relatorioObjAtual();
+  const clientId = relWizardClientId;
+  const viaChat = document.getElementById('rel-envio-chat').checked;
+  const viaCaixaPostal = document.getElementById('rel-envio-caixa-postal').checked;
+  const viaEmail = document.getElementById('rel-envio-email').checked;
+  if (!viaChat && !viaCaixaPostal && !viaEmail) { showToast("Marque ao menos um canal de envio, ou arquive sem enviar."); return; }
+
+  const btn = document.getElementById('btn-rel-enviar');
+  const original = btn.innerHTML;
+  const status = document.getElementById('rel-envio-status');
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Enviando...';
+  const mensagem = `📄 Seu relatório de atendimento está pronto: "${rel.titulo}". Baixe em PDF na aba Meus Documentos.`;
+  const falhas = [];
+
+  if (viaChat) {
+    try {
+      const now = new Date();
+      await enviarMensagemParaCliente(clientId, {
+        sender: "agent", text: mensagem,
+        time: `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`,
+        type: "relatorio-card", relatorioId: relatorioGeradoId
+      });
+    } catch (e) { falhas.push('chat'); }
+  }
+  if (viaCaixaPostal) {
+    try {
+      const res = await fetch(API_BASE + '/api/caixa-postal', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clienteId: clientId, remetente: 'contador', assunto: rel.titulo, mensagem })
+      });
+      if (!res.ok) throw new Error('falha');
+    } catch (e) { falhas.push('caixa postal'); }
+  }
+  if (viaEmail) {
+    try {
+      const res = await fetch(API_BASE + '/api/copilot', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mode: 'notificar_cliente', payload: { clientId, subject: rel.titulo, message: mensagem } })
+      });
+      if (!res.ok) { const d = await res.json().catch(() => ({})); throw new Error(d.error || 'falha'); }
+    } catch (e) { falhas.push('e-mail'); }
+  }
+
+  try {
+    await encerrarAtendimentoPosRelatorio(clientId);
+  } catch (e) { /* o atendimento fecha mesmo se algum canal falhou */ }
+
+  btn.disabled = false;
+  btn.innerHTML = original;
+
+  if (falhas.length) {
+    status.textContent = `Atendimento encerrado, mas falhou o envio por: ${falhas.join(', ')}.`;
+    return;
+  }
+  showToast("Relatório enviado e atendimento encerrado.");
+  await refreshAllData();
+  if (activeClientId) loadClient(activeClientId);
+  ativarAbaRelatorio('fila');
+}
+
+// Abas de topo da seção Relatórios: Aguardando Relatório / Novo Relatório /
+// Relatórios Finalizados / Prontuário. Trocar de aba não reseta o wizard —
+// só o botão que efetivamente inicia um relatório (abrirRelatorio) faz isso.
+function ativarAbaRelatorio(alvo) {
+  document.querySelectorAll('#relatorio-secao-tabs [data-relatorio-secao-tab]').forEach(b => b.classList.toggle('active', b.dataset.relatorioSecaoTab === alvo));
+  ['fila', 'novo', 'finalizados', 'prontuario'].forEach(id => {
+    const pane = document.getElementById('relatorio-pane-' + id);
+    if (pane) pane.classList.toggle('active', id === alvo);
+  });
+  if (alvo === 'fila') renderRelatorioFila();
+  if (alvo === 'finalizados') renderRelatoriosFinalizados();
+}
+
+function setupRelatorioSecaoTabs() {
+  const barra = document.getElementById('relatorio-secao-tabs');
+  if (!barra) return;
+  barra.querySelectorAll('[data-relatorio-secao-tab]').forEach(btn => btn.addEventListener('click', () => {
+    ativarAbaRelatorio(btn.dataset.relatorioSecaoTab);
+  }));
+}
+
+// "Aguardando Relatório": clientes com o atendimento encerrado (done/locked)
+// cujo último relatório é mais antigo que a última finalização — ou seja,
+// finalizaram de novo depois do último relatório entregue (ou nunca tiveram um).
+async function renderRelatorioFila() {
+  const box = document.getElementById('relatorio-fila-lista');
+  if (!box) return;
+  box.innerHTML = '<p style="color:var(--color-text-secondary);font-size:13px;">Carregando…</p>';
+  let relatorios = [];
+  try {
+    const res = await fetch(API_BASE + '/api/relatorios');
+    if (res.ok) relatorios = await res.json();
+  } catch (_) { /* silencioso */ }
+
+  const ultimoRelatorioEm = {};
+  relatorios.forEach(r => {
+    const atual = ultimoRelatorioEm[r.clientRef];
+    if (!atual || new Date(r.createdAt) > new Date(atual)) ultimoRelatorioEm[r.clientRef] = r.createdAt;
+  });
+
+  const pendentes = Object.values(clientsData)
+    .filter(c => {
+      if (!['done', 'locked'].includes(c.status) || !c.ultimoFinalizadoEm) return false;
+      const ultimoRel = ultimoRelatorioEm[c.id];
+      return !ultimoRel || new Date(ultimoRel) < new Date(c.ultimoFinalizadoEm);
+    })
+    .sort((a, b) => new Date(b.ultimoFinalizadoEm) - new Date(a.ultimoFinalizadoEm));
+
+  if (!pendentes.length) {
+    box.innerHTML = '<p style="color:var(--color-text-secondary);font-size:13px;">Nenhum atendimento aguardando relatório no momento.</p>';
+    return;
+  }
+  box.innerHTML = pendentes.map(c => `
+    <div class="relatorio-fila-card">
+      <h4>${safe(c.name)}</h4>
+      <p>${safe(c.cpf || c.taxType || 'Sem documento')}</p>
+      <p>Finalizado em ${new Date(c.ultimoFinalizadoEm).toLocaleDateString('pt-BR')}</p>
+      <button type="button" class="btn-utility primary" data-iniciar-relatorio="${safe(c.id)}"><i class="fa-solid fa-file-circle-plus"></i> Iniciar relatório</button>
+    </div>`).join('');
+  box.querySelectorAll('[data-iniciar-relatorio]').forEach(btn => btn.addEventListener('click', () => abrirRelatorio(btn.dataset.iniciarRelatorio)));
+}
+
+// "Relatórios Finalizados": histórico de tudo que já foi gerado, de todos os
+// clientes — cada linha guarda os dados do contador/cliente daquele momento,
+// então o PDF pode ser refeito sem depender do cadastro atual.
+async function renderRelatoriosFinalizados() {
+  const box = document.getElementById('relatorio-finalizados-lista');
+  if (!box) return;
+  box.innerHTML = '<p style="color:var(--color-text-secondary);font-size:13px;">Carregando…</p>';
+  let relatorios = [];
+  try {
+    const res = await fetch(API_BASE + '/api/relatorios');
+    if (res.ok) relatorios = await res.json();
+  } catch (_) { /* silencioso */ }
+
+  if (!relatorios.length) {
+    box.innerHTML = '<p style="color:var(--color-text-secondary);font-size:13px;">Nenhum relatório gerado ainda.</p>';
+    return;
+  }
+  box.innerHTML = `<table class="relatorio-finalizados-table"><thead><tr><th>Cliente</th><th>Título</th><th>Data</th><th></th></tr></thead><tbody>${relatorios.map(r => `
+    <tr>
+      <td>${safe(r.clienteNome || '—')}</td>
+      <td>${safe(r.titulo || 'Relatório de atendimento')}</td>
+      <td>${new Date(r.createdAt).toLocaleDateString('pt-BR')}</td>
+      <td><button type="button" class="btn-doc-action" data-baixar-relatorio="${safe(r.id)}"><i class="fa-solid fa-download"></i> Baixar PDF</button></td>
+    </tr>`).join('')}</tbody></table>`;
+  box.querySelectorAll('[data-baixar-relatorio]').forEach(btn => btn.addEventListener('click', () => {
+    const r = relatorios.find(x => String(x.id) === String(btn.dataset.baixarRelatorio));
+    if (r) OCRelatorio.baixarPDF(r, { name: r.clienteNome, cpf: r.clienteCpf });
+  }));
+}
+
+function setupRelatorioWizard() {
+  document.getElementById("btn-rel-ia").addEventListener("click", preencherRelatorioComIA);
+  document.getElementById("btn-rel-baixar").addEventListener("click", baixarRelatorioAtual);
+  document.getElementById("btn-rel-gerar").addEventListener("click", gerarRelatorio);
+  document.getElementById("btn-rel-arquivar").addEventListener("click", arquivarRelatorioSemEnviar);
+  document.getElementById("btn-rel-enviar").addEventListener("click", confirmarEnvioRelatorio);
+  ["rel-titulo", "rel-problema", "rel-solucao", "rel-oquefeito", "rel-comofeito"].forEach(id => {
+    document.getElementById(id).addEventListener("input", atualizarPreviaRelatorio);
+  });
+  document.getElementById("btn-rel-avancar-cliente").addEventListener("click", () => {
+    if (!relWizardClientId || !clientsData[relWizardClientId]) { showToast("Selecione um cliente para continuar."); return; }
+    irParaPassoRelatorio('descrever');
+  });
+  document.getElementById("btn-rel-voltar").addEventListener("click", () => {
+    if (relWizardStep === 'enviar') irParaPassoRelatorio('descrever');
+    else irParaPassoRelatorio('cliente');
+  });
+  const busca = document.getElementById("rel-cliente-busca");
+  busca.addEventListener("input", () => renderRelatorioClienteLista(busca.value));
 }
 
 // Modal actions helpers
@@ -2032,10 +2509,10 @@ function renderNotificationsDropdown() {
   recent.forEach(noti => {
     const unreadClass = noti.unread ? "unread" : "";
     const itemHtml = `
-      <div class="noti-dropdown-item ${unreadClass}" onclick="actionClickNotification(${noti.id}, '${noti.clientRef}')">
+      <div class="noti-dropdown-item ${unreadClass}" onclick="actionClickNotification(${noti.id}, '${safe(noti.clientRef).replace(/'/g, "&#39;")}')">
         <div>
-          <span class="noti-dropdown-desc">${noti.text}</span>
-          <span class="noti-dropdown-time">${noti.time}</span>
+          <span class="noti-dropdown-desc">${safe(noti.text)}</span>
+          <span class="noti-dropdown-time">${safe(noti.time)}</span>
         </div>
       </div>
     `;
@@ -2056,13 +2533,13 @@ function renderNotificationsLog() {
   notifications.forEach(noti => {
     const unreadClass = noti.unread ? "unread" : "";
     const cardHtml = `
-      <div class="notification-log-card ${unreadClass}" onclick="actionClickNotification(${noti.id}, '${noti.clientRef}')">
+      <div class="notification-log-card ${unreadClass}" onclick="actionClickNotification(${noti.id}, '${safe(noti.clientRef).replace(/'/g, "&#39;")}')">
         <div class="notification-log-icon">
           <i class="fa-solid ${noti.clientRef ? 'fa-message' : 'fa-info-circle'}"></i>
         </div>
         <div class="notification-log-details">
-          <p>${noti.text}</p>
-          <span>Recebida às ${noti.time}</span>
+          <p>${safe(noti.text)}</p>
+          <span>Recebida às ${safe(noti.time)}</span>
         </div>
         <button class="btn-delete-notification" onclick="actionDeleteNotification(event, ${noti.id})">&times;</button>
       </div>
@@ -2088,6 +2565,176 @@ async function actionDeleteNotification(event, notiId) {
   await fetch(API_BASE + `/api/notifications?id=${notiId}`, { method: 'DELETE' });
   await refreshAllData();
   showToast("Notificação excluída.");
+}
+
+// ============================================================================
+// CAIXA POSTAL — mensagens assíncronas contador ↔ cliente, fora do chat ao vivo
+// (que só abre no horário agendado). Aba "Mensagens" dentro de Notificações.
+// ============================================================================
+let caixaPostalTodas = [];
+let caixaPostalClienteAtivo = null;
+
+async function carregarCaixaPostal() {
+  try {
+    const res = await fetch(API_BASE + '/api/caixa-postal');
+    if (!res.ok) throw new Error('falha_ao_carregar');
+    caixaPostalTodas = await res.json();
+  } catch (e) {
+    caixaPostalTodas = [];
+  }
+  atualizarBadgeCaixaPostal();
+  const paneMensagens = document.getElementById('cp-mensagens');
+  if (paneMensagens && paneMensagens.classList.contains('active')) {
+    renderCaixaPostalClientesLista(document.getElementById('caixa-postal-busca')?.value || '');
+  }
+}
+
+function atualizarBadgeCaixaPostal() {
+  const badge = document.getElementById('caixa-postal-badge-tab');
+  if (!badge) return;
+  const naoLidas = caixaPostalTodas.filter(m => m.remetente === 'cliente' && !m.lida).length;
+  badge.textContent = naoLidas;
+  badge.style.display = naoLidas ? 'inline-flex' : 'none';
+}
+
+function renderCaixaPostalClientesLista(filtroTexto = '') {
+  const container = document.getElementById('caixa-postal-clientes-lista');
+  if (!container) return;
+  const termo = filtroTexto.trim().toLowerCase();
+
+  // Resumo por cliente: última mensagem (pra ordenar e mostrar preview) + quantas não lidas vieram do cliente.
+  const porCliente = new Map();
+  caixaPostalTodas.forEach(m => {
+    const atual = porCliente.get(m.clientRef);
+    if (!atual || new Date(m.createdAt) > new Date(atual.ultima.createdAt)) {
+      porCliente.set(m.clientRef, { ultima: m, naoLidas: atual ? atual.naoLidas : 0 });
+    }
+  });
+  caixaPostalTodas.forEach(m => {
+    if (m.remetente === 'cliente' && !m.lida) {
+      const entry = porCliente.get(m.clientRef) || { ultima: m, naoLidas: 0 };
+      entry.naoLidas++;
+      porCliente.set(m.clientRef, entry);
+    }
+  });
+
+  const linhas = Object.values(clientsData || {})
+    .filter(c => !termo || (c.name || '').toLowerCase().includes(termo))
+    .map(c => {
+      const resumo = porCliente.get(c.id);
+      return { cliente: c, ultima: resumo ? resumo.ultima : null, naoLidas: resumo ? resumo.naoLidas : 0 };
+    })
+    .sort((a, b) => (b.ultima ? new Date(b.ultima.createdAt).getTime() : 0) - (a.ultima ? new Date(a.ultima.createdAt).getTime() : 0));
+
+  if (!linhas.length) {
+    container.innerHTML = `<p style="font-size:13px;color:var(--color-text-secondary);text-align:center;padding:24px 12px;">Nenhum cliente encontrado.</p>`;
+    return;
+  }
+
+  container.innerHTML = linhas.map(({ cliente, ultima, naoLidas }) => {
+    const ativo = cliente.id === caixaPostalClienteAtivo;
+    const preview = ultima
+      ? escapeHtml((ultima.mensagem || '').slice(0, 46)) + ((ultima.mensagem || '').length > 46 ? '…' : '')
+      : 'Nenhuma mensagem ainda';
+    return `
+      <button type="button" class="caixa-postal-cliente-item" data-caixa-postal-cliente="${safe(cliente.id)}"
+        style="display:flex;align-items:center;gap:10px;width:100%;text-align:left;background:${ativo ? 'white' : 'transparent'};border:0;border-bottom:1px solid var(--color-border);padding:12px 14px;cursor:pointer;font:inherit;">
+        <div class="chat-item-avatar" style="width:34px;height:34px;font-size:12px;flex-shrink:0;">${safe(cliente.avatar || initials(cliente.name))}</div>
+        <div style="flex:1;min-width:0;">
+          <div style="display:flex;justify-content:space-between;gap:6px;">
+            <strong style="font-size:13px;color:var(--color-pine);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${safe(cliente.name || cliente.id)}</strong>
+            ${naoLidas ? `<span class="chat-count-badge" style="background:var(--color-coral);flex-shrink:0;">${naoLidas}</span>` : ''}
+          </div>
+          <p style="font-size:12px;color:var(--color-text-secondary);margin:2px 0 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${preview}</p>
+        </div>
+      </button>`;
+  }).join('');
+
+  container.querySelectorAll('[data-caixa-postal-cliente]').forEach(btn => {
+    btn.addEventListener('click', () => abrirCaixaPostalCliente(btn.dataset.caixaPostalCliente));
+  });
+}
+
+async function abrirCaixaPostalCliente(clienteId) {
+  caixaPostalClienteAtivo = clienteId;
+  renderCaixaPostalClientesLista(document.getElementById('caixa-postal-busca')?.value || '');
+
+  const cliente = clientsData[clienteId] || {};
+  const header = document.getElementById('caixa-postal-thread-header');
+  if (header) header.textContent = cliente.name || clienteId;
+
+  const form = document.getElementById('form-caixa-postal-enviar');
+  if (form) form.style.display = 'flex';
+
+  await renderCaixaPostalThread(clienteId, { marcarLida: true });
+}
+
+async function renderCaixaPostalThread(clienteId, { marcarLida } = {}) {
+  const container = document.getElementById('caixa-postal-thread-mensagens');
+  if (!container) return;
+  container.innerHTML = `<p style="font-size:13px;color:var(--color-text-secondary);text-align:center;padding:24px 0;">Carregando...</p>`;
+
+  let mensagens = [];
+  try {
+    const res = await fetch(API_BASE + '/api/caixa-postal?clientId=' + encodeURIComponent(clienteId));
+    mensagens = await res.json();
+  } catch (e) { mensagens = []; }
+
+  if (!mensagens.length) {
+    container.innerHTML = `<p style="font-size:13px;color:var(--color-text-secondary);text-align:center;padding:40px 0;">Nenhuma mensagem ainda. Escreva a primeira abaixo.</p>`;
+  } else {
+    const nomeCliente = clientsData[clienteId]?.name || 'Cliente';
+    container.innerHTML = mensagens.map(m => {
+      const doContador = m.remetente === 'contador';
+      const hora = new Date(m.createdAt).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+      return `
+        <div style="align-self:${doContador ? 'flex-end' : 'flex-start'};max-width:75%;">
+          <div style="background:${doContador ? 'var(--color-pine)' : 'white'};color:${doContador ? '#fff' : 'var(--color-text-primary)'};border:${doContador ? 'none' : '1px solid var(--color-border)'};border-radius:12px;padding:10px 14px;">
+            ${m.assunto ? `<strong style="display:block;font-size:12.5px;margin-bottom:2px;">${escapeHtml(m.assunto)}</strong>` : ''}
+            <span style="font-size:13.5px;white-space:pre-wrap;">${escapeHtml(m.mensagem)}</span>
+          </div>
+          <span style="display:block;font-size:11px;color:var(--color-text-secondary);margin-top:4px;text-align:${doContador ? 'right' : 'left'};">${doContador ? 'Você' : escapeHtml(nomeCliente)} · ${hora}</span>
+        </div>`;
+    }).join('');
+    container.scrollTop = container.scrollHeight;
+  }
+
+  if (marcarLida) {
+    try {
+      await fetch(API_BASE + '/api/caixa-postal/marcar-lida', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clienteId, remetente: 'contador' })
+      });
+      await carregarCaixaPostal();
+    } catch (e) { /* silencioso */ }
+  }
+}
+
+async function enviarMensagemCaixaPostal() {
+  if (!caixaPostalClienteAtivo) return;
+  const assuntoEl = document.getElementById('caixa-postal-assunto');
+  const mensagemEl = document.getElementById('caixa-postal-mensagem');
+  const texto = mensagemEl.value.trim();
+  if (!texto) return;
+
+  const btn = document.querySelector('#form-caixa-postal-enviar button[type="submit"]');
+  if (btn) btn.disabled = true;
+  try {
+    const res = await fetch(API_BASE + '/api/caixa-postal', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ clienteId: caixaPostalClienteAtivo, remetente: 'contador', assunto: assuntoEl.value.trim() || null, mensagem: texto })
+    });
+    if (!res.ok) throw new Error('falha_ao_enviar');
+    assuntoEl.value = '';
+    mensagemEl.value = '';
+    await carregarCaixaPostal();
+    await renderCaixaPostalThread(caixaPostalClienteAtivo, { marcarLida: false });
+    showToast('Mensagem enviada.');
+  } catch (e) {
+    showToast('Não foi possível enviar a mensagem.');
+  } finally {
+    if (btn) btn.disabled = false;
+  }
 }
 
 // Appointments Scheduling Logic
@@ -2192,6 +2839,40 @@ function renderCalendarioAgendamentos() {
   }
 }
 
+// Um card por atendimento — usado tanto na lista curta da barra lateral
+// (Agenda do Dia) quanto na visão em Lista completa dos Agendamentos.
+function appointmentCardHtml(app) {
+  let actionBtnHtml = "";
+  const temChat = !!app.clientRef && !!clientsData[app.clientRef];
+  if (app.status !== "done" && temChat) {
+    actionBtnHtml = `
+      <button class="btn-icon-action primary" onclick="actionTimelineChat('${app.clientRef}')" title="Iniciar Atendimento">
+        <i class="fa-solid fa-play"></i>
+      </button>
+    `;
+  } else if (app.status !== "done") {
+    actionBtnHtml = `<span style="font-size: 11px; color:var(--color-text-secondary); font-weight:600;">Sem chat</span>`;
+  } else {
+    actionBtnHtml = `<span style="font-size: 11px; color:#2ECC71; font-weight:600;"><i class="fa-solid fa-circle-check"></i> Finalizado</span>`;
+  }
+
+  return `
+    <div class="appointment-card">
+      <div class="appointment-card-info">
+        <h4>${escapeHtml(app.clientName || 'Cliente')}</h4>
+        <p><i class="fa-solid fa-clock"></i> ${OCTempo.rotuloDia(normalizeAppointmentDate(app.date))} às ${escapeHtml(app.time || '--:--')} · <strong>${escapeHtml(app.taxType || 'Atendimento')}</strong></p>
+        <span class="status-badge ${classeStatusAgendamento(app.status)}">${app.status === 'done' ? 'Concluído' : app.status === 'active' ? 'Em atendimento' : 'Agendado'}</span>
+      </div>
+      <div class="appointment-card-actions">
+        ${actionBtnHtml}
+        <button class="btn-icon-action" onclick="actionDeleteAppointment(${JSON.stringify(app.id)})" title="Cancelar Agendamento">
+          <i class="fa-solid fa-trash-can"></i>
+        </button>
+      </div>
+    </div>
+  `;
+}
+
 function renderAppointments() {
   const container = document.getElementById("appointments-cards-container");
   const dayLabel = document.getElementById("appointments-day-label");
@@ -2224,38 +2905,52 @@ function renderAppointments() {
     return;
   }
 
-  filtered.forEach(app => {
-    let actionBtnHtml = "";
-    const temChat = !!app.clientRef && !!clientsData[app.clientRef];
-    if (app.status !== "done" && temChat) {
-      actionBtnHtml = `
-        <button class="btn-icon-action primary" onclick="actionTimelineChat('${app.clientRef}')" title="Iniciar Atendimento">
-          <i class="fa-solid fa-play"></i>
-        </button>
-      `;
-    } else if (app.status !== "done") {
-      actionBtnHtml = `<span style="font-size: 11px; color:var(--color-text-secondary); font-weight:600;">Sem chat</span>`;
-    } else {
-      actionBtnHtml = `<span style="font-size: 11px; color:#2ECC71; font-weight:600;"><i class="fa-solid fa-circle-check"></i> Finalizado</span>`;
-    }
+  container.innerHTML = filtered.map(appointmentCardHtml).join("");
+}
 
-    const cardHtml = `
-      <div class="appointment-card">
-        <div class="appointment-card-info">
-          <h4>${escapeHtml(app.clientName || 'Cliente')}</h4>
-          <p><i class="fa-solid fa-clock"></i> ${OCTempo.rotuloDia(normalizeAppointmentDate(app.date))} às ${escapeHtml(app.time || '--:--')} · <strong>${escapeHtml(app.taxType || 'Atendimento')}</strong></p>
-          <span class="status-badge ${classeStatusAgendamento(app.status)}">${app.status === 'done' ? 'Concluído' : app.status === 'active' ? 'Em atendimento' : 'Agendado'}</span>
-        </div>
-        <div class="appointment-card-actions">
-          ${actionBtnHtml}
-          <button class="btn-icon-action" onclick="actionDeleteAppointment(${JSON.stringify(app.id)})" title="Cancelar Agendamento">
-            <i class="fa-solid fa-trash-can"></i>
-          </button>
-        </div>
-      </div>
-    `;
-    container.insertAdjacentHTML("beforeend", cardHtml);
-  });
+// ===== Visão em Lista dos Agendamentos (alternativa ao grid mensal) =====
+let calendarViewMode = 'mes';
+let agendaListaFiltro = 'proximos';
+
+function setCalendarViewMode(mode) {
+  calendarViewMode = mode;
+  document.querySelectorAll('[data-calendar-view]').forEach(b => b.classList.toggle('active', b.dataset.calendarView === mode));
+  const viewMes = document.getElementById('calendar-view-mes');
+  const viewLista = document.getElementById('calendar-view-lista');
+  const filtros = document.getElementById('agenda-lista-filtros');
+  if (viewMes) viewMes.hidden = mode !== 'mes';
+  if (viewLista) viewLista.hidden = mode !== 'lista';
+  if (filtros) filtros.hidden = mode !== 'lista';
+  if (mode === 'lista') renderAgendaListaCompleta();
+}
+
+function renderAgendaListaCompleta() {
+  const container = document.getElementById('agenda-lista-completa');
+  const badge = document.getElementById('agenda-lista-contagem');
+  if (!container) return;
+
+  const hojeIso = OCTempo.hojeISO();
+  let filtered = appointments;
+  if (agendaListaFiltro === 'hoje') {
+    filtered = appointments.filter(a => normalizeAppointmentDate(a.date) === hojeIso);
+  } else if (agendaListaFiltro === 'proximos') {
+    filtered = appointments.filter(a => normalizeAppointmentDate(a.date) >= hojeIso && a.status !== 'done');
+  } else if (agendaListaFiltro === 'concluidos') {
+    filtered = appointments.filter(a => a.status === 'done');
+  }
+
+  filtered = filtered.slice().sort((a, b) =>
+    normalizeAppointmentDate(a.date).localeCompare(normalizeAppointmentDate(b.date)) ||
+    minutosDoHorario(a.time) - minutosDoHorario(b.time)
+  );
+
+  if (badge) badge.textContent = `${filtered.length} atendimento${filtered.length !== 1 ? 's' : ''}`;
+
+  if (!filtered.length) {
+    container.innerHTML = `<p style="font-size:13px; color:var(--color-text-secondary); text-align:center; padding:40px 0;">Nenhum atendimento nesta visão.</p>`;
+    return;
+  }
+  container.innerHTML = filtered.map(appointmentCardHtml).join('');
 }
 
 async function bookNewAppointment() {
@@ -2346,6 +3041,71 @@ async function salvarDisponibilidadeAgenda() {
   }
 }
 
+// Dias bloqueados (feriados, folgas) — somem da agenda pública. Diferente dos
+// horários: aqui é uma lista livre de datas, não um conjunto fixo de opções.
+function renderDiasBloqueados() {
+  const container = document.getElementById("dias-bloqueados-lista");
+  if (!container) return;
+  if (!agendaDiasBloqueados.length) {
+    container.innerHTML = '<p style="font-size:13px;color:var(--color-text-secondary)">Nenhum dia bloqueado.</p>';
+    return;
+  }
+  container.innerHTML = agendaDiasBloqueados.map(iso => {
+    const [y, m, d] = iso.split('-').map(Number);
+    const label = new Date(y, m - 1, d).toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: '2-digit' });
+    return `<div style="display:flex;justify-content:space-between;align-items:center;background:var(--color-bg);border-radius:8px;padding:8px 12px;font-size:13px">
+      <span>${label}</span>
+      <button type="button" class="btn-doc-action" data-remover-bloqueio="${iso}" style="padding:4px 8px"><i class="fa-solid fa-trash"></i></button>
+    </div>`;
+  }).join('');
+  container.querySelectorAll('[data-remover-bloqueio]').forEach(btn => {
+    btn.addEventListener('click', () => removerDiaBloqueado(btn.dataset.removerBloqueio));
+  });
+}
+
+async function salvarDiasBloqueados() {
+  const res = await fetch(API_BASE + '/api/config', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ agenda_dias_bloqueados: agendaDiasBloqueados })
+  });
+  if (!res.ok) throw new Error('config_save_failed');
+}
+
+async function adicionarDiaBloqueado() {
+  const input = document.getElementById('bloqueio-dia-input');
+  const iso = input.value;
+  if (!iso) { showToast('Escolha uma data.'); return; }
+  if (agendaDiasBloqueados.includes(iso)) { showToast('Esse dia já está bloqueado.'); return; }
+  const anterior = agendaDiasBloqueados.slice();
+  agendaDiasBloqueados = [...agendaDiasBloqueados, iso].sort();
+  renderDiasBloqueados();
+  input.value = '';
+  try {
+    await salvarDiasBloqueados();
+    showToast('Dia bloqueado.');
+  } catch (e) {
+    console.error('Erro ao bloquear dia:', e);
+    agendaDiasBloqueados = anterior;
+    renderDiasBloqueados();
+    showToast('Não consegui bloquear esse dia.');
+  }
+}
+
+async function removerDiaBloqueado(iso) {
+  const anterior = agendaDiasBloqueados.slice();
+  agendaDiasBloqueados = agendaDiasBloqueados.filter(d => d !== iso);
+  renderDiasBloqueados();
+  try {
+    await salvarDiasBloqueados();
+    showToast('Dia liberado.');
+  } catch (e) {
+    console.error('Erro ao liberar dia:', e);
+    agendaDiasBloqueados = anterior;
+    renderDiasBloqueados();
+    showToast('Não consegui liberar esse dia.');
+  }
+}
+
 async function actionDeleteAppointment(appId) {
   try {
     await fetch(API_BASE + `/api/appointments?id=${appId}`, { method: 'DELETE' });
@@ -2408,8 +3168,7 @@ function pauseChatTimer() {
 function resetChatTimer() {
   pauseChatTimer();
   currentChatSeconds = 0;
-  hasSent30MinWarning = false;
-  hasSent35MinWarning = false;
+  hasSentAvisoPrazo = false;
   updateTimerUI();
   
   const btnStart = document.getElementById("btn-start-timer");
@@ -2502,6 +3261,17 @@ async function finishActiveChat() {
 
     await postSystemMessageToChat("Atendimento encerrado. O chat foi bloqueado e o caso entrou no histórico do cliente.");
 
+    // NPS nativo: pede a nota já no encerramento, direto no chat — antes o
+    // cliente só via isso se navegasse até a Home (card-avaliacao), e muita
+    // gente nunca voltava lá depois que o caso fechava.
+    const nowNps = new Date();
+    await postMessageToBackend({
+      sender: "agent",
+      text: "Como foi o atendimento? Deixe sua nota de 1 a 5 estrelas.",
+      time: `${nowNps.getHours().toString().padStart(2, '0')}:${nowNps.getMinutes().toString().padStart(2, '0')}`,
+      type: "avaliacao-card"
+    });
+
     // SLA Automático: Criar tarefa no painel
     const clienteNome = clientsData[clientId] ? clientsData[clientId].name : 'Cliente';
     const deadline = new Date();
@@ -2545,34 +3315,37 @@ function enableChatInput() {
 }
 
 function updateTimerUI() {
-  const min = Math.floor(currentChatSeconds / 60).toString().padStart(2, "0");
-  const sec = (currentChatSeconds % 60).toString().padStart(2, "0");
-  
+  const totalSegundos = Math.max(1, timerConfig.duracaoMinutos) * 60;
+  const restanteSegundos = totalSegundos - currentChatSeconds; // pode ficar negativo se passar do limite — tudo bem, só some o alerta
+  // Decrescente mostra quanto falta; crescente mostra o que já passou.
+  const segundosExibidos = timerConfig.direcao === 'decrescente' ? Math.max(0, restanteSegundos) : currentChatSeconds;
+  const min = Math.floor(segundosExibidos / 60).toString().padStart(2, "0");
+  const sec = (segundosExibidos % 60).toString().padStart(2, "0");
+
   const elMin = document.getElementById("timer-minutes");
   const elSec = document.getElementById("timer-seconds");
   const container = document.getElementById("chat-timer-container");
   // O ícone com id saiu na reforma do widget; o objeto vazio deixa os
   // icon.style.color abaixo inofensivos sem encher o código de ifs.
   const icon = document.getElementById("chat-timer-icon") || { style: {} };
-  
+
   if(elMin) elMin.textContent = min;
   if(elSec) elSec.textContent = sec;
 
-  // Visual cues based on 40min limit
-  if (currentChatSeconds >= 35 * 60) {
-    // 35 mins (5 left)
+  // Cor muda conforme o tempo RESTANTE se aproxima do aviso configurado,
+  // independente do sentido de exibição (crescente ou decrescente).
+  const avisoSegundos = Math.max(1, timerConfig.avisoMinutosAntes) * 60;
+  if (restanteSegundos <= avisoSegundos) {
     container.style.color = "white";
     container.style.backgroundColor = "var(--color-coral)";
     container.style.borderColor = "var(--color-coral)";
     icon.style.color = "white";
-  } else if (currentChatSeconds >= 30 * 60) {
-    // 30 mins (10 left)
+  } else if (restanteSegundos <= avisoSegundos * 2) {
     container.style.color = "#E67E22"; // Orange
     container.style.backgroundColor = "rgba(230, 126, 34, 0.1)";
     container.style.borderColor = "#E67E22";
     icon.style.color = "#E67E22";
   } else {
-    // Normal
     container.style.color = "var(--color-text)";
     container.style.backgroundColor = "var(--color-bg)";
     container.style.borderColor = "var(--color-border)";
@@ -2581,16 +3354,22 @@ function updateTimerUI() {
 }
 
 async function checkTimerAlerts() {
-  // 30 minutes (10 left for 40min limit)
-  if (currentChatSeconds === 30 * 60 && !hasSent30MinWarning) {
-    hasSent30MinWarning = true;
-    await postSystemMessageToChat("Aviso Automático do Sistema: Faltam 10 minutos para encerrar o limite padrão deste atendimento (40min).");
-  }
+  const totalSegundos = Math.max(1, timerConfig.duracaoMinutos) * 60;
+  const avisoSegundos = Math.max(1, timerConfig.avisoMinutosAntes) * 60;
+  const restanteSegundos = totalSegundos - currentChatSeconds;
 
-  // 35 minutes (5 left for 40min limit)
-  if (currentChatSeconds === 35 * 60 && !hasSent35MinWarning) {
-    hasSent35MinWarning = true;
-    await postSystemMessageToChat("Aviso Automático do Sistema: Faltam 5 minutos para encerrar o limite padrão deste atendimento (40min).");
+  if (restanteSegundos === avisoSegundos && !hasSentAvisoPrazo) {
+    hasSentAvisoPrazo = true;
+    if (timerConfig.avisoSonoro) playSound('alert');
+    const texto = `Faltam ${timerConfig.avisoMinutosAntes} minuto${timerConfig.avisoMinutosAntes !== 1 ? 's' : ''} para encerrar o limite padrão deste atendimento (${timerConfig.duracaoMinutos}min).`;
+    if (timerConfig.avisarCliente) {
+      // Mensagem no chat compartilhado: aparece pro cliente também.
+      await postSystemMessageToChat(`Aviso Automático do Sistema: ${texto}`);
+    } else {
+      // Só o contador vê — nada é gravado na conversa do cliente. O som já
+      // tocou acima (se ligado); soundType null aqui evita tocar 2x.
+      showToast(texto, null);
+    }
   }
 }
 
@@ -2802,21 +3581,157 @@ function renderCRM() {
       renderCRM();
     }));
   }
+  // A aba "Clientes Recorrentes" vive na mesma seção mas é pintada à parte —
+  // atualiza aqui pra ficar em dia com qualquer mudança nos dados, mesmo
+  // enquanto a pessoa está olhando "Visão Geral".
+  renderRecorrentesTab();
+
   const c = clientsData[activeCrmClientId];
   if (!c) { detail.innerHTML = `<p style="padding:32px;text-align:center;color:var(--color-text-secondary)">${semResultadoMsg}</p>`; return; }
-  const docsDone = Object.values(c.checklist || {}).filter(Boolean).length;
   detail.innerHTML = `
-    <div style="padding:28px 32px;border-bottom:1px solid var(--color-border);display:flex;justify-content:space-between;gap:16px;align-items:center;flex-wrap:wrap">
-      <div style="display:flex;gap:16px;align-items:center"><div class="chat-item-avatar" style="width:60px;height:60px;font-size:22px">${safe(c.avatar || initials(c.name))}</div><div><h1 style="font-size:22px;color:var(--color-pine);margin:0">${safe(c.name)}</h1><p style="margin:4px 0;color:var(--color-text-secondary);font-size:13px">${safe(c.taxType || 'Atendimento contábil')} · ${safe(statusLabel(etapaDoCliente(c)))}${['done', 'locked'].includes(c.status) && c.ultimoFinalizadoEm ? ' · Finalizado em ' + new Date(c.ultimoFinalizadoEm).toLocaleDateString('pt-BR') : ''}</p><p style="margin:5px 0 0;font-size:12px;color:var(--color-text-secondary)">${safe(c.cpf || '')} ${c.email ? '· ' + safe(c.email) : ''}</p></div></div>
-      <button class="btn-utility primary" data-open-dossier="${safe(c.id)}"><i class="fa-solid fa-folder-open"></i> Abrir dossiê</button>
+    <div style="padding:28px 32px 0;border-bottom:1px solid var(--color-border);display:flex;justify-content:space-between;gap:16px;align-items:center;flex-wrap:wrap">
+      <div style="display:flex;gap:16px;align-items:center;padding-bottom:20px;"><div class="chat-item-avatar" style="width:60px;height:60px;font-size:22px">${safe(c.avatar || initials(c.name))}</div><div><h1 style="font-size:22px;color:var(--color-pine);margin:0">${safe(c.name)}</h1><p style="margin:4px 0;color:var(--color-text-secondary);font-size:13px">${safe(c.taxType || 'Atendimento contábil')} · ${safe(statusLabel(etapaDoCliente(c)))}${['done', 'locked'].includes(c.status) && c.ultimoFinalizadoEm ? ' · Finalizado em ' + new Date(c.ultimoFinalizadoEm).toLocaleDateString('pt-BR') : ''}${c.recorrente ? ' · <i class="fa-solid fa-arrows-rotate"></i> Recorrente' : ''}</p><p style="margin:5px 0 0;font-size:12px;color:var(--color-text-secondary)">${safe(c.cpf || '')} ${c.email ? '· ' + safe(c.email) : ''}</p></div></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;padding-bottom:20px;">
+        <button class="btn-utility" data-resetar-senha="${safe(c.id)}"><i class="fa-solid fa-key"></i> Resetar senha</button>
+        <button class="btn-utility" data-crm-novo-relatorio="${safe(c.id)}"><i class="fa-solid fa-file-lines"></i> Novo relatório</button>
+        <button class="btn-utility primary" data-open-dossier="${safe(c.id)}"><i class="fa-solid fa-folder-open"></i> Abrir dossiê</button>
+      </div>
     </div>
-    <div class="responsive-grid" style="padding:28px 32px;display:grid;grid-template-columns:1fr 1fr;gap:28px">
+    <div class="settings-tabs" id="crm-detail-tabs" style="padding:0 32px;margin:0;">
+      ${CRM_DETAIL_TABS.map(([id, label]) => `<button class="settings-tab ${crmDetailTab === id ? 'active' : ''}" data-crm-tab="${id}">${label}</button>`).join('')}
+    </div>
+    <div id="crm-detail-tab-content" style="padding:24px 32px 32px;"></div>`;
+  detail.querySelector('[data-open-dossier]').addEventListener('click', () => openDossier(c.id));
+  detail.querySelector('[data-resetar-senha]').addEventListener('click', () => abrirResetarSenhaCliente(c.id, c.name));
+  detail.querySelector('[data-crm-novo-relatorio]').addEventListener('click', () => abrirRelatorio(c.id));
+  detail.querySelectorAll('[data-crm-tab]').forEach(btn => btn.addEventListener('click', () => {
+    crmDetailTab = btn.dataset.crmTab;
+    renderCRM();
+  }));
+  renderCrmTabContent(c);
+}
+
+let crmDetailTab = 'geral';
+const CRM_DETAIL_TABS = [
+  ['geral', 'Visão Geral'],
+  ['cadastro', 'Cadastro'],
+  ['pagamentos', 'Pagamentos'],
+  ['atendimentos', 'Atendimentos']
+];
+
+function renderCrmTabContent(c) {
+  const box = document.getElementById('crm-detail-tab-content');
+  if (!box) return;
+  if (crmDetailTab === 'geral') return renderCrmTabGeral(c, box);
+  if (crmDetailTab === 'cadastro') return renderCrmTabCadastro(c, box);
+  if (crmDetailTab === 'pagamentos') return renderCrmTabPagamentos(c, box);
+  if (crmDetailTab === 'atendimentos') return renderCrmTabAtendimentos(c, box);
+}
+
+function renderCrmTabGeral(c, box) {
+  const docsDone = Object.values(c.checklist || {}).filter(Boolean).length;
+  box.innerHTML = `
+    <div class="responsive-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:28px">
       <div><h3 style="font-size:14px;color:var(--color-pine)">Resumo do caso</h3><p style="font-size:13px;color:var(--color-text-secondary);line-height:1.5">${safe(c.diagnosis || c.triagem?.descricao || 'Sem diagnóstico registrado ainda.')}</p><p style="font-size:12px;color:var(--color-text-secondary)">${c.messages.length} mensagens · ${docsDone} documento(s) confirmado(s)</p></div>
       <div><h3 style="font-size:14px;color:var(--color-pine)">Próximo passo</h3><p style="font-size:13px;color:var(--color-text-secondary)">${safe(c.treatment || 'Abra o dossiê para registrar diagnóstico, arquivos e andamento.')}</p></div>
+    </div>`;
+}
+
+// Cadastro completo: endereço e contatos, agregados pelo CPF/CNPJ (id do
+// cliente). Os campos de endereço já existiam no banco (nota fiscal), só não
+// apareciam em lugar nenhum da UI.
+function renderCrmTabCadastro(c, box) {
+  box.innerHTML = `
+    <div class="responsive-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:16px;max-width:640px;">
+      <div class="form-group" style="margin-bottom:0;"><label class="form-label">Telefone</label><input class="form-input" id="cad-phone" value="${safe(c.phone || '')}"></div>
+      <div class="form-group" style="margin-bottom:0;"><label class="form-label">E-mail</label><input class="form-input" id="cad-email" value="${safe(c.email || '')}"></div>
+      <div class="form-group" style="margin-bottom:0;"><label class="form-label">CEP</label><input class="form-input" id="cad-cep" value="${safe(c.cep || '')}"></div>
+      <div class="form-group" style="margin-bottom:0;"><label class="form-label">Cidade</label><input class="form-input" id="cad-cidade" value="${safe(c.cidade || '')}"></div>
+      <div class="form-group" style="margin-bottom:0;grid-column:1/-1;"><label class="form-label">Endereço</label><input class="form-input" id="cad-endereco" value="${safe(c.endereco || '')}"></div>
+      <div class="form-group" style="margin-bottom:0;"><label class="form-label">Número</label><input class="form-input" id="cad-numero" value="${safe(c.numero || '')}"></div>
+      <div class="form-group" style="margin-bottom:0;"><label class="form-label">Bairro</label><input class="form-input" id="cad-bairro" value="${safe(c.bairro || '')}"></div>
+      <div class="form-group" style="margin-bottom:0;"><label class="form-label">Estado</label><input class="form-input" id="cad-estado" value="${safe(c.estado || '')}" maxlength="2" style="text-transform:uppercase;"></div>
     </div>
-    <div style="padding:0 32px 28px;">${htmlRecorrencia(c)}</div>`;
-  detail.querySelector('[data-open-dossier]').addEventListener('click', () => openDossier(c.id));
-  ligarRecorrencia(c);
+    <button class="btn-utility primary" id="btn-salvar-cadastro" style="margin-top:16px;"><i class="fa-solid fa-save"></i> Salvar cadastro</button>
+    <p class="relatorio-label-hint" id="cadastro-save-status" style="margin-top:8px;">&nbsp;</p>`;
+  document.getElementById('btn-salvar-cadastro').addEventListener('click', async () => {
+    const btn = document.getElementById('btn-salvar-cadastro');
+    const status = document.getElementById('cadastro-save-status');
+    const patch = {
+      clientId: c.id,
+      phone: document.getElementById('cad-phone').value.trim(),
+      email: document.getElementById('cad-email').value.trim(),
+      cep: document.getElementById('cad-cep').value.trim(),
+      cidade: document.getElementById('cad-cidade').value.trim(),
+      endereco: document.getElementById('cad-endereco').value.trim(),
+      numero: document.getElementById('cad-numero').value.trim(),
+      bairro: document.getElementById('cad-bairro').value.trim(),
+      estado: document.getElementById('cad-estado').value.trim().toUpperCase()
+    };
+    btn.disabled = true;
+    try {
+      const res = await fetch(API_BASE + '/api/prontuario', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(patch)
+      });
+      if (!res.ok) throw new Error('falha');
+      clientsData[c.id] = await res.json();
+      status.textContent = 'Cadastro salvo.';
+      renderCRM();
+    } catch (e) {
+      status.textContent = 'Não consegui salvar — tente novamente.';
+    } finally {
+      btn.disabled = false;
+    }
+  });
+}
+
+// Histórico de pagamentos do cliente (cobranças geradas, pagas ou não).
+async function renderCrmTabPagamentos(c, box) {
+  box.innerHTML = '<p style="font-size:12px;color:var(--color-text-secondary)">Carregando…</p>';
+  let cobrancas = [];
+  try {
+    const res = await fetch(API_BASE + '/api/cobrancas?clientId=' + encodeURIComponent(c.id));
+    if (res.ok) cobrancas = await res.json();
+  } catch (_) { /* silencioso */ }
+  if (document.getElementById('crm-detail-tab-content') !== box) return; // painel trocou enquanto carregava
+  if (!cobrancas.length) { box.innerHTML = '<p style="font-size:12px;color:var(--color-text-secondary)">Nenhuma cobrança gerada para este cliente ainda.</p>'; return; }
+  box.innerHTML = `<table class="financeiro-table"><thead><tr><th>Data</th><th>Valor</th><th>Status</th><th>Pago em</th></tr></thead><tbody>${cobrancas.map(cob => `
+    <tr>
+      <td>${new Date(cob.createdAt).toLocaleDateString('pt-BR')}</td>
+      <td>${formatBRL((cob.valueCents || 0) / 100)}</td>
+      <td>${safe(cob.status)}</td>
+      <td>${cob.paidAt ? new Date(cob.paidAt).toLocaleDateString('pt-BR') : '—'}</td>
+    </tr>`).join('')}</tbody></table>`;
+}
+
+// Timeline de atendimentos finalizados: início, fim, duração e as anotações
+// que ficaram arquivadas quando aquele caso foi encerrado.
+async function renderCrmTabAtendimentos(c, box) {
+  box.innerHTML = '<p style="font-size:12px;color:var(--color-text-secondary)">Carregando…</p>';
+  let historico = [];
+  try {
+    const res = await fetch(API_BASE + '/api/atendimentos-historico?clientId=' + encodeURIComponent(c.id));
+    if (res.ok) historico = await res.json();
+  } catch (_) { /* silencioso */ }
+  if (document.getElementById('crm-detail-tab-content') !== box) return; // painel trocou enquanto carregava
+  if (!historico.length) { box.innerHTML = '<p style="font-size:12px;color:var(--color-text-secondary)">Nenhum atendimento finalizado ainda para este cliente.</p>'; return; }
+  box.innerHTML = historico.map(h => {
+    const inicio = h.iniciadoEm ? new Date(h.iniciadoEm) : null;
+    const fim = h.finalizadoEm ? new Date(h.finalizadoEm) : null;
+    const dataLabel = fim ? fim.toLocaleDateString('pt-BR') : '—';
+    const horaIni = inicio ? inicio.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '—';
+    const horaFim = fim ? fim.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '—';
+    return `
+    <div class="financeiro-card" style="margin-bottom:12px;">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;">
+        <div>
+          <h3 style="font-size:14px;color:var(--color-pine);margin-bottom:4px;">${safe(h.taxType || 'Atendimento')}</h3>
+          <p style="font-size:12px;color:var(--color-text-secondary);">${dataLabel} · iniciado ${horaIni} · encerrado ${horaFim} · duração ${formatDuracao(h.duracaoSegundos)}${h.honorarios ? ' · ' + formatBRL(h.honorarios) : ''}</p>
+        </div>
+      </div>
+      ${h.notas ? `<div class="notas-editor" style="margin-top:12px;min-height:0;background:var(--color-bg);" contenteditable="false">${h.notas}</div>` : ''}
+    </div>`;
+  }).join('');
 }
 
 async function recarregarClientes() {
@@ -2917,41 +3832,55 @@ function ligarRecorrencia(c) {
   });
 }
 
-let activeRecorrenteClientId = null;
+// Abas de topo da seção Clientes: "Visão Geral" (todos os clientes) e
+// "Clientes Recorrentes" (só quem tem acompanhamento mensal).
+function setupClientesSecaoTabs() {
+  const barra = document.getElementById('clientes-secao-tabs');
+  if (!barra) return;
+  barra.querySelectorAll('[data-clientes-secao-tab]').forEach(btn => btn.addEventListener('click', () => {
+    barra.querySelectorAll('[data-clientes-secao-tab]').forEach(b => b.classList.toggle('active', b === btn));
+    const alvo = btn.dataset.clientesSecaoTab;
+    document.getElementById('clientes-pane-geral').classList.toggle('active', alvo === 'geral');
+    document.getElementById('clientes-pane-recorrentes').classList.toggle('active', alvo === 'recorrentes');
+    if (alvo === 'recorrentes') renderRecorrentesTab();
+  }));
+}
 
-// Aba dedicada "Recorrentes" — lista os clientes com acompanhamento mensal
-// ativo (ou candidatos a ativar) e, no detalhe, junta controle de recorrência,
-// documentos e o histórico de guias mensais daquele cliente.
-async function renderRecorrentes() {
-  const list = document.getElementById('recorrentes-client-list');
-  const detail = document.getElementById('recorrentes-client-detail');
+let activeRecorrenteTabClientId = null;
+
+// Aba "Clientes Recorrentes" (dentro de Clientes): só quem tem acompanhamento
+// mensal ativo (ou candidatos a ativar), com o detalhamento do serviço (tipo,
+// valor, dia de vencimento) e os prazos (guias mensais a gerar) daquele cliente.
+function renderRecorrentesTab() {
+  const list = document.getElementById('recorrentes-tab-list');
+  const detail = document.getElementById('recorrentes-tab-detail');
   if (!list || !detail) return;
 
   const all = Object.values(clientsData);
   const ativos = all.filter(c => c.recorrente);
   const candidatos = all.filter(c => !c.recorrente);
 
-  if (!activeRecorrenteClientId || !clientsData[activeRecorrenteClientId]) {
-    activeRecorrenteClientId = (ativos[0] || candidatos[0] || {}).id || null;
+  if (!activeRecorrenteTabClientId || !clientsData[activeRecorrenteTabClientId]) {
+    activeRecorrenteTabClientId = (ativos[0] || candidatos[0] || {}).id || null;
   }
 
   const itemHtml = (c) => `
-    <button type="button" class="chat-item ${c.id === activeRecorrenteClientId ? 'active' : ''}" data-recorrente-client="${safe(c.id)}" style="margin:0;border-radius:0;border-bottom:1px solid var(--color-border);width:100%;text-align:left;">
-      <div class="chat-item-avatar">${safe(c.avatar || initials(c.name))}</div><div style="flex:1;min-width:0"><h4>${safe(c.name)}</h4><p>${safe(c.recorrente ? (c.recorrenteTipo || 'Mensal') : (c.cpf || 'Sem recorrência'))}</p></div>
+    <button type="button" class="chat-item ${c.id === activeRecorrenteTabClientId ? 'active' : ''}" data-recorrente-tab-client="${safe(c.id)}" style="margin:0;border-radius:0;border-bottom:1px solid var(--color-border);width:100%;text-align:left;">
+      <div class="chat-item-avatar">${safe(c.avatar || initials(c.name))}</div><div style="flex:1;min-width:0"><h4>${safe(c.name)}</h4><p>${c.recorrente ? safe(c.recorrenteTipo || 'Mensal') + ' · vence dia ' + safe(c.recorrenteDiaVenc || '—') : safe(c.cpf || 'Sem recorrência')}</p></div>
       ${c.recorrente ? '<span class="status-badge" style="font-size:10px;background:var(--color-pine);color:#fff">Ativo</span>' : ''}
     </button>`;
 
   list.innerHTML = `
-    ${ativos.length ? `<p style="padding:12px 16px 4px;font-size:11px;color:var(--color-text-secondary);text-transform:uppercase">Ativos (${ativos.length})</p>${ativos.map(itemHtml).join('')}` : ''}
+    ${ativos.length ? `<p style="padding:12px 16px 4px;font-size:11px;color:var(--color-text-secondary);text-transform:uppercase">Ativos (${ativos.length})</p>${ativos.map(itemHtml).join('')}` : '<p style="padding:16px;font-size:12px;color:var(--color-text-secondary)">Nenhum cliente com acompanhamento recorrente ativo ainda.</p>'}
     <p style="padding:12px 16px 4px;font-size:11px;color:var(--color-text-secondary);text-transform:uppercase">Demais clientes</p>
     ${candidatos.length ? candidatos.map(itemHtml).join('') : '<p style="padding:16px;font-size:12px;color:var(--color-text-secondary)">Nenhum outro cliente.</p>'}`;
 
-  list.querySelectorAll('[data-recorrente-client]').forEach(btn => btn.addEventListener('click', () => {
-    activeRecorrenteClientId = btn.dataset.recorrenteClient;
-    renderRecorrentes();
+  list.querySelectorAll('[data-recorrente-tab-client]').forEach(btn => btn.addEventListener('click', () => {
+    activeRecorrenteTabClientId = btn.dataset.recorrenteTabClient;
+    renderRecorrentesTab();
   }));
 
-  const c = clientsData[activeRecorrenteClientId];
+  const c = clientsData[activeRecorrenteTabClientId];
   if (!c) {
     detail.innerHTML = '<p style="padding:32px;color:var(--color-text-secondary)">Nenhum cliente cadastrado ainda.</p>';
     return;
@@ -2964,7 +3893,7 @@ async function renderRecorrentes() {
     </div>
     <div style="padding:28px 32px 0;">${htmlRecorrencia(c)}</div>
     <div style="padding:24px 32px;">
-      <h3 style="font-size:14px;color:var(--color-pine);border-bottom:2px solid var(--color-border);padding-bottom:8px;margin-bottom:12px;"><i class="fa-solid fa-file-invoice"></i> Guias mensais</h3>
+      <h3 style="font-size:14px;color:var(--color-pine);border-bottom:2px solid var(--color-border);padding-bottom:8px;margin-bottom:12px;"><i class="fa-solid fa-file-invoice"></i> Guias mensais (prazos)</h3>
       <div id="recorrentes-guias-cliente"><p style="font-size:12px;color:var(--color-text-secondary)">Carregando…</p></div>
     </div>
     <div style="padding:0 32px 32px;">
@@ -3271,7 +4200,7 @@ async function moverParaRecorrencia(clientId) {
   if (!c || c.recorrente) return;
   const valor = Number(c.honorarios) || 0;
   if (!valor) {
-    showToast('Cliente movido para Recorrência. Defina o valor mensal na aba "Recorrentes" para ativar a cobrança.');
+    showToast('Cliente movido para Recorrência. Defina o valor mensal em Clientes → aba "Clientes Recorrentes" para ativar a cobrança.');
     return;
   }
   try {
@@ -3282,12 +4211,11 @@ async function moverParaRecorrencia(clientId) {
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
       if (data.error === 'demo_action_not_available') showToast('Cliente movido para Recorrência. Ativação automática não funciona no modo demo — ative manualmente com login real.');
-      else showToast('Cliente movido para Recorrência. Não foi possível ativar a cobrança automática — ative manualmente na aba "Recorrentes".');
+      else showToast('Cliente movido para Recorrência. Não foi possível ativar a cobrança automática — ative manualmente em Clientes → aba "Clientes Recorrentes".');
       return;
     }
     await recarregarClientes();
     renderCRM(); renderKanban();
-    if (document.getElementById('section-recorrentes')?.classList.contains('active')) renderRecorrentes();
     showToast('Cliente movido para Recorrência e cobrança mensal ativada.');
   } catch (_) {
     showToast('Cliente movido para Recorrência. Falha de conexão ao ativar a cobrança — ative manualmente depois.');
@@ -3306,27 +4234,36 @@ async function refreshFinanceiro() {
     financeiro.cobrancas = await chargesRes.json();
     refreshCreditos();
     serviceList.innerHTML = financeiro.servicos.length ? financeiro.servicos.map(s => `<tr>
-      <td><strong>${safe(s.name)}</strong>${s.description ? `<br><small>${safe(s.description)}</small>` : ''}</td>
+      <td><strong>${safe(s.name)}</strong>${s.description ? `<br><small>${safe(s.description)}</small>` : ''}${(s.itens || []).length ? `<br><small>Abarca ${s.itens.length} serviço(s)</small>` : ''}</td>
       <td>${formatBRL(s.price)}</td><td>${s.recurrence === 'monthly' ? 'Mensal' : 'Avulso'}</td>
       <td><span class="status-badge ${s.active ? 'status-active' : 'status-docs'}">${s.active ? 'Ativo' : 'Pausado'}</span></td>
-      <td><button class="btn-doc-action" data-edit-service="${safe(s.id)}"><i class="fa-solid fa-pen"></i> Editar</button> <button class="btn-doc-action" data-copy-service="${safe(s.id)}"><i class="fa-solid fa-copy"></i> Link</button></td>
+      <td><button class="btn-doc-action" data-edit-service="${safe(s.id)}"><i class="fa-solid fa-pen"></i> Editar</button> <button class="btn-doc-action" data-copy-service="${safe(s.id)}"><i class="fa-solid fa-copy"></i> Link</button> <button class="btn-doc-action" data-delete-service="${safe(s.id)}" style="color: var(--color-erro, #B32620);"><i class="fa-solid fa-trash"></i> Excluir</button></td>
     </tr>`).join('') : '<tr><td colspan="5">Nenhum serviço cadastrado.</td></tr>';
     serviceList.querySelectorAll('[data-edit-service]').forEach(b => b.addEventListener('click', () => editarServico(b.dataset.editService)));
     serviceList.querySelectorAll('[data-copy-service]').forEach(b => b.addEventListener('click', () => copiarLinkServico(b.dataset.copyService)));
-    const paid = financeiro.cobrancas.filter(c => c.status === 'paid').reduce((total, c) => total + (c.valueCents || 0), 0) / 100;
+    serviceList.querySelectorAll('[data-delete-service]').forEach(b => b.addEventListener('click', () => excluirServico(b.dataset.deleteService)));
+    const cobrancasPagas = financeiro.cobrancas.filter(c => c.status === 'paid');
+    const paid = cobrancasPagas.reduce((total, c) => total + (c.valueCents || 0), 0) / 100;
     const open = financeiro.cobrancas.filter(c => c.status !== 'paid').reduce((total, c) => total + (c.valueCents || 0), 0) / 100;
     document.getElementById('financeiro-recebido').textContent = formatBRL(paid);
-    document.getElementById('financeiro-recebido-info').textContent = `${financeiro.cobrancas.filter(c => c.status === 'paid').length} cobrança(s) paga(s)`;
+    document.getElementById('financeiro-recebido-info').textContent = `${cobrancasPagas.length} cobrança(s) paga(s)`;
     document.getElementById('financeiro-aberto').textContent = formatBRL(open);
     document.getElementById('financeiro-aberto-info').textContent = `${financeiro.cobrancas.filter(c => c.status !== 'paid').length} cobrança(s) em aberto`;
+    const ticketMedio = cobrancasPagas.length ? paid / cobrancasPagas.length : 0;
+    document.getElementById('financeiro-ticket-medio').textContent = formatBRL(ticketMedio);
+    document.getElementById('financeiro-ticket-medio-info').textContent = cobrancasPagas.length
+      ? `Média de ${cobrancasPagas.length} cobrança(s) paga(s)`
+      : 'Nenhuma cobrança paga ainda';
     const clientsById = clientsData;
     document.getElementById('financeiro-cobrancas-lista').innerHTML = financeiro.cobrancas.length ? `<table class="financeiro-table"><thead><tr><th>Cliente</th><th>Valor</th><th>Status</th><th>Data</th></tr></thead><tbody>${financeiro.cobrancas.slice(0, 12).map(c => `<tr><td>${safe(clientsById[c.clientRef]?.name || c.clientRef)}</td><td>${formatBRL((c.valueCents || 0) / 100)}</td><td>${safe(c.status)}</td><td>${c.createdAt ? new Date(c.createdAt).toLocaleDateString('pt-BR') : '—'}</td></tr>`).join('')}</tbody></table>` : 'Nenhuma cobrança criada ainda.';
     updateDashboardFinanceiroKpis();
-    renderDashboardRemarketing();
+    renderPagamentosNaoFinalizados();
+    renderFinanceiroCobrancasAbertas();
   } catch (e) {
     serviceList.innerHTML = '<tr><td colspan="5">Não foi possível carregar o financeiro.</td></tr>';
     updateDashboardFinanceiroKpis();
-    renderDashboardRemarketing();
+    renderPagamentosNaoFinalizados();
+    renderFinanceiroCobrancasAbertas();
   }
 }
 
@@ -3335,18 +4272,57 @@ async function salvarServico(service) {
   if (!res.ok) { showToast('Não foi possível salvar o serviço.'); return; }
   await refreshFinanceiro(); showToast('Serviço salvo.');
 }
+// Uma linha por opção: título (o que aparece na lista suspensa do agendamento)
+// + resumo opcional (a explicação curta que some embaixo quando é escolhida).
+function linhaItemServico(item) {
+  const div = document.createElement('div');
+  div.className = 'servico-item-row';
+  div.style.cssText = 'display:flex;gap:8px;align-items:flex-start';
+  div.innerHTML = `
+    <div style="flex:1;display:flex;flex-direction:column;gap:6px">
+      <input type="text" class="form-input item-titulo" placeholder="Ex.: Vendi um imóvel, carro ou outro bem" value="${safe(item?.titulo || '')}">
+      <input type="text" class="form-input item-resumo" placeholder="Explicação curta (opcional)" value="${safe(item?.resumo || '')}">
+    </div>
+    <button type="button" class="btn-doc-action" title="Remover"><i class="fa-solid fa-trash"></i></button>`;
+  div.querySelector('button').addEventListener('click', () => div.remove());
+  return div;
+}
+
+let servicoEmEdicao = null;
+function abrirModalServico(s) {
+  servicoEmEdicao = s || null;
+  document.getElementById('servico-id').value = s?.id || '';
+  document.getElementById('servico-nome').value = s?.name || '';
+  document.getElementById('servico-preco').value = s ? String(s.price).replace('.', ',') : '';
+  document.getElementById('servico-ativo').checked = s ? s.active !== false : true;
+  document.querySelector('#modal-editar-servico .modal-header h3').textContent = s ? 'Editar plano' : 'Novo plano';
+  const lista = document.getElementById('servico-itens-lista');
+  lista.innerHTML = '';
+  (s?.itens?.length ? s.itens : [null]).forEach(i => lista.appendChild(linhaItemServico(i)));
+  openModal('modal-editar-servico');
+}
 function editarServico(id) {
   const s = financeiro.servicos.find(item => String(item.id) === String(id));
-  if (!s) return;
-  const name = prompt('Nome do serviço:', s.name); if (name == null || !name.trim()) return;
-  const price = prompt('Valor em reais:', String(s.price).replace('.', ',')); if (price == null) return;
-  const active = confirm('Deixar este serviço ativo no checkout?');
-  salvarServico({ ...s, name: name.trim(), priceCents: Math.round(Number(price.replace(',', '.')) * 100), active });
+  if (s) abrirModalServico(s);
 }
-function novoServico() {
-  const name = prompt('Nome do novo serviço:'); if (!name || !name.trim()) return;
-  const price = prompt('Valor em reais:'); if (price == null) return;
-  salvarServico({ name: name.trim(), priceCents: Math.round(Number(price.replace(',', '.')) * 100), recurrence: 'once', active: true });
+function novoServico() { abrirModalServico(null); }
+
+function lerItensDoModal() {
+  return [...document.querySelectorAll('#servico-itens-lista .servico-item-row')].map(row => ({
+    titulo: row.querySelector('.item-titulo').value.trim(),
+    resumo: row.querySelector('.item-resumo').value.trim()
+  })).filter(i => i.titulo);
+}
+function salvarServicoDoModal(e) {
+  e.preventDefault();
+  const name = document.getElementById('servico-nome').value.trim();
+  if (!name) return;
+  const price = document.getElementById('servico-preco').value;
+  const active = document.getElementById('servico-ativo').checked;
+  const id = document.getElementById('servico-id').value || undefined;
+  const itens = lerItensDoModal();
+  salvarServico({ ...(servicoEmEdicao || {}), id, name, priceCents: Math.round(Number(price.replace(',', '.')) * 100), active, itens, recurrence: servicoEmEdicao?.recurrence || 'avulso' });
+  closeModal('modal-editar-servico');
 }
 async function copiarLinkServico(id) {
   const url = `${location.origin}/cliente?servico=${encodeURIComponent(id)}`;
@@ -3354,10 +4330,30 @@ async function copiarLinkServico(id) {
   catch (_) { prompt('Copie o link:', url); }
 }
 
+// Exclui de vez o plano/link de pagamento. O backend recusa (409) se já existir
+// cobrança gerada com este serviço — nesse caso o certo é desativar (toggle
+// "Ativo" no modal de edição), não excluir, senão a cobrança antiga fica órfã.
+async function excluirServico(id) {
+  const s = financeiro.servicos.find(item => String(item.id) === String(id));
+  if (!confirm(`Excluir o plano "${s?.name || id}"? O link de pagamento para de funcionar e essa ação não pode ser desfeita.`)) return;
+  try {
+    const res = await fetch(API_BASE + '/api/servicos?id=' + encodeURIComponent(id), { method: 'DELETE' });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      showToast(data.detail || 'Não foi possível excluir este plano.');
+      return;
+    }
+    showToast('Plano excluído.');
+    refreshFinanceiro();
+  } catch (_) {
+    showToast('Falha de conexão ao excluir.');
+  }
+}
+
 // ---------- Créditos de Atendimento ----------
 let creditosData = [];
 function linkCredito(codigo) {
-  return `${location.origin}/agendamento.html?credito=${encodeURIComponent(codigo)}`;
+  return `${location.origin}/agendamento?credito=${encodeURIComponent(codigo)}`;
 }
 async function copiarTexto(texto, mensagem) {
   try { await navigator.clipboard.writeText(texto); showToast(mensagem); }
@@ -3426,6 +4422,10 @@ async function cancelarCredito(id) {
 document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('btn-novo-servico')?.addEventListener('click', novoServico);
   document.getElementById('btn-atualizar-financeiro')?.addEventListener('click', refreshFinanceiro);
+  document.getElementById('btn-add-item-servico')?.addEventListener('click', () => {
+    document.getElementById('servico-itens-lista').appendChild(linhaItemServico(null));
+  });
+  document.getElementById('form-editar-servico')?.addEventListener('submit', salvarServicoDoModal);
   document.getElementById('btn-gerar-credito')?.addEventListener('click', gerarCredito);
 });
 
@@ -3553,6 +4553,54 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     });
   });
+
+  // Abas do Financeiro (mesma classe .settings-tab dos outros lugares — escopado
+  // a #section-financeiro pra não interferir nas abas de Configurações/Dossiê).
+  document.querySelectorAll("#section-financeiro .settings-tab").forEach(tab => {
+    tab.addEventListener("click", () => {
+      document.querySelectorAll("#section-financeiro .settings-tab").forEach(t => t.classList.remove("active"));
+      document.querySelectorAll("#section-financeiro .settings-pane").forEach(p => p.classList.remove("active"));
+      tab.classList.add("active");
+      const targetPane = document.getElementById(tab.getAttribute("data-tab"));
+      if (targetPane) targetPane.classList.add("active");
+    });
+  });
+
+  // Filtro de aging da aba "Cobranças em Aberto"
+  document.querySelectorAll('[data-financeiro-abertas-filtro]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('[data-financeiro-abertas-filtro]').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      financeiroAbertasFiltro = btn.dataset.financeiroAbertasFiltro;
+      renderFinanceiroCobrancasAbertas();
+    });
+  });
+
+  // Abas da Caixa Postal (Avisos do Sistema / Mensagens) — mesmo motivo do
+  // escopo acima: não interferir nas abas de Configurações/Financeiro/Dossiê.
+  document.querySelectorAll("#section-notificacoes .settings-tab").forEach(tab => {
+    tab.addEventListener("click", () => {
+      document.querySelectorAll("#section-notificacoes .settings-tab").forEach(t => t.classList.remove("active"));
+      document.querySelectorAll("#section-notificacoes .settings-pane").forEach(p => p.classList.remove("active"));
+      tab.classList.add("active");
+      const targetPane = document.getElementById(tab.getAttribute("data-tab"));
+      if (targetPane) targetPane.classList.add("active");
+      if (tab.getAttribute("data-tab") === 'cp-mensagens') renderCaixaPostalClientesLista();
+    });
+  });
+
+  const buscaCaixaPostal = document.getElementById('caixa-postal-busca');
+  if (buscaCaixaPostal) {
+    buscaCaixaPostal.addEventListener('input', () => renderCaixaPostalClientesLista(buscaCaixaPostal.value));
+  }
+
+  const formCaixaPostal = document.getElementById('form-caixa-postal-enviar');
+  if (formCaixaPostal) {
+    formCaixaPostal.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      await enviarMensagemCaixaPostal();
+    });
+  }
 });
 
 // --- Mock Agenda Notifications System ---
@@ -3893,6 +4941,8 @@ document.addEventListener("DOMContentLoaded", () => {
   setupAgendaMocks();
   renderDashboardCharts();
   setupTarefas();
+  setupNotaFiscalConfig();
+  setupTimerConfig();
 });
 
 // ===== Tarefas Pendentes (dashboard) =====
@@ -4002,6 +5052,142 @@ function configObject(value, fallback) {
   if (typeof value === 'string') { try { const parsed = JSON.parse(value); return parsed && typeof parsed === 'object' ? parsed : fallback; } catch (_) {} }
   return fallback;
 }
+// ===== Nota Fiscal de Serviço (Configurações → Integrações) =====
+// Persistido na mesma tabela chave-valor 'configuracoes' usada por tarefas,
+// perfil etc. (ver /api/config). O pré-requisito de configurar as
+// informações fiscais na CONTA Asaas é feito pelo contador diretamente lá —
+// aqui só guardamos qual serviço municipal usar e se a emissão é automática.
+let notaFiscalConfig = { ativo: false, municipalServiceId: '', municipalServiceName: '', descricao: '', observacoes: '' };
+
+function renderNotaFiscalConfigToUI() {
+  const ativo = document.getElementById('nf-ativo');
+  const select = document.getElementById('nf-servico-municipal');
+  const descricao = document.getElementById('nf-descricao');
+  const observacoes = document.getElementById('nf-observacoes');
+  if (!ativo || !select || !descricao || !observacoes) return;
+  ativo.checked = !!notaFiscalConfig.ativo;
+  descricao.value = notaFiscalConfig.descricao || '';
+  observacoes.value = notaFiscalConfig.observacoes || '';
+  if (notaFiscalConfig.municipalServiceId) {
+    // Garante que a opção salva apareça mesmo antes de clicar em "Buscar
+    // serviços" (ex.: ao recarregar a página já com uma escolha salva).
+    if (![...select.options].some(o => o.value === notaFiscalConfig.municipalServiceId)) {
+      const opt = document.createElement('option');
+      opt.value = notaFiscalConfig.municipalServiceId;
+      opt.textContent = notaFiscalConfig.municipalServiceName || `Serviço ${notaFiscalConfig.municipalServiceId}`;
+      select.appendChild(opt);
+    }
+    select.value = notaFiscalConfig.municipalServiceId;
+  }
+}
+
+function setupNotaFiscalConfig() {
+  const btnBuscar = document.getElementById('btn-nf-buscar-servicos');
+  const btnSalvar = document.getElementById('btn-nf-salvar');
+  const select = document.getElementById('nf-servico-municipal');
+  const statusMsg = document.getElementById('nf-status-msg');
+  if (!btnBuscar || !btnSalvar || !select) return;
+
+  btnBuscar.addEventListener('click', async () => {
+    btnBuscar.disabled = true;
+    const textoOriginal = btnBuscar.innerHTML;
+    btnBuscar.innerHTML = 'Buscando...';
+    try {
+      const res = await fetch(API_BASE + '/api/status?acao=servicos-municipais');
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.detail || data.error || 'falha na busca');
+      const lista = Array.isArray(data) ? data : (data.data || []);
+      select.innerHTML = lista.length
+        ? lista.map(s => `<option value="${safe(s.id)}">${safe(s.description || s.name || String(s.id))}</option>`).join('')
+        : '<option value="">Nenhum serviço encontrado na prefeitura da conta</option>';
+      showToast(`${lista.length} serviço(s) municipal(is) encontrado(s).`);
+    } catch (e) {
+      showToast('Não consegui buscar os serviços — confira se as informações fiscais já estão configuradas no Asaas.');
+    } finally {
+      btnBuscar.disabled = false;
+      btnBuscar.innerHTML = textoOriginal;
+    }
+  });
+
+  btnSalvar.addEventListener('click', async () => {
+    const opt = select.options[select.selectedIndex];
+    notaFiscalConfig = {
+      ativo: document.getElementById('nf-ativo').checked,
+      municipalServiceId: select.value || '',
+      municipalServiceName: opt ? opt.textContent : '',
+      descricao: document.getElementById('nf-descricao').value.trim(),
+      observacoes: document.getElementById('nf-observacoes').value.trim()
+    };
+    if (statusMsg) { statusMsg.textContent = 'Salvando...'; statusMsg.style.color = 'var(--color-text-secondary)'; }
+    try {
+      const res = await fetch(API_BASE + '/api/config', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nota_fiscal_config: notaFiscalConfig })
+      });
+      if (!res.ok) throw new Error('falha ao salvar');
+      if (statusMsg) { statusMsg.textContent = 'Salvo.'; statusMsg.style.color = '#2ECC71'; }
+      showToast('Configuração de nota fiscal salva.');
+    } catch (e) {
+      if (statusMsg) { statusMsg.textContent = 'Erro ao salvar.'; statusMsg.style.color = 'var(--color-erro)'; }
+      showToast('Não foi possível salvar a configuração de nota fiscal.');
+    }
+  });
+}
+
+// ===== Cronômetro do Atendimento (Configurações → Geral) =====
+function renderTimerConfigToUI() {
+  const auto = document.getElementById('cfg-timer-auto');
+  const direcao = document.getElementById('cfg-timer-direcao');
+  const duracao = document.getElementById('cfg-timer-duracao');
+  const avisoMin = document.getElementById('cfg-timer-aviso-min');
+  const avisarCliente = document.getElementById('cfg-timer-avisar-cliente');
+  const som = document.getElementById('cfg-timer-som');
+  if (!auto || !direcao || !duracao || !avisoMin || !avisarCliente || !som) return;
+  auto.checked = timerConfig.autoIniciar !== false;
+  direcao.value = timerConfig.direcao === 'decrescente' ? 'decrescente' : 'crescente';
+  duracao.value = timerConfig.duracaoMinutos;
+  avisoMin.value = timerConfig.avisoMinutosAntes;
+  avisarCliente.checked = timerConfig.avisarCliente !== false;
+  som.checked = timerConfig.avisoSonoro !== false;
+}
+
+function setupTimerConfig() {
+  const btnSalvar = document.getElementById('btn-timer-salvar');
+  const statusMsg = document.getElementById('timer-cfg-status-msg');
+  if (!btnSalvar) return;
+
+  btnSalvar.addEventListener('click', async () => {
+    const duracao = Math.max(1, parseInt(document.getElementById('cfg-timer-duracao').value, 10) || 40);
+    const avisoMin = Math.max(1, parseInt(document.getElementById('cfg-timer-aviso-min').value, 10) || 5);
+    timerConfig = {
+      autoIniciar: document.getElementById('cfg-timer-auto').checked,
+      direcao: document.getElementById('cfg-timer-direcao').value === 'decrescente' ? 'decrescente' : 'crescente',
+      duracaoMinutos: duracao,
+      avisoMinutosAntes: avisoMin,
+      avisarCliente: document.getElementById('cfg-timer-avisar-cliente').checked,
+      avisoSonoro: document.getElementById('cfg-timer-som').checked
+    };
+    // Reflete o valor normalizado de volta nos campos (ex.: "0" virou "40").
+    renderTimerConfigToUI();
+    // Se o atendimento aberto agora já estiver contando, atualiza o mostrador
+    // na hora — sem isso o novo limite/sentido só apareceria na próxima conversa.
+    updateTimerUI();
+    if (statusMsg) { statusMsg.textContent = 'Salvando...'; statusMsg.style.color = 'var(--color-text-secondary)'; }
+    try {
+      const res = await fetch(API_BASE + '/api/config', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ timer_config: timerConfig })
+      });
+      if (!res.ok) throw new Error('falha ao salvar');
+      if (statusMsg) { statusMsg.textContent = 'Salvo.'; statusMsg.style.color = '#2ECC71'; }
+      showToast('Configuração do cronômetro salva.');
+    } catch (e) {
+      if (statusMsg) { statusMsg.textContent = 'Erro ao salvar.'; statusMsg.style.color = 'var(--color-erro)'; }
+      showToast('Não foi possível salvar a configuração do cronômetro.');
+    }
+  });
+}
+
 async function carregarWorkspacePersistente() {
   try {
     const res = await fetch(API_BASE + '/api/config');
@@ -4013,11 +5199,17 @@ async function carregarWorkspacePersistente() {
     kanbanEtapas = configObject(cfg.kanban_etapas, {});
     agendaDisponibilidade = configArray(cfg.agenda_disponibilidade);
     if (!agendaDisponibilidade.length) agendaDisponibilidade = [...DEFAULT_AGENDA_SLOTS];
+    agendaDiasBloqueados = configArray(cfg.agenda_dias_bloqueados).filter(Boolean).sort();
+    notaFiscalConfig = { ...notaFiscalConfig, ...configObject(cfg.nota_fiscal_config, {}) };
+    renderNotaFiscalConfigToUI();
+    timerConfig = { ...timerConfig, ...configObject(cfg.timer_config, {}) };
+    renderTimerConfigToUI();
     renderTarefas();
     renderProfileToUI(contadorProfile);
     renderSkillsTable();
     updateSkillSelector();
     renderDisponibilidadeAgenda();
+    renderDiasBloqueados();
     renderCRM();
     renderKanban();
     updateDashboardData();

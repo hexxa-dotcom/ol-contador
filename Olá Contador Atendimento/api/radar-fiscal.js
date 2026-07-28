@@ -10,12 +10,15 @@ module.exports = async (req, res) => {
   if (!auth) return;
 
   try {
-    // Pode vir via query param (?documento=123) ou body ({ documento: 123 })
-    let documento = req.query.documento || (req.body && req.body.documento);
-    
-    // Se não passou um documento explícito, pega do próprio usuário logado (se for cliente)
+    const { data: souStaff } = await admin.from('staff').select('id').eq('id', auth.user.id).maybeSingle();
+    // Pode vir via query param (?documento=123) ou body ({ documento: 123 }) —
+    // mas só a equipe pode consultar um documento arbitrário (ex. em nome de
+    // um cliente que atende). Um cliente logado só pode consultar o CPF/CNPJ
+    // dele mesmo, nunca de outra pessoa — mesmo que passe outro no pedido.
+    let documento = souStaff ? (req.query.documento || (req.body && req.body.documento)) : null;
+
     if (!documento) {
-      const { data: cli } = await admin.from('clientes').select('cpf').eq('id', auth.id).single();
+      const { data: cli } = await admin.from('clientes').select('cpf').eq('user_id', auth.user.id).maybeSingle();
       if (cli && cli.cpf) {
         documento = cli.cpf;
       } else {

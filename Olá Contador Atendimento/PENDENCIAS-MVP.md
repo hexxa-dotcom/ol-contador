@@ -10,6 +10,24 @@ Legenda: **[EU]** = Claude faz no código/deploy · **[VOCÊ]** = só você cons
 
 ## ✅ Pronto e funcionando (dá pra testar hoje)
 
+- **Contratação em 2 etapas (2026-07-25)** — a tela única e longa virou
+  `agendamento.html` (serviço + dia + horário + resumo do caso) e
+  `checkout.html` (dados + crédito + Pix), com trilha "1 → 2", resumo do pedido
+  sempre visível, botão "alterar" e as escolhas preservadas ao voltar. Estilo
+  compartilhado em `booking.css`. Corrigido junto:
+  - preço e nome do serviço agora vêm do banco (`/api/agendamento-opcoes`) —
+    antes estavam fixos no HTML e podiam divergir do que era cobrado de fato;
+  - a lista de serviços saiu da tela: o plano é escolhido em `precos.html` e
+    chega pelo link (`?plano=`), então o agendamento só confirma o que foi
+    contratado (card verde com "alterar") e cuida do horário. Sem plano no
+    link, a tela manda escolher em vez de repetir a lista;
+  - horários ocupados passam a sair de `agendamentos` — antes vinham do
+    localStorage, sempre vazio pra quem chega de fora, então **dois clientes
+    conseguiam marcar o mesmo horário**;
+  - CPF/CNPJ validado no navegador antes de chamar a API (`documento.js` agora
+    roda nos dois lados), com máscara de CPF/CNPJ e telefone;
+  - campo "sexo" removido do checkout; cidade/UF marcados como opcionais;
+  - `?plano=` desconhecido não escolhe mais um serviço qualquer em silêncio.
 - Chat em tempo real: envio otimista, confirmação de leitura (✓/✓✓), "digitando",
   separadores de data, âncora no rodapé.
 - Pré-atendimento / triagem: cliente descreve o problema guiado pelo assunto,
@@ -32,42 +50,42 @@ Legenda: **[EU]** = Claude faz no código/deploy · **[VOCÊ]** = só você cons
   marcado, cobrança registrada como paga via crédito), sem passar pelo
   checkout/Pix. Testado ponta a ponta: geração, validação, resgate, bloqueio de
   reuso, crédito insuficiente pro serviço escolhido, e cancelamento.
+- Login real — as duas opções (2026-07-25): assim que o pagamento (ou resgate de
+  crédito) confirma, o cliente já recebe automaticamente um e-mail com link de
+  acesso — um clique, sem senha. Quem preferir, cria uma senha depois (card
+  "Acesso à sua conta" no topo da área do cliente, usando a sessão já aberta pelo
+  link) e passa a poder entrar também por e-mail+senha. Testado ponta a ponta em
+  produção real (chave do Supabase corrigida — ver item 2 abaixo).
+- Bug crítico corrigido de quebra: `cliente.js` tinha `let ultimoDiaDesenhado`
+  declarado duas vezes no topo do arquivo — `SyntaxError` que impedia o arquivo
+  inteiro de carregar no navegador (login, chat, tudo). Corrigido e publicado.
+- E-mails de notificação do app (Resend) — chave `RESEND_API_KEY` configurada e
+  testada em produção (2026-07-25): e-mail de teste confirmado recebido. Ainda
+  no remetente de teste `onboarding@resend.dev` (só entrega pra caixa do dono da
+  conta Resend) — ver item no backlog sobre domínio próprio.
 
 ---
 
 ## 🔴 Bloqueadores do MVP de teste
 
-### 1. Pagamento — Asaas (✅ RESOLVIDO)
-As chaves `ASAAS_API_KEY` e `ASAAS_API_URL` já foram inseridas com sucesso na Vercel!
-O ambiente de produção agora está devidamente conectado ao Asaas.
+### 1. Pagamento — Asaas (✅ RESOLVIDO 2026-07-25)
+Chave de produção nova gerada e colada na Vercel (`ASAAS_API_KEY` +
+`ASAAS_BASE_URL=https://api.asaas.com/v3`), testada com um checkout real —
+cliente, cobrança Pix e QR code reais gerados com sucesso.
 
-### 2. Login normal (hoje só funciona pelo modo dev)
-Do `MODO-DEV.md`:
-- **[VOCÊ]** Supabase → Authentication → Emails → Magic Link precisa conter `{{ .Token }}`
-  (hoje manda botão de link; a tela de login espera o código de 6 dígitos).
-- **[VOCÊ]** Supabase → Authentication → URL Configuration → Site URL =
-  `https://ola-contador.vercel.app`.
+### 2. Login normal (✅ RESOLVIDO 2026-07-25)
+`SUPABASE_URL` e `SUPABASE_SERVICE_ROLE_KEY` na Vercel estavam com valor errado/
+inválido (causa real do "não encontro nada" em vários endpoints públicos, não
+só do login) — corrigidos (apagar + recriar as variáveis, coladas com cuidado).
+Site URL também ajustada no Supabase. Login por link mágico testado ponta a
+ponta em produção; e-mail+senha disponível como opção extra (ver acima).
 
-### 2b. Cadastro real do cliente — ✅ construído (2026-07-25), com 1 bloqueio novo
-`agendamento.html` (site público) agora cria cliente de verdade: `POST
-/api/signup-checkout` valida CPF/CNPJ (dígito verificador — vira o `id` do
-cliente), cria a linha em `clientes` com nome/e-mail/telefone/sexo/cidade/estado,
-gera a cobrança Pix real no Asaas e mostra o QR na hora. Testado ponta a ponta
-local: QR real gerado, dado salvo certinho no Supabase. `confirmCobranca` (que
-já cria o agendamento quando o Pix é pago) agora também tenta criar o acesso de
-login do cliente nesse momento — só depois de pago, de propósito, pra não sobrar
-conta órfã de quem preencheu e não pagou.
-
-**Bloqueio novo:** essa criação de acesso (`auth.admin.createUser`) falha com
-`invalid JWT: unrecognized JWT kid` — o `SUPABASE_SERVICE_ROLE_KEY` no `.env`
-está no formato novo (`sb_secret_...`), que funciona liso pra tabela/dados mas
-a API de Auth do Supabase ainda não aceita esse formato pra operações admin como
-criar usuário. Não derruba o pagamento/agendamento (isso já funciona), só a
-parte de criar o login automaticamente fica pendente até resolver a chave.
-**[VOCÊ]**: no Supabase → Settings → API, ver se ainda existe a opção de pegar
-a `service_role key` no formato antigo (JWT longo, 3 partes separadas por
-`.`) e trocar no `.env`; senão, é esperar o Supabase/supabase-js suportarem o
-formato novo nesse endpoint específico. Não mexi na chave — é conteúdo secreto.
+### 2b. Cadastro real do cliente — ✅ RESOLVIDO (bloqueio da chave sumiu em 2026-07-25)
+`agendamento.html` cria cliente de verdade (`POST /api/signup-checkout`),
+gera cobrança Pix real, e agora também cria o acesso de login automaticamente
+(`auth.admin.createUser`) — o erro antigo de JWT sumiu depois que a
+`SUPABASE_SERVICE_ROLE_KEY` foi corrigida na Vercel (item 2). Testado em
+produção: `user_id` criado e vinculado certinho.
 
 ### 3. IA em produção — ✅ RESOLVIDO (2026-07-17)
 `GROQ_API_KEY` na Vercel + redeploy → copilot respondendo 200. Nada pendente.
@@ -79,7 +97,26 @@ formato novo nesse endpoint específico. Não mexi na chave — é conteúdo sec
 - **[EU/VOCÊ]** Quando forem entrar clientes reais, desligar o acesso demonstrativo
   do portal (`TESTE_CLIENTE_SEM_LOGIN.enabled: false`) e validar o login por e-mail.
 - **[EU]** Fechar o bucket `documentos` (hoje público).
-- **[EU]** Corrigir title do `index.html` ("Bundled Page") e olhar o bundle de ~400KB.
+- **[RESOLVIDO]** Title do `index.html` e tamanho do bundle — já corrigidos desde
+  a reforma do site público (título certo, ~44KB, nada de "Bundled Page").
+
+---
+
+## 🟡 Segurança — configurar antes/durante o deploy (2026-07-27)
+
+- **[VOCÊ]** Vercel → Environment Variables: adicionar `CRON_SECRET` (string
+  aleatória forte). Sem isso o cron de lembretes fiscais (`/api/agenda-fiscal/
+  run-reminders`) para de rodar sozinho — o código não confia mais só no
+  header `x-vercel-cron` (forjável), só no `CRON_SECRET`.
+- **[VOCÊ]** Painel do Asaas → Integrações → Webhooks: colar no campo "Token de
+  autenticação" o mesmo valor de `ASAAS_WEBHOOK_SECRET` já configurado na
+  Vercel. Sem isso os webhooks reais do Asaas tomam 401 (o código passou a
+  conferir esse token).
+- **[VOCÊ]** Rodar `scripts/rate-limits.sql` no SQL Editor do Supabase — cria a
+  tabela que `/api/signup-checkout` e `/api/resgatar-credito` agora usam pra
+  bloquear tentativas em excesso (rate limiting). Sem essa tabela, esses dois
+  endpoints públicos voltam a aceitar chamadas sem limite (o código detecta a
+  falta dela e deixa passar, pra não derrubar o checkout por um erro de banco).
 
 ---
 
@@ -93,28 +130,112 @@ formato novo nesse endpoint específico. Não mexi na chave — é conteúdo sec
   Pix ou 3x no cartão, prazos 24h/48h, asterisco da recorrência.
 - Banco alinhado: avulsos PF = 19900, novo `pj-atendimento` = 39900.
   MEI mensal segue 9700 (recorrência, preço não publicado no site).
-- Fonte editável da home/preços: `docs/ola-contador-site-limpo.html` e
-  `docs/precos.html` — editar lá e copiar pra cá. Backup do bundle antigo
-  no scratchpad da sessão.
+- Fonte editável da home/preços: `index.html` e `precos.html` (raiz deste
+  projeto) — são os arquivos publicados de verdade. Os `docs/ola-contador-
+  site-limpo.html` e `docs/precos.html` ficaram para trás numa reforma
+  anterior e não refletem o site atual; não editar por lá.
 
 ## ⏭️ Deixado pro final
 
-- **[FINAL/VOCÊ]** Conectar domínio próprio (Registro.br, apex + www) ao projeto Vercel.
-- **[FINAL]** E-mail (Resend) e WhatsApp (Twilio) — chaves vazias, integrações "Em breve".
+- **[RESOLVIDO 2026-07-26]** `gcap` (Declaração de Ganho de Capital) não tinha
+  card em `precos.html`. Virou, junto com o resto da reforma de planos, um
+  ITEM dentro do plano Pessoa Física ("Vendi um imóvel, carro ou outro bem" na
+  lista suspensa do agendamento) em vez de plano à parte — não precisava de
+  card próprio, era duplicata de preço mesmo (R$ 199).
+- **[RESOLVIDO 2026-07-26]** Radar Fiscal — o botão "Assinar" tanto na home
+  quanto na área do cliente estava quebrado de verdade: `subscribeRadar()`
+  (em `cliente.js`) chamava `/api/subscribe-radar`, endpoint que só existia no
+  `server.js` local, nunca virou função serverless (404 em produção), e ainda
+  referenciava um `OC.auth.user` que não existe em nenhum lugar do código
+  (daria `ReferenceError` antes mesmo do fetch). Corrigido: `subscribeRadar()`
+  agora usa `clienteLogado` (dado real já carregado) e chama `/api/recorrencia`
+  — endpoint que já existe e já sabe criar assinatura no Asaas — em vez de
+  criar uma 13ª função serverless (o teto do Hobby já está em 12/12). Também
+  corrigido um efeito colateral: `carregarRadarFiscal()` só checava
+  `clienteLogado.recorrente` (um booleano só, compartilhado com qualquer outro
+  acompanhamento mensal do mesmo cliente, ex. Assessoria MEI); agora confere
+  `recorrenteTipo === 'Radar Fiscal'` também. Em `precos.html`, o card saiu da
+  grade dos 3 planos (virava um 4º card desbalanceado no desktop) e virou uma
+  faixa horizontal separada, com botão "Já sou cliente — Ativar" apontando pro
+  login — Radar Fiscal é assinatura da área do cliente, não um atendimento
+  avulso pra vender no fluxo público de agendamento/Pix.
+  **Limitação que ficou sem resolver:** um cliente só pode ter UM acompanhamento
+  mensal rastreado por vez (`clientes.recorrente_tipo`/`asaas_subscription_id`
+  é um campo só). Se alguém já tiver a Assessoria MEI Mensal ativa e assinar o
+  Radar Fiscal, a assinatura antiga continua cobrando no Asaas mas o sistema
+  perde o rastro dela. Resolver de verdade exige suportar múltiplas assinaturas
+  por cliente — mudança de banco maior (provavelmente uma tabela
+  `assinaturas` separada de `clientes`).
+- **[RESOLVIDO 2026-07-26]** Acesso ao chat após o caso encerrar — decisão
+  final: enquanto o caso está aberto (prazo combinado de 2 a 5 dias), o chat
+  fica liberado pra tirar dúvidas daquele mesmo serviço. Quando o contador
+  marca o caso como concluído (Kanban), o chat bloqueia automaticamente — **e
+  isso já era assim antes desta conversa**: `finishActiveChat()` /
+  `atualizarStatusCliente(id, 'done')` em `app.js` já marcam `clientes.status =
+  'done'`, e tanto `app.js` quanto `cliente.js` já tratam `status === 'done'`
+  como chat bloqueado. O contador já tinha (e continua tendo) o botão
+  "Bloquear/Liberar chat" pra reabrir manualmente quando precisar. A área do
+  cliente (documentos, relatório, nota) nunca foi bloqueada, só o chat — também
+  já era assim. Nada precisou ser construído nessa parte.
+  Se o cliente precisar de outro serviço depois do caso encerrado, ele já
+  consegue fazer um novo agendamento **de dentro da área do cliente** (aba
+  "Agendar Atendimento", que já existe e já usa `/api/checkout`) — não
+  precisava de nada novo aqui também.
+  A única peça que era de fato nova: **10% de desconto pra quem já é
+  cliente** ao agendar um novo serviço por essa aba. Implementado em
+  `api/checkout.js` e no espelho local `server.js` — antes de gerar o Pix,
+  confere se existe alguma `cobrancas.status = 'paid'` anterior daquele
+  `cliente_ref`; se sim, aplica 10% sobre `servico.price_cents` (arredondado)
+  e manda esse valor pro Asaas e pro registro da cobrança. `cliente.js` mostra
+  "(10% de desconto — de R$ X)" no resumo do Pix quando aplicado. Testado
+  isoladamente contra o banco (cliente + cobrança paga de teste, criados e
+  apagados na hora): R$ 399,00 → R$ 359,10 corretamente com o desconto: sem
+  histórico de pagamento, o valor cheio é mantido.
+  A ideia anterior de um serviço curto "atendimento de dúvida" (10-15min) foi
+  descartada — o modelo de reabrir o chat manualmente + cobrar por um novo
+  agendamento resolve o mesmo problema sem precisar de um serviço novo.
+- **[FINAL/VOCÊ]** Template do Magic Link no Supabase — o link de acesso por
+  e-mail está sendo consumido antes do clique real (provedor de e-mail/scanner
+  abre o link sozinho pra verificar segurança, gasta o token de uso único, e
+  quando a pessoa clica de verdade já expirou — sintoma: "loga e desloga, pede
+  senha"). O `login.html` já foi ajustado pra suportar o formato novo
+  (`?token_hash=...&type=...`, só consumido quando o JS da página roda de
+  verdade) e pra mostrar um aviso claro quando o formato antigo já vier
+  consumido. Falta só trocar o template no dashboard do Supabase:
+  Authentication → Email Templates → Magic Link → trocar
+  `href="{{ .ConfirmationURL }}"` por
+  `href="{{ .SiteURL }}/login.html?token_hash={{ .TokenHash }}&type=magiclink"`.
+  Enquanto isso não for feito, o link mágico continua vulnerável a esse
+  problema — funciona quando não é prefetchado, mas não é garantido.
+- **[FINAL/VOCÊ]** Domínio próprio — pacote único, fazer tudo junto quando decidir:
+  1. Conectar `olacontador.com.br` (Registro.br, apex + www) ao projeto Vercel.
+  2. Verificar esse mesmo domínio no Resend (registros DNS que o Resend gera ao
+     adicionar o domínio) — troca o remetente de `onboarding@resend.dev` pra um
+     e-mail da marca (ex.: `contato@olacontador.com.br`) e libera envio pra
+     qualquer cliente (hoje só entrega pro dono da conta Resend).
+  3. Configurar esse Resend como SMTP customizado no Supabase (Authentication →
+     Emails → SMTP Settings) — tira o link mágico do limite baixo de envios/hora
+     do plano gratuito do Supabase.
+  `RESEND_API_KEY` já está configurada e testada (ver acima) — só falta o domínio.
+- **[FINAL]** WhatsApp (Twilio) — chaves vazias, integração "Em breve".
 - **[FINAL]** Integração com a API oficial **Integra Contador** (Serpro) — **✅ UI e Backend Mock Construídos (2026-07-25)**.
   O sistema "Radar Fiscal" já está no código (tanto para o cliente quanto para o contador).
   Para finalizar de verdade: **[VOCÊ]** precisa fornecer o certificado `.pfx` e a chave de API do Integra Contador em uma etapa final de chaves. O arquivo `api/_lib/serpro.js` está preparado para receber a lógica de mTLS. Até lá, roda em Modo Simulação.
-- **[FINAL]** Múltiplos contadores atendendo (perfil de convidado com acesso limitado).
-  Objetivo: suprir a demanda da agenda trazendo outros contadores, cada um com uma
-  área própria e permissões reduzidas (não é o mesmo nível de acesso do admin).
-  Hoje o "Convidar" em Configurações → Equipe é só fachada (equipe.js insere um
-  card na tela, não persiste, não manda e-mail — ver conversa 2026-07-24). A base
-  de RLS já existe (tabela `staff` + função `is_staff()`), mas falta desenhar: convite
-  real com e-mail, granularidade de permissão (vê só a própria fila? financeiro?
-  catálogo?), e se a distribição de atendimentos é automática ou manual. Decisão:
-  só faz sentido resolver quando o volume de agenda já estiver justificando —
-  antes disso qualquer regra de permissão seria chute. Login real + Asaas testado
-  continuam sendo prioridade antes disso.
+- **✅ RESOLVIDO (2026-07-25)** Múltiplos contadores atendendo (perfil de convidado
+  com acesso limitado). O convite real (equipe.js + `api/copilot.js` modo `equipe`)
+  já estava implementado, mas a tabela `staff` no banco não tinha as colunas
+  `id`/`nome`/`role` que o código esperava (migração `scripts/setup-equipe.sql`
+  nunca tinha rodado) — toda ação dava erro de coluna inexistente. Rodei a
+  migração corrigida (`scripts/setup-equipe-v2.sql`), que também atualizou
+  `is_staff()`/`my_role()` pra checar por `id` em vez de e-mail. De quebra, achei
+  e corrigi um bug não relacionado que derrubava o `/api/copilot` inteiro (IA +
+  equipe) em produção: `api/_lib/ia.js` usava a API antiga do pacote `pdf-parse`
+  (v1), que quebrou depois que o pacote foi pra v2. Testado de ponta a ponta em
+  produção (listar/convidar/remover) e funcionando.
+  Ainda em aberto, só quando o volume de agenda justificar: granularidade fina de
+  permissão por seção (hoje "parceiro" só esconde financeiro/config/dossiê/
+  recorrentes) e se a distribuição de atendimentos entre contadores é automática
+  ou manual.
 
 ---
 

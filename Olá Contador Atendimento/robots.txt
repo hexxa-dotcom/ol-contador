@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+Disallow: /agendamento
+Disallow: /checkout
+Disallow: /login
+Disallow: /contador
+Disallow: /cliente
+
+Sitemap: https://ola-contador.vercel.app/sitemap.xml

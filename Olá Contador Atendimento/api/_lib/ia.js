@@ -259,6 +259,15 @@ const PROMPT_DOC = `Analise este documento fiscal brasileiro (ex.: intimação d
 Responda APENAS um JSON válido, sem markdown, no formato:
 {"tipo":"tipo do documento","resumo":"o que é e o que exige, em 1-2 linhas","diagnostico":"problema fiscal identificado","dados":"campos-chave extraídos (valores, datas, códigos, competência)"}`;
 
+// pdf-parse v2 usa a classe PDFParse (a API antiga `require('pdf-parse/lib/pdf-parse.js')`
+// não existe mais e quebra o require no Node do Vercel).
+async function extrairTextoPDF(buffer) {
+  const { PDFParse } = require('pdf-parse');
+  const parser = new PDFParse({ data: buffer });
+  const result = await parser.getText();
+  return result.text || '';
+}
+
 // Analisa um documento. Imagem -> visão; PDF -> extrai texto e analisa.
 async function analisarDocumento(buffer, mime) {
   let raw;
@@ -268,9 +277,7 @@ async function analisarDocumento(buffer, mime) {
   } else if (mime === 'application/pdf') {
     let texto = '';
     try {
-      const pdfParse = require('pdf-parse/lib/pdf-parse.js');
-      const parsed = await pdfParse(buffer);
-      texto = (parsed.text || '').slice(0, 8000);
+      texto = (await extrairTextoPDF(buffer)).slice(0, 8000);
     } catch (e) {
       return { tipo: 'PDF', resumo: 'Não consegui extrair o texto deste PDF automaticamente.', diagnostico: '', dados: '' };
     }
@@ -293,8 +300,6 @@ async function analisarDocumento(buffer, mime) {
 // ============================================================================
 // UPLOAD DE SKILLS PDF
 // ============================================================================
-const pdfParse = require('pdf-parse/lib/pdf-parse.js');
-
 async function uploadSkillPDF(skillName, base64) {
   if (!skillName || !base64) throw new Error('Faltam parâmetros.');
   const supabaseAdmin = require('@supabase/supabase-js').createClient(
@@ -310,8 +315,7 @@ async function uploadSkillPDF(skillName, base64) {
   }
 
   const buffer = Buffer.from(base64.split(',')[1] || base64, 'base64');
-  const parsed = await pdfParse(buffer);
-  const text = parsed.text || '';
+  const text = await extrairTextoPDF(buffer);
   if (text.length < 50) throw new Error('PDF sem texto legível.');
 
   const paragraphs = text.split(/\n\s*\n/);

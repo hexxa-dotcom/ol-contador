@@ -8,7 +8,7 @@ window.OC_CONFIG = {
   // credenciais e usa apenas dados demonstrativos guardados no próprio projeto.
   // Antes de abrir para clientes reais, defina enabled como false.
   TESTE_CLIENTE_SEM_LOGIN: {
-    enabled: true,
+    enabled: false,
     clientId: 'ana-silva'
   },
 
@@ -16,7 +16,7 @@ window.OC_CONFIG = {
   // locais/em memória para validar interface e fluxo enquanto a autenticação
   // real fica para a etapa final.
   TESTE_CONTADOR_SEM_LOGIN: {
-    enabled: true
+    enabled: false
   }
 };
 

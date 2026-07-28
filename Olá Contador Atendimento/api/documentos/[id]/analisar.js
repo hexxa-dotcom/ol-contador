@@ -1,5 +1,7 @@
 // POST /api/documentos/:id/analisar — lê o documento com IA e salva a extração.
-// Roda como o usuário (RLS). Bucket é público, então o download usa a URL pública.
+// Roda como o usuário (RLS). Bucket "documentos" é privado: download via
+// storage.download() (autenticado) e a URL devolvida na resposta é assinada
+// (createSignedUrl), não a public_url antiga salva no upload.
 const ia = require('../../_lib/ia');
 const { requireUser } = require('../../_lib/auth');
 
@@ -21,7 +23,8 @@ module.exports = async (req, res) => {
     const extracted = await ia.analisarDocumento(buffer, doc.mime);
     await auth.sb.from('documentos').update({ ai_extracted: extracted }).eq('id', id);
 
-    return res.json({ id: doc.id, fileName: doc.file_name, mime: doc.mime, url: doc.public_url, ai: extracted });
+    const { data: signed } = await auth.sb.storage.from('documentos').createSignedUrl(doc.storage_path, 3600);
+    return res.json({ id: doc.id, fileName: doc.file_name, mime: doc.mime, url: signed?.signedUrl || null, ai: extracted });
   } catch (e) {
     if (e.code === 'ia_not_configured') return res.status(503).json({ error: 'ia_not_configured' });
     console.error('analisar error:', e.message);

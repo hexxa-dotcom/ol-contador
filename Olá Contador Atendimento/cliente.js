@@ -3,6 +3,7 @@ let CLIENT_ID = null;
 // Ids já renderizados, para não duplicar mensagens ecoadas pelo Realtime.
 const renderedMessageIds = new Set();
 let currentChatStatus = 'active';
+// Dia do último separador desenhado, para não repetir "Hoje" a cada mensagem.
 let ultimoDiaDesenhado = null;
 let clienteLogado = null; // Guardará as configs e dados do cliente
 
@@ -18,6 +19,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   setupLogout();
   setupRecolherMenu();
   setupRecolherCentralAtendimento();
+  setupCriarSenha();
 
   // Chat em tempo real via Supabase Realtime (o RLS só entrega as mensagens deste cliente).
   OCRealtime.subscribe({
@@ -49,7 +51,90 @@ document.addEventListener('DOMContentLoaded', async () => {
   montarLinhaDoTempo();
   carregarHistoricoAtendimentos();
   carregarRadarFiscal();
+
+  carregarBadgeCaixaPostalCliente();
+  const formCaixaPostal = document.getElementById('form-caixa-postal-cliente');
+  if (formCaixaPostal) formCaixaPostal.addEventListener('submit', enviarMensagemCaixaPostalCliente);
 });
+
+// ------------------------------------------------------------ caixa postal
+// Avisos/mensagens com o contador fora do chat ao vivo (que só abre no
+// horário agendado) — fica sempre disponível, independente de ter sessão marcada.
+let caixaPostalClienteMensagens = [];
+
+async function carregarBadgeCaixaPostalCliente() {
+  try {
+    const res = await fetch('/api/caixa-postal?clientId=' + encodeURIComponent(CLIENT_ID));
+    caixaPostalClienteMensagens = await res.json();
+  } catch (e) { caixaPostalClienteMensagens = []; }
+  const naoLidas = caixaPostalClienteMensagens.filter(m => m.remetente === 'contador' && !m.lida).length;
+  const badge = document.getElementById('badge-caixa-postal-cliente');
+  if (badge) { badge.textContent = naoLidas; badge.style.display = naoLidas ? 'flex' : 'none'; }
+}
+
+function renderCaixaPostalCliente() {
+  const container = document.getElementById('caixa-postal-cliente-historico');
+  if (!container) return;
+  if (!caixaPostalClienteMensagens.length) {
+    container.innerHTML = `<p style="font-size:13px;color:var(--color-text-secondary);text-align:center;padding:40px 0;">Nenhuma mensagem ainda. Escreva abaixo se precisar falar com o contador fora do horário do chat.</p>`;
+    return;
+  }
+  // Não usa a classe .bolha-texto do chat ao vivo: o espaçador dela reserva só
+  // ~54px pro horário curto ("14:32"), e aqui o carimbo é "dd/mm, HH:MM" — mais
+  // comprido, sobrepunha o fim da mensagem. Sem .bolha-texto, a regra
+  // ".chat-bubble:not(:has(.bolha-texto))" já existente reserva 22px embaixo
+  // (mesmo mecanismo usado pelo card de relatório), o suficiente pro carimbo
+  // maior caber numa linha própria.
+  container.innerHTML = caixaPostalClienteMensagens.map(m => {
+    const meu = m.remetente === 'cliente';
+    const hora = new Date(m.createdAt).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+    return `<div class="chat-bubble ${meu ? 'cliente' : 'contador'}">
+      ${m.assunto ? `<strong style="display:block;font-size:12.5px;margin-bottom:2px;">${escapeHtml(m.assunto)}</strong>` : ''}
+      <span style="display:block;">${escapeHtml(m.mensagem)}</span>
+      <span class="chat-time">${hora}</span>
+    </div>`;
+  }).join('');
+  container.scrollTop = container.scrollHeight;
+}
+
+async function abrirCaixaPostalCliente() {
+  const container = document.getElementById('caixa-postal-cliente-historico');
+  if (container) container.innerHTML = `<p style="font-size:13px;color:var(--color-text-secondary);text-align:center;padding:40px 0;">Carregando...</p>`;
+  try {
+    const res = await fetch('/api/caixa-postal?clientId=' + encodeURIComponent(CLIENT_ID));
+    caixaPostalClienteMensagens = await res.json();
+  } catch (e) { caixaPostalClienteMensagens = []; }
+  renderCaixaPostalCliente();
+  try {
+    await fetch('/api/caixa-postal/marcar-lida', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ clienteId: CLIENT_ID, remetente: 'cliente' })
+    });
+  } catch (e) { /* silencioso */ }
+  await carregarBadgeCaixaPostalCliente();
+}
+
+async function enviarMensagemCaixaPostalCliente(e) {
+  e.preventDefault();
+  const input = document.getElementById('caixa-postal-cliente-mensagem');
+  const texto = input.value.trim();
+  if (!texto) return;
+  input.disabled = true;
+  try {
+    const res = await fetch('/api/caixa-postal', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ clienteId: CLIENT_ID, remetente: 'cliente', mensagem: texto })
+    });
+    if (!res.ok) throw new Error('falha_ao_enviar');
+    input.value = '';
+    await abrirCaixaPostalCliente();
+  } catch (err) {
+    alert('Não consegui enviar sua mensagem agora. Tente de novo em instantes.');
+  } finally {
+    input.disabled = false;
+    input.focus();
+  }
+}
 
 // ------------------------------------------------------------------ relatórios
 // Os relatórios de atendimento entregues pelo contador. O cliente baixa o PDF
@@ -305,6 +390,16 @@ async function montarLinhaDoTempo() {
 
 // ----------------------------------------------------------------- avaliação
 let notaEscolhida = 0;
+// Cache da avaliação já enviada (ou null) — usado tanto pelo card da Home
+// quanto pelo card nativo dentro do chat, pra não deixar avaliar 2x.
+let minhaAvaliacaoAtual = null;
+async function buscarMinhaAvaliacao() {
+  try {
+    const lista = await (await fetch('/api/avaliacoes?clientId=' + encodeURIComponent(CLIENT_ID))).json();
+    minhaAvaliacaoAtual = (lista || [])[0] || null;
+  } catch (e) { minhaAvaliacaoAtual = null; }
+  return minhaAvaliacaoAtual;
+}
 
 async function configurarAvaliacao(temRelatorio, relatorioId) {
   const card = document.getElementById('card-avaliacao');
@@ -313,11 +408,7 @@ async function configurarAvaliacao(temRelatorio, relatorioId) {
   if (!temRelatorio) { card.hidden = true; feito.hidden = true; return; }
 
   // Já avaliou? Então agradece em vez de pedir de novo.
-  let jaAvaliou = null;
-  try {
-    const lista = await (await fetch('/api/avaliacoes?clientId=' + encodeURIComponent(CLIENT_ID))).json();
-    jaAvaliou = (lista || [])[0] || null;
-  } catch (e) { /* segue pedindo a nota */ }
+  const jaAvaliou = await buscarMinhaAvaliacao();
 
   if (jaAvaliou) {
     card.hidden = true;
@@ -561,6 +652,32 @@ function setupLogout() {
   document.querySelectorAll('[data-logout]').forEach(el => {
     el.addEventListener('click', (e) => { e.preventDefault(); OCAuth.signOut(); });
   });
+}
+
+// Senha é opcional — o acesso padrão continua sendo o link por e-mail.
+// Quem já está logado (via link) pode definir uma senha aqui sem precisar
+// da antiga, porque a sessão atual já prova quem ele é.
+function setupCriarSenha() {
+  const input = document.getElementById('nova-senha');
+  const btn = document.getElementById('btn-criar-senha');
+  const msg = document.getElementById('msg-criar-senha');
+  if (!btn || !input) return;
+  function aviso(texto, cor) {
+    msg.style.display = 'block';
+    msg.style.color = cor;
+    msg.textContent = texto;
+  }
+  btn.addEventListener('click', async () => {
+    const senha = input.value;
+    if (senha.length < 6) { aviso('A senha precisa ter pelo menos 6 caracteres.', '#B32620'); return; }
+    btn.disabled = true; btn.textContent = 'Salvando...';
+    const { error } = await sb.auth.updateUser({ password: senha });
+    btn.disabled = false; btn.textContent = 'Criar senha';
+    if (error) { aviso('Não foi possível salvar a senha. Tente novamente.', '#B32620'); return; }
+    input.value = '';
+    aviso('Senha criada! Da próxima vez você pode entrar com e-mail e senha, ou continuar usando o link do e-mail.', '#1F8A5F');
+  });
+  input.addEventListener('keydown', e => { if (e.key === 'Enter') btn.click(); });
 }
 
 // Carrega os próximos vencimentos fiscais do cliente.
@@ -941,8 +1058,12 @@ async function gerarPagamentoPix() {
     document.getElementById('checkout-form').style.display = 'none';
     const pay = document.getElementById('checkout-payment');
     pay.style.display = 'block';
+    const precoFmt = 'R$ ' + data.valor.toFixed(2).replace('.', ',');
+    const descontoFmt = data.desconto && data.valorOriginal
+      ? ` (10% de desconto — de R$ ${data.valorOriginal.toFixed(2).replace('.', ',')})`
+      : '';
     document.getElementById('pix-resumo').textContent =
-      `${data.servico.name} — R$ ${data.valor.toFixed(2).replace('.', ',')} · ${date} às ${time}`;
+      `${data.servico.name} — ${precoFmt}${descontoFmt} · ${date} às ${time}`;
     document.getElementById('pix-qr').src = 'data:image/png;base64,' + data.pixImage;
     document.getElementById('pix-copia-cola').value = data.pixPayload;
     document.getElementById('pix-invoice').href = data.invoiceUrl || '#';
@@ -963,8 +1084,10 @@ async function carregarRadarFiscal() {
   const section = document.getElementById('section-radar');
   if (!section) return;
 
-  // Se o cliente não tem a assinatura, mostra a tela estática/demo (vender assinatura)
-  if (!clienteLogado.recorrente) {
+  // Se o cliente não tem A ASSINATURA DO RADAR (especificamente — `recorrente`
+  // é um único booleano por cliente, compartilhado com qualquer outro
+  // acompanhamento mensal, como a Assessoria MEI), mostra a tela de venda.
+  if (!clienteLogado.recorrente || clienteLogado.recorrenteTipo !== 'Radar Fiscal') {
     // A tela original já é a de venda, não precisamos mexer no HTML base.
     return;
   }
@@ -1113,6 +1236,11 @@ async function loadClientHistory() {
     if (docEl) docEl.textContent = client.cpf || '';
     if (avatarEl) avatarEl.textContent = client.avatar || '';
 
+    // Precisa saber ANTES de desenhar as bolhas se já existe avaliação — senão
+    // o card de NPS no histórico renderizaria as estrelas de novo mesmo depois
+    // do cliente já ter avaliado (configurarAvaliacao só roda depois daqui).
+    await buscarMinhaAvaliacao();
+
     // Limpa o seed estático do HTML antes de renderizar o histórico real.
     if (history) history.innerHTML = '';
     ultimoDiaDesenhado = null;
@@ -1146,13 +1274,13 @@ function setupNavigation() {
           const h = document.getElementById('client-chat-history');
           if (h) rolarParaOFim(h);
         }
+        if (targetSectionId === 'section-caixa-postal') {
+          abrirCaixaPostalCliente();
+        }
       }
     });
   });
 }
-
-// Dia do último separador desenhado, para não repetir "Hoje" a cada mensagem.
-let ultimoDiaDesenhado = null;
 
 // Rolar sozinho só faz sentido se a pessoa já está no fim. Se ela subiu para
 // reler algo, puxar a tela de volta seria arrancar a leitura dela.
@@ -1206,7 +1334,74 @@ function conteudoDaBolha(msgObj) {
         `<i class="fa-solid fa-download"></i> Baixar PDF</button>` +
       `</div>`;
   }
-  return `<span class="bolha-texto">${msgObj.text}</span>`;
+  if (msgObj.type === 'avaliacao-card') {
+    // Já avaliou (em qualquer lugar — Home ou aqui mesmo)? Mostra o
+    // agradecimento direto, sem reabrir as estrelas pra avaliar de novo.
+    if (minhaAvaliacaoAtual) {
+      return `<div class="avaliacao-card-chat feita">` +
+        `<i class="fa-solid fa-circle-check"></i>` +
+        `<span>Você deu nota ${minhaAvaliacaoAtual.nota} de 5. Obrigado por avaliar!</span>` +
+        `</div>`;
+    }
+    return `<div class="avaliacao-card-chat" data-msg-id="${escapeHtml(msgObj.id || '')}">` +
+      `<p>${escapeHtml(msgObj.text)}</p>` +
+      `<div class="aval-estrelas">` +
+      [1, 2, 3, 4, 5].map(n => `<button type="button" data-nota="${n}" aria-label="${n} estrela${n > 1 ? 's' : ''}" onclick="selecionarEstrelaChat(this)"><i class="fa-regular fa-star"></i></button>`).join('') +
+      `</div>` +
+      `<textarea class="triagem-textarea avaliacao-card-comentario" rows="2" placeholder="Quer comentar alguma coisa? (opcional)"></textarea>` +
+      `<button type="button" class="btn-primary btn-enviar-avaliacao-chat" disabled onclick="enviarAvaliacaoChat(this)">Enviar avaliação</button>` +
+      `</div>`;
+  }
+  return `<span class="bolha-texto">${escapeHtml(msgObj.text)}</span>`;
+}
+
+// Estrelas do card de NPS nativo no chat (ver conteudoDaBolha, tipo
+// 'avaliacao-card') — mesma lógica de configurarAvaliacao, só que operando no
+// card específico clicado em vez de ids fixos, porque este card vive dentro
+// do histórico de mensagens.
+function selecionarEstrelaChat(btn) {
+  const card = btn.closest('.avaliacao-card-chat');
+  if (!card) return;
+  const nota = parseInt(btn.dataset.nota, 10);
+  card.dataset.notaEscolhida = nota;
+  card.querySelectorAll('.aval-estrelas button').forEach(b => {
+    const cheia = parseInt(b.dataset.nota, 10) <= nota;
+    b.querySelector('i').className = cheia ? 'fa-solid fa-star' : 'fa-regular fa-star';
+  });
+  const enviar = card.querySelector('.btn-enviar-avaliacao-chat');
+  if (enviar) enviar.disabled = false;
+}
+
+async function enviarAvaliacaoChat(btn) {
+  const card = btn.closest('.avaliacao-card-chat');
+  const nota = parseInt(card?.dataset.notaEscolhida || '0', 10);
+  if (!card || !nota) return;
+  btn.disabled = true;
+  btn.textContent = 'Enviando...';
+  const comentario = card.querySelector('.avaliacao-card-comentario')?.value.trim() || null;
+  try {
+    const res = await fetch('/api/avaliacoes', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ clientId: CLIENT_ID, relatorioId: null, nota, comentario })
+    });
+    if (!res.ok) throw new Error('resposta ' + res.status);
+    minhaAvaliacaoAtual = { nota, comentario };
+    card.classList.add('feita');
+    card.innerHTML = `<i class="fa-solid fa-circle-check"></i><span>Você deu nota ${nota} de 5. Obrigado por avaliar!</span>`;
+    // O card da Home (se estiver visível) também some, pra não pedir de novo lá.
+    const cardHome = document.getElementById('card-avaliacao');
+    const feitoHome = document.getElementById('card-avaliacao-feita');
+    if (cardHome && feitoHome) {
+      cardHome.hidden = true;
+      feitoHome.hidden = false;
+      const texto = document.getElementById('aval-feita-texto');
+      if (texto) texto.textContent = `Você deu nota ${nota} de 5. Obrigado por ajudar a melhorar o atendimento.`;
+    }
+  } catch (e) {
+    btn.disabled = false;
+    btn.textContent = 'Enviar avaliação';
+    alert('Não consegui enviar sua avaliação agora. Tente de novo em instantes.');
+  }
 }
 
 function pintarBolha(bubble, msgObj) {
@@ -1380,35 +1575,51 @@ window.uploadChatAttachment = function() {
   document.getElementById('chat-file-upload').click();
 };
 
+// Reaproveita /api/recorrencia (o mesmo endpoint que já liga assinaturas
+// mensais no painel do contador) em vez de um endpoint próprio — o plano
+// Hobby da Vercel tem teto de 12 funções serverless por deploy, já no limite.
+// ATENÇÃO: `clientes.recorrente_tipo`/`asaas_subscription_id` guardam só UMA
+// assinatura por cliente. Um cliente que já tenha outro acompanhamento mensal
+// ativo (ex.: Assessoria MEI) e assinar o Radar Fiscal aqui SUBSTITUI aquele
+// registro — a assinatura anterior continua cobrando no Asaas, só que o
+// sistema para de rastreá-la. Não afeta quem só tem atendimentos avulsos.
 window.subscribeRadar = async function() {
   const btn = document.getElementById('btn-subscribe-radar');
+  if (!clienteLogado || !clienteLogado.id) {
+    alert('Não consegui identificar seus dados. Recarregue a página e tente de novo.');
+    return;
+  }
   if (btn) {
     btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Processando...';
     btn.disabled = true;
   }
-  
+
   try {
-    const res = await fetch('/api/subscribe-radar', {
+    const res = await fetch('/api/recorrencia', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        cliente_ref: OC.auth.user.id,
-        name: OC.auth.user.name,
-        cpfCnpj: OC.auth.user.cpf,
-        email: OC.auth.user.email
+        clientId: clienteLogado.id, ativar: true, tipo: 'Radar Fiscal',
+        diaVenc: new Date().getDate(), valor: 29.90
       })
     });
-    
+
     if (res.ok) {
-      alert('Inscrição no Radar Fiscal realizada com sucesso! Você receberá os detalhes de pagamento por e-mail.');
+      clienteLogado.recorrente = true;
+      clienteLogado.recorrenteTipo = 'Radar Fiscal';
+      alert('Radar Fiscal ativado! A cobrança mensal de R$ 29,90 já começou no Asaas.');
       if (btn) {
         btn.innerHTML = '<i class="fa-solid fa-check"></i> Radar Ativado';
         btn.style.background = '#2ECC71';
       }
+      carregarRadarFiscal();
     } else {
-      alert('Erro ao processar assinatura. Tente novamente mais tarde.');
+      const erro = await res.json().catch(() => ({}));
+      alert(erro.error === 'asaas_not_configured'
+        ? 'Pagamentos ainda não estão configurados. Fale com o contador.'
+        : 'Erro ao processar assinatura. Tente novamente mais tarde.');
       if (btn) {
-        btn.innerHTML = '<i class="fa-solid fa-headset"></i> Assinar Radar Fiscal';
+        btn.innerHTML = '<i class="fa-solid fa-headset"></i> Assinar Radar Fiscal (R$ 29,90/mês)';
         btn.disabled = false;
       }
     }
@@ -1416,7 +1627,7 @@ window.subscribeRadar = async function() {
     console.error(e);
     alert('Erro de conexão.');
     if (btn) {
-      btn.innerHTML = '<i class="fa-solid fa-headset"></i> Assinar Radar Fiscal';
+      btn.innerHTML = '<i class="fa-solid fa-headset"></i> Assinar Radar Fiscal (R$ 29,90/mês)';
       btn.disabled = false;
     }
   }

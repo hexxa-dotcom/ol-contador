@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Olá, Contador - Painel Administrativo</title>
+  <meta name="robots" content="noindex" />
   <!-- CSS Stylesheet -->
   <link rel="stylesheet" href="styles.css">
   <!-- FontAwesome for icons -->
@@ -74,9 +75,6 @@
       <button class="nav-item" data-target="section-acompanhamento" title="Acompanhamento">
         <i class="fa-solid fa-list-check"></i> <span class="nav-label">Acompanhamento</span>
       </button>
-      <button class="nav-item" data-target="section-recorrentes" title="Clientes Recorrentes">
-        <i class="fa-solid fa-arrows-rotate"></i> <span class="nav-label">Recorrentes</span>
-      </button>
       <button class="nav-item" data-target="section-dossie" title="Relatório de Atendimento">
         <i class="fa-solid fa-clipboard-list"></i> <span class="nav-label">Relatório</span>
       </button>
@@ -110,76 +108,67 @@
       <section class="content-panel active" id="section-dashboard">
         <div class="panel-header-desc">
           <h2>Meu Dashboard</h2>
-          <p>Visão geral do faturamento, produtividade semanal e atividades agendadas.</p>
+          <p>Faturamento, operação do dia e pendências externas — nesta ordem.</p>
         </div>
 
-        <!-- Metric KPI Cards row -->
+        <!-- A. Faturamento -->
+        <div class="dashboard-group-title">Faturamento</div>
         <div class="kpi-cards-grid">
+          <div class="kpi-card">
+            <div class="kpi-card-header">
+              <span>Faturamento do Dia</span>
+              <i class="fa-solid fa-sun" style="color: #2ECC71"></i>
+            </div>
+            <h3 id="kpi-faturamento-dia">R$ 0,00</h3>
+            <p class="kpi-trend warning"><i class="fa-solid fa-triangle-exclamation"></i> Nenhuma cobrança paga ainda</p>
+          </div>
           <div class="kpi-card">
             <div class="kpi-card-header">
               <span>Faturamento da Semana</span>
               <i class="fa-solid fa-hand-holding-dollar" style="color: #2ECC71"></i>
             </div>
-            <h3 id="kpi-faturamento">R$ 4.850,00</h3>
-            <p class="kpi-trend positive"><i class="fa-solid fa-arrow-trend-up"></i> +12% em relação a semana anterior</p>
+            <h3 id="kpi-faturamento">R$ 0,00</h3>
+            <p class="kpi-trend warning"><i class="fa-solid fa-triangle-exclamation"></i> Nenhuma cobrança paga ainda</p>
           </div>
           <div class="kpi-card">
             <div class="kpi-card-header">
-              <span>Atendimentos Concluídos</span>
-              <i class="fa-solid fa-circle-check" style="color: var(--color-coral)"></i>
+              <span>Faturamento do Mês</span>
+              <i class="fa-solid fa-calendar-days" style="color: #2ECC71"></i>
             </div>
-            <h3 id="kpi-concluidos">8 / 12</h3>
-            <p class="kpi-trend positive"><i class="fa-solid fa-circle-play"></i> 4 atendimentos ativos no momento</p>
+            <h3 id="kpi-faturamento-mes">R$ 0,00</h3>
+            <p class="kpi-trend warning"><i class="fa-solid fa-triangle-exclamation"></i> Nenhuma cobrança paga ainda</p>
           </div>
           <div class="kpi-card">
             <div class="kpi-card-header">
-              <span>Aguardando Documentos</span>
-              <i class="fa-solid fa-file-invoice" style="color: #3498DB"></i>
+              <span>Total de Atendimentos do Mês</span>
+              <i class="fa-solid fa-calendar-check" style="color: var(--color-coral)"></i>
             </div>
-            <h3 id="kpi-pendentes">3 clientes</h3>
-            <p class="kpi-trend warning"><i class="fa-solid fa-clock"></i> Média de 4h para envio do cliente</p>
-          </div>
-          <div class="kpi-card">
-            <div class="kpi-card-header">
-              <span>NPS / Satisfação</span>
-              <i class="fa-solid fa-star" style="color: #F1C40F"></i>
-            </div>
-            <h3 id="kpi-nps">—</h3>
-            <p class="kpi-trend positive" id="kpi-nps-detalhe"><i class="fa-solid fa-heart"></i> Sem avaliações ainda</p>
+            <h3 id="kpi-atendimentos-mes">0</h3>
+            <p class="kpi-trend warning"><i class="fa-solid fa-circle-check"></i> 0 concluído até agora</p>
           </div>
         </div>
 
-        <!-- SLA Alerts Row -->
-        <div class="dash-card dashboard-sla-card" id="sla-alerts-card" style="margin-bottom: 24px; border-left: 4px solid var(--color-coral);">
-          <div class="dash-card-header">
-            <h3><i class="fa-solid fa-stopwatch" style="color: var(--color-coral)"></i> Alertas de Prazos (SLA)</h3>
-            <span class="chat-count-badge" id="sla-alerts-badge" style="background: var(--color-coral);">0 alertas</span>
-          </div>
-          <div class="dashboard-alerts-strip" id="sla-alerts-list">
-            <!-- Alertas renderizados pelo app.js com dados reais/demo -->
-          </div>
-        </div>
-
-        <!-- Split Grid: Timeline agenda vs Charts -->
+        <!-- B. Operação do dia -->
+        <div class="dashboard-group-title">Operação do dia</div>
         <div class="dashboard-split-grid">
-          
-          <!-- Left: Dashboard Atendimento do Dia (Timeline) -->
+
+          <!-- Agenda do Dia -->
           <div class="dash-card">
             <div class="dash-card-header">
-              <h3><i class="fa-solid fa-calendar-check" style="color: var(--color-coral)"></i> Dashboard Atendimento do Dia</h3>
-              <span class="chat-count-badge" id="agenda-count-badge">3 pendentes</span>
+              <h3><i class="fa-solid fa-calendar-check" style="color: var(--color-coral)"></i> Agenda do Dia</h3>
+              <span class="chat-count-badge" id="agenda-count-badge">0 pendentes</span>
             </div>
             <div class="timeline-container" id="dashboard-timeline" style="max-height: 300px; overflow-y: auto;">
               <!-- Timeline items populated by JS -->
             </div>
           </div>
 
-          <!-- Center: Tarefas Pendentes -->
+          <!-- Tarefas de atendimentos em andamento -->
           <div class="dash-card">
             <div class="dash-card-header" style="justify-content: space-between; align-items: flex-start;">
               <div>
                 <h3><i class="fa-solid fa-list-check" style="color: var(--color-pine)"></i> Tarefas Pendentes</h3>
-                <p style="font-size: 11px; color: var(--color-text-secondary); margin-top: 4px;">Ações pós-atendimento e compromissos internos</p>
+                <p style="font-size: 11px; color: var(--color-text-secondary); margin-top: 4px;">Ações de atendimentos em andamento e compromissos internos</p>
               </div>
               <button class="btn-utility" id="btn-nova-tarefa" style="font-size: 11px; padding: 4px 8px;"><i class="fa-solid fa-plus"></i> Nova</button>
             </div>
@@ -188,38 +177,43 @@
             <div id="tarefas-lista" style="padding: 16px; display: flex; flex-direction: column; gap: 12px; max-height: 300px; overflow-y: auto;"></div>
           </div>
 
-          <!-- Right: Remarketing (Abandonos de Carrinho) -->
+          <!-- Tarefas de clientes recorrentes -->
           <div class="dash-card">
-            <div class="dash-card-header">
+            <div class="dash-card-header" style="justify-content: space-between; align-items: flex-start;">
               <div>
-                <h3><i class="fa-solid fa-cart-arrow-down" style="color: var(--color-coral)"></i> Remarketing: Carrinhos Abandonados</h3>
-                <p style="font-size: 11px; color: var(--color-text-secondary); margin-top: 4px;">Leads quentes que iniciaram o checkout mas não pagaram</p>
+                <h3><i class="fa-solid fa-file-invoice" style="color: var(--color-pine)"></i> Clientes Recorrentes</h3>
+                <p style="font-size: 11px; color: var(--color-text-secondary); margin-top: 4px;">Guia/parcelamento a gerar este mês</p>
               </div>
             </div>
-            
-            <!-- Sem rastreio de checkout abandonado ainda (Asaas pendente) — lista vazia honesta, sem leads fictícios -->
-            <div id="remarketing-lista" style="padding: 16px; display: flex; flex-direction: column; gap: 12px; max-height: 300px; overflow-y: auto;">
-              <div style="text-align: center; padding: 24px 12px; color: var(--color-text-secondary);">
-                <i class="fa-solid fa-cart-shopping" style="font-size: 24px; opacity: .35; margin-bottom: 8px; display: block;"></i>
-                <p style="font-size: 13px; margin: 0;">Nenhum carrinho abandonado no momento.</p>
-                <p style="font-size: 11px; margin: 4px 0 0;">Quando alguém iniciar o checkout e não concluir o pagamento, o lead aparece aqui.</p>
-              </div>
-            </div>
+            <div id="guias-mensais-lista" style="padding: 16px; display: flex; flex-direction: column; gap: 12px; max-height: 300px; overflow-y: auto;"></div>
           </div>
 
         </div>
 
-        <!-- Guias Mensais: clientes recorrentes (parcelamento/obrigação mensal)
-             que vencem este mês. Sem certificado do Integra Contador ainda, a
-             geração é manual — isto é só o lembrete + checklist. -->
-        <div class="dash-card" style="margin-top: 20px;">
-          <div class="dash-card-header" style="justify-content: space-between; align-items: flex-start;">
-            <div>
-              <h3><i class="fa-solid fa-file-invoice" style="color: var(--color-pine)"></i> Guias Mensais</h3>
-              <p style="font-size: 11px; color: var(--color-text-secondary); margin-top: 4px;">Clientes recorrentes com guia/parcelamento a gerar este mês</p>
+        <!-- C. Pendências externas -->
+        <div class="dashboard-group-title">Pendências externas</div>
+        <div class="dashboard-split-grid" style="grid-template-columns: 1fr 1fr;">
+
+          <!-- Mensagens de processos em aberto -->
+          <div class="dash-card">
+            <div class="dash-card-header">
+              <h3><i class="fa-solid fa-comment-dots" style="color: var(--color-coral)"></i> Mensagens de Processos em Aberto</h3>
+              <span class="chat-count-badge" id="mensagens-abertas-badge">0 pendentes</span>
             </div>
+            <div id="mensagens-abertas-lista" style="padding: 16px; display: flex; flex-direction: column; gap: 12px; max-height: 300px; overflow-y: auto;"></div>
           </div>
-          <div id="guias-mensais-lista" style="padding: 16px; display: flex; flex-direction: column; gap: 12px; max-height: 300px; overflow-y: auto;"></div>
+
+          <!-- Pagamentos não finalizados -->
+          <div class="dash-card">
+            <div class="dash-card-header">
+              <div>
+                <h3><i class="fa-solid fa-file-invoice-dollar" style="color: var(--color-coral)"></i> Pagamentos Não Finalizados</h3>
+                <p style="font-size: 11px; color: var(--color-text-secondary); margin-top: 4px;">Contato direto por e-mail/WhatsApp — o cliente ainda não tem chat aberto</p>
+              </div>
+            </div>
+            <div id="pagamentos-pendentes-lista" style="padding: 16px; display: flex; flex-direction: column; gap: 12px; max-height: 300px; overflow-y: auto;"></div>
+          </div>
+
         </div>
       </section>
 
@@ -412,65 +406,172 @@
       </section>
 
       <!-- SECTION: Relatório Exclusivo -->
-      <section class="content-panel" id="section-dossie" style="padding: 40px; overflow-y: auto; background-color: var(--color-bg);">
-        <div style="max-width: 900px; margin: 0 auto; background-color: var(--color-card); border-radius: var(--radius-lg); border: 1px solid var(--color-border); display: flex; flex-direction: column; box-shadow: 0 4px 32px rgba(10, 49, 33, 0.08); min-height: 80vh;">
-          <div class="prontuario-header" style="padding: 32px 32px 24px 32px; border-bottom: 1px solid var(--color-border); background-color: #FAFAFA; border-radius: var(--radius-lg) var(--radius-lg) 0 0;">
-            <div>
-              <h2 style="font-size: 24px;"><i class="fa-solid fa-clipboard-list" style="color: var(--color-coral); margin-right: 8px;"></i> Relatório de Atendimento</h2>
-              <p style="font-size: 14px; color: var(--color-text-secondary); margin-top: 8px;">Diagnóstico, informações e resumo das ações aplicadas ao caso do cliente atual.</p>
+      <section class="content-panel" id="section-dossie">
+        <div class="panel-header-desc">
+          <h2>Relatórios de Atendimento</h2>
+          <p>Feche o atendimento com um relatório completo: selecione o cliente, descreva o caso e a solução, gere o PDF e entregue.</p>
+        </div>
+
+        <div class="settings-tabs" id="relatorio-secao-tabs">
+          <button type="button" class="settings-tab active" data-relatorio-secao-tab="fila"><i class="fa-solid fa-hourglass-half"></i> Aguardando Relatório</button>
+          <button type="button" class="settings-tab" data-relatorio-secao-tab="novo"><i class="fa-solid fa-file-circle-plus"></i> Novo Relatório</button>
+          <button type="button" class="settings-tab" data-relatorio-secao-tab="finalizados"><i class="fa-solid fa-check-double"></i> Relatórios Finalizados</button>
+          <button type="button" class="settings-tab" data-relatorio-secao-tab="prontuario"><i class="fa-solid fa-clipboard-list"></i> Prontuário</button>
+        </div>
+
+        <!-- Aba: Aguardando Relatório — atendimentos finalizados sem relatório ainda -->
+        <div class="settings-pane active" id="relatorio-pane-fila">
+          <p style="font-size:12px;color:var(--color-text-secondary);margin:16px 0;">Clientes com atendimento encerrado e ainda sem relatório entregue.</p>
+          <div id="relatorio-fila-lista" class="relatorio-fila-grid"><p style="color:var(--color-text-secondary);font-size:13px;">Carregando…</p></div>
+        </div>
+
+        <!-- Aba: Novo Relatório — wizard em página cheia (cliente -> descrever -> enviar/arquivar) -->
+        <div class="settings-pane" id="relatorio-pane-novo">
+          <div class="relatorio-steps" id="rel-steps">
+            <div class="relatorio-step-pill active" data-rel-step-pill="cliente"><span>1</span> Cliente</div>
+            <div class="relatorio-step-pill" data-rel-step-pill="descrever"><span>2</span> Descrever o caso</div>
+            <div class="relatorio-step-pill" data-rel-step-pill="enviar"><span>3</span> Enviar ou arquivar</div>
+          </div>
+
+          <!-- Passo 1: selecionar/confirmar o cliente -->
+          <div class="relatorio-step" data-rel-step="cliente">
+            <label class="form-label">Buscar cliente por nome, CPF/CNPJ ou e-mail</label>
+            <input class="form-input" id="rel-cliente-busca" placeholder="Digite para buscar...">
+            <div id="rel-cliente-lista" class="relatorio-cliente-lista"></div>
+          </div>
+
+          <!-- Passo 2: descrever o caso -->
+          <div class="relatorio-step" data-rel-step="descrever" hidden>
+            <div class="relatorio-page-body">
+              <div class="relatorio-editor-col">
+                <div class="relatorio-cliente-chip" id="rel-cliente-chip"></div>
+                <button class="btn-utility primary relatorio-btn-ia" id="btn-rel-ia">
+                  <i class="fa-solid fa-wand-magic-sparkles"></i> Preencher com a IA (AIA)
+                </button>
+                <p class="relatorio-ia-hint">A AIA lê a conversa e escreve um rascunho em linguagem do cliente. Revise e ajuste antes de enviar.</p>
+                <label class="form-label">Título do atendimento</label>
+                <input class="form-select" id="rel-titulo" placeholder="Ex.: Regularização de Malha Fina 2024">
+                <label class="form-label relatorio-label-spaced">O que aconteceu (o problema)</label>
+                <textarea class="form-textarea" id="rel-problema" rows="3"></textarea>
+                <label class="form-label relatorio-label-spaced">Solução proposta</label>
+                <textarea class="form-textarea" id="rel-solucao" rows="3"></textarea>
+                <label class="form-label relatorio-label-spaced">O que foi feito <span class="relatorio-label-hint">(um item por linha)</span></label>
+                <textarea class="form-textarea" id="rel-oquefeito" rows="4"></textarea>
+                <label class="form-label relatorio-label-spaced">Como foi feito e próximos passos <span class="relatorio-label-hint">(um item por linha)</span></label>
+                <textarea class="form-textarea" id="rel-comofeito" rows="4"></textarea>
+              </div>
+              <!-- Prévia ao vivo do documento -->
+              <div class="relatorio-preview-col">
+                <div class="relatorio-preview-label">Prévia do documento</div>
+                <div id="rel-previa-wrap" class="relatorio-preview-wrap"><div id="rel-previa"></div></div>
+              </div>
             </div>
           </div>
-          <div class="prontuario-content responsive-grid" style="padding: 32px; flex: 1; display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
-            <!-- O que o cliente contou antes de entrar. Montado por app.js a
-                 partir da triagem; fica escondido quando não há nenhuma. -->
-            <div id="triagem-card" class="triagem-card" style="grid-column: 1 / -1;" hidden></div>
 
-            <div class="form-group" style="margin-bottom: 0; grid-column: 1 / -1;">
-              <label class="form-label" for="prontuario-diagnostico">Diagnóstico Fiscal</label>
-              <select class="form-select" id="prontuario-diagnostico" style="font-size: 15px; padding: 12px;">
-                <option value="Malha Fina - Omissão de Rendimentos de Trabalho">Malha Fina - Omissão de Rendimentos</option>
-                <option value="Malha Fina - Glosa de Despesas Médicas sem Comprovante">Malha Fina - Glosa de Despesas Médicas</option>
-                <option value="Ganho de Capital - Venda de Imóvel sem Recolhimento de ITBI/IR">Ganho de Capital - Imóvel não Declarado</option>
-                <option value="Desenquadramento e Débitos retroativos do MEI">Débitos Retroativos do MEI</option>
-                <option value="Carnê-Leão - Falta de Recolhimento Mensal de Autônomo">Carnê-Leão - Falta de Recolhimento</option>
-              </select>
+          <!-- Passo 3: enviar ou arquivar -->
+          <div class="relatorio-step" data-rel-step="enviar" hidden>
+            <p style="font-size:13px;color:var(--color-text-secondary);margin-bottom:16px;">Relatório gerado. Escolha por onde entregar ao cliente — ou arquive sem avisar agora.</p>
+            <div class="relatorio-envio-opcoes">
+              <label class="relatorio-envio-opcao"><input type="checkbox" id="rel-envio-chat" checked> <i class="fa-solid fa-comments"></i> Avisar no chat do atendimento</label>
+              <label class="relatorio-envio-opcao"><input type="checkbox" id="rel-envio-caixa-postal"> <i class="fa-solid fa-inbox"></i> Enviar pela Caixa Postal</label>
+              <label class="relatorio-envio-opcao"><input type="checkbox" id="rel-envio-email"> <i class="fa-solid fa-envelope"></i> Enviar por e-mail</label>
             </div>
-            <div class="form-group" style="margin-bottom: 0;">
-              <label class="form-label">Evidências Coletadas (Adicionar)</label>
-              <div class="evidence-tag-selector">
-                <div class="tag-pool" id="tag-pool-evidences">
+            <p class="relatorio-label-hint" id="rel-envio-status" style="margin-top:12px;">&nbsp;</p>
+          </div>
+
+          <div class="relatorio-page-footer">
+            <button class="btn-utility" id="btn-rel-voltar" hidden><i class="fa-solid fa-arrow-left"></i> Voltar</button>
+            <button class="btn-utility" id="btn-rel-baixar" hidden><i class="fa-solid fa-download"></i> Baixar PDF</button>
+            <span style="flex:1;"></span>
+            <button class="btn-utility primary" id="btn-rel-avancar-cliente"><i class="fa-solid fa-arrow-right"></i> Continuar</button>
+            <button class="btn-utility primary" id="btn-rel-gerar" hidden><i class="fa-solid fa-file-contract"></i> Gerar relatório</button>
+            <button class="btn-utility" id="btn-rel-arquivar" hidden><i class="fa-solid fa-box-archive"></i> Arquivar sem enviar</button>
+            <button class="btn-utility primary" id="btn-rel-enviar" hidden><i class="fa-solid fa-paper-plane"></i> Confirmar envio e encerrar</button>
+          </div>
+        </div>
+
+        <!-- Aba: Relatórios Finalizados — histórico de tudo que já foi gerado -->
+        <div class="settings-pane" id="relatorio-pane-finalizados">
+          <p style="font-size:12px;color:var(--color-text-secondary);margin:16px 0;">Todos os relatórios já gerados, de todos os clientes.</p>
+          <div id="relatorio-finalizados-lista"><p style="color:var(--color-text-secondary);font-size:13px;">Carregando…</p></div>
+        </div>
+
+        <!-- Aba: Prontuário — diagnóstico/evidências/checklist/anotações do atendimento aberto no momento -->
+        <div class="settings-pane" id="relatorio-pane-prontuario">
+          <div style="max-width: 900px; margin: 24px auto 0; background-color: var(--color-card); border-radius: var(--radius-lg); border: 1px solid var(--color-border); display: flex; flex-direction: column; box-shadow: 0 4px 32px rgba(10, 49, 33, 0.08);">
+            <div class="prontuario-header" style="padding: 32px 32px 24px 32px; border-bottom: 1px solid var(--color-border); background-color: #FAFAFA; border-radius: var(--radius-lg) var(--radius-lg) 0 0;">
+              <div>
+                <h2 style="font-size: 24px;"><i class="fa-solid fa-clipboard-list" style="color: var(--color-coral); margin-right: 8px;"></i> Prontuário do Atendimento</h2>
+                <p style="font-size: 14px; color: var(--color-text-secondary); margin-top: 8px;">Diagnóstico, informações e resumo das ações aplicadas ao caso do cliente atual.</p>
+              </div>
+            </div>
+            <div class="prontuario-content responsive-grid" style="padding: 32px; flex: 1; display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+              <!-- O que o cliente contou antes de entrar. Montado por app.js a
+                   partir da triagem; fica escondido quando não há nenhuma. -->
+              <div id="triagem-card" class="triagem-card" style="grid-column: 1 / -1;" hidden></div>
+
+              <div class="form-group" style="margin-bottom: 0; grid-column: 1 / -1;">
+                <label class="form-label" for="prontuario-diagnostico">Diagnóstico Fiscal</label>
+                <select class="form-select" id="prontuario-diagnostico" style="font-size: 15px; padding: 12px;">
+                  <option value="Malha Fina - Omissão de Rendimentos de Trabalho">Malha Fina - Omissão de Rendimentos</option>
+                  <option value="Malha Fina - Glosa de Despesas Médicas sem Comprovante">Malha Fina - Glosa de Despesas Médicas</option>
+                  <option value="Ganho de Capital - Venda de Imóvel sem Recolhimento de ITBI/IR">Ganho de Capital - Imóvel não Declarado</option>
+                  <option value="Desenquadramento e Débitos retroativos do MEI">Débitos Retroativos do MEI</option>
+                  <option value="Carnê-Leão - Falta de Recolhimento Mensal de Autônomo">Carnê-Leão - Falta de Recolhimento</option>
+                </select>
+              </div>
+              <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label">Evidências Coletadas (Adicionar)</label>
+                <div class="evidence-tag-selector">
+                  <div class="tag-pool" id="tag-pool-evidences">
+                    <!-- Populated by JS -->
+                  </div>
+                </div>
+              </div>
+              <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label">Documentação Pendente</label>
+                <div class="checklist-docs" id="checklist-documents-prontuario" style="background: white; border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 12px; min-height: 120px;">
                   <!-- Populated by JS -->
                 </div>
               </div>
-            </div>
-            <div class="form-group" style="margin-bottom: 0;">
-              <label class="form-label">Documentação Pendente</label>
-              <div class="checklist-docs" id="checklist-documents-prontuario" style="background: white; border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 12px; min-height: 120px;">
-                <!-- Populated by JS -->
+              <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label">Documentos Enviados</label>
+                <div id="prontuario-documentos" style="display: flex; flex-direction: column; gap: 8px; background: white; border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 12px; min-height: 120px;">
+                  <!-- Populated by JS -->
+                </div>
+              </div>
+              <div class="form-group" style="margin-bottom: 0; grid-column: 1 / -1;">
+                <label class="form-label">Anotações do Atendimento</label>
+                <div class="notas-toolbar" id="notas-toolbar">
+                  <button type="button" class="btn-utility" data-notas-cmd="bold" title="Negrito"><i class="fa-solid fa-bold"></i></button>
+                  <button type="button" class="btn-utility" data-notas-cmd="insertOrderedList" title="Lista numerada"><i class="fa-solid fa-list-ol"></i></button>
+                  <span class="notas-toolbar-sep"></span>
+                  <button type="button" class="notas-color-swatch" data-notas-color="#FFF3B0" title="Destacar em amarelo"></button>
+                  <button type="button" class="notas-color-swatch" data-notas-color="#FFD0CE" title="Destacar em vermelho"></button>
+                  <button type="button" class="notas-color-swatch" data-notas-color="#CFF3D8" title="Destacar em verde"></button>
+                  <button type="button" class="notas-color-swatch" data-notas-color="#D3E4FF" title="Destacar em azul"></button>
+                  <button type="button" class="btn-utility" data-notas-cmd="removeFormat" title="Limpar formatação"><i class="fa-solid fa-eraser"></i></button>
+                </div>
+                <div class="notas-editor" id="prontuario-notas-editor" contenteditable="true" data-placeholder="Escreva as anotações deste atendimento — use os botões acima para negrito, lista numerada e cores em informações importantes."></div>
+                <p class="relatorio-label-hint" id="notas-save-status" style="margin-top:6px;">&nbsp;</p>
+              </div>
+              <div class="form-group" style="margin-bottom: 0; grid-column: 1 / -1;">
+                <label class="form-label" for="prontuario-tratamento">Tratamento Recomendado (Passos)</label>
+                <textarea class="form-textarea" id="prontuario-tratamento" rows="5"></textarea>
+              </div>
+              <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label" for="prontuario-honorarios">Valor dos Honorários (R$)</label>
+                <input type="number" class="form-select" id="prontuario-honorarios" value="150" min="0" style="max-width: 200px;">
               </div>
             </div>
-            <div class="form-group" style="margin-bottom: 0;">
-              <label class="form-label">Documentos Enviados</label>
-              <div id="prontuario-documentos" style="display: flex; flex-direction: column; gap: 8px; background: white; border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 12px; min-height: 120px;">
-                <!-- Populated by JS -->
-              </div>
+            <div class="prontuario-footer" style="display: flex; gap: 16px; padding: 24px; border-top: 1px solid var(--color-border); background-color: var(--color-bg); border-radius: 0 0 var(--radius-lg) var(--radius-lg);">
+              <button class="btn-utility" id="btn-sugerir-ia" title="A IA lê a conversa e sugere diagnóstico e tratamento" style="flex: 1; justify-content: center; padding: 14px; font-size: 14px;">
+                <i class="fa-solid fa-wand-magic-sparkles"></i> Preencher com IA
+              </button>
+              <button class="btn-generate-report" id="btn-generate-prontuario" style="flex: 2; justify-content: center; padding: 14px; font-size: 14px;">
+                <i class="fa-solid fa-file-contract"></i> Ir para Novo Relatório
+              </button>
             </div>
-            <div class="form-group" style="margin-bottom: 0; grid-column: 1 / -1;">
-              <label class="form-label" for="prontuario-tratamento">Tratamento Recomendado (Passos)</label>
-              <textarea class="form-textarea" id="prontuario-tratamento" rows="5"></textarea>
-            </div>
-            <div class="form-group" style="margin-bottom: 0;">
-              <label class="form-label" for="prontuario-honorarios">Valor dos Honorários (R$)</label>
-              <input type="number" class="form-select" id="prontuario-honorarios" value="150" min="0" style="max-width: 200px;">
-            </div>
-          </div>
-          <div class="prontuario-footer" style="display: flex; gap: 16px; padding: 24px; border-top: 1px solid var(--color-border); background-color: var(--color-bg); border-radius: 0 0 var(--radius-lg) var(--radius-lg);">
-            <button class="btn-utility" id="btn-sugerir-ia" title="A IA lê a conversa e sugere diagnóstico e tratamento" style="flex: 1; justify-content: center; padding: 14px; font-size: 14px;">
-              <i class="fa-solid fa-wand-magic-sparkles"></i> Preencher com IA
-            </button>
-            <button class="btn-generate-report" id="btn-generate-prontuario" style="flex: 2; justify-content: center; padding: 14px; font-size: 14px;">
-              <i class="fa-solid fa-file-contract"></i> Gerar Relatório Final
-            </button>
           </div>
         </div>
       </section>
@@ -493,14 +594,24 @@
               </div>
               
               <div class="calendar-view-toggles">
-                <button class="calendar-view-btn active" type="button">Mês</button>
+                <button class="calendar-view-btn active" type="button" data-calendar-view="mes">Mês</button>
+                <button class="calendar-view-btn" type="button" data-calendar-view="lista">Lista</button>
                 <button class="calendar-view-btn" type="button" disabled title="Visão semanal entra na próxima etapa">Semana</button>
                 <button class="calendar-view-btn" type="button" disabled title="Visão diária entra na próxima etapa">Dia</button>
               </div>
             </div>
 
-            <!-- Calendar Grid -->
-            <div class="calendar-grid">
+            <!-- Filtros da visão em Lista (escondidos na visão Mês) -->
+            <div id="agenda-lista-filtros" hidden style="display:flex; align-items:center; gap:6px; flex-wrap:wrap; padding: 0 0 14px;">
+              <button type="button" class="btn-shortcut-tag active" data-agenda-lista-filtro="proximos">Próximos</button>
+              <button type="button" class="btn-shortcut-tag" data-agenda-lista-filtro="hoje">Hoje</button>
+              <button type="button" class="btn-shortcut-tag" data-agenda-lista-filtro="concluidos">Concluídos</button>
+              <button type="button" class="btn-shortcut-tag" data-agenda-lista-filtro="todos">Todos</button>
+              <span class="chat-count-badge" id="agenda-lista-contagem" style="margin-left: 6px;">0</span>
+            </div>
+
+            <!-- Calendar Grid (visão Mês) -->
+            <div class="calendar-grid" id="calendar-view-mes">
               <div class="calendar-days-header">
                 <div class="calendar-day-name">Dom</div>
                 <div class="calendar-day-name">Seg</div>
@@ -513,6 +624,11 @@
               <div class="calendar-days-grid" id="calendar-days-grid-container">
                 <div class="calendar-loading">Carregando agenda...</div>
               </div>
+            </div>
+
+            <!-- Visão em Lista: todos os atendimentos, filtráveis, sem precisar navegar mês a mês -->
+            <div id="calendar-view-lista" hidden style="display:flex; flex-direction:column; gap:10px;">
+              <div id="agenda-lista-completa"></div>
             </div>
           </div>
 
@@ -547,6 +663,17 @@
                   <i class="fa-solid fa-floppy-disk"></i> Salvar Disponibilidade
                 </button>
                 <p class="availability-status" id="availability-status" aria-live="polite"></p>
+
+                <hr style="border:none;border-top:1px solid var(--color-border);margin:18px 0;">
+
+                <div class="availability-note">Dias marcados aqui (feriados, folgas) somem da agenda pública — o site sempre oferece os próximos dias úteis, pulando esses.</div>
+                <div style="display:flex;gap:8px;margin:10px 0;">
+                  <input type="date" id="bloqueio-dia-input" class="form-input" style="flex:1">
+                  <button type="button" class="btn-utility" id="btn-add-dia-bloqueado"><i class="fa-solid fa-plus"></i> Bloquear</button>
+                </div>
+                <div id="dias-bloqueados-lista" style="display:flex;flex-direction:column;gap:6px">
+                  <p style="font-size:13px; color:var(--color-text-secondary);">Carregando dias bloqueados...</p>
+                </div>
               </div>
             </div>
 
@@ -592,18 +719,59 @@
         </div>
       </section>
 
-      <!-- SECTION 4: Notificações (Notificações Log) -->
+      <!-- SECTION 4: Caixa Postal (avisos do sistema + mensagens com clientes) -->
       <section class="content-panel" id="section-notificacoes">
         <div class="panel-header-desc" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
           <div>
-            <h2>Central de Notificações</h2>
-            <p>Log em tempo real de eventos, transações e uploads de arquivos de clientes.</p>
+            <h2>Caixa Postal</h2>
+            <p>Avisos automáticos do sistema e mensagens trocadas com clientes fora do chat ao vivo.</p>
           </div>
           <button class="btn-utility" id="btn-clear-notifications"><i class="fa-solid fa-trash-can"></i> Limpar Histórico</button>
         </div>
 
-        <div class="notifications-log-wrapper" id="notifications-log-list">
-          <!-- Notification alerts populated dynamically by JS -->
+        <div class="settings-tabs" style="margin-bottom: 20px;">
+          <button class="settings-tab active" data-tab="cp-avisos">Avisos do Sistema</button>
+          <button class="settings-tab" data-tab="cp-mensagens">Mensagens <span class="chat-count-badge" id="caixa-postal-badge-tab" style="background: var(--color-coral); display:none;">0</span></button>
+        </div>
+
+        <!-- Aba: Avisos do Sistema (o log automático que já existia) -->
+        <div class="settings-pane active" id="cp-avisos">
+          <div class="notifications-log-wrapper" id="notifications-log-list">
+            <!-- Notification alerts populated dynamically by JS -->
+          </div>
+        </div>
+
+        <!-- Aba: Mensagens — caixa postal de verdade, contador ↔ cliente -->
+        <div class="settings-pane" id="cp-mensagens">
+          <div style="display:flex; height: calc(100vh - 260px); min-height: 420px; border: 1px solid var(--color-border); border-radius: var(--radius-lg); overflow: hidden; background: white;">
+
+            <!-- Lista de clientes com thread -->
+            <div style="width: 300px; flex-shrink: 0; border-right: 1px solid var(--color-border); display: flex; flex-direction: column; background: var(--color-bg);">
+              <div style="padding: 14px; border-bottom: 1px solid var(--color-border); background: white;">
+                <input type="text" class="cfg-input" id="caixa-postal-busca" placeholder="Buscar cliente...">
+              </div>
+              <div style="flex: 1; overflow-y: auto;" id="caixa-postal-clientes-lista">
+                <p style="font-size:13px; color:var(--color-text-secondary); text-align:center; padding:24px 12px;">Carregando...</p>
+              </div>
+            </div>
+
+            <!-- Thread selecionada -->
+            <div style="flex: 1; display: flex; flex-direction: column; min-width: 0;">
+              <div id="caixa-postal-thread-header" style="padding: 14px 18px; border-bottom: 1px solid var(--color-border); font-size: 14px; font-weight: 700; color: var(--color-pine);">
+                Escolha um cliente
+              </div>
+              <div id="caixa-postal-thread-mensagens" style="flex: 1; overflow-y: auto; padding: 18px; display: flex; flex-direction: column; gap: 12px;">
+                <p style="font-size:13px; color:var(--color-text-secondary); text-align:center; padding:40px 0;">Escolha um cliente à esquerda pra ver (ou começar) a conversa.</p>
+              </div>
+              <form id="form-caixa-postal-enviar" style="display:none; flex-direction: column; gap: 8px; padding: 14px 18px; border-top: 1px solid var(--color-border); background: var(--color-bg);">
+                <input type="text" class="cfg-input" id="caixa-postal-assunto" placeholder="Assunto (opcional) — ex.: Lembrete de vencimento">
+                <div style="display:flex; gap:8px; align-items:flex-end;">
+                  <textarea class="cfg-input" id="caixa-postal-mensagem" placeholder="Escreva um aviso pro cliente. Ele aparece na área dele mesmo fora do horário do chat." rows="2" style="flex:1; resize: vertical;" required></textarea>
+                  <button type="submit" class="btn-utility primary"><i class="fa-solid fa-paper-plane"></i> Enviar</button>
+                </div>
+              </form>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -641,6 +809,82 @@
                     <span class="slider round"></span>
                   </label>
                 </div>
+              </div>
+
+              <!-- Cronômetro do atendimento: quando começa, se conta pra cima ou
+                   pra baixo, e quando avisar que o prazo está acabando. -->
+              <div class="setting-block">
+                <h4 style="font-size: 14px; color: var(--color-pine); margin-bottom: 4px;">Cronômetro do Atendimento</h4>
+                <p style="font-size: 12px; color: var(--color-text-secondary); margin-bottom: 14px;">Controla o relógio que aparece no topo do chat durante o atendimento.</p>
+
+                <div class="cfg-linha">
+                  <div>
+                    <strong class="cfg-linha-titulo">Iniciar automaticamente</strong>
+                    <span class="cfg-linha-nota">Ligado, o cronômetro já começa sozinho ao abrir a conversa. Desligado, você inicia na mão pelo botão de play.</span>
+                  </div>
+                  <label class="switch">
+                    <input type="checkbox" id="cfg-timer-auto" checked>
+                    <span class="slider round"></span>
+                  </label>
+                </div>
+
+                <div class="cfg-linha">
+                  <div>
+                    <strong class="cfg-linha-titulo">Sentido da contagem</strong>
+                    <span class="cfg-linha-nota">Crescente conta o tempo decorrido (0 até o limite). Decrescente já mostra quanto tempo resta (do limite até 0).</span>
+                  </div>
+                  <select class="cfg-input" id="cfg-timer-direcao" style="width: 160px;">
+                    <option value="crescente">Crescente (0 → limite)</option>
+                    <option value="decrescente">Decrescente (limite → 0)</option>
+                  </select>
+                </div>
+
+                <div class="cfg-linha">
+                  <div>
+                    <strong class="cfg-linha-titulo">Duração do atendimento</strong>
+                    <span class="cfg-linha-nota">Tempo padrão considerado "cheio" — usado como limite da contagem decrescente e como base do aviso de prazo.</span>
+                  </div>
+                  <div style="display:flex;align-items:center;gap:6px;">
+                    <input type="number" class="cfg-input" id="cfg-timer-duracao" min="1" max="240" style="width: 70px;">
+                    <span style="font-size:12px;color:var(--color-text-secondary);">min</span>
+                  </div>
+                </div>
+
+                <div class="cfg-linha">
+                  <div>
+                    <strong class="cfg-linha-titulo">Avisar quando faltarem</strong>
+                    <span class="cfg-linha-nota">Manda um aviso no chat quando o tempo restante chegar nesse valor.</span>
+                  </div>
+                  <div style="display:flex;align-items:center;gap:6px;">
+                    <input type="number" class="cfg-input" id="cfg-timer-aviso-min" min="1" max="120" style="width: 70px;">
+                    <span style="font-size:12px;color:var(--color-text-secondary);">min antes</span>
+                  </div>
+                </div>
+
+                <div class="cfg-linha">
+                  <div>
+                    <strong class="cfg-linha-titulo">Avisar o cliente</strong>
+                    <span class="cfg-linha-nota">Ligado, o aviso de prazo entra no chat compartilhado — o cliente também vê. Desligado, o aviso aparece só pra você, aqui no painel.</span>
+                  </div>
+                  <label class="switch">
+                    <input type="checkbox" id="cfg-timer-avisar-cliente" checked>
+                    <span class="slider round"></span>
+                  </label>
+                </div>
+
+                <div class="cfg-linha">
+                  <div>
+                    <strong class="cfg-linha-titulo">Aviso sonoro</strong>
+                    <span class="cfg-linha-nota">Toca um som de alerta no momento do aviso de prazo, pra você ou pra você e o cliente, conforme a opção acima.</span>
+                  </div>
+                  <label class="switch">
+                    <input type="checkbox" id="cfg-timer-som" checked>
+                    <span class="slider round"></span>
+                  </label>
+                </div>
+
+                <button type="button" class="btn-utility primary" id="btn-timer-salvar" style="margin-top: 8px;">Salvar configuração do cronômetro</button>
+                <span id="timer-cfg-status-msg" style="font-size:12.5px;font-weight:600;margin-left:10px"></span>
               </div>
             </div>
 
@@ -748,6 +992,52 @@
             <div class="settings-pane" id="tab-integracoes">
               <h3>Integrações</h3>
               <p style="font-size: 13px; color: var(--color-text-secondary); margin-bottom: 20px;">Conecte o Olá Contador a outros sistemas.</p>
+
+              <!-- Nota Fiscal (Asaas): pré-requisito é a conta Asaas já ter as
+                   informações fiscais (inscrição municipal, certificado, CNAE)
+                   configuradas no painel deles — isso o contador resolve lá,
+                   fora daqui. -->
+              <div class="setting-block">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                  <h4 style="font-size: 14px; color: var(--color-pine);"><i class="fa-solid fa-file-invoice-dollar" style="color: var(--color-coral); margin-right: 6px;"></i>Nota Fiscal de Serviço (Asaas)</h4>
+                </div>
+                <p style="font-size: 12px; color: var(--color-text-secondary); margin-bottom: 16px;">
+                  Emite a NFS-e automaticamente quando um pagamento é confirmado. Antes de ativar, configure as informações fiscais
+                  (inscrição municipal, certificado/credenciais da prefeitura, CNAE) diretamente no painel do Asaas —
+                  sem isso a emissão falha e o erro fica só no log, sem travar o pagamento do cliente.
+                </p>
+
+                <div class="form-group" style="display:flex;align-items:center;gap:8px">
+                  <input type="checkbox" id="nf-ativo" style="width:auto">
+                  <label class="form-label" for="nf-ativo" style="margin:0">Emitir nota fiscal automaticamente ao confirmar pagamento</label>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label" for="nf-servico-municipal">Serviço municipal</label>
+                  <div style="display:flex;gap:8px">
+                    <select class="form-select" id="nf-servico-municipal" style="flex:1">
+                      <option value="">Nenhum carregado ainda — clique em "Buscar serviços"</option>
+                    </select>
+                    <button type="button" class="btn-utility" id="btn-nf-buscar-servicos"><i class="fa-solid fa-magnifying-glass"></i> Buscar serviços</button>
+                  </div>
+                  <p style="font-size:11.5px;color:var(--color-text-secondary);margin:2px 0 0">
+                    Busca a lista direto na prefeitura cadastrada na sua conta Asaas. Só funciona depois que as informações fiscais estiverem configuradas lá.
+                  </p>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label" for="nf-descricao">Descrição do serviço na nota</label>
+                  <input type="text" class="form-input" id="nf-descricao" placeholder="Ex.: Consultoria e assessoria contábil">
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label" for="nf-observacoes">Observações (opcional)</label>
+                  <textarea class="form-input" id="nf-observacoes" rows="2" placeholder="Texto adicional impresso na nota, se necessário"></textarea>
+                </div>
+
+                <button type="button" class="btn-utility primary" id="btn-nf-salvar">Salvar configuração da Nota Fiscal</button>
+                <span id="nf-status-msg" style="font-size:12.5px;font-weight:600;margin-left:10px"></span>
+              </div>
 
               <div class="em-breve-banner">
                 <i class="fa-solid fa-clock-rotate-left"></i>
@@ -932,6 +1222,22 @@
           </div>
         </div>
 
+        <div class="setting-block" style="margin-top: 24px;">
+          <h4 style="font-size: 14px; color: var(--color-pine);">Seu acesso</h4>
+          <p style="font-size: 12px; color: var(--color-text-secondary); margin: 4px 0 14px;">
+            Você entra com o link de acesso por e-mail. Se preferir, crie uma senha
+            abaixo pra também poder entrar com e-mail e senha da próxima vez.
+          </p>
+          <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end;">
+            <div style="flex: 1; min-width: 180px;">
+              <label class="cfg-label" for="nova-senha-contador">Nova senha</label>
+              <input type="password" class="cfg-input" id="nova-senha-contador" placeholder="mínimo 6 caracteres" style="width:100%;" />
+            </div>
+            <button class="btn-utility primary" id="btn-criar-senha-contador" style="white-space:nowrap;">Criar senha</button>
+          </div>
+          <p style="font-size: 12px; margin-top: 10px; display:none;" id="msg-criar-senha-contador"></p>
+        </div>
+
         <div class="stats-grid" style="margin-top: 32px;">
           <div class="stat-card">
             <i class="fa-solid fa-comments"></i>
@@ -1021,137 +1327,67 @@
 
       <!-- SECTION 6: Clientes (CRM) -->
       <section class="content-panel" id="section-clientes" style="padding: 0;">
-        
-        <div class="dashboard-split-grid" style="display: grid; grid-template-columns: 320px 1fr; height: 100%;">
-          
-          <!-- Left: Client List -->
-          <div style="border-right: 1px solid var(--color-border); display: flex; flex-direction: column; background: var(--color-bg);">
-            <div style="padding: 24px; border-bottom: 1px solid var(--color-border); background: white;">
-              <h2 style="font-size: 18px; margin-bottom: 4px; color: var(--color-pine);">Clientes</h2>
-              <p style="font-size: 12px; color: var(--color-text-secondary); margin-bottom: 16px;">Base completa e histórico de atendimentos finalizados.</p>
-              <div class="search-chat" style="margin: 0 0 10px;">
-                <i class="fa-solid fa-search"></i>
-                <input type="text" id="crm-search" placeholder="Buscar CPF, CNPJ ou Nome...">
-              </div>
-              <div style="display:flex;gap:6px;flex-wrap:wrap;" id="crm-filtro-finalizados">
-                <button type="button" class="btn-shortcut-tag active" data-crm-filtro="todos">Todos</button>
-                <button type="button" class="btn-shortcut-tag" data-crm-filtro="hoje">Finalizados hoje</button>
-                <button type="button" class="btn-shortcut-tag" data-crm-filtro="semana">Esta semana</button>
-                <button type="button" class="btn-shortcut-tag" data-crm-filtro="mes">Este mês</button>
-              </div>
+
+        <div style="padding: 20px 32px 0; background: white; border-bottom: 1px solid var(--color-border);">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
+            <div>
+              <h2 style="font-size: 18px; color: var(--color-pine); margin:0;">Clientes</h2>
+              <p style="font-size: 12px; color: var(--color-text-secondary); margin:4px 0 12px;">Base completa e histórico de atendimentos finalizados.</p>
             </div>
-            
-            <div style="flex: 1; overflow-y: auto;" id="crm-client-list">
-              <!-- Rendered by JS -->
-              <div class="chat-item active" style="margin: 0; border-radius: 0; border-bottom: 1px solid var(--color-border); cursor: pointer; display: flex; align-items: center; gap: 12px; padding: 16px;">
-                <div class="chat-item-avatar">MR</div>
-                <div style="flex: 1;">
-                  <h4 style="font-size: 14px; margin: 0 0 2px 0; color: var(--color-pine);">Marcos Roberto</h4>
-                  <p style="font-size: 11px; margin: 0; color: var(--color-text-secondary);">CPF: 123.456.789-00</p>
-                </div>
-              </div>
-              <div class="chat-item" style="margin: 0; border-radius: 0; border-bottom: 1px solid var(--color-border); cursor: pointer; display: flex; align-items: center; gap: 12px; padding: 16px;">
-                <div class="chat-item-avatar" style="background: var(--color-coral)">LC</div>
-                <div style="flex: 1;">
-                  <h4 style="font-size: 14px; margin: 0 0 2px 0; color: var(--color-pine);">Luciana Costa</h4>
-                  <p style="font-size: 11px; margin: 0; color: var(--color-text-secondary);">CNPJ: 11.222.333/0001-44</p>
-                </div>
-              </div>
-            </div>
+            <button type="button" class="btn-utility primary" id="btn-crm-novo-cliente" style="white-space:nowrap;font-size:12px;padding:8px 12px;"><i class="fa-solid fa-user-plus"></i> Novo Cliente</button>
           </div>
-
-          <!-- Right: Client Profile (Dossier View) -->
-          <div id="crm-client-detail" style="flex: 1; display: flex; flex-direction: column; background: white; overflow-y: auto;">
-            <!-- Profile Header -->
-            <div style="padding: 32px 40px; border-bottom: 1px solid var(--color-border); display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 16px;">
-              <div style="display: flex; gap: 24px; align-items: center;">
-                <div style="width: 80px; height: 80px; border-radius: 50%; background: var(--color-pine); color: white; display: flex; align-items: center; justify-content: center; font-size: 28px;">MR</div>
-                <div>
-                  <h1 style="font-size: 24px; color: var(--color-pine); margin: 0 0 4px 0;">Marcos Roberto Almeida</h1>
-                  <p style="color: var(--color-text-secondary); margin: 0; font-size: 13px;">Cliente desde Jan 2026 • Contrato Recorrente</p>
-                  <div style="display: flex; gap: 8px; margin-top: 12px;">
-                    <span class="status-badge" style="background: var(--color-bg); color: var(--color-pine);"><i class="fa-solid fa-id-card"></i> 123.456.789-00</span>
-                    <span class="status-badge" style="background: var(--color-bg); color: var(--color-pine);"><i class="fa-solid fa-phone"></i> (11) 99999-1111</span>
-                    <span class="status-badge" style="background: var(--color-bg); color: var(--color-pine);"><i class="fa-solid fa-envelope"></i> marcos.ra@gmail.com</span>
-                  </div>
-                </div>
-              </div>
-              <div style="display: flex; gap: 12px;">
-                <button class="btn-utility"><i class="fa-solid fa-pen"></i> Editar Ficha</button>
-                <button class="btn-utility primary"><i class="fa-brands fa-whatsapp"></i> Iniciar Atendimento</button>
-              </div>
-            </div>
-
-            <!-- Profile Body Grid -->
-            <div class="responsive-grid" style="padding: 40px; display: grid; grid-template-columns: 1fr 1fr; gap: 40px;">
-              
-              <!-- Histórico de Atendimentos -->
-              <div>
-                <h3 style="font-size: 14px; margin-bottom: 16px; color: var(--color-pine); border-bottom: 2px solid var(--color-border); padding-bottom: 8px;"><i class="fa-solid fa-clock-rotate-left"></i> Histórico de Atendimentos</h3>
-                
-                <div style="display: flex; flex-direction: column; gap: 16px;">
-                  <div style="padding: 16px; border: 1px solid var(--color-border); border-radius: 8px;">
-                    <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
-                      <span style="font-size: 13px; font-weight: 600; color: var(--color-pine);">Regularização MEI</span>
-                      <span style="font-size: 11px; color: var(--color-text-secondary);">10 de Julho, 2026</span>
-                    </div>
-                    <p style="font-size: 12px; color: var(--color-text-secondary); line-height: 1.5; margin: 0;">Cliente chamou para tirar dúvidas sobre o limite de faturamento estourado. Gerado DAS complementar.</p>
-                    <div style="margin-top: 12px;">
-                      <span class="status-badge" style="background: #2ECC71; color: white;">Concluído</span>
-                    </div>
-                  </div>
-
-                  <div style="padding: 16px; border: 1px solid var(--color-border); border-radius: 8px;">
-                    <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
-                      <span style="font-size: 13px; font-weight: 600; color: var(--color-pine);">Declaração IRPF 2026</span>
-                      <span style="font-size: 11px; color: var(--color-text-secondary);">15 de Abril, 2026</span>
-                    </div>
-                    <p style="font-size: 12px; color: var(--color-text-secondary); line-height: 1.5; margin: 0;">Declaração completa enviada. Aguardando restituição no 3º lote.</p>
-                    <div style="margin-top: 12px;">
-                      <span class="status-badge" style="background: #2ECC71; color: white;">Concluído</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Arquivo de Documentos -->
-              <div>
-                <h3 style="font-size: 14px; margin-bottom: 16px; color: var(--color-pine); border-bottom: 2px solid var(--color-border); padding-bottom: 8px;"><i class="fa-solid fa-folder-open"></i> Arquivos do Cliente</h3>
-                
-                <div class="dossier-grid" style="grid-template-columns: 1fr;">
-                  <div class="doc-card" style="display: flex; justify-content: space-between; align-items: center; padding: 12px 16px;">
-                    <div style="display: flex; gap: 12px; align-items: center;">
-                      <i class="fa-solid fa-file-pdf" style="font-size: 20px; color: #E74C3C;"></i>
-                      <div>
-                        <h4 style="font-size: 13px; color: var(--color-pine);">RG_Marcos.pdf</h4>
-                        <span style="font-size: 11px; color: var(--color-text-secondary);">Enviado em 10/Jul/26</span>
-                      </div>
-                    </div>
-                    <button class="btn-utility" style="padding: 4px 8px; font-size: 11px;"><i class="fa-solid fa-download"></i></button>
-                  </div>
-
-                  <div class="doc-card" style="display: flex; justify-content: space-between; align-items: center; padding: 12px 16px;">
-                    <div style="display: flex; gap: 12px; align-items: center;">
-                      <i class="fa-solid fa-file-pdf" style="font-size: 20px; color: #E74C3C;"></i>
-                      <div>
-                        <h4 style="font-size: 13px; color: var(--color-pine);">Recibo_IRPF_2026.pdf</h4>
-                        <span style="font-size: 11px; color: var(--color-text-secondary);">Gerado em 15/Abr/26</span>
-                      </div>
-                    </div>
-                    <button class="btn-utility" style="padding: 4px 8px; font-size: 11px;"><i class="fa-solid fa-download"></i></button>
-                  </div>
-
-                  <div class="doc-card" style="display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; border: 1px dashed var(--color-border); background: var(--color-bg); justify-content: center; cursor: pointer;">
-                    <span style="font-size: 12px; font-weight: 600; color: var(--color-pine);"><i class="fa-solid fa-upload"></i> Fazer Upload de Novo Arquivo</span>
-                  </div>
-                </div>
-
-              </div>
-
-            </div>
+          <div class="settings-tabs" id="clientes-secao-tabs" style="border-bottom:none;">
+            <button type="button" class="settings-tab active" data-clientes-secao-tab="geral"><i class="fa-solid fa-users"></i> Visão Geral</button>
+            <button type="button" class="settings-tab" data-clientes-secao-tab="recorrentes"><i class="fa-solid fa-arrows-rotate"></i> Clientes Recorrentes</button>
           </div>
-
         </div>
+
+        <!-- Aba: Visão Geral — todos os clientes, nome + CPF, clique abre o cadastro completo -->
+        <div class="settings-pane active" id="clientes-pane-geral">
+          <div class="dashboard-split-grid" style="display: grid; grid-template-columns: 320px 1fr; height: 100%;">
+            <div style="border-right: 1px solid var(--color-border); display: flex; flex-direction: column; background: var(--color-bg);">
+              <div style="padding: 16px; border-bottom: 1px solid var(--color-border); background: white;">
+                <div class="search-chat" style="margin: 0 0 10px;">
+                  <i class="fa-solid fa-search"></i>
+                  <input type="text" id="crm-search" placeholder="Buscar CPF, CNPJ ou Nome...">
+                </div>
+                <div style="display:flex;gap:6px;flex-wrap:wrap;" id="crm-filtro-finalizados">
+                  <button type="button" class="btn-shortcut-tag active" data-crm-filtro="todos">Todos</button>
+                  <button type="button" class="btn-shortcut-tag" data-crm-filtro="hoje">Finalizados hoje</button>
+                  <button type="button" class="btn-shortcut-tag" data-crm-filtro="semana">Esta semana</button>
+                  <button type="button" class="btn-shortcut-tag" data-crm-filtro="mes">Este mês</button>
+                </div>
+              </div>
+              <div style="flex: 1; overflow-y: auto;" id="crm-client-list">
+                <!-- Rendered by JS -->
+              </div>
+            </div>
+            <div id="crm-client-detail" style="flex: 1; display: flex; flex-direction: column; background: white; overflow-y: auto;">
+              <!-- Rendered by JS -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Aba: Clientes Recorrentes — só quem tem acompanhamento mensal, com
+             detalhamento do serviço (tipo, valor, dia de vencimento) e prazos
+             (guias mensais a gerar). -->
+        <div class="settings-pane" id="clientes-pane-recorrentes">
+          <div class="dashboard-split-grid" style="display: grid; grid-template-columns: 320px 1fr; height: 100%;">
+            <div style="border-right: 1px solid var(--color-border); display: flex; flex-direction: column; background: var(--color-bg);">
+              <div style="padding: 16px; border-bottom: 1px solid var(--color-border); background: white;">
+                <h3 style="font-size: 13px; color: var(--color-pine); margin: 0 0 4px;"><i class="fa-solid fa-arrows-rotate"></i> Clientes Recorrentes</h3>
+                <p style="font-size: 11px; color: var(--color-text-secondary); margin: 0;">Acompanhamento mensal (parcelamento, obrigação recorrente etc.), serviço e prazos.</p>
+              </div>
+              <div style="flex: 1; overflow-y: auto;" id="recorrentes-tab-list">
+                <!-- Rendered by JS -->
+              </div>
+            </div>
+            <div id="recorrentes-tab-detail" style="flex: 1; display: flex; flex-direction: column; background: white; overflow-y: auto;">
+              <!-- Rendered by JS -->
+            </div>
+          </div>
+        </div>
+
       </section>
 
       <!-- SECTION 7: Acompanhamento (Kanban/Esteira de Atendimento) -->
@@ -1246,35 +1482,85 @@
 
       <!-- SECTION 7: Financeiro -->
       <section class="content-panel" id="section-financeiro">
-        <div class="panel-header-desc" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
-          <div>
-            <h2>Painel Financeiro (Asaas)</h2>
-            <p>Gerencie faturamento, planos e links de pagamento integrados.</p>
-          </div>
-          <button class="btn-utility primary" id="btn-novo-servico"><i class="fa-solid fa-plus"></i> Novo serviço</button>
+        <div class="panel-header-desc">
+          <h2>Painel Financeiro (Asaas)</h2>
+          <p>Faturamento, cobranças em aberto, planos/links de pagamento e créditos.</p>
         </div>
 
-        <div class="financeiro-grid">
-          <!-- Resumo Financeiro -->
-          <div class="financeiro-card">
-            <h3 style="font-size: 14px; margin-bottom: 12px; color: var(--color-text-secondary);">Recebimentos do Mês</h3>
-            <h2 id="financeiro-recebido" style="font-size: 28px; color: var(--color-pine);">—</h2>
-            <p class="kpi-trend positive" id="financeiro-recebido-info">Carregando cobranças…</p>
-          </div>
-          
-          <div class="financeiro-card">
-            <h3 style="font-size: 14px; margin-bottom: 12px; color: var(--color-text-secondary);">A Receber (Em Aberto)</h3>
-            <h2 id="financeiro-aberto" style="font-size: 28px; color: var(--color-coral);">—</h2>
-            <p class="kpi-trend warning" id="financeiro-aberto-info">Carregando cobranças…</p>
-          </div>
+        <div class="settings-tabs" style="margin-bottom: 20px;">
+          <button class="settings-tab active" data-tab="fin-faturamento">Faturamento</button>
+          <button class="settings-tab" data-tab="fin-abertas">Cobranças em Aberto <span class="chat-count-badge" id="financeiro-abertas-badge" style="background: var(--color-coral);">0</span></button>
+          <button class="settings-tab" data-tab="fin-planos">Planos & Links de Pagamento</button>
+          <button class="settings-tab" data-tab="fin-creditos">Créditos de Atendimento</button>
+        </div>
 
-          <!-- Planos Asaas -->
+        <!-- Aba: Faturamento -->
+        <div class="settings-pane active" id="fin-faturamento">
+          <div class="financeiro-grid">
+            <div class="financeiro-card">
+              <h3 style="font-size: 14px; margin-bottom: 12px; color: var(--color-text-secondary);">Recebimentos do Mês</h3>
+              <h2 id="financeiro-recebido" style="font-size: 28px; color: var(--color-pine);">—</h2>
+              <p class="kpi-trend positive" id="financeiro-recebido-info">Carregando cobranças…</p>
+            </div>
+
+            <div class="financeiro-card">
+              <h3 style="font-size: 14px; margin-bottom: 12px; color: var(--color-text-secondary);">A Receber (Em Aberto)</h3>
+              <h2 id="financeiro-aberto" style="font-size: 28px; color: var(--color-coral);">—</h2>
+              <p class="kpi-trend warning" id="financeiro-aberto-info">Carregando cobranças…</p>
+            </div>
+
+            <div class="financeiro-card">
+              <h3 style="font-size: 14px; margin-bottom: 12px; color: var(--color-text-secondary);">Ticket Médio Pago</h3>
+              <h2 id="financeiro-ticket-medio" style="font-size: 28px; color: var(--color-pine);">—</h2>
+              <p class="kpi-trend" id="financeiro-ticket-medio-info">Carregando cobranças…</p>
+            </div>
+
+            <div class="financeiro-card full-width">
+              <h3 style="font-size:16px;margin-bottom:16px">Cobranças recentes</h3>
+              <div id="financeiro-cobrancas-lista" style="font-size:13px;color:var(--color-text-secondary)">Carregando cobranças…</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Aba: Cobranças em Aberto (geradas e não pagas) -->
+        <div class="settings-pane" id="fin-abertas">
+          <div class="financeiro-card full-width">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 16px;">
+              <h3 style="font-size: 16px; margin: 0;">Cobranças geradas e não pagas</h3>
+              <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;" id="financeiro-abertas-filtro">
+                <button type="button" class="btn-shortcut-tag active" data-financeiro-abertas-filtro="todas">Todas</button>
+                <button type="button" class="btn-shortcut-tag" data-financeiro-abertas-filtro="0-3">0–3 dias</button>
+                <button type="button" class="btn-shortcut-tag" data-financeiro-abertas-filtro="4-7">4–7 dias</button>
+                <button type="button" class="btn-shortcut-tag" data-financeiro-abertas-filtro="8+">8+ dias</button>
+              </div>
+            </div>
+            <p style="font-size:12px;color:var(--color-text-secondary);margin:0 0 16px">Pagamento ainda não confirmado — o cliente pode nem ter chat aberto ainda, então o contato aqui é direto por e-mail/WhatsApp.</p>
+            <table class="financeiro-table">
+              <thead>
+                <tr>
+                  <th>Cliente</th>
+                  <th>Valor</th>
+                  <th>Status</th>
+                  <th>Aberta há</th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
+              <tbody id="financeiro-abertas-lista"><tr><td colspan="5">Carregando cobranças…</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Aba: Planos & Links de Pagamento -->
+        <div class="settings-pane" id="fin-planos">
           <div class="financeiro-card full-width">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-              <h3 style="font-size: 16px;">Planos de Serviço (Checkout)</h3>
-              <button class="btn-utility" id="btn-atualizar-financeiro"><i class="fa-solid fa-rotate"></i> Atualizar</button>
+              <h3 style="font-size: 16px; margin: 0;">Planos de Serviço (Checkout)</h3>
+              <div style="display:flex;gap:8px;">
+                <button class="btn-utility" id="btn-atualizar-financeiro"><i class="fa-solid fa-rotate"></i> Atualizar</button>
+                <button class="btn-utility primary" id="btn-novo-servico"><i class="fa-solid fa-plus"></i> Novo serviço</button>
+              </div>
             </div>
-            
+
             <table class="financeiro-table">
               <thead>
                 <tr>
@@ -1288,15 +1574,13 @@
               <tbody id="financeiro-servicos-lista"><tr><td colspan="5">Carregando serviços…</td></tr></tbody>
             </table>
           </div>
-          <div class="financeiro-card full-width">
-            <h3 style="font-size:16px;margin-bottom:16px">Cobranças recentes</h3>
-            <div id="financeiro-cobrancas-lista" style="font-size:13px;color:var(--color-text-secondary)">Carregando cobranças…</div>
-          </div>
+        </div>
 
-          <!-- Créditos de Atendimento -->
+        <!-- Aba: Créditos de Atendimento -->
+        <div class="settings-pane" id="fin-creditos">
           <div class="financeiro-card full-width">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-              <h3 style="font-size: 16px;">Créditos de Atendimento</h3>
+              <h3 style="font-size: 16px; margin: 0;">Créditos de Atendimento</h3>
               <button class="btn-utility primary" id="btn-gerar-credito"><i class="fa-solid fa-gift"></i> Gerar crédito</button>
             </div>
             <p style="font-size:12px;color:var(--color-text-secondary);margin:0 0 16px">Gere um crédito em R$ (cortesia, reembolso, parceria) e envie o código ou o link para o cliente. Ele resgata direto — sem passar pelo checkout/pagamento.</p>
@@ -1312,27 +1596,6 @@
               </thead>
               <tbody id="financeiro-creditos-lista"><tr><td colspan="5">Carregando créditos…</td></tr></tbody>
             </table>
-          </div>
-        </div>
-      </section>
-
-      <section class="content-panel" id="section-recorrentes" style="padding: 0;">
-        <div class="dashboard-split-grid" style="display: grid; grid-template-columns: 320px 1fr; height: 100%;">
-
-          <!-- Left: lista de clientes recorrentes -->
-          <div style="border-right: 1px solid var(--color-border); display: flex; flex-direction: column; background: var(--color-bg);">
-            <div style="padding: 24px; border-bottom: 1px solid var(--color-border); background: white;">
-              <h2 style="font-size: 18px; margin-bottom: 4px; color: var(--color-pine);"><i class="fa-solid fa-arrows-rotate"></i> Clientes Recorrentes</h2>
-              <p style="font-size: 12px; color: var(--color-text-secondary);">Acompanhamento mensal (parcelamento, obrigação recorrente etc.) e documentos.</p>
-            </div>
-            <div style="flex: 1; overflow-y: auto;" id="recorrentes-client-list">
-              <!-- Rendered by JS -->
-            </div>
-          </div>
-
-          <!-- Right: detalhe do cliente recorrente -->
-          <div id="recorrentes-client-detail" style="flex: 1; display: flex; flex-direction: column; background: white; overflow-y: auto;">
-            <!-- Rendered by JS -->
           </div>
         </div>
       </section>
@@ -1663,46 +1926,6 @@
   </div>
 
   <!-- Modal: Relatório do Cliente — a IA preenche, o contador revisa, vira PDF branded -->
-  <div class="modal-overlay" id="modal-relatorio-overlay">
-    <div class="modal-container" style="max-width: 980px; width: 95%;">
-      <div class="modal-header">
-        <h3><i class="fa-solid fa-file-lines" style="color: var(--color-coral)"></i> Relatório do Cliente</h3>
-        <button class="btn-close-modal" data-close="modal-relatorio-overlay">&times;</button>
-      </div>
-      <div class="modal-body" style="padding: 0;">
-        <div style="display: flex; max-height: 68vh;">
-          <!-- Editor -->
-          <div style="flex: 1; padding: 20px; overflow-y: auto; border-right: 1px solid var(--color-border);">
-            <button class="btn-utility primary" id="btn-rel-ia" style="width: 100%; margin-bottom: 12px;">
-              <i class="fa-solid fa-wand-magic-sparkles"></i> Preencher com a IA (AIA)
-            </button>
-            <p style="font-size: 12px; color: var(--color-text-secondary); margin-bottom: 16px;">A AIA lê a conversa e escreve um rascunho em linguagem do cliente. Revise e ajuste antes de enviar.</p>
-            <label class="form-label">Título do atendimento</label>
-            <input class="form-select" id="rel-titulo" placeholder="Ex.: Regularização de Malha Fina 2024">
-            <label class="form-label" style="margin-top: 12px;">O que aconteceu (o problema)</label>
-            <textarea class="form-textarea" id="rel-problema" rows="3"></textarea>
-            <label class="form-label" style="margin-top: 12px;">Solução proposta</label>
-            <textarea class="form-textarea" id="rel-solucao" rows="3"></textarea>
-            <label class="form-label" style="margin-top: 12px;">O que foi feito <span style="font-weight: 400; color: var(--color-text-secondary);">(um item por linha)</span></label>
-            <textarea class="form-textarea" id="rel-oquefeito" rows="4"></textarea>
-            <label class="form-label" style="margin-top: 12px;">Como foi feito e próximos passos <span style="font-weight: 400; color: var(--color-text-secondary);">(um item por linha)</span></label>
-            <textarea class="form-textarea" id="rel-comofeito" rows="4"></textarea>
-          </div>
-          <!-- Prévia ao vivo do documento -->
-          <div style="flex: 1.05; padding: 20px; overflow-y: auto; background: #EDEAE3;">
-            <div style="font-size: 11px; text-transform: uppercase; letter-spacing: .5px; color: var(--color-text-secondary); margin-bottom: 10px;">Prévia do documento</div>
-            <div id="rel-previa-wrap" style="overflow: hidden;"><div id="rel-previa"></div></div>
-          </div>
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button class="btn-utility" data-close="modal-relatorio-overlay">Fechar</button>
-        <button class="btn-utility" id="btn-rel-baixar"><i class="fa-solid fa-download"></i> Baixar PDF</button>
-        <button class="btn-utility primary" id="btn-rel-enviar"><i class="fa-solid fa-paper-plane"></i> Gerar e enviar ao cliente</button>
-      </div>
-    </div>
-  </div>
-
   <!-- Notification Dropdown Panel in header -->
   <div class="notification-dropdown" id="noti-dropdown">
     <div class="noti-dropdown-header">
@@ -1861,6 +2084,48 @@
   </div>
 
   <!-- Modal: Convidar Equipe -->
+  <div class="modal-overlay" id="modal-editar-servico">
+    <div class="modal-container" style="max-width: 620px;">
+      <div class="modal-header">
+        <h3>Editar plano</h3>
+        <button class="btn-modal-close" onclick="closeModal('modal-editar-servico')"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="modal-body">
+        <form id="form-editar-servico">
+          <input type="hidden" id="servico-id">
+          <div class="form-group">
+            <label class="form-label" for="servico-nome">Nome do plano</label>
+            <input type="text" class="form-input" id="servico-nome" placeholder="Ex.: Pessoa Física" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="servico-preco">Valor (R$)</label>
+            <input type="text" class="form-input" id="servico-preco" placeholder="Ex.: 199,00" required inputmode="decimal">
+          </div>
+          <div class="form-group" style="display:flex;align-items:center;gap:8px">
+            <input type="checkbox" id="servico-ativo" style="width:auto">
+            <label class="form-label" for="servico-ativo" style="margin:0">Ativo no checkout</label>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">O que este plano abarca</label>
+            <p style="font-size:12.5px;color:var(--color-text-secondary);margin:-4px 0 10px">
+              Vira a lista suspensa "O que está acontecendo?" na tela de agendamento. A opção que o cliente escolher já chega no painel, mesmo que ele não escreva mais nada.
+            </p>
+            <div id="servico-itens-lista" style="display:flex;flex-direction:column;gap:8px"></div>
+            <button type="button" class="btn-utility" id="btn-add-item-servico" style="margin-top:10px">
+              <i class="fa-solid fa-plus"></i> Adicionar opção
+            </button>
+          </div>
+
+          <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 24px;">
+            <button type="button" class="btn-utility" onclick="closeModal('modal-editar-servico')">Cancelar</button>
+            <button type="submit" class="btn-utility primary">Salvar</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
   <div class="modal-overlay" id="modal-convite-equipe">
     <div class="modal-container" style="max-width: 500px;">
       <div class="modal-header">
@@ -1887,6 +2152,70 @@
           <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 24px;">
             <button type="button" class="btn-utility" onclick="closeModal('modal-convite-equipe')">Cancelar</button>
             <button type="submit" class="btn-utility primary">Enviar Convite</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Novo Cliente (cadastro manual + senha de acesso) -->
+  <div class="modal-overlay" id="modal-novo-cliente">
+    <div class="modal-container" style="max-width: 500px;">
+      <div class="modal-header">
+        <h3>Novo Cliente</h3>
+        <button class="btn-modal-close" onclick="closeModal('modal-novo-cliente')"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="modal-body">
+        <form id="form-novo-cliente">
+          <div class="form-group">
+            <label class="form-label" for="novo-cliente-nome">Nome Completo</label>
+            <input type="text" class="form-input" id="novo-cliente-nome" placeholder="Ex: Maria da Silva" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="novo-cliente-cpf">CPF ou CNPJ</label>
+            <input type="text" class="form-input" id="novo-cliente-cpf" placeholder="Só números" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="novo-cliente-email">Email</label>
+            <input type="email" class="form-input" id="novo-cliente-email" placeholder="Ex: maria@email.com" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="novo-cliente-telefone">Telefone</label>
+            <input type="text" class="form-input" id="novo-cliente-telefone" placeholder="Ex: (11) 99999-0000">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="novo-cliente-senha">Senha de acesso <span style="font-weight:400;color:var(--color-text-secondary);">(opcional)</span></label>
+            <input type="password" class="form-input" id="novo-cliente-senha" placeholder="Deixe em branco para só link mágico" autocomplete="new-password">
+            <small style="color:var(--color-text-secondary); font-size:11px; display:block; margin-top:4px;">Se preenchida, o cliente já pode entrar com e-mail e senha. Sem senha, ele recebe um link de acesso por e-mail.</small>
+          </div>
+          <p style="font-size: 12px; margin-top: 4px; display:none;" id="msg-novo-cliente"></p>
+          <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 24px;">
+            <button type="button" class="btn-utility" onclick="closeModal('modal-novo-cliente')">Cancelar</button>
+            <button type="submit" class="btn-utility primary" id="btn-salvar-novo-cliente">Criar cliente</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Resetar senha do cliente -->
+  <div class="modal-overlay" id="modal-resetar-senha-cliente">
+    <div class="modal-container" style="max-width: 440px;">
+      <div class="modal-header">
+        <h3>Resetar senha de acesso</h3>
+        <button class="btn-modal-close" onclick="closeModal('modal-resetar-senha-cliente')"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="modal-body">
+        <form id="form-resetar-senha-cliente">
+          <p style="font-size:13px;color:var(--color-text-secondary);margin-bottom:14px;" id="resetar-senha-cliente-nome"></p>
+          <div class="form-group">
+            <label class="form-label" for="resetar-senha-cliente-input">Nova senha</label>
+            <input type="password" class="form-input" id="resetar-senha-cliente-input" placeholder="mínimo 6 caracteres" required autocomplete="new-password">
+          </div>
+          <p style="font-size: 12px; margin-top: 4px; display:none;" id="msg-resetar-senha-cliente"></p>
+          <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 24px;">
+            <button type="button" class="btn-utility" onclick="closeModal('modal-resetar-senha-cliente')">Cancelar</button>
+            <button type="submit" class="btn-utility primary" id="btn-confirmar-resetar-senha-cliente">Salvar nova senha</button>
           </div>
         </form>
       </div>

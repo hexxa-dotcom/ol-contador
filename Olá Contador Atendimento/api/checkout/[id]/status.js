@@ -14,6 +14,13 @@ module.exports = async (req, res) => {
   const { data: cob } = await admin.from('cobrancas').select('*').eq('id', id).single();
   if (!cob) return res.status(404).json({ error: 'cobranca_not_found' });
 
+  // Confere que quem está logado pode ver o cliente dono desta cobrança (RLS
+  // via auth.sb) — sem isso, qualquer cliente autenticado conseguia ler (e
+  // forçar a confirmação de) a cobrança de qualquer outra pessoa só trocando
+  // o :id na URL.
+  const { data: cliente } = await auth.sb.from('clientes').select('id').eq('id', cob.cliente_ref).maybeSingle();
+  if (!cliente) return res.status(403).json({ error: 'forbidden' });
+
   try {
     res.json(await confirmCobranca(admin, cob));
   } catch (e) {

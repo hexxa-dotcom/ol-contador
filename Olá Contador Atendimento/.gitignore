@@ -1,1 +1,5 @@
 .vercel
+
+# Chaves reais puxadas via `vercel env pull` — nunca versionar.
+.env
+.env.*

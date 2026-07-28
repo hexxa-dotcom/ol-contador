@@ -5,6 +5,11 @@
 // body: { codigo, name, cpfCnpj, email, phone, sexo, cidade, estado, servicoId, date, time, summary }
 const { adminClient } = require('./_lib/auth');
 const { validarCpfCnpj } = require('../documento');
+const { enviarLinkDeAcesso } = require('./_lib/pagamento');
+const { checarRateLimit } = require('./_lib/rateLimit');
+
+// Mesmo teto do campo no site — ver comentário em signup-checkout.js.
+const LIMITE_RESUMO = 150;
 
 function nowTime() {
   return new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
@@ -12,12 +17,17 @@ function nowTime() {
 
 module.exports = async (req, res) => {
   if (req.method !== 'POST') return res.status(405).json({ error: 'method_not_allowed' });
-  const { codigo, name, cpfCnpj, email, phone, sexo, cidade, estado, servicoId, date, time, summary } = req.body || {};
+  const { codigo, name, cpfCnpj, email, phone, sexo, cidade, estado, servicoId, date, time, summary, assunto } = req.body || {};
   if (!codigo || !name || !email || !phone || !servicoId) return res.status(400).json({ error: 'invalid_params' });
   const { valido, digitos } = validarCpfCnpj(cpfCnpj);
   if (!valido) return res.status(400).json({ error: 'cpf_cnpj_invalido' });
   const admin = adminClient();
   if (!admin) return res.status(503).json({ error: 'service_role_not_configured' });
+  // Limite um pouco mais apertado aqui: esse endpoint testa um código contra
+  // o banco, então é o alvo natural de uma tentativa de força bruta.
+  if (!(await checarRateLimit(admin, req, 'resgatar-credito', 10, 15))) {
+    return res.status(429).json({ error: 'muitas_tentativas', detail: 'Tente de novo em alguns minutos.' });
+  }
 
   const { data: credito } = await admin.from('creditos').select('*').eq('codigo', String(codigo).trim().toUpperCase()).maybeSingle();
   if (!credito) return res.status(404).json({ error: 'credito_not_found' });
@@ -41,9 +51,14 @@ module.exports = async (req, res) => {
     } else {
       await admin.from('clientes').update({ email, phone, sexo: sexo || null, cidade: cidade || null, estado: estado || null }).eq('id', clientId);
     }
-    if (summary) {
+    // O assunto sozinho já diz do que se trata, então a triagem é criada mesmo
+    // sem descrição — antes, quem não escrevia nada não gerava triagem nenhuma e
+    // o caso chegava no painel sem contexto.
+    if (assunto || summary) {
       await admin.from('triagens').insert({
-        cliente_ref: clientId, assunto: servico.name, descricao: summary, status: 'enviada', enviada_at: new Date().toISOString()
+        cliente_ref: clientId, assunto: assunto || servico.name,
+        descricao: summary ? String(summary).slice(0, LIMITE_RESUMO) : null,
+        status: 'enviada', enviada_at: new Date().toISOString()
       });
     }
 
@@ -83,6 +98,7 @@ module.exports = async (req, res) => {
         console.error('criação de conta via crédito falhou:', e.message);
       }
     }
+    if (email) await enviarLinkDeAcesso(admin, email);
 
     res.json({
       clientId, appointmentId: appt ? appt.id : null,
