@@ -1,49 +1,45 @@
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600&display=swap');
 
 :root {
-  --color-pine: #0A3121;
-  --color-pine-light: #164E37;
-  --color-pine-ultra-light: #EAF2EE;
-  --color-coral: #FF6A45;
-  --color-coral-dark: #E05330;
-  --color-coral-light: #FFF0ED;
-  --color-bg: #F0EDE6;
-  --color-card: #FFFFFF;
-  --color-text-primary: #1A2F25;
-  --color-text-secondary: #6C8578;
-  --color-border: #DCD8D0;
-  --color-shadow: rgba(10, 49, 33, 0.06);
+  --color-pine: #0C5446;
+  --color-pine-light: #11705D;
+  --color-pine-ultra-light: #E6EFED;
+  --color-coral: #FF6700;
+  --color-coral-dark: #CC5200;
+  --color-coral-light: #FFEFE5;
+  --color-bg: #DBD0BD;
+  --color-card: #FCFAEF;
+  --color-text-primary: #062A23;
+  --color-text-secondary: #4A6B63;
+  --color-border: #C8BCAC;
+  --color-shadow: rgba(12, 84, 70, 0.08);
   --font-title: 'Outfit', sans-serif;
-  --font-body: 'Outfit', sans-serif; /* Changed to Outfit for fluidity */
+  --font-body: 'Outfit', sans-serif;
   
   /* Chat Customization Variables */
-  --chat-bg-color: #FFFFFF;
+  --chat-bg-color: #FCFAEF;
   --chat-bubble-contador-bg: var(--color-pine-light);
-  --chat-bubble-cliente-bg: var(--color-bg);
-  /* Fundo do Copiloto IA — separado do chat principal de propósito, pra nunca
-     dar a impressão de que a mensagem apareceu na conversa com o cliente. Tom
-     azulado de propósito: o resto do app é bege/verde, então mesmo o padrão
-     (antes de o contador customizar) já se destaca visualmente. */
+  --chat-bubble-cliente-bg: #EAE3D6;
   --copilot-bg-color: #EAF1F6;
 }
 
 body.dark-mode {
-  --color-pine: #1A3A2C;
-  --color-pine-light: #24523F;
-  --color-pine-ultra-light: #16261F;
-  --color-coral: #FF7B5C;
-  --color-coral-dark: #E05330;
-  --color-coral-light: #2A1713;
-  --color-bg: #121413;
-  --color-card: #1C201E;
-  --color-text-primary: #EAECEA;
-  --color-text-secondary: #8CA095;
-  --color-border: #2A332E;
+  --color-pine: #11705D;
+  --color-pine-light: #1A9C83;
+  --color-pine-ultra-light: #062A23;
+  --color-coral: #FF8533;
+  --color-coral-dark: #FF6700;
+  --color-coral-light: #331500;
+  --color-bg: #1A1815;
+  --color-card: #26241F;
+  --color-text-primary: #FCFAEF;
+  --color-text-secondary: #A39B8C;
+  --color-border: #3D3A32;
   --color-shadow: rgba(0, 0, 0, 0.5);
   
-  --chat-bg-color: #121413;
+  --chat-bg-color: #1A1815;
   --chat-bubble-contador-bg: var(--color-pine-light);
-  --chat-bubble-cliente-bg: #272C29;
+  --chat-bubble-cliente-bg: #33302A;
   --copilot-bg-color: #16202B;
 }
 
