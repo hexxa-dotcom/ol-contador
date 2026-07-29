@@ -3248,7 +3248,12 @@ function broadcastChatStatus(clientId, status) {
   if (window.OC_CONFIG?.TESTE_CONTADOR_SEM_LOGIN?.enabled && window.OC_ROLE === 'contador') return;
   try {
     const ch = window.sb.channel('oc-lock-' + clientId);
-    ch.send({ type: 'broadcast', event: 'lock_change', payload: { locked: status === 'locked' || status === 'done', status } });
+    ch.subscribe((state) => {
+      if (state === 'SUBSCRIBED') {
+        ch.send({ type: 'broadcast', event: 'lock_change', payload: { locked: status === 'locked' || status === 'done', status } })
+          .then(() => window.sb.removeChannel(ch));
+      }
+    });
   } catch (e) {
     console.warn('Não consegui avisar o cliente em tempo real:', e);
   }
