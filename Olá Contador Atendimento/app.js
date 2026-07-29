@@ -3257,7 +3257,7 @@ function broadcastChatStatus(clientId, status) {
 async function atualizarStatusCliente(clientId, status) {
   const res = await fetch(API_BASE + '/api/status?acao=atualizar-status', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${await tokenSessaoAtual()}` },
     body: JSON.stringify({ clientId, status })
   });
   if (!res.ok) throw new Error('status_update_failed');
@@ -3275,9 +3275,9 @@ async function moverParaAcompanhamento() {
   if (!activeClientId) return;
   const clientId = activeClientId;
   kanbanEtapas = { ...kanbanEtapas, [clientId]: 'pending' };
-  const res = await fetch(API_BASE + '/api/config', {
-    method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ kanban_etapas: kanbanEtapas })
+  const res = await fetch(API_BASE + '/api/status?acao=salvar-config', {
+    method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${await tokenSessaoAtual()}` },
+    body: JSON.stringify({ config: { kanban_etapas: kanbanEtapas } })
   });
   if (!res.ok) { showToast('Não foi possível encaminhar para o Acompanhamento.'); return; }
   await postSystemMessageToChat("Caso encaminhado para o Acompanhamento — vai aparecer no quadro de pós-atendimento.");
@@ -3311,19 +3311,8 @@ async function finishActiveChat() {
   playSound('success');
   
   try {
-    await Promise.all([
-      atualizarStatusCliente(clientId, 'done'),
-      fetch(API_BASE + '/api/appointments/done', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ clientRef: clientId })
-      }),
-      fetch(API_BASE + '/api/triagem/arquivar', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ clientId })
-      })
-    ]);
+    // Apenas atualiza o status. endpoints antigos (appointments/done e triagem/arquivar) foram removidos na migração pro Supabase.
+    await atualizarStatusCliente(clientId, 'done');
 
     await postSystemMessageToChat("Atendimento encerrado. O chat foi bloqueado e o caso entrou no histórico do cliente.");
 
