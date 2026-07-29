@@ -30,19 +30,48 @@ create policy "Apenas admin pode ler toda a equipe" on public.staff for select u
   id = auth.uid()
 );
 
--- Garantir acesso ao is_staff e my_role
-create or replace function public.is_staff()
+-- Garantir acesso seguro ao is_staff e my_role. A implementação privilegiada
+-- fica fora do schema exposto; public contém apenas wrappers SECURITY INVOKER.
+create schema if not exists private;
+revoke all on schema private from public, anon;
+grant usage on schema private to authenticated;
+
+create or replace function private.is_staff()
 returns boolean
-language sql security definer
+language sql stable security definer
+set search_path = ''
 as $$
   select exists (
-    select 1 from public.staff where id = auth.uid()
+    select 1 from public.staff where id = (select auth.uid())
   );
 $$;
 
+create or replace function private.my_role()
+returns text
+language sql stable security definer
+set search_path = ''
+as $$
+  select role from public.staff where id = (select auth.uid()) limit 1;
+$$;
+
+revoke all on function private.is_staff() from public, anon;
+revoke all on function private.my_role() from public, anon;
+grant execute on function private.is_staff() to authenticated;
+grant execute on function private.my_role() to authenticated;
+
+create or replace function public.is_staff()
+returns boolean
+language sql stable security invoker
+set search_path = ''
+as $$ select private.is_staff(); $$;
+
 create or replace function public.my_role()
 returns text
-language sql security definer
-as $$
-  select role from public.staff where id = auth.uid();
-$$;
+language sql stable security invoker
+set search_path = ''
+as $$ select private.my_role(); $$;
+
+revoke all on function public.is_staff() from public, anon;
+revoke all on function public.my_role() from public, anon;
+grant execute on function public.is_staff() to authenticated;
+grant execute on function public.my_role() to authenticated;

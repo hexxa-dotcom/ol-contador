@@ -84,6 +84,9 @@
       <button class="nav-item" data-target="section-financeiro" title="Financeiro">
         <i class="fa-solid fa-money-bill-wave"></i> <span class="nav-label">Financeiro</span>
       </button>
+      <button class="nav-item" data-target="section-radar-fiscal" title="Radar Fiscal">
+        <i class="fa-solid fa-satellite-dish"></i> <span class="nav-label">Radar Fiscal</span>
+      </button>
       <button class="nav-item" data-target="section-insights" title="Insights">
         <i class="fa-solid fa-chart-pie"></i> <span class="nav-label">Insights</span>
       </button>
@@ -1597,6 +1600,26 @@
               <tbody id="financeiro-creditos-lista"><tr><td colspan="5">Carregando créditos…</td></tr></tbody>
             </table>
           </div>
+        </div>
+      </section>
+
+      <section class="content-panel" id="section-radar-fiscal">
+        <div class="panel-header-desc">
+          <h2>Radar Fiscal</h2>
+          <p>Consulte pendências na Receita Federal (Caixa Postal) pra qualquer CPF ou CNPJ, sem precisar de um cliente cadastrado.</p>
+        </div>
+
+        <div class="financeiro-card" style="max-width: 640px;">
+          <label style="font-size: 13px; font-weight: 600; color: var(--color-text-secondary); margin-bottom: 6px; display: block;">CPF ou CNPJ</label>
+          <div style="display: flex; gap: 10px;">
+            <input type="text" id="radar-avulso-documento" class="form-input" placeholder="000.000.000-00 ou 00.000.000/0000-00" style="flex: 1;">
+            <button class="btn-utility primary" onclick="consultarRadarFiscalAvulso()"><i class="fa-solid fa-magnifying-glass-arrow-right"></i> Consultar</button>
+          </div>
+        </div>
+
+        <div id="radar-avulso-content" style="background: var(--color-bg); border-radius: 12px; padding: 24px; text-align: center; border: 1px dashed var(--color-border); max-width: 640px; margin-top: 16px;">
+          <i class="fa-solid fa-satellite-dish" style="font-size: 32px; color: var(--color-text-secondary); opacity: 0.3; margin-bottom: 12px;"></i>
+          <p style="font-size: 14px; color: var(--color-text-secondary); margin: 0;">Digite um CPF/CNPJ acima e clique em "Consultar".</p>
         </div>
       </section>
 

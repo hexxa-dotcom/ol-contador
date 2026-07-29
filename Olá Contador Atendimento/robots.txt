@@ -6,4 +6,4 @@ Disallow: /login
 Disallow: /contador
 Disallow: /cliente
 
-Sitemap: https://ola-contador.vercel.app/sitemap.xml
+Sitemap: https://www.olacontador.com.br/sitemap.xml

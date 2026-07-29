@@ -2197,7 +2197,8 @@ body {
   opacity: 0.9;
 }
 .message-meta i { margin-left: 3px; font-size: 10px; }
-.message-meta i.lida { color: #1F8A5F; }
+/* ✓✓ azul: mesma convenção visual do WhatsApp para mensagem lida. */
+.message-meta i.lida { color: #53BDEB; }
 
 .chat-retry {
   margin-top: 6px;
@@ -4616,7 +4617,7 @@ input:checked + .slider:before {
   color: rgba(255, 255, 255, 0.8) !important; /* Meta data readable on green */
 }
 .message-bubble.sent .message-meta i.lida {
-  color: #fff !important; /* Checkmark clearly visible on green */
+  color: #53BDEB !important;
 }
 
 

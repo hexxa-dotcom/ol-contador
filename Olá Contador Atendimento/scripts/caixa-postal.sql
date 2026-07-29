@@ -18,32 +18,60 @@ create index if not exists caixa_postal_created_at_idx on public.caixa_postal(cr
 
 alter table public.caixa_postal enable row level security;
 
--- Staff (contador/equipe) vê e escreve em qualquer caixa.
+-- Uma policy por ação evita sobreposição. O papel fica explícito: nenhuma
+-- operação desta tabela é exposta ao anon.
 drop policy if exists "staff_ve_caixa_postal" on public.caixa_postal;
-create policy "staff_ve_caixa_postal" on public.caixa_postal for select using (public.is_staff());
-
 drop policy if exists "staff_envia_caixa_postal" on public.caixa_postal;
-create policy "staff_envia_caixa_postal" on public.caixa_postal for insert with check (public.is_staff());
-
 drop policy if exists "staff_atualiza_caixa_postal" on public.caixa_postal;
-create policy "staff_atualiza_caixa_postal" on public.caixa_postal for update using (public.is_staff());
-
--- Cliente só vê/escreve na própria caixa (cliente_ref -> clientes.user_id = auth.uid()).
 drop policy if exists "cliente_ve_sua_caixa_postal" on public.caixa_postal;
-create policy "cliente_ve_sua_caixa_postal" on public.caixa_postal for select using (
-  cliente_ref in (select id from public.clientes where user_id = auth.uid())
-);
-
 drop policy if exists "cliente_envia_caixa_postal" on public.caixa_postal;
-create policy "cliente_envia_caixa_postal" on public.caixa_postal for insert with check (
-  remetente = 'cliente' and cliente_ref in (select id from public.clientes where user_id = auth.uid())
+drop policy if exists "cliente_marca_lida_caixa_postal" on public.caixa_postal;
+drop policy if exists "caixa_postal_select" on public.caixa_postal;
+drop policy if exists "caixa_postal_insert" on public.caixa_postal;
+drop policy if exists "caixa_postal_update_lida" on public.caixa_postal;
+
+create policy "caixa_postal_select"
+on public.caixa_postal for select
+to authenticated
+using (
+  (select public.is_staff())
+  or cliente_ref = (select public.my_client_id())
 );
 
-drop policy if exists "cliente_marca_lida_caixa_postal" on public.caixa_postal;
-create policy "cliente_marca_lida_caixa_postal" on public.caixa_postal for update using (
-  cliente_ref in (select id from public.clientes where user_id = auth.uid())
-) with check (
-  cliente_ref in (select id from public.clientes where user_id = auth.uid())
+create policy "caixa_postal_insert"
+on public.caixa_postal for insert
+to authenticated
+with check (
+  ((select public.is_staff()) and remetente = 'contador')
+  or (
+    cliente_ref = (select public.my_client_id())
+    and remetente = 'cliente'
+  )
 );
+
+-- UPDATE fica limitado também por coluna: cliente só confirma mensagens do
+-- contador e não consegue alterar texto, assunto, remetente ou cliente_ref.
+create policy "caixa_postal_update_lida"
+on public.caixa_postal for update
+to authenticated
+using (
+  (select public.is_staff())
+  or (
+    cliente_ref = (select public.my_client_id())
+    and remetente = 'contador'
+  )
+)
+with check (
+  (select public.is_staff())
+  or (
+    cliente_ref = (select public.my_client_id())
+    and remetente = 'contador'
+  )
+);
+
+revoke all on table public.caixa_postal from anon, authenticated;
+grant select, insert on table public.caixa_postal to authenticated;
+grant update (lida) on table public.caixa_postal to authenticated;
+grant usage, select on sequence public.caixa_postal_id_seq to authenticated;
 
 select count(*) as ok from public.caixa_postal;

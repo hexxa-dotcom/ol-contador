@@ -40,6 +40,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Carrega o histórico persistido (fonte da verdade = banco).
   await loadClientHistory();
   if (chatEstaVisivel()) marcarTudoLido();
+  iniciarSincronizacaoDeLeituraCliente();
 
   setupCheckout();
   loadAgendaFiscal();
@@ -583,17 +584,32 @@ function updateContadorPresenceUI() {
 // exigia editar arquivo e publicar. Agora saem de Configurações → Área do Cliente.
 let PERFIL_CONTADOR = { nome: 'Seu contador', crc: '', especialidade: '' };
 
+function iniciaisDoNome(nome) {
+  return String(nome || '?').trim().split(/\s+/).filter(Boolean)
+    .map(parte => parte[0]).join('').slice(0, 2).toUpperCase() || '?';
+}
+
 async function aplicarPerfilDoContador() {
   try {
     const res = await fetch('/api/config');
     const cfg = await res.json();
-    if (cfg && cfg.contador_perfil) PERFIL_CONTADOR = Object.assign(PERFIL_CONTADOR, cfg.contador_perfil);
+    // A tela do contador salva em `perfil_contador` com `name`; a versão
+    // antiga do portal cliente lia outra chave, deixando o avatar sem nome.
+    const perfil = cfg && (cfg.perfil_contador || cfg.contador_perfil);
+    if (perfil) {
+      PERFIL_CONTADOR = Object.assign(PERFIL_CONTADOR, perfil, {
+        nome: perfil.nome || perfil.name || PERFIL_CONTADOR.nome,
+        crc: perfil.crc || PERFIL_CONTADOR.crc
+      });
+    }
   } catch (e) { /* fica o texto de reserva do HTML */ }
 
   const nome = document.getElementById('oc-contador-nome');
   const crc = document.getElementById('oc-contador-crc');
+  const avatar = document.getElementById('oc-contador-avatar');
   if (nome) nome.textContent = PERFIL_CONTADOR.nome;
   if (crc) crc.textContent = PERFIL_CONTADOR.crc || '';
+  if (avatar) avatar.textContent = iniciaisDoNome(PERFIL_CONTADOR.nome);
 
   // O indicador de "digitando" cita o nome — tem que acompanhar.
   const dig = document.querySelector('#oc-digitando em');
@@ -1094,8 +1110,12 @@ async function carregarRadarFiscal() {
 
   // Se tiver assinatura, busca os dados da API simulando o Serpro
   try {
+    // 'sb_session_token' nunca foi gravado em lugar nenhum — sempre saía
+    // "Bearer null". O token de verdade vem da sessão do Supabase já aberta.
+    const { data: sessData } = await sb.auth.getSession();
+    const token = sessData && sessData.session ? sessData.session.access_token : '';
     const res = await fetch('/api/radar-fiscal', {
-      headers: { 'Authorization': `Bearer ${localStorage.getItem('sb_session_token')}` }
+      headers: { 'Authorization': `Bearer ${token}` }
     });
     if (!res.ok) throw new Error('Falha ao carregar Radar Fiscal');
     
@@ -1234,7 +1254,7 @@ async function loadClientHistory() {
     const avatarEl = document.getElementById('client-header-avatar');
     if (nameEl) nameEl.textContent = client.name || '';
     if (docEl) docEl.textContent = client.cpf || '';
-    if (avatarEl) avatarEl.textContent = client.avatar || '';
+    if (avatarEl) avatarEl.textContent = client.avatar || iniciaisDoNome(client.name);
 
     // Precisa saber ANTES de desenhar as bolhas se já existe avaliação — senão
     // o card de NPS no histórico renderizaria as estrelas de novo mesmo depois
@@ -1464,6 +1484,37 @@ function chatEstaVisivel() {
 
 function marcarTudoLido() {
   OCChat.marcarLidas(CLIENT_ID);
+}
+
+// Realtime deixa o ✓✓ instantâneo. Esta checagem leve é a rede de segurança
+// para a confirmação de leitura quando uma aba perde a conexão WebSocket.
+let sincronizacaoLeituraClienteEmAndamento = false;
+async function sincronizarLeiturasDoCliente() {
+  if (sincronizacaoLeituraClienteEmAndamento || document.hidden || !CLIENT_ID) return;
+  sincronizacaoLeituraClienteEmAndamento = true;
+  try {
+    const res = await fetch('/api/clients');
+    if (!res.ok) return;
+    const client = (await res.json())[CLIENT_ID];
+    if (!client || !Array.isArray(client.messages)) return;
+    const porId = new Map(client.messages.map(m => [m.id, m]));
+    document.querySelectorAll('#client-chat-history [data-msg-id]').forEach(bubble => {
+      const atualizada = porId.get(bubble.dataset.msgId);
+      if (atualizada?.readAt) aplicarLeitura(atualizada);
+    });
+    if (clienteLogado) clienteLogado.messages = client.messages;
+  } catch (e) {
+    console.warn('[chat] não consegui sincronizar confirmações de leitura:', e.message);
+  } finally {
+    sincronizacaoLeituraClienteEmAndamento = false;
+  }
+}
+
+function iniciarSincronizacaoDeLeituraCliente() {
+  window.setInterval(sincronizarLeiturasDoCliente, 12000);
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) sincronizarLeiturasDoCliente();
+  });
 }
 
 // Aplica o ✓✓ quando o contador lê o que mandamos.

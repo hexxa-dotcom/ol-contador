@@ -2,20 +2,54 @@
 // Implementa autenticação mTLS e OAuth2 com fallback para Mock
 require('dotenv').config();
 const https = require('https');
-const axios = require('axios'); // Vamos usar o global axios ou node-fetch. Como axios não tá no package.json, usamos fetch nativo (Node 18+)
+// Usa fetch nativo do Node (18+) — axios nunca foi instalado (não está no
+// package.json) e o require dele aqui derrubava o módulo inteiro com
+// MODULE_NOT_FOUND assim que qualquer coisa importasse este arquivo.
+
+// O fetch nativo do Node (undici por baixo) NÃO aplica um https.Agent comum
+// passado em `agent` — ele ignora o certificado do cliente (mTLS) e o Serpro
+// responde "Não foi possível identificar um certificado digital válido.".
+// https.request clássico funciona (é o que o curl faz por baixo), então as
+// chamadas mTLS usam esse helper em vez de fetch.
+function httpsRequestMtls(url, { method = 'POST', headers = {}, body, agent } = {}) {
+  return new Promise((resolve, reject) => {
+    const u = new URL(url);
+    const req = https.request({
+      hostname: u.hostname, path: u.pathname + u.search, method, headers, agent
+    }, (res) => {
+      let data = '';
+      res.on('data', (chunk) => { data += chunk; });
+      res.on('end', () => resolve({ status: res.statusCode, ok: res.statusCode >= 200 && res.statusCode < 300, text: data }));
+    });
+    req.on('error', reject);
+    if (body) req.write(body);
+    req.end();
+  });
+}
 
 const SERPRO_CONSUMER_KEY = process.env.SERPRO_CONSUMER_KEY || '';
 const SERPRO_CONSUMER_SECRET = process.env.SERPRO_CONSUMER_SECRET || '';
-const SERPRO_CERT_BASE64 = process.env.SERPRO_CERT_BASE64 || '';
-const SERPRO_CERT_PASSWORD = process.env.SERPRO_CERT_PASSWORD || '';
+// Certificado e chave em PEM puro (já descriptografados), não o .pfx original.
+// O Node 24 usa OpenSSL 3, que não lê mais a criptografia legada (3DES/RC2)
+// que certificados e-CNPJ mais antigos usam dentro do .pfx — só ferramentas
+// com o "provider legado" ativado (ex. o curl do macOS) conseguem abrir esse
+// formato. A saída é extrair certificado+chave em PEM uma única vez (fora do
+// Node, com o openssl do sistema, que ainda lê o formato antigo) e usar isso
+// direto — TLS com cert/key em PEM não depende da criptografia do PKCS12.
+const SERPRO_CERT_PEM_BASE64 = process.env.SERPRO_CERT_PEM_BASE64 || '';
+const SERPRO_KEY_PEM_BASE64 = process.env.SERPRO_KEY_PEM_BASE64 || '';
 const SERPRO_TEMP_TOKEN = process.env.SERPRO_TEMP_TOKEN || ''; // Token temporário colado na Vercel
+
+// CNPJ da HEXX (contratante do Integra Contador) — obrigatório em toda
+// requisição, mesmo consultando o CPF/CNPJ de um cliente (contribuinte).
+const SERPRO_CNPJ_CONTRATANTE = (process.env.SERPRO_CNPJ_CONTRATANTE || '62414421000116').replace(/\D/g, '');
 
 let cachedAccessToken = null;
 let cachedJwtToken = null;
 let tokenExpiration = 0;
 
 function isSerproConfigured() {
-  return !!(SERPRO_TEMP_TOKEN || (SERPRO_CONSUMER_KEY && SERPRO_CERT_BASE64));
+  return !!(SERPRO_TEMP_TOKEN || (SERPRO_CONSUMER_KEY && SERPRO_CERT_PEM_BASE64 && SERPRO_KEY_PEM_BASE64));
 }
 
 // Gera dados fictícios mas consistentes para a UI (Modo Fallback/Simulação)
@@ -49,10 +83,10 @@ function getMockRadarData(documento) {
 
 // Cria o HttpsAgent com o certificado mTLS para requisições Serpro
 function getHttpsAgent() {
-  if (!SERPRO_CERT_BASE64) return null;
+  if (!SERPRO_CERT_PEM_BASE64 || !SERPRO_KEY_PEM_BASE64) return null;
   return new https.Agent({
-    pfx: Buffer.from(SERPRO_CERT_BASE64, 'base64'),
-    passphrase: SERPRO_CERT_PASSWORD,
+    cert: Buffer.from(SERPRO_CERT_PEM_BASE64, 'base64').toString('utf8'),
+    key: Buffer.from(SERPRO_KEY_PEM_BASE64, 'base64').toString('utf8'),
     rejectUnauthorized: false // Em alguns ambientes o Serpro exige chain, false facilita no início
   });
 }
@@ -71,22 +105,28 @@ async function getSerproTokens() {
   if (!agent) throw new Error("Certificado PFX Base64 ausente para mTLS.");
 
   const authHeader = Buffer.from(`${SERPRO_CONSUMER_KEY}:${SERPRO_CONSUMER_SECRET}`).toString('base64');
-  
-  const response = await fetch('https://gateway.apiserpro.serpro.gov.br/token', {
+
+  // Endpoint certo é o de autenticação (não o /token genérico do gateway) —
+  // só ele devolve o jwt_token junto com o access_token. O header
+  // Role-Type é exigido pra quem consulta CPF/CNPJ de terceiros (contador
+  // atendendo cliente), que é exatamente o nosso caso.
+  const response = await httpsRequestMtls('https://autenticacao.sapi.serpro.gov.br/authenticate', {
     method: 'POST',
     headers: {
       'Authorization': `Basic ${authHeader}`,
-      'Content-Type': 'application/x-www-form-urlencoded'
+      'Role-Type': 'TERCEIROS',
+      'Content-Type': 'application/x-www-form-urlencoded',
+      'Content-Length': Buffer.byteLength('grant_type=client_credentials')
     },
     body: 'grant_type=client_credentials',
-    agent // fetch em NodeJS suporta agente customizado em algumas versões, mas se der erro no Node nativo, axios é melhor.
+    agent
   });
 
   if (!response.ok) {
-    throw new Error(`Falha ao obter token Serpro: ${response.status} ${response.statusText}`);
+    throw new Error(`Falha ao obter token Serpro: ${response.status} ${response.text}`);
   }
 
-  const data = await response.json();
+  const data = JSON.parse(response.text);
   cachedAccessToken = data.access_token;
   cachedJwtToken = data.jwt_token || data.access_token;
   tokenExpiration = Date.now() + ((data.expires_in - 60) * 1000); // margem de 60s
@@ -94,58 +134,99 @@ async function getSerproTokens() {
   return { accessToken: cachedAccessToken, jwtToken: cachedJwtToken };
 }
 
+// Faz uma chamada ao Integra Contador (POST /Consultar, /Declarar ou /Emitir
+// conforme o serviço). Formato do corpo é o padrão documentado em
+// https://apicenter.estaleiro.serpro.gov.br/documentacao/api-integra-contador/pt/
+async function chamarIntegraContador({ acao, idSistema, idServico, versaoSistema, dados, documento, tipoDocumento }) {
+  const { accessToken, jwtToken } = await getSerproTokens();
+  const agent = getHttpsAgent();
+
+  const body = {
+    contratante: { numero: SERPRO_CNPJ_CONTRATANTE, tipo: 2 },
+    autorPedidoDados: { numero: SERPRO_CNPJ_CONTRATANTE, tipo: 2 },
+    contribuinte: { numero: documento, tipo: tipoDocumento },
+    pedidoDados: { idSistema, idServico, versaoSistema: versaoSistema || '1.0', dados: dados || '{}' }
+  };
+
+  const bodyStr = JSON.stringify(body);
+  const response = await httpsRequestMtls(`https://gateway.apiserpro.serpro.gov.br/integra-contador/v1/${acao}`, {
+    method: 'POST',
+    headers: {
+      'Accept': 'application/json',
+      'Authorization': `Bearer ${accessToken}`,
+      'jwt_token': jwtToken,
+      'Content-Type': 'application/json',
+      'Content-Length': Buffer.byteLength(bodyStr)
+    },
+    body: bodyStr,
+    agent
+  });
+
+  const text = response.text;
+  let json;
+  try { json = JSON.parse(text); } catch { json = { raw: text }; }
+  if (!response.ok) {
+    const msg = (json && (json.mensagens || json.message)) ? JSON.stringify(json.mensagens || json.message) : text;
+    throw new Error(`Integra Contador ${idSistema}/${idServico} falhou (${response.status}): ${msg}`);
+  }
+  return json;
+}
+
+// Caixa Postal (DTE) — mensagens do contribuinte. idServico documentado:
+// MSGCONTRIBUINTE61 (lista de mensagens do domicílio tributário eletrônico).
+async function consultarCaixaPostal(documento, tipoDocumento) {
+  const resp = await chamarIntegraContador({
+    acao: 'Consultar', idSistema: 'CAIXAPOSTAL', idServico: 'MSGCONTRIBUINTE61',
+    // indicadorPagina: "1" = primeira página. statusLeitura: "0" = todas
+    // (lidas e não lidas) — únicos dois campos que a API exige aqui.
+    dados: JSON.stringify({ indicadorPagina: '1', statusLeitura: '0' }),
+    documento, tipoDocumento
+  });
+  const mensagens = (resp && resp.dados && JSON.parse(resp.dados)) || resp.mensagens || [];
+  const lista = Array.isArray(mensagens) ? mensagens : (mensagens.mensagens || []);
+  return {
+    naoLidas: lista.filter(m => !m.lida && !m.indicadorLeitura).length,
+    mensagens: lista.slice(0, 10).map(m => ({
+      data: m.dataRecepcao || m.data || null,
+      assunto: m.assunto || m.titulo || 'Mensagem da Receita Federal'
+    }))
+  };
+}
+
 // Função principal exposta
 async function consultarRadarFiscal(documento) {
   if (!documento) throw new Error("Documento (CPF/CNPJ) obrigatório para o Radar Fiscal.");
-  
+  const digitos = documento.replace(/\D/g, '');
+  const tipoDocumento = digitos.length > 11 ? 2 : 1; // 1 = CPF, 2 = CNPJ
+
   if (!isSerproConfigured()) {
     console.log(`[Serpro MOCK] Consultando Radar Fiscal para ${documento}...`);
     return getMockRadarData(documento);
   }
 
-  try {
-    console.log(`[Serpro REAL] Iniciando comunicação mTLS com Integra Contador para ${documento}`);
-    const { accessToken, jwtToken } = await getSerproTokens();
-    const agent = getHttpsAgent();
+  // Base de partida real (mantém a mesma estrutura da UI); cada bloco abaixo
+  // tenta a consulta de verdade e cai pro mock SÓ NAQUELE bloco em caso de
+  // erro — assim um serviço específico falhando (ex. sem procuração pra
+  // Caixa Postal) não derruba os outros.
+  const dados = getMockRadarData(documento);
+  dados.simulacao = false;
 
-    // Exemplo de payload esperado pela API SITFIS (Consulta CND)
-    // Na prática cada endpoint (DTE, SITFIS, Parcelamento) requer um body específico.
-    // Como a integração total depende da subscrição exata dos contratos do CNPJ, 
-    // iniciamos com o mock aprimorado ou requisição de teste.
-    
-    // ATENÇÃO: Como não temos os payloads definitivos do cliente (SITFIS/DTE/etc),
-    // vamos deixar um try/catch para a requisição de teste. Se falhar (ex: mTLS faltando), 
-    // usamos o fallback para o sistema não quebrar em produção.
-    
-    /* 
-    const response = await fetch('https://gateway.apiserpro.serpro.gov.br/integra-contador/v1/Consultar', {
-      method: 'POST',
-      headers: {
-        'Accept': 'application/json',
-        'Authorization': \`Bearer \${accessToken}\`,
-        'jwt_token': jwtToken,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ ...payloadSitfis }),
-      agent
-    });
-    const result = await response.json();
-    return parserRadarReal(result);
-    */
-    
-    // Por enquanto, como o Serpro exige o Payload exato e os Contratos ativos,
-    // e para não quebrar a aplicação sem o .PFX, retornamos o Mock avisando que estamos em "Simulação Real".
-    const dados = getMockRadarData(documento);
-    dados.simulacao = false; // Flaggeado como não simulação para a UI
-    dados.cnd.mensagem = "[MODO TESTE SERPRO] A chave foi aceita, mas a consulta real de DTE/SITFIS requer o Payload final.";
-    
-    return dados;
-    
+  try {
+    console.log(`[Serpro REAL] Consultando Caixa Postal para ${documento}`);
+    dados.caixaPostal = await consultarCaixaPostal(digitos, tipoDocumento);
   } catch (error) {
-    console.error("[Serpro Erro]", error.message);
-    // Fallback gracioso
-    return getMockRadarData(documento);
+    console.error('[Serpro Erro — Caixa Postal]', error.message);
+    dados.caixaPostal.erro = 'Não foi possível consultar a Caixa Postal agora.';
   }
+
+  // Situação Fiscal (SITFIS) é assíncrona no Integra Contador (pede um
+  // protocolo, depois consulta o relatório em PDF) e a leitura do PDF exige
+  // um parser que ainda não foi validado contra uma consulta real — por
+  // isso, por enquanto, esse bloco específico continua no simulado, para não
+  // arriscar mostrar uma situação fiscal errada pro cliente.
+  dados.cnd.mensagem = '[Serpro real conectado] Situação fiscal (SITFIS) ainda em modo simulado — falta implementar a leitura do relatório em PDF. Caixa Postal já é consulta real.';
+
+  return dados;
 }
 
 module.exports = {

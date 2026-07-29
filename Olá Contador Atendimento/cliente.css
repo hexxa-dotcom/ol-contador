@@ -358,20 +358,20 @@
   display: inline-grid;
   place-items: center;
   color: #53bdeb;
-  width: 16px;
-  height: 16px;
+  width: 14px;
+  height: 14px;
   line-height: 1;
   filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.25));
 }
 
 .chat-verificado-selo {
-  font-size: 16px;
+  font-size: 14px;
 }
 
 .chat-verificado-check {
   position: absolute;
   color: #fff;
-  font-size: 8px;
+  font-size: 7px;
   font-weight: 900;
   transform: translateY(0.25px);
 }
@@ -615,7 +615,7 @@
 
 /* ✓ entregue · ✓✓ o contador leu */
 .chat-time i { margin-left: 3px; font-size: 10px; }
-.chat-bubble.cliente .chat-time i.lida { color: #7FD1AE; }
+.chat-bubble.cliente .chat-time i.lida { color: #53BDEB; }
 
 .chat-bubble.contador .chat-time {
   color: var(--color-text-secondary);

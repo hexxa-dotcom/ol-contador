@@ -8,6 +8,13 @@ let activeClientId = "ana-silva";
 let activeClientChatType = "internal"; // internal, doc_request
 let socket = null;
 
+// Realtime deixa a conversa instantânea. Esta sincronização curta é a rede de
+// segurança: se a rede cair, uma publicação do Supabase estiver atrasada ou a
+// aba ficar suspensa, o contador ainda vê mensagens novas sem precisar recarregar.
+let sincronizacaoAtendimentoTimer = null;
+let sincronizacaoAtendimentoEmAndamento = false;
+let avisoSincronizacaoMostrado = false;
+
 let clientsData = {};
 let notifications = [];
 let appointments = [];
@@ -230,8 +237,15 @@ document.addEventListener("DOMContentLoaded", async () => {
     onData: async () => {
       await refreshAllData();
       if (activeClientId) { updateProntuarioChecklist(); renderMessages(); }
+    },
+    onStatus: (status, error) => {
+      if (['CHANNEL_ERROR', 'TIMED_OUT', 'CLOSED'].includes(status)) {
+        console.warn('[realtime] canal do painel indisponível:', status, error || '');
+        sincronizarAtendimentosDoContador();
+      }
     }
   });
+  iniciarSincronizacaoDeSeguranca();
 
   // Voltar para a aba com a conversa aberta conta como ler.
   document.addEventListener('visibilitychange', () => { if (!document.hidden) marcarConversaLida(); });
@@ -365,13 +379,19 @@ function setupResetarSenhaCliente() {
 async function refreshAllData() {
   try {
     const clientsRes = await fetch(API_BASE + '/api/clients');
-    clientsData = await clientsRes.json();
+    const clients = await clientsRes.json();
+    if (!clientsRes.ok) throw new Error(clients.error || 'Não foi possível carregar os clientes.');
+    clientsData = clients;
 
     const appointmentsRes = await fetch(API_BASE + '/api/appointments');
-    appointments = await appointmentsRes.json();
+    const appointmentsData = await appointmentsRes.json();
+    if (!appointmentsRes.ok) throw new Error(appointmentsData.error || 'Não foi possível carregar os agendamentos.');
+    appointments = appointmentsData;
 
     const notificationsRes = await fetch(API_BASE + '/api/notifications');
-    notifications = await notificationsRes.json();
+    const notificationsData = await notificationsRes.json();
+    if (!notificationsRes.ok) throw new Error(notificationsData.error || 'Não foi possível carregar as notificações.');
+    notifications = notificationsData;
 
     updateDashboardData();
     renderClientList();
@@ -388,8 +408,54 @@ async function refreshAllData() {
     refreshFinanceiro();
   } catch (e) {
     console.error("API Fetch Error:", e);
-    showToast("Erro ao conectar com o servidor local.");
+    showToast("Não consegui atualizar o painel. Verifique sua conexão e tente novamente.");
   }
+}
+
+function assinaturaDosAtendimentos(data) {
+  return Object.values(data || {}).map(cliente => [
+    cliente.id,
+    cliente.status,
+    ...(cliente.messages || []).map(m => `${m.id}:${m.readAt || ''}`)
+  ].join('|')).sort().join('||');
+}
+
+async function sincronizarAtendimentosDoContador() {
+  if (sincronizacaoAtendimentoEmAndamento || document.hidden) return;
+  sincronizacaoAtendimentoEmAndamento = true;
+  try {
+    const res = await fetch(API_BASE + '/api/clients');
+    const atualizados = await res.json();
+    if (!res.ok) throw new Error(atualizados.error || 'Falha ao sincronizar atendimentos.');
+
+    const mudou = assinaturaDosAtendimentos(clientsData) !== assinaturaDosAtendimentos(atualizados);
+    if (!mudou) return;
+
+    clientsData = atualizados;
+    updateDashboardData();
+    renderClientList();
+    renderCRM();
+    renderKanban();
+    if (activeClientId && clientsData[activeClientId]) renderMessages();
+  } catch (e) {
+    console.warn('[sincronização] falhou:', e);
+    if (!avisoSincronizacaoMostrado) {
+      avisoSincronizacaoMostrado = true;
+      showToast('O painel está tentando se reconectar às atualizações.');
+    }
+  } finally {
+    sincronizacaoAtendimentoEmAndamento = false;
+  }
+}
+
+function iniciarSincronizacaoDeSeguranca() {
+  if (sincronizacaoAtendimentoTimer) return;
+  // O intervalo é só uma garantia de entrega. No fluxo normal, o Realtime
+  // continua atualizando o painel imediatamente.
+  sincronizacaoAtendimentoTimer = setInterval(sincronizarAtendimentosDoContador, 12000);
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) sincronizarAtendimentosDoContador();
+  });
 }
 
 // Navigation Handling (SPA routing)
@@ -1167,7 +1233,7 @@ function renderClientList(filter = "") {
 
     const itemHtml = `
       <div class="chat-item ${isActive} ${naoLidas ? 'tem-nao-lidas' : ''}" onclick="loadClient('${client.id}')">
-        <div class="chat-item-avatar">${client.avatar}</div>
+        <div class="chat-item-avatar">${escapeHtml(client.avatar || initials(client.name))}</div>
         <div class="chat-item-content">
           <div class="chat-item-header">
             <span class="chat-item-name">${escapeHtml(client.name)}</span>
@@ -1382,7 +1448,7 @@ function loadClient(clientId) {
 
   
   // Update header UI
-  document.getElementById("active-client-avatar").textContent = client.avatar;
+  document.getElementById("active-client-avatar").textContent = client.avatar || initials(client.name);
   document.getElementById("active-client-name").textContent = client.name;
   document.getElementById("active-client-tax-type").textContent = `CPF: ${client.cpf || 'Não informado'}`;
   
@@ -3189,7 +3255,7 @@ function broadcastChatStatus(clientId, status) {
 }
 
 async function atualizarStatusCliente(clientId, status) {
-  const res = await fetch(API_BASE + '/api/clients/status', {
+  const res = await fetch(API_BASE + '/api/status?acao=atualizar-status', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ clientId, status })
@@ -5292,6 +5358,11 @@ function renderProfileToUI(profile) {
   
   headerInfo.querySelector('h2').innerHTML = `${profile.name} <i class="fa-solid fa-circle-check" style="color:var(--color-coral); font-size:16px;" title="Contador Verificado"></i>`;
   headerInfo.querySelector('p').innerHTML = `<i class="fa-solid fa-id-card"></i> ${profile.crc}`;
+
+  const headerName = document.querySelector('#header-agent-profile .agent-info h4');
+  const headerAvatar = document.querySelector('#header-agent-profile .agent-avatar');
+  if (headerName) headerName.textContent = profile.name || 'Contador';
+  if (headerAvatar) headerAvatar.textContent = initials(profile.name || 'Contador');
   
   // Update tags
   const tagsContainer = headerInfo.querySelector('div');
@@ -5795,6 +5866,15 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 // ========== RADAR FISCAL (Serpro) ==========
+// A chave 'sb_session_token' nunca foi gravada em lugar nenhum do app — esse
+// header sempre saía com "Bearer null", então essa consulta nunca funcionou
+// de verdade em produção (só rodava simulado). O token de verdade vem da
+// sessão do Supabase já aberta pelo login.
+async function tokenSessaoAtual() {
+  const { data } = await sb.auth.getSession();
+  return data && data.session ? data.session.access_token : '';
+}
+
 async function consultarRadarFiscalDossie() {
   if (!activeClientId) return;
   const c = clientsData[activeClientId];
@@ -5814,10 +5894,10 @@ async function consultarRadarFiscalDossie() {
   try {
     const res = await fetch(`/api/radar-fiscal?documento=${encodeURIComponent(c.cpf)}`, {
       method: 'POST',
-      headers: { 'Authorization': `Bearer ${localStorage.getItem('sb_session_token')}` }
+      headers: { 'Authorization': `Bearer ${await tokenSessaoAtual()}` }
     });
     if (!res.ok) throw new Error('Falha ao consultar Serpro');
-    
+
     const radar = await res.json();
     const isAlert = radar.status === 'alert';
 
@@ -5861,6 +5941,80 @@ async function consultarRadarFiscalDossie() {
       <div style="color: #E74C3C; text-align: center; padding: 24px;">
         <i class="fa-solid fa-triangle-exclamation" style="font-size: 32px; margin-bottom: 12px;"></i>
         <p>Não foi possível consultar os dados. ${e.message}</p>
+      </div>
+    `;
+  }
+}
+
+// Monta o mesmo card de resultado usado no dossiê, mas pra um container
+// qualquer — reaproveitado pela consulta avulsa (fora de um cliente).
+function renderRadarFiscalResultado(radar, container) {
+  const isAlert = radar.status === 'alert';
+  container.innerHTML = `
+    <div style="text-align: left;">
+      ${isAlert ? `
+        <div style="background: #FDEDEC; padding: 16px; border-radius: var(--radius-md); border: 1px solid #E74C3C; margin-bottom: 24px; display: flex; gap: 16px; align-items: center;">
+           <div style="font-size: 32px; color: #E74C3C;"><i class="fa-solid fa-circle-exclamation"></i></div>
+           <div>
+             <h3 style="color: #C0392B; font-size: 16px; margin: 0 0 4px 0;">Alerta: Pendências Encontradas</h3>
+             <p style="color: #E74C3C; font-size: 13px; margin: 0;">Foi detectada uma pendência nos sistemas do Governo.</p>
+           </div>
+        </div>
+      ` : `
+        <div style="background: #E8F8F5; padding: 16px; border-radius: var(--radius-md); border: 1px solid #2ECC71; margin-bottom: 24px; display: flex; gap: 16px; align-items: center;">
+           <div style="font-size: 32px; color: #2ECC71;"><i class="fa-solid fa-circle-check"></i></div>
+           <div>
+             <h3 style="color: #27AE60; font-size: 16px; margin: 0 0 4px 0;">Tudo Certo!</h3>
+             <p style="color: #2ECC71; font-size: 13px; margin: 0;">CPF/CNPJ está regular e sem pendências ativas.</p>
+           </div>
+        </div>
+      `}
+
+      <div style="background: white; padding: 16px; border-radius: var(--radius-sm); border: 1px solid var(--color-border); border-left: 4px solid ${isAlert ? '#E74C3C' : '#2ECC71'}; margin-bottom: 16px;">
+         <h4 style="font-size: 14px; color: var(--color-text-primary); margin-bottom: 12px;"><i class="fa-solid fa-building-columns"></i> CND - Receita Federal e PGFN</h4>
+         <p style="font-size: 13px; margin: 0; color: var(--color-text-secondary);"><strong>Status:</strong> ${radar.cnd.status === 'negativa' ? 'Regular (Negativa)' : 'Com Pendências'}</p>
+         <p style="font-size: 12px; margin-top: 4px; color: var(--color-text-secondary);">${safe(radar.cnd.mensagem)}</p>
+      </div>
+
+      <div style="background: white; padding: 16px; border-radius: var(--radius-sm); border: 1px solid var(--color-border); border-left: 4px solid var(--color-pine);">
+         <h4 style="font-size: 14px; color: var(--color-text-primary); margin-bottom: 12px;"><i class="fa-solid fa-envelope-open-text"></i> Caixa Postal (e-CAC)</h4>
+         ${radar.caixaPostal.erro ? `<p style="font-size: 12px; color: #E74C3C;">${safe(radar.caixaPostal.erro)}</p>` : (
+            radar.caixaPostal.mensagens.length > 0
+              ? radar.caixaPostal.mensagens.map(m => `<div style="font-size: 12px; padding: 4px 0; border-bottom: 1px solid #eee;"><strong>${m.data ? new Date(m.data).toLocaleDateString('pt-BR') : ''}</strong> - ${safe(m.assunto)}</div>`).join('')
+              : '<p style="font-size: 12px; color: var(--color-text-secondary);">Sem mensagens.</p>'
+         )}
+      </div>
+    </div>
+  `;
+}
+
+// Consulta avulsa (aba Radar Fiscal do menu, fora do contexto de um cliente).
+async function consultarRadarFiscalAvulso() {
+  const input = document.getElementById('radar-avulso-documento');
+  const documento = (input.value || '').trim();
+  const container = document.getElementById('radar-avulso-content');
+  if (!documento) { showToast('Digite um CPF ou CNPJ.'); return; }
+
+  container.innerHTML = `
+    <div style="text-align: center; padding: 24px;">
+      <i class="fa-solid fa-circle-notch fa-spin" style="font-size: 24px; color: var(--color-coral); margin-bottom: 12px;"></i>
+      <p style="font-size: 14px; color: var(--color-text-secondary);">Comunicando com Serpro/Integra Contador via mTLS...</p>
+    </div>
+  `;
+
+  try {
+    const res = await fetch(`/api/radar-fiscal?documento=${encodeURIComponent(documento)}`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${await tokenSessaoAtual()}` }
+    });
+    if (!res.ok) throw new Error('Falha ao consultar Serpro');
+    const radar = await res.json();
+    renderRadarFiscalResultado(radar, container);
+  } catch (e) {
+    container.innerHTML = `
+      <div style="color: #E74C3C; text-align: center; padding: 24px;">
+        <i class="fa-solid fa-triangle-exclamation" style="font-size: 32px; margin-bottom: 12px;"></i>
+        <p>Não foi possível consultar os dados. ${safe(e.message)}</p>
       </div>
     `;
   }

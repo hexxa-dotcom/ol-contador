@@ -6,6 +6,9 @@ Log do que falta para o "Olá, Contador" virar uma versão testável ponta a pon
 Legenda: **[EU]** = Claude faz no código/deploy · **[VOCÊ]** = só você consegue
 (dashboard, chave de API, DNS) · **[FINAL]** = combinado de deixar pro fim.
 
+**[RESOLVIDO 2026-07-28]** `scripts/anotacoes-atendimento.sql` rodado no Supabase
+(colunas `clientes.notas`, `atendimentos_historico.notas` e `.iniciado_em`).
+
 ---
 
 ## ✅ Pronto e funcionando (dá pra testar hoje)
@@ -96,7 +99,10 @@ produção: `user_id` criado e vinculado certinho.
 
 - **[EU/VOCÊ]** Quando forem entrar clientes reais, desligar o acesso demonstrativo
   do portal (`TESTE_CLIENTE_SEM_LOGIN.enabled: false`) e validar o login por e-mail.
-- **[EU]** Fechar o bucket `documentos` (hoje público).
+- **[RESOLVIDO 2026-07-28]** Bucket `documentos` fechado (não é mais público)
+  + políticas de RLS por pasta do cliente (`scripts/storage-documentos-rls.sql`)
+  + upload/leitura via URL assinada (`createSignedUrl`) em vez de `public_url`
+  fixo.
 - **[RESOLVIDO]** Title do `index.html` e tamanho do bundle — já corrigidos desde
   a reforma do site público (título certo, ~44KB, nada de "Bundled Page").
 
@@ -104,19 +110,53 @@ produção: `user_id` criado e vinculado certinho.
 
 ## 🟡 Segurança — configurar antes/durante o deploy (2026-07-27)
 
-- **[VOCÊ]** Vercel → Environment Variables: adicionar `CRON_SECRET` (string
-  aleatória forte). Sem isso o cron de lembretes fiscais (`/api/agenda-fiscal/
-  run-reminders`) para de rodar sozinho — o código não confia mais só no
-  header `x-vercel-cron` (forjável), só no `CRON_SECRET`.
-- **[VOCÊ]** Painel do Asaas → Integrações → Webhooks: colar no campo "Token de
-  autenticação" o mesmo valor de `ASAAS_WEBHOOK_SECRET` já configurado na
-  Vercel. Sem isso os webhooks reais do Asaas tomam 401 (o código passou a
-  conferir esse token).
-- **[VOCÊ]** Rodar `scripts/rate-limits.sql` no SQL Editor do Supabase — cria a
-  tabela que `/api/signup-checkout` e `/api/resgatar-credito` agora usam pra
-  bloquear tentativas em excesso (rate limiting). Sem essa tabela, esses dois
-  endpoints públicos voltam a aceitar chamadas sem limite (o código detecta a
-  falta dela e deixa passar, pra não derrubar o checkout por um erro de banco).
+- **[RESOLVIDO 2026-07-29]** Auditoria completa do Supabase aplicada
+  (`scripts/supabase-hardening-2026-07-29.sql`): Caixa Postal fechada para
+  `anon` e sem falsificação de remetente; confirmação de leitura limitada à
+  coluna `lida`; funções privilegiadas movidas para schema privado com wrappers
+  seguros; policies com papéis explícitos e chamadas RLS cacheadas; tabela
+  `clientes` adicionada ao Realtime; agendamento órfão preservado com
+  `cliente_ref = null` antes da criação da FK; índices de FKs adicionados; novos
+  objetos passam a exigir grants explícitos.
+- **[OPCIONAL/PRO]** Ativar "Leaked password protection" em Authentication →
+  Sign In / Providers → Email. O Supabase só oferece a verificação contra
+  senhas vazadas no plano Pro ou superior; não é uma configuração SQL.
+- **[RESOLVIDO 2026-07-28]** `CRON_SECRET` configurado na Vercel + redeploy.
+  O cron de lembretes fiscais volta a autenticar de verdade (não confia mais
+  só no header `x-vercel-cron`, forjável).
+- **[RESOLVIDO 2026-07-28]** `ASAAS_WEBHOOK_SECRET` gerado e colado também no
+  painel do Asaas (campo "Token de autenticação" do webhook). A fila do
+  webhook chegou a pausar sozinha nesse meio-tempo (15 tentativas falhando —
+  causa real: a URL antiga do webhook passou a cair num redirect 308 quando o
+  domínio novo entrou, não a checagem de token, que ainda estava vazia).
+  Reativada depois de trocar a URL pro domínio novo.
+- **[RESOLVIDO]** `scripts/rate-limits.sql` já rodado no Supabase —
+  `/api/signup-checkout` e `/api/resgatar-credito` com rate limiting ativo.
+
+---
+
+## ✅ Domínio próprio conectado (2026-07-28) — pacote completo
+
+`olacontador.com.br` no ar (DNS propagado, `www` é o domínio real, apex e
+`ola-contador.vercel.app` redirecionam 308 pra ele). Código atualizado
+(canonical, Open Graph, sitemap, robots.txt, `SITE_URL` na Vercel). Supabase
+(Site URL + Redirect URLs), Resend (domínio verificado, `RESEND_FROM`
+configurado) e o webhook do Asaas (URL nova + token) — todos resolvidos e
+apontando pro domínio novo.
+
+## 🟡 Caixas de e-mail do domínio (backlog, sem custo)
+
+Hoje `ola@olacontador.com.br` (usado nos links `mailto:` do site) e
+`contato@olacontador.com.br` (remetente das notificações via Resend) não têm
+uma caixa de entrada de verdade por trás. Plano combinado, 100% grátis:
+
+1. **ImprovMX** (encaminhamento) — cria os aliases (`ola@`, `contato@`, etc.)
+   e encaminha pro Gmail pessoal de quem for responder. Precisa de 2-3
+   registros MX/TXT novos no Registro.br (cuidado pra não duplicar o SPF que
+   o Resend já usa — juntar num registro só).
+2. **Gmail → "Enviar e-mail como"** usando o SMTP do Resend (`smtp.resend.com`,
+   porta 587, usuário `resend`, senha = API Key do Resend) — permite responder
+   de dentro do Gmail normal como se fosse o endereço do domínio.
 
 ---
 
@@ -194,33 +234,34 @@ produção: `user_id` criado e vinculado certinho.
   A ideia anterior de um serviço curto "atendimento de dúvida" (10-15min) foi
   descartada — o modelo de reabrir o chat manualmente + cobrar por um novo
   agendamento resolve o mesmo problema sem precisar de um serviço novo.
-- **[FINAL/VOCÊ]** Template do Magic Link no Supabase — o link de acesso por
-  e-mail está sendo consumido antes do clique real (provedor de e-mail/scanner
-  abre o link sozinho pra verificar segurança, gasta o token de uso único, e
-  quando a pessoa clica de verdade já expirou — sintoma: "loga e desloga, pede
-  senha"). O `login.html` já foi ajustado pra suportar o formato novo
-  (`?token_hash=...&type=...`, só consumido quando o JS da página roda de
-  verdade) e pra mostrar um aviso claro quando o formato antigo já vier
-  consumido. Falta só trocar o template no dashboard do Supabase:
-  Authentication → Email Templates → Magic Link → trocar
-  `href="{{ .ConfirmationURL }}"` por
-  `href="{{ .SiteURL }}/login.html?token_hash={{ .TokenHash }}&type=magiclink"`.
-  Enquanto isso não for feito, o link mágico continua vulnerável a esse
-  problema — funciona quando não é prefetchado, mas não é garantido.
-- **[FINAL/VOCÊ]** Domínio próprio — pacote único, fazer tudo junto quando decidir:
-  1. Conectar `olacontador.com.br` (Registro.br, apex + www) ao projeto Vercel.
-  2. Verificar esse mesmo domínio no Resend (registros DNS que o Resend gera ao
-     adicionar o domínio) — troca o remetente de `onboarding@resend.dev` pra um
-     e-mail da marca (ex.: `contato@olacontador.com.br`) e libera envio pra
-     qualquer cliente (hoje só entrega pro dono da conta Resend).
-  3. Configurar esse Resend como SMTP customizado no Supabase (Authentication →
-     Emails → SMTP Settings) — tira o link mágico do limite baixo de envios/hora
-     do plano gratuito do Supabase.
-  `RESEND_API_KEY` já está configurada e testada (ver acima) — só falta o domínio.
+- **[RESOLVIDO 2026-07-28]** Template do Magic Link no Supabase trocado pro
+  formato `?token_hash=...&type=magiclink` (só consumido quando o JS do
+  `login.html` roda de verdade) — não fica mais vulnerável ao scanner de
+  segurança do provedor de e-mail queimando o token antes do clique real.
+- **[RESOLVIDO 2026-07-28]** Domínio próprio — pacote inteiro (ver seção acima).
 - **[FINAL]** WhatsApp (Twilio) — chaves vazias, integração "Em breve".
-- **[FINAL]** Integração com a API oficial **Integra Contador** (Serpro) — **✅ UI e Backend Mock Construídos (2026-07-25)**.
-  O sistema "Radar Fiscal" já está no código (tanto para o cliente quanto para o contador).
-  Para finalizar de verdade: **[VOCÊ]** precisa fornecer o certificado `.pfx` e a chave de API do Integra Contador em uma etapa final de chaves. O arquivo `api/_lib/serpro.js` está preparado para receber a lógica de mTLS. Até lá, roda em Modo Simulação.
+- **[RESOLVIDO 2026-07-28]** Integração real com o **Integra Contador** (Serpro) —
+  Caixa Postal (DTE) funcionando ponta a ponta em produção com dados reais.
+  - Chaves configuradas: `SERPRO_CONSUMER_KEY/SECRET`, `SERPRO_CNPJ_CONTRATANTE`
+    (62.414.421/0001-16, HEXX) e o certificado em `SERPRO_CERT_PEM_BASE64` +
+    `SERPRO_KEY_PEM_BASE64`.
+  - **Achados/bugs corrigidos pelo caminho**: (1) `require('axios')` — pacote
+    nunca instalado — derrubava o módulo inteiro mesmo em modo simulado; (2)
+    endpoint de token errado (`/token` do gateway não devolve `jwt_token`; o
+    certo é `https://autenticacao.sapi.serpro.gov.br/authenticate` com header
+    `Role-Type: TERCEIROS`); (3) o `fetch` nativo do Node ignora certificado
+    cliente passado via `agent` — trocado por `https.request` clássico; (4) o
+    certificado `.pfx` original usa criptografia legada (3DES/RC2) que o
+    OpenSSL 3 do Node 24 não lê mais — resolvido extraindo cert+chave em PEM
+    puro (uma vez, com o openssl do sistema) em vez de guardar o `.pfx`
+    original.
+  - **Situação Fiscal (SITFIS)** continua em modo simulado — é assíncrona
+    (protocolo + relatório em PDF) e a leitura do PDF ainda não foi
+    implementada/validada.
+  - **Por cliente**: cada CPF/CNPJ consultado precisa ter uma **procuração
+    eletrônica** registrada no e-CAC autorizando o CNPJ da HEXX — sem isso a
+    API recusa com "não tem procuração autorizada", mesmo com tudo
+    tecnicamente certo.
 - **✅ RESOLVIDO (2026-07-25)** Múltiplos contadores atendendo (perfil de convidado
   com acesso limitado). O convite real (equipe.js + `api/copilot.js` modo `equipe`)
   já estava implementado, mas a tabela `staff` no banco não tinha as colunas
@@ -307,12 +348,16 @@ login da Vercel (SSO) — é proteção da Vercel nas URLs internas, não do app
 
 ---
 
-## Estado das chaves no `.env` (2026-07-17)
+## Estado das chaves no `.env` (atualizado 2026-07-28)
 
 | Chave                | Estado      |
 |----------------------|-------------|
 | SUPABASE_URL / ANON  | preenchida  |
 | GROQ_API_KEY         | preenchida  |
 | ASAAS_API_KEY        | preenchida  |
-| RESEND_API_KEY       | **vazia**   |
+| ASAAS_WEBHOOK_SECRET | preenchida  |
+| RESEND_API_KEY       | preenchida  |
+| RESEND_FROM          | preenchida  |
+| SITE_URL             | preenchida  |
+| CRON_SECRET          | preenchida  |
 | TWILIO_* (SID/TOKEN) | **vazia**   |

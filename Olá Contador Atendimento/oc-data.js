@@ -443,8 +443,12 @@ function mapMessage(r) {
     // quem manda é o createdAt.
     createdAt: r.created_at || null, readAt: r.read_at || null };
 }
+function iniciaisDoCliente(nome) {
+  return String(nome || '?').trim().split(/\s+/).filter(Boolean)
+    .map(parte => parte[0]).join('').slice(0, 2).toUpperCase() || '?';
+}
 function mapClient(r, messages, triagem) {
-  return { id: r.id, name: r.name, avatar: r.avatar, taxType: r.tax_type, cpf: r.cpf,
+  return { id: r.id, name: r.name, avatar: String(r.avatar || '').trim() || iniciaisDoCliente(r.name), taxType: r.tax_type, cpf: r.cpf,
     status: r.status, scheduledTime: r.scheduled_time, diagnosis: r.diagnosis,
     honorarios: r.honorarios, treatment: r.treatment, evidences: r.evidences || [],
     checklist: r.checklist || {}, email: r.email || null, phone: r.phone || null,
@@ -645,6 +649,7 @@ const PASSTHROUGH = [
   /^\/api\/documentos\/\d+\/analisar$/,
   /^\/api\/checkout$/,
   /^\/api\/checkout\/\d+\/status$/,
+  /^\/api\/status$/,
   /^\/api\/recorrencia$/,
   /^\/api\/notify\//,
   /^\/api\/asaas\//,
@@ -660,6 +665,20 @@ async function routeApi(u, init, _fetch) {
   if (testeClienteSemLogin()) return routeTesteCliente(path, method, q, body);
   if (testeContadorSemLogin()) return routeTesteContador(path, method, q, body);
 
+  // Configurações são escritas somente pela equipe. Fazemos a gravação pela
+  // rota autenticada do servidor, que valida a equipe antes de usar a chave
+  // administrativa; isso evita que uma política RLS inconsistente paralise
+  // botões como "Acompanhamento" e "Encerrar".
+  if (path === '/api/config' && method === 'POST') {
+    const token = await authToken();
+    const headers = Object.assign({}, init.headers || {}, token ? { Authorization: 'Bearer ' + token } : {});
+    const destino = new URL('/api/status?acao=salvar-config', u.origin);
+    return _fetch(destino.href, Object.assign({}, init, {
+      headers,
+      body: JSON.stringify({ config: body || {} })
+    }));
+  }
+
   // ---- repasse p/ funções serverless (injeta o token do usuário) ----
   if (PASSTHROUGH.some(re => re.test(path))) {
     const token = await authToken();
@@ -672,11 +691,15 @@ async function routeApi(u, init, _fetch) {
     if (path === '/api/clients' && method === 'GET') {
       // As consultas não dependem umas das outras: em série custam a soma,
       // em paralelo custam a mais lenta.
-      const [{ data: clients }, { data: msgs }, { data: triagens }] = await Promise.all([
+      const [{ data: clients, error: clientesError }, { data: msgs, error: mensagensError }, { data: triagens, error: triagensError }] = await Promise.all([
         sb.from('clientes').select('*'),
         sb.from('mensagens').select('*').order('seq', { ascending: true }),
         sb.from('triagens').select('*').neq('status', 'arquivada')
       ]);
+      // Antes os erros de RLS eram descartados e o painel parecia apenas vazio.
+      // Propagar o motivo torna um problema de permissão visível e diagnosticável.
+      const erro = clientesError || mensagensError || triagensError;
+      if (erro) throw erro;
       const byClient = {};
       (msgs || []).forEach(m => { (byClient[m.cliente_id] = byClient[m.cliente_id] || []).push(mapMessage(m)); });
       const triagemDe = {};
@@ -836,8 +859,9 @@ async function routeApi(u, init, _fetch) {
     // vendo o que o cliente escreveu, ou vice-versa) é quem "lê", nunca as próprias mensagens.
     if (path === '/api/caixa-postal/marcar-lida' && method === 'POST') {
       const remetenteContrario = body.remetente === 'cliente' ? 'contador' : 'cliente';
-      await sb.from('caixa_postal').update({ lida: true })
+      const { error } = await sb.from('caixa_postal').update({ lida: true })
         .eq('cliente_ref', body.clienteId).eq('remetente', remetenteContrario).eq('lida', false);
+      if (error) throw error;
       return jsonResponse({ ok: true });
     }
 
@@ -1158,7 +1182,7 @@ async function routeApi(u, init, _fetch) {
 // ============================================================================
 window.OCRealtime = {
   channel: null,
-  subscribe({ onMessage, onMessageUpdate, onData } = {}) {
+  subscribe({ onMessage, onMessageUpdate, onData, onStatus } = {}) {
     if (testeSemLogin()) return { unsubscribe() {} };
     if (this.channel) { try { sb.removeChannel(this.channel); } catch (e) {} }
     let ch = sb.channel('oc-realtime-' + Math.random().toString(36).slice(2, 7));
@@ -1182,7 +1206,9 @@ window.OCRealtime = {
         });
       });
     }
-    ch.subscribe();
+    ch.subscribe((status, error) => {
+      if (typeof onStatus === 'function') onStatus(status, error || null);
+    });
     this.channel = ch;
     return ch;
   }
@@ -1192,14 +1218,25 @@ window.OCRealtime = {
 // OCChat — leitura e "digitando...".
 // ============================================================================
 window.OCChat = {
-  // Marca como lidas as mensagens do OUTRO lado nesta conversa. Quem confere a
-  // permissão é a própria função no banco (ver migração chat_confirmacao_de_leitura).
+  // Marca como lidas as mensagens do OUTRO lado nesta conversa. A função
+  // serverless valida o papel da sessão antes de gravar: cliente só confirma
+  // mensagens do contador; equipe, mensagens do cliente.
   async marcarLidas(clientId) {
     if (testeSemLogin()) return 0;
     if (!clientId) return 0;
-    const { data, error } = await sb.rpc('marcar_lidas', { p_cliente_id: clientId });
-    if (error) { console.warn('[chat] não consegui marcar como lidas:', error.message); return 0; }
-    return data || 0;
+    try {
+      const res = await fetch('/api/status?acao=marcar-lidas', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clientId })
+      });
+      if (!res.ok) throw new Error('resposta ' + res.status);
+      const data = await res.json();
+      return data.marked || 0;
+    } catch (error) {
+      console.warn('[chat] não consegui marcar como lidas:', error.message);
+      return 0;
+    }
   },
 
   // "Digitando" não passa pelo banco: é um recado efêmero via broadcast. Gravar
