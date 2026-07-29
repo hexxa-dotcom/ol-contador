@@ -7,8 +7,8 @@
   --color-coral: #FF6700;
   --color-coral-dark: #CC5200;
   --color-coral-light: #FFEFE5;
-  --color-bg: #DBD0BD;
-  --color-card: #FCFAEF;
+  --color-bg: #EBEBDF;
+  --color-card: #FFFFFF;
   --color-text-primary: #062A23;
   --color-text-secondary: #4A6B63;
   --color-border: #C8BCAC;
@@ -17,7 +17,7 @@
   --font-body: 'Outfit', sans-serif;
   
   /* Chat Customization Variables */
-  --chat-bg-color: #FCFAEF;
+  --chat-bg-color: #EBEBDF;
   --chat-bubble-contador-bg: var(--color-pine-light);
   --chat-bubble-cliente-bg: #EAE3D6;
   --copilot-bg-color: #EAF1F6;
@@ -32,7 +32,7 @@ body.dark-mode {
   --color-coral-light: #331500;
   --color-bg: #1A1815;
   --color-card: #26241F;
-  --color-text-primary: #FCFAEF;
+  --color-text-primary: #EBEBDF;
   --color-text-secondary: #A39B8C;
   --color-border: #3D3A32;
   --color-shadow: rgba(0, 0, 0, 0.5);
