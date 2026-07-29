@@ -4791,7 +4791,14 @@ window.toggleChatLock = async function() {
   try {
     await atualizarStatusCliente(activeClientId, newStatus);
     loadClient(activeClientId);
-    showToast(newStatus === 'locked' ? 'Chat bloqueado para o cliente.' : 'Chat liberado para o cliente.');
+    
+    if (newStatus === 'locked') {
+      await postSystemMessageToChat("O chat foi bloqueado temporariamente até o contador entrar em contato.");
+      showToast('Chat bloqueado para o cliente.');
+    } else {
+      await postSystemMessageToChat("O chat foi liberado. O cliente pode enviar mensagens novamente.");
+      showToast('Chat liberado para o cliente.');
+    }
   } catch (e) {
     console.error('Falha ao alterar bloqueio do chat:', e);
     showToast('Não consegui alterar o bloqueio do chat.');
