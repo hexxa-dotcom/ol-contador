@@ -1499,29 +1499,28 @@
 @media (max-width: 768px) {
 
   :root {
-    --oc-header-h: 56px;
-    --oc-nav-h: 60px;
+    --oc-header-h: 54px;
+    --oc-nav-h: 62px;
     --oc-safe-b: env(safe-area-inset-bottom, 0px);
   }
 
-  /* ---- Altura real da janela (ver nota sobre 100vh acima) ---- */
+  /* ---- Viewport real (evita salto em navegadores móveis) ---- */
   html, body { height: 100vh; height: 100dvh; overflow: hidden; }
 
-  /* ---- Cabeçalho enxuto ---- */
+  /* ---- Cabeçalho compacto ---- */
   .app-header {
     height: var(--oc-header-h);
     padding: 0 14px;
-    border-bottom-width: 2px;
+    border-bottom-width: 1px;
   }
-  .logo-text { font-size: 17px; }
-  .logo-container i { font-size: 19px !important; margin-right: 5px !important; }
+  .logo-text { font-size: 16px; }
+  .logo-container i { font-size: 18px !important; margin-right: 5px !important; }
 
-  /* O CPF é dado sensível e não ajuda em nada ficar exposto no topo o tempo
-     todo — some no celular, onde o espaço é disputado. */
+  /* Esconde CPF no cabeçalho (sensível + espaço limitado) */
   .header-right .agent-info span { display: none; }
   .header-right .agent-info h4 {
     font-size: 13px;
-    max-width: 34vw;
+    max-width: 32vw;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -1537,14 +1536,16 @@
     cursor: pointer;
   }
 
-  /* ---- Corpo ---- */
+  /* ---- Corpo (área de conteúdo) ---- */
   .dashboard-container {
     height: calc(100vh - var(--oc-header-h));
     height: calc(100dvh - var(--oc-header-h));
     flex-direction: column;
   }
 
-  /* ---- Menu lateral vira barra inferior ---- */
+  /* ========================
+     BOTTOM TAB BAR — App-like
+     ======================== */
   .app-sidebar-nav,
   .app-sidebar-nav.collapsed {
     position: fixed;
@@ -1558,179 +1559,205 @@
     flex-direction: row;
     align-items: stretch;
     border-right: none;
-    border-top: 1px solid var(--color-border);
-    box-shadow: 0 -2px 12px rgba(10, 49, 33, 0.07);
+    border-top: 1px solid rgba(10, 49, 33, 0.12);
+    box-shadow: 0 -4px 24px rgba(10, 49, 33, 0.1);
+    background: var(--color-pine);
     transition: none;
+    overflow: visible;        /* permite o botão home sobresair */
   }
 
-  /* Título da seção, espaçador e o "Sair" (que foi para o cabeçalho) não
-     fazem sentido numa barra horizontal. */
+  /* Título da seção e espaçador: não fazem sentido na barra horizontal */
   .app-sidebar-nav .nav-section-title,
-  .app-sidebar-nav > div[style*="flex: 1"],
-  .app-sidebar-nav > div[style*="flex:1"],
-  .app-sidebar-nav [data-logout] { display: none !important; }
+  .app-sidebar-nav [data-logout],
+  .app-sidebar-nav > div[style*="flex: 1"] { display: none !important; }
 
-  .app-sidebar-nav .nav-item,
-  .app-sidebar-nav.collapsed .nav-item {
-    flex: 1 1 0;
-    min-width: 0;
+  /* Itens desktop-only: ficam na sidebar do desktop, sumem no celular */
+  .app-sidebar-nav .nav-item-desktop-only { display: none !important; }
+
+  /* ---- Itens da bottom tab bar ---- */
+  .app-sidebar-nav .nav-item {
+    flex: 1;
+    display: flex !important;
     flex-direction: column;
+    align-items: center;
     justify-content: center;
     gap: 3px;
-    padding: 6px 2px;
-    border-left: none;
-    border-top: 3px solid transparent;
-    font-size: 9px;
-    line-height: 1.15;
-    text-align: center;
+    padding: 8px 4px 6px;
+    font-size: 9.5px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    color: rgba(255, 255, 255, 0.55);
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    min-height: 0;
+    cursor: pointer;
+    transition: color 0.15s ease, background 0.15s ease;
+    position: relative;
+    text-transform: uppercase;
   }
 
-  .app-sidebar-nav .nav-item i,
-  .app-sidebar-nav.collapsed .nav-item i {
-    font-size: 17px;
+  .app-sidebar-nav .nav-item i {
+    font-size: 18px;
     width: auto;
     margin: 0;
   }
 
-  /* O rótulo é o que evita o menu virar adivinhação de ícone, então ele fica.
-     Quebra em até duas linhas em vez de truncar: "Pré-atendi..." não diz nada,
-     "Pré-/atendimento" em duas linhas diz tudo. */
-  .app-sidebar-nav .nav-label,
-  .app-sidebar-nav.collapsed .nav-label {
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-    width: 100%;
-    white-space: normal;
-    word-break: break-word;
-    hyphens: auto;
+  .app-sidebar-nav .nav-item span.nav-label {
+    display: block;
+    font-size: 9px;
+    line-height: 1;
   }
 
+  /* Ativo: linha coral no topo + texto branco */
   .app-sidebar-nav .nav-item.active {
+    color: #FFFFFF;
+    background: transparent;
     border-top: 3px solid var(--color-coral);
-    background-color: var(--color-pine-ultra-light);
+    padding-top: 5px;
   }
 
-  /* O aviso vermelho de modo dev fica fixo no rodapé e cobriria a barra.
-     No celular ele é encurtado (só "MODO DEV") para caber numa linha de 24px —
-     medir a altura real importa: com o texto completo ele quebrava em duas
-     linhas, dava 40px e comia os rótulos da navegação. */
+  /* ========================
+     HOME — botão flutuante centralizado
+     ======================== */
+  .app-sidebar-nav .nav-item-home-center {
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+    padding-bottom: 6px;
+    overflow: visible;
+    background: transparent !important;
+    border-top: none !important;
+    padding-top: 8px !important;
+    color: rgba(255, 255, 255, 0.65);
+    position: relative;
+  }
+
+  .app-sidebar-nav .nav-item-home-center::before {
+    content: '';
+    position: absolute;
+    top: -18px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    background: var(--color-coral);
+    box-shadow: 0 4px 16px rgba(255, 106, 69, 0.45), 0 0 0 3px var(--color-pine), 0 0 0 4px var(--color-coral);
+    z-index: 1;
+  }
+
+  .app-sidebar-nav .nav-item-home-center i {
+    position: absolute;
+    top: -14px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 20px;
+    color: #FFFFFF;
+    z-index: 2;
+    pointer-events: none;
+  }
+
+  .app-sidebar-nav .nav-item-home-center span.nav-label {
+    position: relative;
+    z-index: 3;
+    font-size: 9px;
+    color: rgba(255, 255, 255, 0.75);
+    margin-top: 20px;  /* espaço para o círculo elevado */
+  }
+
+  .app-sidebar-nav .nav-item-home-center.active::before {
+    background: var(--color-coral);
+    box-shadow: 0 6px 20px rgba(255, 106, 69, 0.55), 0 0 0 3px var(--color-pine), 0 0 0 5px var(--color-coral);
+  }
+
+  .app-sidebar-nav .nav-item-home-center.active span.nav-label {
+    color: #FFFFFF;
+  }
+
+  /* ---- Badge de não lido ---- */
+  .chat-unread-badge {
+    top: 2px !important;
+    left: 50% !important;
+    right: auto !important;
+    margin-left: 6px;
+    min-width: 15px;
+    width: auto;
+    height: 15px;
+    padding: 0 4px;
+    font-size: 8px;
+    line-height: 15px;
+  }
+
   #oc-teste-aviso {
     font-size: 10px !important;
-    padding: 5px 8px !important;
+    padding: 4px 8px !important;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
   }
   body.oc-teste-on .app-sidebar-nav { bottom: 24px; }
 
-  /* O badge é um marcador, não um rótulo: vira bolinha sobre o ícone. Sem isto
-     ele esticava como uma pílula rosa e cobria metade do item. */
-  .chat-unread-badge {
-    top: 4px !important;
-    left: 50% !important;
-    right: auto !important;
-    margin-left: 4px;
-    min-width: 16px;
-    width: auto;
-    height: 16px;
-    padding: 0 4px;
-    font-size: 9px;
-    line-height: 16px;
+  /* ========================
+     ÁREA DE CONTEÚDO
+     ======================== */
+  .main-content-panels {
+    padding-bottom: calc(var(--oc-nav-h) + var(--oc-safe-b));
   }
-
-  /* ---- Área de conteúdo ---- */
-  .main-content-panels { padding-bottom: calc(var(--oc-nav-h) + var(--oc-safe-b)); }
-  body.oc-teste-on .main-content-panels { padding-bottom: calc(var(--oc-nav-h) + var(--oc-safe-b) + 26px); }
+  body.oc-teste-on .main-content-panels {
+    padding-bottom: calc(var(--oc-nav-h) + var(--oc-safe-b) + 26px);
+  }
 
   .content-panel { padding: 16px 14px 20px; }
   .panel-header-desc { margin-bottom: 16px; }
   .panel-header-desc h2 { font-size: 20px; }
   .panel-header-desc p { font-size: 13px; }
 
-  /* ---- Chat em tela cheia ----
-     Sem título, sem margem e sem moldura: no celular a conversa É a tela. */
-  #section-chat.content-panel { padding: 0; overflow: hidden; }
+  /* ========================
+     CHAT — tela cheia no mobile
+     Sem título, sem margem, sem moldura: a conversa É a tela.
+     ======================== */
+  #section-chat.content-panel {
+    padding: 0 !important;
+    overflow: hidden !important;
+    height: 100% !important;
+    display: flex !important;
+    flex-direction: column !important;
+  }
+
   #section-chat .panel-header-desc { display: none; }
 
   .cliente-chat-shell {
-    grid-template-columns: 1fr;
-    grid-template-rows: auto minmax(0, 1fr);
-    gap: 0;
-    padding: 0;
+    display: flex !important;
+    flex-direction: column !important;
+    flex: 1 !important;
+    width: 100% !important;
+    min-height: 0 !important;
+    height: 100% !important;
+    overflow: hidden !important;
   }
 
-  .cliente-chat-sidebar {
-    max-height: 138px;
-    gap: 8px;
-    padding: 10px 10px 8px;
-    border-right: none;
-    border-bottom: 1px solid var(--color-border);
-    overflow: hidden;
+  .cliente-chat-main {
+    display: flex !important;
+    flex-direction: column !important;
+    flex: 1 !important;
+    width: 100% !important;
+    min-height: 0 !important;
+    height: 100% !important;
+    overflow: hidden !important;
   }
-
-  .cliente-chat-sidebar-head,
-  .cliente-case-card,
-  .cliente-case-metrics,
-  .cliente-chat-sidebar-foot p {
-    display: none;
-  }
-
-  .cliente-chat-shell.central-collapsed .cliente-chat-sidebar {
-    align-items: stretch;
-    padding: 10px 10px 8px;
-  }
-
-  .cliente-chat-shell.central-collapsed .cliente-case-actions { display: grid; }
-  .cliente-chat-shell.central-collapsed .cliente-chat-sidebar-foot { display: block; }
-
-  .cliente-case-actions {
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 6px;
-  }
-
-  .cliente-case-actions button {
-    min-height: 48px;
-    justify-content: center;
-    gap: 4px;
-    padding: 6px 4px;
-    border-color: var(--color-border);
-    background: #fff;
-    font-size: 10px;
-    line-height: 1.1;
-    text-align: center;
-  }
-
-  .cliente-case-actions button,
-  .cliente-case-actions button span {
-    flex-direction: column;
-  }
-
-  .cliente-case-actions i {
-    width: auto;
-    font-size: 15px;
-  }
-
-  .cliente-chat-sidebar-foot {
-    margin-top: 0;
-    padding-top: 8px;
-  }
-
-  .cliente-chat-sidebar-foot .btn-utility {
-    min-height: 36px;
-    font-size: 12px;
-  }
-
-  .cliente-chat-main { min-height: 0; }
 
   .chat-container {
-    height: 100%;
-    border: none;
-    border-radius: 0;
+    height: 100% !important;
+    min-height: 0 !important;
+    flex: 1 !important;
+    border: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    margin: 0 !important;
   }
 
+  /* Header do chat compacto + oculta metadados do caso (pequenos demais no mobile) */
   .chat-header {
     padding: 10px 14px;
     gap: 10px;
@@ -1740,9 +1767,20 @@
   .chat-header-info h3 { font-size: 14px; }
   .chat-header-info p { font-size: 11px; }
 
-  .chat-history { padding: 10px 8px; gap: 6px; }
+  /* Esconde metadados do atendimento no mobile (muito pequeno) */
+  .chat-header-meta { display: none !important; }
 
-  /* Bolha mais larga e fonte maior: 13px em tela de celular é leitura de bula. */
+  /* Histórico de mensagens: ocupa toda a área entre o header e o input */
+  .chat-history {
+    flex: 1 !important;
+    min-height: 0 !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch;
+    padding: 10px 8px;
+    gap: 6px;
+  }
+
+  /* Balão mais largo e legível */
   .chat-bubble {
     max-width: 85%;
     font-size: 15px;
@@ -1750,19 +1788,25 @@
     line-height: 1.45;
   }
 
+  /* Input fixo no rodapé com safe area do iOS */
   .chat-input-area {
-    padding: 8px 10px calc(8px + var(--oc-safe-b));
     flex-shrink: 0;
+    padding: 8px 10px;
+    padding-bottom: calc(8px + var(--oc-safe-b));
+    background: var(--color-card);
+    border-top: 1px solid var(--color-border);
   }
-  .chat-form { gap: 6px; padding: 5px 5px 5px 12px; }
 
-  /* 16px obrigatório — abaixo disso o iOS dá zoom ao focar (ver nota do topo). */
+  /* 16px obrigatório — abaixo disso o iOS faz zoom ao focar */
+  .chat-form { gap: 6px; padding: 5px 5px 5px 12px; }
   .chat-form input { font-size: 16px; min-width: 0; }
 
   .btn-send { width: 40px; height: 40px; flex-shrink: 0; }
   .btn-attach { padding: 0 6px; font-size: 17px; }
 
-  /* ---- Cartões e formulários em coluna única ---- */
+  /* ========================
+     CARTÕES E FORMULÁRIOS — coluna única
+     ======================== */
   .tracking-card { padding: 18px 16px; max-width: none; }
 
   .agendamento-card {
@@ -1776,13 +1820,9 @@
     padding: 10px;
   }
 
-  .agenda-cliente-toolbar strong {
-    font-size: 13px;
-  }
+  .agenda-cliente-toolbar strong { font-size: 13px; }
 
-  .agenda-cliente-grid {
-    grid-template-columns: 1fr !important;
-  }
+  .agenda-cliente-grid { grid-template-columns: 1fr !important; }
 
   .agenda-dia-head {
     display: flex;
@@ -1791,9 +1831,7 @@
     text-align: left;
   }
 
-  .agenda-slots {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
+  .agenda-slots { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 
   .history-card {
     align-items: flex-start;
@@ -1802,29 +1840,15 @@
     padding: 16px;
   }
 
-  .history-details {
-    flex: 1;
-    min-width: 0;
-  }
+  .history-details { flex: 1; min-width: 0; }
 
-  .history-actions {
-    width: 100%;
-    margin-left: 0;
-  }
-
-  .history-actions .btn-utility {
-    width: 100%;
-    justify-content: center;
-  }
+  .history-actions { width: 100%; margin-left: 0; }
+  .history-actions .btn-utility { width: 100%; justify-content: center; }
 
   .triagem-wrap { max-width: none; }
   .triagem-bloco { padding: 16px 14px; }
   .triagem-textarea { font-size: 16px; }
 
-  /* Grades do portal em coluna única. Listadas pelo nome de propósito: um
-     seletor genérico por "grid" no nome não pega .docs-layout, que é justamente
-     a que quebrava a página de Documentos em duas colunas espremidas.
-     (.triagem-assuntos já usa auto-fill/minmax e se resolve sozinha.) */
   .docs-layout,
   .content-panel [class*="grid"] {
     grid-template-columns: 1fr !important;
@@ -1834,45 +1858,65 @@
   .upload-zone { padding: 22px 16px; }
   .doc-item { gap: 10px; }
 
-  /* Histórico: o card é uma linha só, com os botões empurrados para a direita
-     por margin-left:auto. Em tela estreita não cabia e vazava ~120px para fora.
-     Deixando quebrar, os botões descem para a linha de baixo e ocupam a largura. */
-  .history-card {
-    flex-wrap: wrap;
-    gap: 10px;
-  }
-  .history-card > div[style*="margin-left"] {
-    margin-left: 0 !important;
-    width: 100%;
-  }
+  .history-card { flex-wrap: wrap; gap: 10px; }
+  .history-card > div[style*="margin-left"] { margin-left: 0 !important; width: 100%; }
   .history-card .btn-utility { flex: 1 1 0; justify-content: center; }
 
-  /* Campos de formulário: 16px pelo mesmo motivo do input do chat. */
+  /* 16px em todos os inputs para evitar zoom iOS */
   .content-panel input,
   .content-panel select,
   .content-panel textarea { font-size: 16px; }
 
-  /* Alvos de toque com pelo menos 44px, como manda o guia da Apple. */
+  /* Alvos de toque mínimo 44px (Apple HIG) */
   .content-panel button,
   .content-panel .btn { min-height: 44px; }
 
-  /* ---- Modais ocupam a tela ---- */
+  /* ========================
+     MODAIS — ocupam a tela, sobem como sheet
+     ======================== */
   .modal-container {
     width: 100%;
     max-width: none;
     max-height: 92dvh;
-    border-radius: 12px 12px 0 0;
+    border-radius: 20px 20px 0 0;
     margin-top: auto;
   }
   .modal-overlay { align-items: flex-end; }
 }
 
-/* Telas bem estreitas (iPhone SE e similares) */
+/* Telas muito estreitas (iPhone SE, Galaxy A série) */
 @media (max-width: 360px) {
   .app-sidebar-nav .nav-item { font-size: 8px; }
   .app-sidebar-nav .nav-item i { font-size: 16px; }
   .logo-text { font-size: 15px; }
+  .app-sidebar-nav .nav-item-home-center::before {
+    width: 46px;
+    height: 46px;
+    top: -15px;
+  }
+  .app-sidebar-nav .nav-item-home-center i {
+    font-size: 18px;
+    top: -11px;
+  }
 }
+
+/* ==================================================
+   ROUNDED OVERRIDES (Global Client specific)
+   ================================================== */
+.chat-container, .checkout-container {
+  border-radius: var(--radius-lg, 24px) !important;
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+.plan-card, .pix-box {
+  border-radius: var(--radius-lg, 24px) !important;
+}
+
+.chat-input-container {
+  border-radius: 50px !important;
+  margin-bottom: 8px;
+}
+
 
 /* ==================================================
    ROUNDED OVERRIDES (Global Client specific)
