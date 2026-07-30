@@ -4884,7 +4884,7 @@ input:checked + .slider:before {
 
 /* ==========================================================================
    ULTRA-SOPHISTICATED APPLE & GOOGLE DESIGN OVERHAUL (ÁREA DO CONTADOR SOMENTE)
-   Inspired by soft floating cards, capsule floating dock sidebar, warm tones & rich micro-animations.
+   Clean typography, crisp card shadows, no clutter, orange sidebar outline.
    ========================================================================== */
 
 body.pagina-contador {
@@ -4913,34 +4913,34 @@ body.pagina-contador .header-right {
 
 body.pagina-contador .notification-trigger {
   background: #FFFFFF !important;
-  border: 1px solid rgba(12, 84, 70, 0.08) !important;
+  border: 1px solid rgba(12, 84, 70, 0.12) !important;
   border-radius: 50% !important;
   width: 44px !important;
   height: 44px !important;
   display: grid !important;
   place-items: center !important;
-  box-shadow: 0 4px 16px rgba(12, 84, 70, 0.04) !important;
+  box-shadow: 0 4px 16px rgba(12, 84, 70, 0.06) !important;
   color: var(--color-pine) !important;
   transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
 }
 
 body.pagina-contador .notification-trigger:hover {
   transform: translateY(-2px) scale(1.05) !important;
-  box-shadow: 0 8px 20px rgba(12, 84, 70, 0.08) !important;
+  box-shadow: 0 8px 20px rgba(12, 84, 70, 0.12) !important;
 }
 
 body.pagina-contador .agent-profile {
   background: #FFFFFF !important;
-  border: 1px solid rgba(12, 84, 70, 0.08) !important;
+  border: 1px solid rgba(12, 84, 70, 0.12) !important;
   border-radius: 30px !important;
   padding: 5px 16px 5px 6px !important;
-  box-shadow: 0 4px 16px rgba(12, 84, 70, 0.04) !important;
+  box-shadow: 0 4px 16px rgba(12, 84, 70, 0.06) !important;
   transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
 }
 
 body.pagina-contador .agent-profile:hover {
   transform: translateY(-2px) !important;
-  box-shadow: 0 8px 20px rgba(12, 84, 70, 0.08) !important;
+  box-shadow: 0 8px 20px rgba(12, 84, 70, 0.12) !important;
 }
 
 body.pagina-contador .agent-info h4 {
@@ -4952,7 +4952,7 @@ body.pagina-contador .agent-info span {
   color: #5C7068 !important;
 }
 
-/* 2. Floating Island Capsule Sidebar (Dock Style) */
+/* 2. Floating Island Sidebar with Crisp Orange Outline */
 body.pagina-contador .dashboard-container {
   padding: 12px 24px 24px 24px !important;
   gap: 20px !important;
@@ -4962,9 +4962,9 @@ body.pagina-contador .dashboard-container {
 
 body.pagina-contador .app-sidebar-nav {
   background: #FFFFFF !important;
-  border: 1px solid rgba(12, 84, 70, 0.06) !important;
+  border: 2px solid var(--color-coral) !important; /* Linha de contorno Laranja */
   border-radius: 28px !important;
-  box-shadow: 0 10px 30px rgba(12, 84, 70, 0.04), 0 2px 8px rgba(12, 84, 70, 0.02) !important;
+  box-shadow: 0 8px 28px rgba(255, 103, 0, 0.12), 0 10px 30px rgba(12, 84, 70, 0.05) !important;
   padding: 18px 12px !important;
   margin: 0 !important;
   height: 100% !important;
@@ -4972,7 +4972,7 @@ body.pagina-contador .app-sidebar-nav {
 }
 
 body.pagina-contador .nav-section-title {
-  color: #7A8E85 !important;
+  color: #5C7068 !important;
   font-weight: 800 !important;
   letter-spacing: 0.14em !important;
   margin: 8px 12px 14px 12px !important;
@@ -4982,13 +4982,13 @@ body.pagina-contador .nav-item {
   border-radius: 18px !important;
   padding: 12px 16px !important;
   font-weight: 600 !important;
-  color: #4A5D55 !important;
+  color: #33443C !important;
   margin-bottom: 4px !important;
   transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
 }
 
 body.pagina-contador .nav-item:hover {
-  background-color: rgba(12, 84, 70, 0.04) !important;
+  background-color: rgba(12, 84, 70, 0.06) !important;
   color: var(--color-pine) !important;
   transform: translateX(3px) !important;
 }
@@ -5003,16 +5003,16 @@ body.pagina-contador .nav-item.active i {
   color: var(--color-coral) !important;
 }
 
-/* 3. Floating Apple/Google Cards */
+/* 3. Ultra-Clean High-Contrast Cards (Without Icon Clutter) */
 body.pagina-contador .kpi-card,
 body.pagina-contador .dash-card,
 body.pagina-contador .tracking-card,
 body.pagina-contador .painel-abas-container,
 body.pagina-contador .relatorios-card {
   background: #FFFFFF !important;
-  border-radius: 26px !important;
-  border: 1px solid rgba(12, 84, 70, 0.06) !important;
-  box-shadow: 0 12px 32px rgba(12, 84, 70, 0.04), 0 2px 6px rgba(12, 84, 70, 0.015) !important;
+  border-radius: 24px !important;
+  border: 1px solid rgba(12, 84, 70, 0.12) !important;
+  box-shadow: 0 8px 24px rgba(12, 84, 70, 0.07), 0 2px 6px rgba(0, 0, 0, 0.03) !important;
   padding: 24px 28px !important;
   transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1) !important;
 }
@@ -5020,29 +5020,43 @@ body.pagina-contador .relatorios-card {
 body.pagina-contador .kpi-card:hover,
 body.pagina-contador .dash-card:hover,
 body.pagina-contador .tracking-card:hover {
-  transform: translateY(-5px) scale(1.006) !important;
-  box-shadow: 0 20px 40px rgba(12, 84, 70, 0.08), 0 4px 12px rgba(12, 84, 70, 0.03) !important;
-  border-color: rgba(12, 84, 70, 0.14) !important;
+  transform: translateY(-4px) !important;
+  box-shadow: 0 16px 36px rgba(12, 84, 70, 0.12), 0 4px 12px rgba(0, 0, 0, 0.04) !important;
+  border-color: rgba(12, 84, 70, 0.22) !important;
 }
 
+/* Retirar ícones dos cards KPI para visual limpo & moderno */
 body.pagina-contador .kpi-card-header i {
-  width: 44px !important;
-  height: 44px !important;
-  border-radius: 14px !important;
-  background: rgba(12, 84, 70, 0.06) !important;
-  color: var(--color-pine) !important;
-  font-size: 18px !important;
-  display: grid !important;
-  place-items: center !important;
-  padding: 0 !important;
+  display: none !important;
+}
+
+/* Retirar ícones decorativos dos títulos dos cards para design 100% clean */
+body.pagina-contador .dash-card-header h3 i {
+  display: none !important;
+}
+
+body.pagina-contador .kpi-card-header span {
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.08em !important;
+  color: #5C7068 !important;
 }
 
 body.pagina-contador .kpi-card h3 {
-  font-size: 32px !important;
+  font-size: 36px !important;
   font-weight: 800 !important;
-  letter-spacing: -1px !important;
+  letter-spacing: -1.2px !important;
   color: var(--color-pine) !important;
-  margin: 16px 0 10px 0 !important;
+  margin: 14px 0 10px 0 !important;
+  line-height: 1.1 !important;
+}
+
+body.pagina-contador .dash-card-header h3 {
+  font-size: 18px !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.4px !important;
+  color: var(--color-pine) !important;
 }
 
 body.pagina-contador .kpi-trend {
@@ -5057,8 +5071,8 @@ body.pagina-contador .painel-abas {
   background: #FFFFFF !important;
   padding: 6px !important;
   border-radius: 20px !important;
-  border: 1px solid rgba(12, 84, 70, 0.06) !important;
-  box-shadow: 0 6px 20px rgba(12, 84, 70, 0.03) !important;
+  border: 1px solid rgba(12, 84, 70, 0.12) !important;
+  box-shadow: 0 6px 20px rgba(12, 84, 70, 0.05) !important;
   display: inline-flex !important;
   gap: 4px !important;
 }
@@ -5066,32 +5080,32 @@ body.pagina-contador .painel-abas {
 body.pagina-contador .painel-aba-btn {
   border-radius: 14px !important;
   padding: 10px 18px !important;
-  font-weight: 600 !important;
+  font-weight: 700 !important;
   font-size: 13.5px !important;
   color: #5C7068 !important;
   transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
 }
 
 body.pagina-contador .painel-aba-btn:hover {
-  background: rgba(12, 84, 70, 0.04) !important;
+  background: rgba(12, 84, 70, 0.05) !important;
   color: var(--color-pine) !important;
 }
 
 body.pagina-contador .painel-aba-btn.active {
   background: var(--color-pine) !important;
   color: #FFFFFF !important;
-  box-shadow: 0 4px 14px rgba(12, 84, 70, 0.2) !important;
+  box-shadow: 0 4px 14px rgba(12, 84, 70, 0.22) !important;
 }
 
 /* 5. Smooth Page Entrance & Hover Micro-animations */
 body.pagina-contador .content-panel.active {
-  animation: appleFadeInUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  animation: appleFadeInUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) !important;
 }
 
 @keyframes appleFadeInUp {
   0% {
     opacity: 0;
-    transform: translateY(16px) scale(0.99);
+    transform: translateY(14px) scale(0.99);
   }
   100% {
     opacity: 1;
