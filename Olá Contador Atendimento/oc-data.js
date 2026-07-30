@@ -532,10 +532,11 @@ function gerarCodigoCredito() {
 async function fetchClient(clientId) {
   const { data: c } = await sb.from('clientes').select('*').eq('id', clientId).single();
   if (!c) return null;
-  const [{ data: msgs }, { data: triagem }] = await Promise.all([
+  const [{ data: msgs }, { data: triagemRows }] = await Promise.all([
     sb.from('mensagens').select('*').eq('cliente_id', clientId).order('seq', { ascending: true }),
-    sb.from('triagens').select('*').eq('cliente_ref', clientId).neq('status', 'arquivada').maybeSingle()
+    sb.from('triagens').select('*').eq('cliente_ref', clientId).neq('status', 'arquivada').order('created_at', { ascending: false }).limit(1)
   ]);
+  const triagem = triagemRows && triagemRows.length ? triagemRows[0] : null;
   return mapClient(c, (msgs || []).map(mapMessage), triagem ? mapTriagem(triagem) : null);
 }
 
@@ -876,8 +877,9 @@ async function routeApi(u, init, _fetch) {
 
     // ---------- TRIAGEM (pré-atendimento) ----------
     if (path === '/api/triagem' && method === 'GET') {
-      const { data } = await sb.from('triagens').select('*')
-        .eq('cliente_ref', q.get('clientId')).neq('status', 'arquivada').maybeSingle();
+      const { data: triagemRows } = await sb.from('triagens').select('*')
+        .eq('cliente_ref', q.get('clientId')).neq('status', 'arquivada').order('created_at', { ascending: false }).limit(1);
+      const data = triagemRows && triagemRows.length ? triagemRows[0] : null;
       return jsonResponse(data ? mapTriagem(data) : null);
     }
 
@@ -890,8 +892,9 @@ async function routeApi(u, init, _fetch) {
         descricao: body.descricao || null,
         respostas: body.respostas || {}
       };
-      const { data: aberta } = await sb.from('triagens').select('id, status, enviada_at')
-        .eq('cliente_ref', body.clientId).neq('status', 'arquivada').maybeSingle();
+      const { data: triagemRows } = await sb.from('triagens').select('id, status, enviada_at')
+        .eq('cliente_ref', body.clientId).neq('status', 'arquivada').order('created_at', { ascending: false }).limit(1);
+      const aberta = triagemRows && triagemRows.length ? triagemRows[0] : null;
 
       if (body.enviar) {
         patch.status = 'enviada';

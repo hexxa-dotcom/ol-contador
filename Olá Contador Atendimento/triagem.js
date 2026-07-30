@@ -346,6 +346,7 @@ window.TriagemUI = (function () {
     avisar('Pronto! O contador já foi avisado e vai chegar sabendo do seu caso.', 'ok');
     atualizarBadge();
     desenharSalaDeEspera();
+    if (window.montarLinhaDoTempo) window.montarLinhaDoTempo();
   }
 
   // Aviso no menu enquanto a triagem não foi entregue.

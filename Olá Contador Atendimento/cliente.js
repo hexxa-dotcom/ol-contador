@@ -255,6 +255,7 @@ function atualizarSidebarDoChat({ nomeCaso, statusCaso, proximaAcao, pendencias,
 // inventados). Agora cada passo vem do estado real: triagem enviada, documentos
 // recebidos, consulta realizada, relatório entregue.
 async function montarLinhaDoTempo() {
+  window.montarLinhaDoTempo = montarLinhaDoTempo;
   const box = document.getElementById('tracker-passos');
   if (!box) return;
 
