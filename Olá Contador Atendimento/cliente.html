@@ -6,7 +6,7 @@
   <title>Portal do Cliente - Olá Contador</title>
   <meta name="robots" content="noindex" />
   <link rel="stylesheet" href="styles.css?v=20">
-  <link rel="stylesheet" href="cliente.css?v=6">
+  <link rel="stylesheet" href="cliente.css?v=7">
   
   <!-- FontAwesome -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -54,47 +54,54 @@
         </button>
       </div>
 
-      <!-- DESKTOP order: Home, Triagem, Chat, Avisos, Docs, Radar, Agendamento, Histórico -->
-      <!-- MOBILE order: Triagem | Docs | [HOME center] | Agendamento | Chat  -->
-      <!-- Items with data-mobile-tab are shown in bottom bar; others hidden on mobile -->
-
-      <!-- Mobile tab 1: Pré-atendimento (esquerda) -->
-      <button class="nav-item" data-target="section-triagem" title="Antes do atendimento" data-mobile-tab="1" style="position: relative;">
-        <i class="fa-solid fa-clipboard-question"></i> <span class="nav-label">Triagem</span>
-        <span class="chat-unread-badge" id="badge-triagem" style="display:none;">!</span>
-      </button>
-
-      <!-- Mobile tab 2: Documentos -->
-      <button class="nav-item" data-target="section-documentos" title="Meus Documentos" data-mobile-tab="2">
-        <i class="fa-solid fa-folder-open"></i> <span class="nav-label">Documentos</span>
-      </button>
-
-      <!-- Mobile tab 3 (CENTER): Home -->
-      <button class="nav-item active nav-item-home-center" data-target="section-dashboard" title="Início" data-mobile-tab="3">
+      <!-- DESKTOP ORDER (Original) -->
+      
+      <!-- 1. Início -->
+      <button class="nav-item active mobile-order-3 nav-item-home-center" data-target="section-dashboard" title="Início">
         <i class="fa-solid fa-house"></i> <span class="nav-label">Início</span>
       </button>
 
-      <!-- Mobile tab 4: Agendamento -->
-      <button class="nav-item" data-target="section-agendamento" title="Agendar Horário" data-mobile-tab="4">
-        <i class="fa-solid fa-calendar-days"></i> <span class="nav-label">Agenda</span>
+      <!-- 2. Pré-atendimento -->
+      <button class="nav-item mobile-order-1" data-target="section-triagem" title="Antes do atendimento" style="position: relative;">
+        <i class="fa-solid fa-clipboard-question"></i> <span class="nav-label">Pré-atendimento</span>
+        <span class="chat-unread-badge" id="badge-triagem" style="display:none;">!</span>
       </button>
 
-      <!-- Mobile tab 5: Chat (direita) -->
-      <button class="nav-item" data-target="section-chat" title="Atendimento" data-mobile-tab="5" style="position: relative;">
-        <i class="fa-solid fa-comments"></i> <span class="nav-label">Chat</span>
+      <!-- 3. Atendimento (Chat) -->
+      <button class="nav-item mobile-order-5" data-target="section-chat" title="Atendimento" style="position: relative;">
+        <i class="fa-solid fa-comments"></i> <span class="nav-label">Atendimento</span>
         <span class="chat-unread-badge" id="badge-atendimentos-cliente">0</span>
       </button>
 
-      <!-- Desktop-only items (hidden on mobile bottom bar) -->
+      <!-- 4. Avisos (Hidden on mobile) -->
       <button class="nav-item nav-item-desktop-only" data-target="section-caixa-postal" title="Avisos" style="position: relative;">
         <i class="fa-solid fa-envelope"></i> <span class="nav-label">Avisos</span>
         <span class="chat-unread-badge" id="badge-caixa-postal-cliente" style="display:none;">0</span>
       </button>
+
+      <!-- 5. Documentos -->
+      <button class="nav-item mobile-order-2" data-target="section-documentos" title="Meus Documentos">
+        <i class="fa-solid fa-folder-open"></i> <span class="nav-label">Documentos</span>
+      </button>
+
+      <!-- 6. Radar Fiscal (Hidden on mobile) -->
       <button class="nav-item nav-item-desktop-only" data-target="section-radar" title="Radar Fiscal (Serviço Preventivo)" style="position: relative;">
         <i class="fa-solid fa-shield-halved" style="color: var(--color-coral);"></i> <span class="nav-label">Radar Fiscal</span>
       </button>
+
+      <!-- 7. Agendamento -->
+      <button class="nav-item mobile-order-4" data-target="section-agendamento" title="Agendar Horário">
+        <i class="fa-solid fa-calendar-days"></i> <span class="nav-label">Agendamento</span>
+      </button>
+
+      <!-- 8. Histórico (Hidden on mobile) -->
       <button class="nav-item nav-item-desktop-only" data-target="section-historico" title="Histórico">
         <i class="fa-solid fa-clock-rotate-left"></i> <span class="nav-label">Histórico</span>
+      </button>
+
+      <!-- 9. Meu Perfil (Hidden on mobile) -->
+      <button class="nav-item nav-item-desktop-only" data-target="section-perfil" title="Meu Perfil">
+        <i class="fa-solid fa-user-gear"></i> <span class="nav-label">Meu Perfil</span>
       </button>
       
       <div style="flex: 1;"></div>

@@ -1597,6 +1597,12 @@
     text-transform: uppercase;
   }
 
+  .mobile-order-1 { order: 1; }
+  .mobile-order-2 { order: 2; }
+  .mobile-order-3 { order: 3; }
+  .mobile-order-4 { order: 4; }
+  .mobile-order-5 { order: 5; }
+
   .app-sidebar-nav .nav-item i {
     font-size: 18px;
     width: auto;
@@ -1702,13 +1708,20 @@
      ÁREA DE CONTEÚDO
      ======================== */
   .main-content-panels {
+    display: flex;
+    flex-direction: column;
     padding-bottom: calc(var(--oc-nav-h) + var(--oc-safe-b));
   }
   body.oc-teste-on .main-content-panels {
     padding-bottom: calc(var(--oc-nav-h) + var(--oc-safe-b) + 26px);
   }
 
-  .content-panel { padding: 16px 14px 20px; }
+  .content-panel { 
+    padding: 16px 14px 20px; 
+    flex: 1;
+    min-height: 0;
+    height: auto !important; /* sobrescreve height: 100% global para evitar bug de overflow no Safari */
+  }
   .panel-header-desc { margin-bottom: 16px; }
   .panel-header-desc h2 { font-size: 20px; }
   .panel-header-desc p { font-size: 13px; }
@@ -1720,9 +1733,19 @@
   #section-chat.content-panel {
     padding: 0 !important;
     overflow: hidden !important;
-    height: 100% !important;
+    flex: 1 !important;
+    min-height: 0 !important;
+    height: auto !important;
     display: flex !important;
     flex-direction: column !important;
+  }
+
+  /* ---- Ocultar barra inferior ao digitar (teclado aberto) ---- */
+  body:has(.chat-form input:focus) .app-sidebar-nav {
+    display: none !important;
+  }
+  body:has(.chat-form input:focus) .main-content-panels {
+    padding-bottom: 0 !important;
   }
 
   #section-chat .panel-header-desc { display: none; }
