@@ -20,6 +20,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   setupRecolherMenu();
   setupRecolherCentralAtendimento();
   setupCriarSenha();
+  setupPerfilSenha();
 
   // Chat em tempo real via Supabase Realtime (o RLS só entrega as mensagens deste cliente).
   OCRealtime.subscribe({
@@ -196,9 +197,50 @@ function escapeHtml(s) {
     ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
 
+function formatarCPF(cpf) {
+  if (!cpf) return 'CPF: Não informado';
+  const clean = String(cpf).replace(/\D/g, '');
+  if (clean.length === 11) {
+    return `CPF: ${clean.slice(0, 3)}.${clean.slice(3, 6)}.${clean.slice(6, 9)}-${clean.slice(9, 11)}`;
+  }
+  return cpf.startsWith('CPF:') ? cpf : `CPF: ${cpf}`;
+}
+
 function abrirSecaoCliente(id) {
+  window.abrirSecaoCliente = abrirSecaoCliente;
   const nav = document.querySelector(`[data-target="${id}"]`);
-  if (nav) nav.click();
+  if (nav) {
+    nav.click();
+  } else {
+    document.querySelectorAll(".app-sidebar-nav .nav-item").forEach(el => el.classList.remove("active"));
+    document.querySelectorAll(".content-panel").forEach(panel => panel.classList.remove("active"));
+    const targetPanel = document.getElementById(id);
+    if (targetPanel) targetPanel.classList.add('active');
+  }
+}
+
+function populaPerfilCliente(client) {
+  if (!client) return;
+  const nomeEl = document.getElementById('perfil-nome');
+  const cpfEl = document.getElementById('perfil-cpf');
+  const telEl = document.getElementById('perfil-telefone');
+  const emailEl = document.getElementById('perfil-email');
+  const endEl = document.getElementById('perfil-endereco');
+  const servEl = document.getElementById('perfil-servico');
+
+  if (nomeEl) nomeEl.textContent = client.name || 'Não informado';
+  if (cpfEl) cpfEl.textContent = formatarCPF(client.cpf);
+  if (telEl) telEl.textContent = client.phone || 'Não informado';
+  if (emailEl) emailEl.textContent = client.email || 'Não informado';
+
+  let endStr = [];
+  if (client.endereco) endStr.push(client.endereco + (client.numero ? `, ${client.numero}` : ''));
+  if (client.bairro) endStr.push(client.bairro);
+  if (client.cidade || client.estado) endStr.push(`${client.cidade || ''}${client.estado ? ' - ' + client.estado : ''}`.trim());
+  if (client.cep) endStr.push(`CEP: ${client.cep}`);
+  if (endEl) endEl.textContent = endStr.join(' • ') || 'Endereço não informado';
+
+  if (servEl) servEl.textContent = client.taxType || 'Atendimento Olá, Contador';
 }
 
 function atualizarProximaAcao({ triagemEnviada, qtdDocs, temAppt, apptFeito, temRelatorio }) {
@@ -730,6 +772,55 @@ function setupCriarSenha() {
     }, 1500);
   });
   input.addEventListener('keydown', e => { if (e.key === 'Enter') btn.click(); });
+}
+
+function setupPerfilSenha() {
+  const form = document.getElementById('form-perfil-senha');
+  const inputNova = document.getElementById('perfil-nova-senha');
+  const inputConf = document.getElementById('perfil-confirma-senha');
+  const btn = document.getElementById('btn-perfil-salvar-senha');
+  const msg = document.getElementById('msg-perfil-senha');
+
+  if (!form || !btn || !inputNova || !inputConf) return;
+
+  function aviso(texto, cor) {
+    if (!msg) return;
+    msg.style.display = 'block';
+    msg.style.color = cor;
+    msg.textContent = texto;
+  }
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const s1 = inputNova.value;
+    const s2 = inputConf.value;
+
+    if (s1.length < 6) {
+      aviso('A senha precisa ter pelo menos 6 caracteres.', '#B32620');
+      return;
+    }
+    if (s1 !== s2) {
+      aviso('As senhas digitadas não coincidem.', '#B32620');
+      return;
+    }
+
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Salvando...';
+
+    const { error } = await sb.auth.updateUser({ password: s1 });
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fa-solid fa-key" style="margin-right: 6px;"></i> Salvar Nova Senha';
+
+    if (error) {
+      aviso('Não foi possível alterar a senha. Tente novamente.', '#B32620');
+      return;
+    }
+
+    inputNova.value = '';
+    inputConf.value = '';
+    aviso('Senha alterada com sucesso! Você já pode usá-la para acessar sua conta.', '#1F8A5F');
+    localStorage.setItem(`oc_senha_feita_${CLIENT_ID}`, 'true');
+  });
 }
 
 // Carrega os próximos vencimentos fiscais do cliente.
@@ -1289,8 +1380,10 @@ async function loadClientHistory() {
     const docEl = document.getElementById('client-header-doc');
     const avatarEl = document.getElementById('client-header-avatar');
     if (nameEl) nameEl.textContent = client.name || '';
-    if (docEl) docEl.textContent = client.cpf || '';
+    if (docEl) docEl.textContent = formatarCPF(client.cpf);
     if (avatarEl) avatarEl.textContent = client.avatar || iniciaisDoNome(client.name);
+
+    populaPerfilCliente(client);
 
     // Precisa saber ANTES de desenhar as bolhas se já existe avaliação — senão
     // o card de NPS no histórico renderizaria as estrelas de novo mesmo depois
