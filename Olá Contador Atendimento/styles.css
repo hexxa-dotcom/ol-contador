@@ -4881,3 +4881,220 @@ input:checked + .slider:before {
     width: 76px !important; min-width: 76px !important;
   }
 }
+
+/* ==========================================================================
+   ULTRA-SOPHISTICATED APPLE & GOOGLE DESIGN OVERHAUL (ÁREA DO CONTADOR SOMENTE)
+   Inspired by soft floating cards, capsule floating dock sidebar, warm tones & rich micro-animations.
+   ========================================================================== */
+
+body.pagina-contador {
+  background-color: #EBEBDF !important;
+  color: #1C1C1C;
+}
+
+/* 1. Header Translucency & Floating Pills */
+body.pagina-contador .app-header {
+  background: #EBEBDF !important;
+  border-bottom: none !important;
+  box-shadow: none !important;
+  padding: 16px 28px !important;
+}
+
+body.pagina-contador .logo-text {
+  color: var(--color-pine) !important;
+  font-size: 22px !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.5px !important;
+}
+
+body.pagina-contador .header-right {
+  gap: 14px !important;
+}
+
+body.pagina-contador .notification-trigger {
+  background: #FFFFFF !important;
+  border: 1px solid rgba(12, 84, 70, 0.08) !important;
+  border-radius: 50% !important;
+  width: 44px !important;
+  height: 44px !important;
+  display: grid !important;
+  place-items: center !important;
+  box-shadow: 0 4px 16px rgba(12, 84, 70, 0.04) !important;
+  color: var(--color-pine) !important;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+body.pagina-contador .notification-trigger:hover {
+  transform: translateY(-2px) scale(1.05) !important;
+  box-shadow: 0 8px 20px rgba(12, 84, 70, 0.08) !important;
+}
+
+body.pagina-contador .agent-profile {
+  background: #FFFFFF !important;
+  border: 1px solid rgba(12, 84, 70, 0.08) !important;
+  border-radius: 30px !important;
+  padding: 5px 16px 5px 6px !important;
+  box-shadow: 0 4px 16px rgba(12, 84, 70, 0.04) !important;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+body.pagina-contador .agent-profile:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 8px 20px rgba(12, 84, 70, 0.08) !important;
+}
+
+body.pagina-contador .agent-info h4 {
+  color: var(--color-pine) !important;
+  font-weight: 700 !important;
+}
+
+body.pagina-contador .agent-info span {
+  color: #5C7068 !important;
+}
+
+/* 2. Floating Island Capsule Sidebar (Dock Style) */
+body.pagina-contador .dashboard-container {
+  padding: 12px 24px 24px 24px !important;
+  gap: 20px !important;
+  height: calc(100vh - 76px) !important;
+  background: #EBEBDF !important;
+}
+
+body.pagina-contador .app-sidebar-nav {
+  background: #FFFFFF !important;
+  border: 1px solid rgba(12, 84, 70, 0.06) !important;
+  border-radius: 28px !important;
+  box-shadow: 0 10px 30px rgba(12, 84, 70, 0.04), 0 2px 8px rgba(12, 84, 70, 0.02) !important;
+  padding: 18px 12px !important;
+  margin: 0 !important;
+  height: 100% !important;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+body.pagina-contador .nav-section-title {
+  color: #7A8E85 !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.14em !important;
+  margin: 8px 12px 14px 12px !important;
+}
+
+body.pagina-contador .nav-item {
+  border-radius: 18px !important;
+  padding: 12px 16px !important;
+  font-weight: 600 !important;
+  color: #4A5D55 !important;
+  margin-bottom: 4px !important;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+body.pagina-contador .nav-item:hover {
+  background-color: rgba(12, 84, 70, 0.04) !important;
+  color: var(--color-pine) !important;
+  transform: translateX(3px) !important;
+}
+
+body.pagina-contador .nav-item.active {
+  background-color: var(--color-pine) !important;
+  color: #FFFFFF !important;
+  box-shadow: 0 8px 20px rgba(12, 84, 70, 0.22) !important;
+}
+
+body.pagina-contador .nav-item.active i {
+  color: var(--color-coral) !important;
+}
+
+/* 3. Floating Apple/Google Cards */
+body.pagina-contador .kpi-card,
+body.pagina-contador .dash-card,
+body.pagina-contador .tracking-card,
+body.pagina-contador .painel-abas-container,
+body.pagina-contador .relatorios-card {
+  background: #FFFFFF !important;
+  border-radius: 26px !important;
+  border: 1px solid rgba(12, 84, 70, 0.06) !important;
+  box-shadow: 0 12px 32px rgba(12, 84, 70, 0.04), 0 2px 6px rgba(12, 84, 70, 0.015) !important;
+  padding: 24px 28px !important;
+  transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+body.pagina-contador .kpi-card:hover,
+body.pagina-contador .dash-card:hover,
+body.pagina-contador .tracking-card:hover {
+  transform: translateY(-5px) scale(1.006) !important;
+  box-shadow: 0 20px 40px rgba(12, 84, 70, 0.08), 0 4px 12px rgba(12, 84, 70, 0.03) !important;
+  border-color: rgba(12, 84, 70, 0.14) !important;
+}
+
+body.pagina-contador .kpi-card-header i {
+  width: 44px !important;
+  height: 44px !important;
+  border-radius: 14px !important;
+  background: rgba(12, 84, 70, 0.06) !important;
+  color: var(--color-pine) !important;
+  font-size: 18px !important;
+  display: grid !important;
+  place-items: center !important;
+  padding: 0 !important;
+}
+
+body.pagina-contador .kpi-card h3 {
+  font-size: 32px !important;
+  font-weight: 800 !important;
+  letter-spacing: -1px !important;
+  color: var(--color-pine) !important;
+  margin: 16px 0 10px 0 !important;
+}
+
+body.pagina-contador .kpi-trend {
+  padding: 5px 12px !important;
+  border-radius: 30px !important;
+  font-weight: 700 !important;
+  font-size: 11.5px !important;
+}
+
+/* 4. Segmented Control Pill Tabs */
+body.pagina-contador .painel-abas {
+  background: #FFFFFF !important;
+  padding: 6px !important;
+  border-radius: 20px !important;
+  border: 1px solid rgba(12, 84, 70, 0.06) !important;
+  box-shadow: 0 6px 20px rgba(12, 84, 70, 0.03) !important;
+  display: inline-flex !important;
+  gap: 4px !important;
+}
+
+body.pagina-contador .painel-aba-btn {
+  border-radius: 14px !important;
+  padding: 10px 18px !important;
+  font-weight: 600 !important;
+  font-size: 13.5px !important;
+  color: #5C7068 !important;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+body.pagina-contador .painel-aba-btn:hover {
+  background: rgba(12, 84, 70, 0.04) !important;
+  color: var(--color-pine) !important;
+}
+
+body.pagina-contador .painel-aba-btn.active {
+  background: var(--color-pine) !important;
+  color: #FFFFFF !important;
+  box-shadow: 0 4px 14px rgba(12, 84, 70, 0.2) !important;
+}
+
+/* 5. Smooth Page Entrance & Hover Micro-animations */
+body.pagina-contador .content-panel.active {
+  animation: appleFadeInUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+@keyframes appleFadeInUp {
+  0% {
+    opacity: 0;
+    transform: translateY(16px) scale(0.99);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
