@@ -448,14 +448,7 @@ body {
 }
 
 .kpi-card::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 3px;
-  background: linear-gradient(90deg, var(--color-pine), var(--color-coral));
-  opacity: 0.8;
+  display: none;
 }
 
 .kpi-card:hover {
@@ -5025,7 +5018,8 @@ body.pagina-contador .tracking-card:hover {
   border-color: rgba(12, 84, 70, 0.22) !important;
 }
 
-/* Retirar ícones dos cards KPI para visual limpo & moderno */
+/* Retirar traço superior e ícones dos cards KPI para visual 100% limpo & moderno */
+body.pagina-contador .kpi-card::before,
 body.pagina-contador .kpi-card-header i {
   display: none !important;
 }
