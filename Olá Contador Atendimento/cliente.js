@@ -559,15 +559,19 @@ function aplicarEstadoDoChat(status) {
   }
 }
 
-async function setupChatLockListener() {
-  // Busca o status inicial pela mesma API usada pelos dois portais. Assim, se o
-  // cliente abrir a tela depois que o contador bloqueou/encerrou, ele já vê o
-  // estado certo sem depender de ter recebido o broadcast em tempo real.
+async function buscarStatusAtual() {
   try {
     const res = await fetch('/api/clients');
     const clients = res.ok ? await res.json() : {};
     if (clients && clients[CLIENT_ID]) aplicarEstadoDoChat(clients[CLIENT_ID].status);
-  } catch(e) {}
+  } catch (e) {}
+}
+
+async function setupChatLockListener() {
+  // Busca o status inicial pela mesma API usada pelos dois portais. Assim, se o
+  // cliente abrir a tela depois que o contador bloqueou/encerrou, ele já vê o
+  // estado certo sem depender de ter recebido o broadcast em tempo real.
+  await buscarStatusAtual();
 
   if (!window.sb) return;
   if (window.OC_CONFIG?.TESTE_CLIENTE_SEM_LOGIN?.enabled && window.OC_ROLE === 'cliente') return;
@@ -578,6 +582,15 @@ async function setupChatLockListener() {
     aplicarEstadoDoChat(payload.status || (payload.locked ? 'locked' : 'active'));
   });
   ch.subscribe();
+
+  // Rede de segurança: o broadcast só chega se a aba estiver com o canal
+  // conectado no instante exato do bloqueio — se a conexão cair ou reconectar
+  // no meio do caminho, o evento se perde e o cliente nunca fica sabendo. Uma
+  // conferência periódica garante que o estado converge sozinho em poucos
+  // segundos, mesmo sem o cliente recarregar a página.
+  setInterval(() => {
+    if (document.visibilityState === 'visible') buscarStatusAtual();
+  }, 10000);
 }
 
 // ============================================================================
