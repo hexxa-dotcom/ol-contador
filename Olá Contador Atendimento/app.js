@@ -4537,10 +4537,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Route header profile to "Meu Perfil"
   const headerAgentProfile = document.getElementById("header-agent-profile");
-  const navBtnPerfil = document.getElementById("nav-btn-perfil");
-  if (headerAgentProfile && navBtnPerfil) {
+  if (headerAgentProfile) {
     headerAgentProfile.addEventListener("click", () => {
-      navBtnPerfil.click();
+      document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+      document.querySelectorAll('.content-panel').forEach(p => p.classList.remove('active'));
+      const sec = document.getElementById('section-perfil');
+      if (sec) sec.classList.add('active');
     });
   }
 
