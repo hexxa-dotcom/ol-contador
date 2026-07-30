@@ -351,10 +351,23 @@ async function montarLinhaDoTempo() {
   // Título e status refletem o caso de verdade.
   const titulo = document.getElementById('tracker-titulo');
   const status = document.getElementById('tracker-status');
+  const elHeaderAssunto = document.getElementById('chat-header-assunto');
+  const elHeaderCodigo = document.getElementById('chat-header-codigo');
+
   const nomeCaso = (rels && rels[0] && rels[0].titulo)
-    || (triagem && triagem.assunto && OC_TRIAGEM.acharAssunto(triagem.assunto)?.titulo)
-    || 'Seu atendimento';
+    || (triagem && triagem.assunto && (OC_TRIAGEM.acharAssunto(triagem.assunto)?.titulo || triagem.assunto))
+    || 'Atendimento Geral';
   if (titulo) titulo.textContent = nomeCaso;
+  if (elHeaderAssunto) elHeaderAssunto.textContent = nomeCaso;
+  if (elHeaderCodigo) {
+    let numProtocolo = '2026-001';
+    if (triagem && triagem.id) {
+      numProtocolo = String(triagem.id).padStart(4, '0');
+    } else if (CLIENT_ID) {
+      numProtocolo = String(CLIENT_ID).replace(/\D/g, '').slice(0, 6) || '2026-001';
+    }
+    elHeaderCodigo.textContent = `Protocolo: #OC-${numProtocolo}`;
+  }
   
   const statusCaso = temRelatorio ? 'Concluído' : 'Em andamento';
   if (status) {

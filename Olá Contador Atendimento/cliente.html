@@ -296,22 +296,33 @@
                 <button type="button" class="btn-utility primary" id="chat-lock-action" hidden></button>
               </div>
               <!-- Chat Header -->
-              <div class="chat-header">
-                <div class="chat-header-avatar" id="oc-contador-avatar" aria-label="Avatar do contador">SC</div>
-                <!-- Preenchido por cliente.js a partir de configuracoes.contador_perfil.
-                     O texto abaixo é só o que aparece antes da config chegar. -->
-                <div class="chat-header-info">
-                  <div class="chat-header-nome">
-                    <h3 id="oc-contador-nome">Seu contador</h3>
-                    <span class="chat-verificado" role="img" aria-label="Contador verificado" title="Contador verificado">
-                      <i class="fa-solid fa-certificate chat-verificado-selo" aria-hidden="true"></i>
-                      <i class="fa-solid fa-check chat-verificado-check" aria-hidden="true"></i>
-                    </span>
+              <div class="chat-header" style="display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px 20px;">
+                <div style="display: flex; align-items: center; gap: 14px;">
+                  <div class="chat-header-avatar" id="oc-contador-avatar" aria-label="Avatar do contador">SC</div>
+                  <div class="chat-header-info">
+                    <div class="chat-header-nome">
+                      <h3 id="oc-contador-nome">Seu contador</h3>
+                      <span class="chat-verificado" role="img" aria-label="Contador verificado" title="Contador verificado">
+                        <i class="fa-solid fa-certificate chat-verificado-selo" aria-hidden="true"></i>
+                        <i class="fa-solid fa-check chat-verificado-check" aria-hidden="true"></i>
+                      </span>
+                    </div>
+                    <p id="oc-contador-crc" style="font-size: 11px; margin: 0; color: rgba(255,255,255,0.8);"></p>
+                    <div class="status-indicator offline" id="contador-status" style="margin-top: 4px; color: rgba(255,255,255,0.9);">
+                      <i class="fa-solid fa-circle dot" style="color: inherit;"></i> <span class="status-text">Offline</span>
+                    </div>
                   </div>
-                  <p id="oc-contador-crc" style="font-size: 11px; margin: 0; color: rgba(255,255,255,0.8);"></p>
-                  <div class="status-indicator offline" id="contador-status" style="margin-top: 4px; color: rgba(255,255,255,0.9);">
-                    <i class="fa-solid fa-circle dot" style="color: inherit;"></i> <span class="status-text">Offline</span>
-                  </div>
+                </div>
+
+                <!-- Canto Direito: Assunto do Atendimento & Protocolo -->
+                <div class="chat-header-meta" style="text-align: right; display: flex; flex-direction: column; align-items: flex-end; justify-content: center; gap: 3px; shrink: 0;">
+                  <span style="font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.6px; font-weight: 700; color: rgba(255,255,255,0.75);">Atendimento sobre:</span>
+                  <strong id="chat-header-assunto" style="font-size: 12.5px; font-weight: 700; color: #FFFFFF; max-width: 220px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; background: rgba(255,255,255,0.15); padding: 3px 10px; border-radius: 999px; border: 1px solid rgba(255,255,255,0.25);">
+                    Atendimento Geral
+                  </strong>
+                  <span id="chat-header-codigo" style="font-size: 10px; color: rgba(255,255,255,0.75); font-family: monospace; font-weight: 600; margin-top: 1px;">
+                    Protocolo: #OC-2026
+                  </span>
                 </div>
               </div>
 
@@ -686,6 +697,6 @@
   <script src="triagem-catalogo.js"></script>
   <script src="triagem.js?v=3"></script>
   <script src="relatorio-pdf.js"></script>
-  <script src="cliente.js?v=4"></script>
+  <script src="cliente.js?v=5"></script>
 </body>
 </html>
