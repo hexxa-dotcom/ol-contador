@@ -1184,7 +1184,29 @@ app.post('/api/radar-fiscal', async (req, res) => {
   }
 });
 
-// ============ NOTIFICAÇÕES EXTERNAS (status + teste) ============
+// ==========================================
+// STUB ENDPOINTS (FALLBACK PARA CLIENT-SIDE)
+// ==========================================
+// Estas rotas normalmente são interceptadas pelo oc-data.js no navegador
+// via Supabase. Se a interceptação falhar, o servidor responderá com 501 JSON
+// em vez de um HTML 404 que quebra o parse da aplicação.
+const stubHandler = (req, res) => {
+  res.status(501).json({
+    success: false,
+    error: 'Rota interceptada no lado cliente falhou. Endpoint do servidor não implementado.'
+  });
+};
+
+app.get('/api/triagem', stubHandler);
+app.post('/api/triagem', stubHandler);
+app.get('/api/caixa-postal', stubHandler);
+app.post('/api/caixa-postal', stubHandler);
+app.get('/api/avaliacoes', stubHandler);
+app.post('/api/avaliacoes', stubHandler);
+
+// ==========================================
+// NOTIFICAÇÕES (TESTE MANUAL)
+// ==========================================
 app.get('/api/notify/status', (req, res) => {
   res.json({ email: notify.emailConfigured(), whatsapp: notify.whatsappConfigured() });
 });

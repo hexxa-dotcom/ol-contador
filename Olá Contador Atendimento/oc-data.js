@@ -1187,35 +1187,47 @@ window.OCRealtime = {
   channel: null,
   subscribe({ onMessage, onMessageUpdate, onData, onStatus } = {}) {
     if (testeSemLogin()) return { unsubscribe() {} };
-    if (this.channel) { try { sb.removeChannel(this.channel); } catch (e) {} }
-    let ch = sb.channel('oc-realtime-' + Math.random().toString(36).slice(2, 7));
-    if (onMessage) {
-      ch = ch.on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'mensagens' },
-        p => onMessage(p.new.cliente_id, mapMessage(p.new)));
-    }
-    // UPDATE em mensagens hoje só acontece quando o outro lado lê (read_at).
-    if (onMessageUpdate) {
-      ch = ch.on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'mensagens' },
-        p => onMessageUpdate(p.new.cliente_id, mapMessage(p.new)));
-    }
-    if (onData) {
-      ['notificacoes', 'agendamentos', 'documentos', 'clientes'].forEach(t => {
-        ch = ch.on('postgres_changes', { event: '*', schema: 'public', table: t }, (payload) => {
-          onData(t);
-          // Se for um novo cliente, dispara a notificação no navegador
-          if (t === 'clientes' && payload.eventType === 'INSERT' && typeof window.notifyNewLead === 'function') {
-            window.notifyNewLead(payload.new.name || 'Desconhecido');
-          }
+    
+    const _start = async () => {
+      if (this.channel) {
+        try { await sb.removeChannel(this.channel); } catch (e) {}
+      }
+      let ch = sb.channel('oc-realtime-' + Math.random().toString(36).slice(2, 7));
+      if (onMessage) {
+        ch = ch.on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'mensagens' },
+          p => onMessage(p.new.cliente_id, mapMessage(p.new)));
+      }
+      if (onMessageUpdate) {
+        ch = ch.on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'mensagens' },
+          p => onMessageUpdate(p.new.cliente_id, mapMessage(p.new)));
+      }
+      if (onData) {
+        ['notificacoes', 'agendamentos', 'documentos', 'clientes'].forEach(t => {
+          ch = ch.on('postgres_changes', { event: '*', schema: 'public', table: t }, (payload) => {
+            onData(t);
+            if (t === 'clientes' && payload.eventType === 'INSERT' && typeof window.notifyNewLead === 'function') {
+              window.notifyNewLead(payload.new.name || 'Desconhecido');
+            }
+          });
         });
+      }
+      ch.subscribe(status => {
+        if (onStatus) onStatus(status);
       });
-    }
-    ch.subscribe((status, error) => {
-      if (typeof onStatus === 'function') onStatus(status, error || null);
-    });
-    this.channel = ch;
-    return ch;
-  }
-};
+      this.channel = ch;
+    };
+    
+    _start();
+
+    return {
+      unsubscribe: async () => {
+        if (this.channel) {
+          try { await sb.removeChannel(this.channel); } catch (e) {}
+          this.channel = null;
+        }
+      }
+    };
+  },
 
 // ============================================================================
 // OCChat — leitura e "digitando...".

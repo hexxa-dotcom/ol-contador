@@ -270,7 +270,11 @@ window.TriagemUI = (function () {
       return true;
     } catch (e) {
       console.error('Falha ao salvar a triagem:', e);
-      avisar('Não consegui salvar agora. Vou tentar de novo quando você continuar.', 'erro');
+      if (enviar) {
+        avisar('Houve um problema de conexão. Por favor, verifique sua internet e tente enviar novamente.', 'erro');
+      } else {
+        avisar('Problema de conexão ao salvar rascunho.', 'erro');
+      }
       return false;
     }
   }
