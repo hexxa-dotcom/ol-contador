@@ -6,7 +6,7 @@
   <title>Portal do Cliente - Olá Contador</title>
   <meta name="robots" content="noindex" />
   <link rel="stylesheet" href="styles.css?v=19">
-  <link rel="stylesheet" href="cliente.css?v=2">
+  <link rel="stylesheet" href="cliente.css?v=3">
   
   <!-- FontAwesome -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -280,69 +280,8 @@
       </section>
 
       <!-- SECTION 1: Chat de Atendimento -->
-      <section class="content-panel" id="section-chat">
+      <section class="content-panel" id="section-chat" style="padding: 12px 16px 20px 16px; box-sizing: border-box;">
         <div class="cliente-chat-shell">
-          <aside class="cliente-chat-sidebar" aria-label="Central de atendimento">
-            <div class="cliente-chat-sidebar-head">
-              <button type="button" class="cliente-chat-sidebar-toggle" id="btn-toggle-chat-central"
-                title="Recolher central de atendimento" aria-label="Recolher central de atendimento"
-                aria-expanded="true">
-                <i class="fa-solid fa-headset"></i>
-                <span>Central de atendimento</span>
-                <i class="fa-solid fa-chevron-left cliente-chat-sidebar-toggle-arrow" id="icon-toggle-chat-central"></i>
-              </button>
-              <strong id="chat-side-case-status">Carregando</strong>
-            </div>
-
-            <div class="cliente-case-card">
-              <span class="cliente-case-eyebrow">Atendimento atual</span>
-              <h3 id="chat-side-case-title">Seu atendimento</h3>
-              <p id="chat-side-next-action">Carregando o próximo passo.</p>
-            </div>
-
-            <div class="cliente-case-metrics" aria-label="Resumo do caso">
-              <div>
-                <strong id="chat-side-pending-count">--</strong>
-                <span>Pendências</span>
-              </div>
-              <div>
-                <strong id="chat-side-docs-count">--</strong>
-                <span>Documentos</span>
-              </div>
-              <div>
-                <strong id="chat-side-report-state">--</strong>
-                <span>Relatório</span>
-              </div>
-            </div>
-
-            <div class="cliente-case-actions">
-              <button type="button" onclick="abrirSecaoCliente('section-dashboard')">
-                <i class="fa-solid fa-map-location-dot"></i>
-                <span>Meu caso</span>
-              </button>
-              <button type="button" onclick="abrirSecaoCliente('section-triagem')">
-                <i class="fa-solid fa-list-check"></i>
-                <span>Pendências</span>
-              </button>
-              <button type="button" onclick="abrirSecaoCliente('section-documentos')">
-                <i class="fa-solid fa-folder-open"></i>
-                <span>Documentos</span>
-              </button>
-              <button type="button" onclick="abrirSecaoCliente('section-historico')">
-                <i class="fa-solid fa-clock-rotate-left"></i>
-                <span>Histórico</span>
-              </button>
-            </div>
-
-            <div class="cliente-chat-sidebar-foot">
-              <p>O chat abre apenas no horário agendado. Depois, o caso continua por aqui.</p>
-              <button type="button" class="btn-utility primary" onclick="abrirSecaoCliente('section-agendamento')">
-                <i class="fa-solid fa-calendar-days"></i>
-                Novo atendimento
-              </button>
-            </div>
-          </aside>
-
           <div class="cliente-chat-main">
             <div class="chat-container" style="position: relative;">
               <!-- Locked Overlay (Hidden by default, shown by JS) -->
