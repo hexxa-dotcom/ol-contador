@@ -5125,13 +5125,13 @@ body.pagina-contador .atendimento-module-container {
 }
 
 body.pagina-contador .atendimento-toolbar-left {
-  border-right: 2px solid var(--color-coral) !important;
+  border-right: 1px solid rgba(12, 84, 70, 0.08) !important; /* Linha sutil neutra no submenu da toolbar */
 }
 
 body.pagina-contador .atendimento-side-panel,
 body.pagina-contador .sidebar-chats {
   background: #FFFFFF !important;
-  border-right: 2px solid var(--color-coral) !important; /* Divisória vertical Laranja interna */
+  border-right: 2px solid var(--color-coral) !important; /* Linha Laranja dividindo o histórico e a área de conversa */
 }
 
 body.pagina-contador .chat-item {
