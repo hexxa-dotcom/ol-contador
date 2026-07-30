@@ -5115,11 +5115,11 @@ body.pagina-contador .content-panel.active {
   }
 }
 
-/* 6. Clean Chat Area & Horizontal Divider Between History Items */
+/* 6. Chat Area Frame (Borda Laranja 360) & Icon Outlines */
 body.pagina-contador .atendimento-module-container {
   border-radius: 24px !important;
-  border: 1px solid rgba(12, 84, 70, 0.12) !important;
-  box-shadow: 0 8px 28px rgba(12, 84, 70, 0.07) !important;
+  border: 2px solid var(--color-coral) !important; /* Borda Laranja em todo o container do chat */
+  box-shadow: 0 8px 28px rgba(255, 103, 0, 0.12), 0 8px 28px rgba(12, 84, 70, 0.05) !important;
   overflow: hidden !important;
   background: #FFFFFF !important;
 }
@@ -5143,7 +5143,7 @@ body.pagina-contador .chat-item:last-child {
 
 body.pagina-contador .chat-item.active {
   background-color: var(--color-pine-ultra-light) !important;
-  border-left: none !important; /* Sem faixas ou sobressalentes laterais */
+  border-left: none !important;
 }
 
 body.pagina-contador .chat-area {
@@ -5152,4 +5152,22 @@ body.pagina-contador .chat-area {
   box-shadow: none !important;
   margin: 0 !important;
   background-color: #FFFFFF !important;
+}
+
+/* Contorno nos ícones da toolbar lateral (Chat / IA) quando selecionados */
+body.pagina-contador .btn-toolbar {
+  border: 2px solid transparent !important;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+body.pagina-contador .btn-toolbar:hover:not(.active) {
+  border: 2px solid rgba(255, 103, 0, 0.4) !important;
+  background-color: rgba(255, 103, 0, 0.06) !important;
+}
+
+body.pagina-contador .btn-toolbar.active {
+  background-color: var(--color-pine-ultra-light) !important;
+  color: var(--color-pine) !important;
+  border: 2px solid var(--color-coral) !important; /* Contorno Laranja no ícone ativo da toolbar (Chat e IA) */
+  box-shadow: 0 4px 14px rgba(255, 103, 0, 0.2) !important;
 }
