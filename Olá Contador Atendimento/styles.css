@@ -5066,11 +5066,10 @@ body.pagina-contador .settings-tabs {
   background: #FFFFFF !important;
   padding: 6px !important;
   border-radius: 20px !important;
-  border: 1.5px solid var(--color-coral) !important; /* Contorno Laranja harmonizado com a Sidebar */
+  border: 2px solid var(--color-coral) !important; /* Contorno Laranja completo nos 4 lados */
   box-shadow: 0 6px 20px rgba(255, 103, 0, 0.1), 0 6px 20px rgba(12, 84, 70, 0.05) !important;
   display: inline-flex !important;
   gap: 6px !important;
-  border-bottom: none !important;
   margin-bottom: 24px !important;
 }
 
@@ -5098,7 +5097,6 @@ body.pagina-contador .settings-tab.active {
   background: var(--color-pine) !important;
   color: #FFFFFF !important;
   box-shadow: 0 4px 14px rgba(12, 84, 70, 0.22) !important;
-  border-bottom: none !important;
 }
 
 /* Caixa Postal Thread Frame Floating Card */
