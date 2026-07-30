@@ -671,18 +671,44 @@ function setupLogout() {
 }
 
 // Senha é opcional — o acesso padrão continua sendo o link por e-mail.
-// Quem já está logado (via link) pode definir uma senha aqui sem precisar
-// da antiga, porque a sessão atual já prova quem ele é.
+// Quem já está logado (via link) pode definir uma senha aqui.
+// Uma vez definida ou dispensada, essa opção desaparece da home.
 function setupCriarSenha() {
   const input = document.getElementById('nova-senha');
   const btn = document.getElementById('btn-criar-senha');
   const msg = document.getElementById('msg-criar-senha');
+  const card = document.getElementById('card-criar-senha');
+  const btnDismiss = document.getElementById('btn-dismiss-senha');
+
+  if (!card) return;
+
+  const storageKey = `oc_senha_feita_${CLIENT_ID}`;
+  // Se o cliente já definiu ou dispensou a senha, oculta o card completamente
+  if (localStorage.getItem(storageKey) === 'true') {
+    card.style.display = 'none';
+    return;
+  }
+
+  // Botão para dispensar aviso (X)
+  if (btnDismiss) {
+    btnDismiss.addEventListener('click', () => {
+      card.style.transition = 'all 0.3s ease';
+      card.style.opacity = '0';
+      card.style.transform = 'translateY(-8px)';
+      setTimeout(() => { card.style.display = 'none'; }, 300);
+      localStorage.setItem(storageKey, 'true');
+    });
+  }
+
   if (!btn || !input) return;
+
   function aviso(texto, cor) {
+    if (!msg) return;
     msg.style.display = 'block';
     msg.style.color = cor;
     msg.textContent = texto;
   }
+
   btn.addEventListener('click', async () => {
     const senha = input.value;
     if (senha.length < 6) { aviso('A senha precisa ter pelo menos 6 caracteres.', '#B32620'); return; }
@@ -691,7 +717,16 @@ function setupCriarSenha() {
     btn.disabled = false; btn.textContent = 'Criar senha';
     if (error) { aviso('Não foi possível salvar a senha. Tente novamente.', '#B32620'); return; }
     input.value = '';
-    aviso('Senha criada! Da próxima vez você pode entrar com e-mail e senha, ou continuar usando o link do e-mail.', '#1F8A5F');
+    aviso('Senha salva com sucesso! Opcionalmente você pode entrar com e-mail e senha.', '#1F8A5F');
+    localStorage.setItem(storageKey, 'true');
+
+    // Suavemente esconde o card após 1.5s pra não poluir mais a Home
+    setTimeout(() => {
+      card.style.transition = 'all 0.4s ease';
+      card.style.opacity = '0';
+      card.style.transform = 'translateY(-10px)';
+      setTimeout(() => { card.style.display = 'none'; }, 400);
+    }, 1500);
   });
   input.addEventListener('keydown', e => { if (e.key === 'Enter') btn.click(); });
 }

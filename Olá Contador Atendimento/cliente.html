@@ -119,14 +119,14 @@
         </section>
 
         <!-- Acesso: por padrão você entra pelo link no e-mail (sem senha). Criar uma
-             senha aqui é opcional — só pra quem preferir entrar assim depois. -->
-        <div class="tracking-card" id="card-criar-senha" style="border-radius: 24px; margin-bottom: 24px;">
-          <div class="tracking-header">
+             senha aqui é opcional. Quando salva ou dispensada, o card desparece. -->
+        <div class="tracking-card" id="card-criar-senha" style="border-radius: 24px; margin-bottom: 24px; position: relative;">
+          <div class="tracking-header" style="display: flex; justify-content: space-between; align-items: center;">
             <h3><i class="fa-solid fa-key" style="color: var(--color-coral); margin-right: 8px;"></i>Acesso à sua conta</h3>
+            <button type="button" id="btn-dismiss-senha" title="Dispensar aviso" style="background: none; border: none; color: var(--color-text-secondary); cursor: pointer; font-size: 16px; padding: 4px 8px; border-radius: 8px; transition: background 0.2s;" onmouseover="this.style.background='rgba(0,0,0,0.05)'" onmouseout="this.style.background='none'"><i class="fa-solid fa-xmark"></i></button>
           </div>
           <p style="font-size: 13px; color: var(--color-text-secondary); margin: 10px 0 14px;">
-            Você pode continuar entrando só com o link que chega no seu e-mail — não precisa de senha.
-            Se preferir, crie uma senha abaixo pra também poder entrar digitando e-mail e senha da próxima vez.
+            Você pode continuar entrando só com o link do seu e-mail. Se preferir, defina uma senha abaixo para também poder entrar com e-mail e senha.
           </p>
           <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end;">
             <div style="flex: 1; min-width: 180px;">
@@ -668,6 +668,6 @@
   <script src="triagem-catalogo.js"></script>
   <script src="triagem.js"></script>
   <script src="relatorio-pdf.js"></script>
-  <script src="cliente.js"></script>
+  <script src="cliente.js?v=2"></script>
 </body>
 </html>
