@@ -5115,17 +5115,19 @@ body.pagina-contador .content-panel.active {
   }
 }
 
-/* 6. Chat Area Frame (Borda Laranja 360) & Icon Outlines */
+/* 6. Chat Area Frame (Borda Laranja 360 Encapsulada Flutuando) */
 body.pagina-contador .atendimento-module-container {
   border-radius: 24px !important;
   border: 2px solid var(--color-coral) !important; /* Borda Laranja em todo o container do chat */
-  box-shadow: 0 8px 28px rgba(255, 103, 0, 0.12), 0 8px 28px rgba(12, 84, 70, 0.05) !important;
+  box-shadow: 0 12px 32px rgba(255, 106, 69, 0.16), 0 4px 16px rgba(12, 84, 70, 0.08) !important;
   overflow: hidden !important;
   background: #FFFFFF !important;
+  box-sizing: border-box !important;
 }
 
+.atendimento-toolbar-left,
 body.pagina-contador .atendimento-toolbar-left {
-  border-right: 1px solid rgba(12, 84, 70, 0.08) !important; /* Linha sutil neutra no submenu da toolbar */
+  display: none !important; /* Removido o submenu lateral poluído */
 }
 
 body.pagina-contador .atendimento-side-panel,
