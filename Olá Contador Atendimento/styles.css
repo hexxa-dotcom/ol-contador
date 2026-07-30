@@ -4689,17 +4689,9 @@ input:checked + .slider:before {
   z-index: 6;
 }
 
-/* Chat area popping out with orange frame */
+/* Chat area clean container */
 .chat-area {
-  border-radius: 24px 24px 0 0 !important; /* Arredondado apenas em cima */
-  box-shadow: 0 -4px 32px rgba(10, 49, 33, 0.08) !important; 
-  border: 3px solid var(--color-coral) !important; /* Moldura laranja */
-  border-bottom: none !important; /* Colado ao rodapé */
-  margin: 16px 16px 0 16px !important; /* Uniform margin on top, right, and left */
-  background-color: var(--chat-bg-color) !important;
-  overflow: hidden; 
-  -webkit-mask-image: -webkit-radial-gradient(white, black);
-  transform: translateZ(0);
+  background-color: #FFFFFF;
 }
 
 /* Chat bubble contrast fixes */
@@ -5121,4 +5113,43 @@ body.pagina-contador .content-panel.active {
     opacity: 1;
     transform: translateY(0) scale(1);
   }
+}
+
+/* 6. Clean Chat Area & Horizontal Divider Between History Items */
+body.pagina-contador .atendimento-module-container {
+  border-radius: 24px !important;
+  border: 1px solid rgba(12, 84, 70, 0.12) !important;
+  box-shadow: 0 8px 28px rgba(12, 84, 70, 0.07) !important;
+  overflow: hidden !important;
+  background: #FFFFFF !important;
+}
+
+body.pagina-contador .sidebar-chats {
+  background: #FFFFFF !important;
+  border-right: 1px solid rgba(12, 84, 70, 0.12) !important;
+}
+
+body.pagina-contador .chat-item {
+  border-bottom: 1px solid rgba(12, 84, 70, 0.1) !important; /* Linha de divisão horizontal simples */
+  border-left: none !important;
+  border-right: none !important;
+  border-top: none !important;
+  transition: background-color 0.2s ease !important;
+}
+
+body.pagina-contador .chat-item:last-child {
+  border-bottom: none !important;
+}
+
+body.pagina-contador .chat-item.active {
+  background-color: var(--color-pine-ultra-light) !important;
+  border-left: none !important; /* Sem faixas ou sobressalentes laterais */
+}
+
+body.pagina-contador .chat-area {
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  margin: 0 !important;
+  background-color: #FFFFFF !important;
 }
