@@ -5124,9 +5124,14 @@ body.pagina-contador .atendimento-module-container {
   background: #FFFFFF !important;
 }
 
+body.pagina-contador .atendimento-toolbar-left {
+  border-right: 2px solid var(--color-coral) !important;
+}
+
+body.pagina-contador .atendimento-side-panel,
 body.pagina-contador .sidebar-chats {
   background: #FFFFFF !important;
-  border-right: 1px solid rgba(12, 84, 70, 0.12) !important;
+  border-right: 2px solid var(--color-coral) !important; /* Divisória vertical Laranja interna */
 }
 
 body.pagina-contador .chat-item {
