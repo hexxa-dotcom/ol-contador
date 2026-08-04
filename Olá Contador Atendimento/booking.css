@@ -113,6 +113,11 @@ footer{text-align:center;padding:34px 20px 44px;font-size:13.5px;color:var(--mut
 .metodo-opcao input{accent-color:var(--coral);width:16px;height:16px;flex:none;cursor:pointer}
 .metodo-opcao strong{display:block;font-size:14px;color:var(--pinho)}
 .metodo-opcao small{display:block;font-size:12.5px;color:var(--muted);margin-top:2px}
+.vantagens-sem-agendamento{margin-top:16px;padding:16px 18px;border-radius:16px;background:#EEF8F4;border:1px solid rgba(14,92,67,.15);color:var(--pinho)}
+.vantagens-sem-agendamento>strong{display:block;font-family:'Bricolage Grotesque',sans-serif;font-size:16px;margin-bottom:9px}
+.vantagens-sem-agendamento ul{list-style:none;padding:0;margin:0;display:grid;gap:7px}
+.vantagens-sem-agendamento li{display:flex;align-items:flex-start;gap:8px;font-size:13.5px;line-height:1.4;color:#344C4B}
+.vantagens-sem-agendamento li span{display:grid;place-items:center;flex:0 0 19px;width:19px;height:19px;border-radius:50%;background:var(--verde);color:#fff;font-size:11px;font-weight:800;margin-top:1px}
 @media(max-width:420px){.metodo-pagamento{flex-direction:column}}
 
 /* ---------- tela de pagamento / confirmação ---------- */

@@ -6,7 +6,7 @@
 // cliente era gravado na hora: quem gerava o Pix e desistia (ou o Pix
 // expirava) ficava para sempre como um cliente "pending" órfão, sem nenhuma
 // cobrança paga atrás dele.
-// body: { name, cpfCnpj, email, phone, sexo, cep, endereco, numero, bairro, cidade, estado, servicoId, date, time, summary, assunto, metodoPagamento }
+// body: { name, cpfCnpj, email, phone, sexo, cep, endereco, numero, bairro, cidade, estado, servicoId, date, time, summary, assunto, modalidade, canalResultado, metodoPagamento }
 const crypto = require('crypto');
 const asaas = require('./_lib/asaas');
 const { adminClient } = require('./_lib/auth');
@@ -19,7 +19,7 @@ const DESCONTO_PIX = 0.05;
 
 module.exports = async (req, res) => {
   if (req.method !== 'POST') return res.status(405).json({ error: 'method_not_allowed' });
-  const { name, cpfCnpj, email, phone, sexo, cep, endereco, numero, bairro, cidade, estado, servicoId, date, time, summary, assunto, metodoPagamento } = req.body || {};
+  const { name, cpfCnpj, email, phone, sexo, cep, endereco, numero, bairro, cidade, estado, servicoId, date, time, summary, assunto, modalidade, canalResultado, metodoPagamento } = req.body || {};
   if (!name || !email || !phone || !servicoId) return res.status(400).json({ error: 'invalid_params' });
   const { valido, digitos } = validarCpfCnpj(cpfCnpj);
   if (!valido) return res.status(400).json({ error: 'cpf_cnpj_invalido' });
@@ -34,6 +34,9 @@ module.exports = async (req, res) => {
   if (!servico) return res.status(404).json({ error: 'servico_not_found' });
 
   const cartao = metodoPagamento === 'cartao';
+  const modo = modalidade === 'sem_agendamento' ? 'sem_agendamento' : 'agendado';
+  const canal = canalResultado === 'whatsapp' ? 'whatsapp' : 'email';
+  if (modo === 'agendado' && (!date || !time)) return res.status(400).json({ error: 'invalid_params' });
   const precoCents = cartao ? servico.price_cents : Math.round(servico.price_cents * (1 - DESCONTO_PIX));
 
   try {
@@ -48,7 +51,8 @@ module.exports = async (req, res) => {
     const dadosCliente = {
       name, email, phone, sexo: sexo || null,
       cep: cep || null, endereco: endereco || null, numero: numero || null, bairro: bairro || null,
-      cidade: cidade || null, estado: estado || null, assunto: assunto || null, summary: summary || null
+      cidade: cidade || null, estado: estado || null, assunto: assunto || null, summary: summary || null,
+      modalidade: modo, canal_resultado: canal
     };
     // Segredo opaco que só este navegador recebe — sem ele, /api/status?cobrancaId=
     // seria adivinhável (id sequencial) e daria pra consultar, ou herdar o login
@@ -64,7 +68,8 @@ module.exports = async (req, res) => {
         cliente_ref: clientId, servico_id: servicoId, asaas_customer_id: customerId,
         asaas_payment_id: payment.id, valor_cents: precoCents, status: 'pending',
         billing_type: 'CREDIT_CARD', invoice_url: payment.invoiceUrl,
-        appt_date: date || null, appt_time: time || null, dados_cliente: dadosCliente, poll_token: pollToken
+        appt_date: modo === 'agendado' ? date : null, appt_time: modo === 'agendado' ? time : null,
+        dados_cliente: dadosCliente, poll_token: pollToken, modalidade: modo, canal_resultado: canal
       }).select().single();
       if (error) throw error;
       return res.json({
@@ -79,7 +84,8 @@ module.exports = async (req, res) => {
       cliente_ref: clientId, servico_id: servicoId, asaas_customer_id: customerId,
       asaas_payment_id: payment.id, valor_cents: precoCents, status: 'pending',
       billing_type: 'PIX', pix_payload: qr.payload, pix_image: qr.encodedImage, invoice_url: payment.invoiceUrl,
-      appt_date: date || null, appt_time: time || null, dados_cliente: dadosCliente, poll_token: pollToken
+      appt_date: modo === 'agendado' ? date : null, appt_time: modo === 'agendado' ? time : null,
+      dados_cliente: dadosCliente, poll_token: pollToken, modalidade: modo, canal_resultado: canal
     }).select().single();
     if (error) throw error;
 

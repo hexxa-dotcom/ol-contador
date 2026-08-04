@@ -15,7 +15,7 @@ module.exports = async (req, res) => {
   const auth = await requireUser(req, res);
   if (!auth) return;
 
-  const { clientId, servicoId, date, time, metodoPagamento } = req.body || {};
+  const { clientId, servicoId, date, time, modalidade, canalResultado, metodoPagamento } = req.body || {};
   if (!clientId || !servicoId) return res.status(400).json({ error: 'invalid_params' });
   if (!asaas.isConfigured()) return res.status(503).json({ error: 'asaas_not_configured' });
   const admin = adminClient();
@@ -28,6 +28,9 @@ module.exports = async (req, res) => {
   if (!servico) return res.status(404).json({ error: 'servico_not_found' });
 
   const cartao = metodoPagamento === 'cartao';
+  const modo = modalidade === 'sem_agendamento' ? 'sem_agendamento' : 'agendado';
+  const canal = canalResultado === 'whatsapp' ? 'whatsapp' : 'email';
+  if (modo === 'agendado' && (!date || !time)) return res.status(400).json({ error: 'invalid_params' });
 
   try {
     const { data: pagas } = await admin.from('cobrancas').select('id')
@@ -53,7 +56,8 @@ module.exports = async (req, res) => {
         cliente_ref: clientId, servico_id: servicoId, asaas_customer_id: customerId,
         asaas_payment_id: payment.id, valor_cents: precoCents, status: 'pending',
         billing_type: 'CREDIT_CARD', invoice_url: payment.invoiceUrl,
-        appt_date: date || null, appt_time: time || null
+        appt_date: modo === 'agendado' ? date : null, appt_time: modo === 'agendado' ? time : null,
+        modalidade: modo, canal_resultado: canal
       }).select().single();
       if (error) throw error;
 
@@ -72,7 +76,8 @@ module.exports = async (req, res) => {
       cliente_ref: clientId, servico_id: servicoId, asaas_customer_id: customerId,
       asaas_payment_id: payment.id, valor_cents: precoCents, status: 'pending',
       billing_type: 'PIX', pix_payload: qr.payload, pix_image: qr.encodedImage, invoice_url: payment.invoiceUrl,
-      appt_date: date || null, appt_time: time || null
+      appt_date: modo === 'agendado' ? date : null, appt_time: modo === 'agendado' ? time : null,
+      modalidade: modo, canal_resultado: canal
     }).select().single();
     if (error) throw error;
 

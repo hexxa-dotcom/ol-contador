@@ -34,7 +34,7 @@
         <strong id="onboarding-agendamento-servico"></strong>
         <span id="onboarding-agendamento-quando"></span>
       </div>
-      <p>Mas antes, vamos entender rapidinho o que está acontecendo — assim o contador já chega sabendo do seu caso.
+      <p id="onboarding-explicacao">Mas antes, vamos entender rapidinho o que está acontecendo — assim o contador já chega sabendo do seu caso.
       Vamos iniciar seu pré-atendimento agora?</p>
       <div class="onboarding-acoes">
         <button type="button" class="btn-utility primary" onclick="entrarNaTriagemObrigatoria()">Iniciar meu atendimento</button>
@@ -44,14 +44,14 @@
     <div class="onboarding-card" id="onboarding-step-depois" hidden>
       <i class="fa-solid fa-envelope onboarding-icone"></i>
       <h2>Sem problemas, <span id="onboarding-nome-4"></span>.</h2>
-      <p>Vamos te mandar o link de acesso por e-mail. Mas é indispensável fazer o pré-atendimento e contar o que aconteceu
+      <p id="onboarding-depois-texto">Vamos te mandar o link de acesso por e-mail. Mas é indispensável fazer o pré-atendimento e contar o que aconteceu
       <strong>antes do horário marcado</strong> do seu atendimento — isso deixa tudo muito mais efetivo.</p>
       <button type="button" class="btn-utility primary" onclick="sairSemTriagemAgora()">Entendi</button>
     </div>
     <div class="onboarding-card" id="onboarding-step-final" hidden>
       <i class="fa-solid fa-headset onboarding-icone"></i>
       <h2>Recebemos o seu caso, <span id="onboarding-nome-3"></span>!</h2>
-      <p>Nosso time já está cuidando do seu caso. Você pode acessar o sistema quando quiser para acrescentar informações ou aguardar o horário agendado.</p>
+      <p id="onboarding-final-texto">Nosso time já está cuidando do seu caso. Você pode acessar o sistema quando quiser para acrescentar informações ou aguardar o horário agendado.</p>
       <button type="button" class="btn-utility primary" onclick="concluirOnboarding()">Acessar meu painel</button>
     </div>
   </div>
@@ -150,7 +150,7 @@
       </button>
 
       <!-- 3. Atendimento (Chat) -->
-      <button class="nav-item mobile-order-2" data-target="section-chat" title="Atendimento" style="position: relative;">
+      <button class="nav-item mobile-order-2" id="nav-chat-cliente" data-target="section-chat" title="Atendimento" style="position: relative;">
         <i class="fa-solid fa-comments"></i> <span class="nav-label">Atendimento</span>
         <span class="chat-unread-badge" id="badge-atendimentos-cliente">0</span>
       </button>

@@ -1983,6 +1983,7 @@ function showCheckoutSuccess(date, time, servicoName) {
 async function preencherAgendamentoOnboarding(dados) {
   const bloco = document.getElementById('onboarding-agendamento');
   if (!bloco) return;
+  if (atendimentoSemAgendamento()) { bloco.hidden = true; return; }
   let servico, data, hora;
   if (dados) {
     servico = dados.servico; data = dados.date; hora = dados.time;
@@ -2011,12 +2012,38 @@ function primeiroNomeCliente() {
 }
 window.primeiroNomeCliente = primeiroNomeCliente;
 
+function atendimentoSemAgendamento() {
+  return !!(clienteLogado && clienteLogado.atendimentoModalidade === 'sem_agendamento');
+}
+window.atendimentoSemAgendamento = atendimentoSemAgendamento;
+
+function aplicarModalidadeCliente() {
+  const sem = atendimentoSemAgendamento();
+  const navChat = document.getElementById('nav-chat-cliente');
+  if (navChat) navChat.hidden = sem;
+  document.body.classList.toggle('atendimento-sem-agendamento', sem);
+}
+
 function personalizarOnboarding() {
   const primeiroNome = primeiroNomeCliente();
   ['onboarding-nome-1', 'onboarding-nome-3', 'onboarding-nome-4'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.textContent = primeiroNome;
   });
+  const sem = atendimentoSemAgendamento();
+  const explicacao = document.getElementById('onboarding-explicacao');
+  const depois = document.getElementById('onboarding-depois-texto');
+  const final = document.getElementById('onboarding-final-texto');
+  if (explicacao) explicacao.innerHTML = sem
+    ? 'Seu caso pode entrar na fila imediatamente, sem esperar uma vaga na agenda. Conte o que aconteceu e envie os documentos para o contador começar a análise.'
+    : 'Mas antes, vamos entender rapidinho o que está acontecendo — assim o contador já chega sabendo do seu caso. Vamos iniciar seu pré-atendimento agora?';
+  if (depois) depois.innerHTML = sem
+    ? 'Vamos mandar o link de acesso por e-mail. Para seu caso entrar na fila sem demora, conclua a triagem e envie os documentos assim que puder.'
+    : 'Vamos te mandar o link de acesso por e-mail. Mas é indispensável fazer o pré-atendimento e contar o que aconteceu <strong>antes do horário marcado</strong> do seu atendimento — isso deixa tudo muito mais efetivo.';
+  if (final) final.textContent = sem
+    ? 'Seu caso já entrou na fila de análise. Não precisa marcar horário nem ficar esperando uma conversa: acompanhe o andamento por aqui e receba o aviso do resultado pelo canal escolhido.'
+    : 'Nosso time já está cuidando do seu caso. Você pode acessar o sistema quando quiser para acrescentar informações ou aguardar o horário agendado.';
+  aplicarModalidadeCliente();
 }
 
 function mostrarOnboarding(passo) {
@@ -2082,6 +2109,7 @@ async function loadClientHistory() {
     if (!client) return;
 
     clienteLogado = client; // Guarda globalmente para outras features (ex: Radar Fiscal)
+    aplicarModalidadeCliente();
     if (!Array.isArray(client.messages)) return;
 
     // Atualiza o cabeçalho com a identidade do cliente ativo.

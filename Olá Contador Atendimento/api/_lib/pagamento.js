@@ -28,7 +28,9 @@ async function enviarLinkDeAcesso(admin, email) {
 
 // Idempotente: se pago, cria o agendamento uma única vez.
 async function confirmCobranca(admin, cob) {
-  if (cob.status === 'paid' && cob.appointment_id) {
+  const modoCobranca = cob.modalidade === 'sem_agendamento' || (cob.dados_cliente && cob.dados_cliente.modalidade === 'sem_agendamento')
+    ? 'sem_agendamento' : 'agendado';
+  if (cob.status === 'paid' && (cob.appointment_id || modoCobranca === 'sem_agendamento')) {
     return { status: 'paid', appointmentId: cob.appointment_id };
   }
   const payment = await asaas.getPayment(cob.asaas_payment_id);
@@ -44,6 +46,9 @@ async function confirmCobranca(admin, cob) {
     // guardados em cobrancas.dados_cliente desde o checkout até este momento.
     if (cob.dados_cliente) {
       const d = cob.dados_cliente;
+      const modalidade = modoCobranca;
+      const canalResultado = cob.canal_resultado === 'whatsapp' || d.canal_resultado === 'whatsapp'
+        ? 'whatsapp' : 'email';
       // Colunas de endereço (scripts/nota-fiscal-colunas.sql) podem ainda não
       // existir no banco — sem este fallback, um erro de "coluna não existe"
       // derrubava o INSERT/UPDATE inteiro e o cliente deixava de ser criado.
@@ -51,7 +56,12 @@ async function confirmCobranca(admin, cob) {
       // Aciona a triagem obrigatória no primeiro login (ver cliente.js e
       // scripts/onboarding-pendente.sql). Só em clientes NOVOS — quem já tinha
       // conta e comprou de novo não volta a ficar preso nessa tela.
-      const onboardingCampos = { onboarding_pendente: true };
+      const onboardingCampos = {
+        onboarding_pendente: true,
+        atendimento_modalidade: modalidade,
+        canal_resultado: canalResultado,
+        sem_agendamento_recebido_em: modalidade === 'sem_agendamento' ? new Date().toISOString() : null
+      };
       const colunaFaltando = (msg) => /column|schema cache/i.test(msg || '');
 
       if (!cliente) {
@@ -79,7 +89,15 @@ async function confirmCobranca(admin, cob) {
         // Só completa o que ainda estiver vazio (ex.: cadastro feito pelo
         // contador sem e-mail). Atualização de contato de verdade só logado,
         // na área do cliente.
-        const baseUpdate = {};
+        const baseUpdate = {
+          atendimento_modalidade: modalidade,
+          canal_resultado: canalResultado,
+          sem_agendamento_recebido_em: modalidade === 'sem_agendamento' ? new Date().toISOString() : null
+        };
+        // Uma nova compra sem agendamento sempre abre a triagem do caso, mesmo
+        // para quem já era cliente. Não existe conversa ou reunião que possa
+        // substituir essa coleta de contexto.
+        if (modalidade === 'sem_agendamento') baseUpdate.onboarding_pendente = true;
         if (!cliente.email && d.email) baseUpdate.email = d.email;
         if (!cliente.phone && d.phone) baseUpdate.phone = d.phone;
         if (!cliente.sexo && d.sexo) baseUpdate.sexo = d.sexo;
@@ -116,16 +134,34 @@ async function confirmCobranca(admin, cob) {
       }
     }
 
-    const { data: appt } = await admin.from('agendamentos').insert({
-      cliente_ref: cob.cliente_ref, client_name: cliente ? cliente.name : cob.cliente_ref,
-      date: cob.appt_date || 'A definir', time: cob.appt_time || '',
-      tax_type: servico ? servico.name : '', status: 'pending'
-    }).select().single();
-    appointmentId = appt ? appt.id : null;
+    // Recompra feita já dentro do portal não carrega dados_cliente, porque a
+    // identidade vem da sessão. Ainda assim a modalidade e o canal pertencem
+    // ao novo caso e precisam assumir o fluxo atual do cliente.
+    if (cliente && !cob.dados_cliente) {
+      const patchModalidade = {
+        atendimento_modalidade: modoCobranca,
+        canal_resultado: cob.canal_resultado === 'whatsapp' ? 'whatsapp' : 'email',
+        sem_agendamento_recebido_em: modoCobranca === 'sem_agendamento' ? new Date().toISOString() : null
+      };
+      if (modoCobranca === 'sem_agendamento') patchModalidade.onboarding_pendente = true;
+      await admin.from('clientes').update(patchModalidade).eq('id', cliente.id);
+      Object.assign(cliente, patchModalidade);
+    }
+
+    if (modoCobranca !== 'sem_agendamento') {
+      const { data: appt } = await admin.from('agendamentos').insert({
+        cliente_ref: cob.cliente_ref, client_name: cliente ? cliente.name : cob.cliente_ref,
+        date: cob.appt_date || 'A definir', time: cob.appt_time || '',
+        tax_type: servico ? servico.name : '', status: 'pending'
+      }).select().single();
+      appointmentId = appt ? appt.id : null;
+    }
 
     await admin.from('cobrancas').update({ status: 'paid', paid_at: new Date().toISOString(), appointment_id: appointmentId }).eq('id', cob.id);
     await admin.from('notificacoes').insert({
-      text: `Pagamento confirmado: ${cliente ? cliente.name : cob.cliente_ref} agendou ${servico ? servico.name : ''}.`,
+      text: modoCobranca === 'sem_agendamento'
+        ? `Atendimento sem agendamento recebido: ${cliente ? cliente.name : cob.cliente_ref} contratou ${servico ? servico.name : ''}.`
+        : `Pagamento confirmado: ${cliente ? cliente.name : cob.cliente_ref} agendou ${servico ? servico.name : ''}.`,
       time: nowTime(), unread: true, cliente_ref: cob.cliente_ref
     });
 
@@ -147,9 +183,16 @@ async function confirmCobranca(admin, cob) {
 
     if (notify.anyConfigured() && cliente) {
       const quando = [cob.appt_date, cob.appt_time].filter(Boolean).join(' às ');
-      notify.notifyCliente(cliente, 'Pagamento confirmado — atendimento agendado',
-        `Recebemos seu pagamento de <strong>${servico ? servico.name : 'atendimento'}</strong>. ` +
-        `Seu horário${quando ? ' (' + quando + ')' : ''} está confirmado.`);
+      if (modoCobranca === 'sem_agendamento') {
+        notify.notifyCliente(cliente, 'Atendimento sem agendamento recebido',
+          `Recebemos seu pagamento de <strong>${servico ? servico.name : 'atendimento'}</strong>. ` +
+          'Entre na sua área para concluir a triagem e enviar os documentos. Não é necessário marcar horário ou conversar pelo chat.',
+          { channel: cob.canal_resultado || 'email' });
+      } else {
+        notify.notifyCliente(cliente, 'Pagamento confirmado — atendimento agendado',
+          `Recebemos seu pagamento de <strong>${servico ? servico.name : 'atendimento'}</strong>. ` +
+          `Seu horário${quando ? ' (' + quando + ')' : ''} está confirmado.`);
+      }
     }
 
     // Emissão automática de nota fiscal de serviço, se o contador ativou em

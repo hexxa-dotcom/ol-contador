@@ -472,6 +472,9 @@ function mapClient(r, messages, triagem) {
     sexo: r.sexo || null, cidade: r.cidade || null, estado: r.estado || null,
     cep: r.cep || null, endereco: r.endereco || null, numero: r.numero || null,
     bairro: r.bairro || null, notas: r.notas || null,
+    atendimentoModalidade: r.atendimento_modalidade || 'agendado',
+    canalResultado: r.canal_resultado || 'email',
+    semAgendamentoRecebidoEm: r.sem_agendamento_recebido_em || null,
     // Onboarding obrigatório pós-pagamento (ver cliente.js) — true só entre a
     // confirmação do pagamento (api/_lib/pagamento.js) e o envio da triagem.
     onboardingPendente: !!r.onboarding_pendente,
@@ -511,7 +514,8 @@ function mapCobranca(r) {
   return { id: r.id, clientRef: r.cliente_ref, serviceId: r.servico_id,
     valueCents: r.valor_cents, status: r.status, paidAt: r.paid_at,
     createdAt: r.created_at, invoiceUrl: r.invoice_url, appointmentId: r.appointment_id,
-    dadosCliente: r.dados_cliente || null };
+    dadosCliente: r.dados_cliente || null,
+    modalidade: r.modalidade || 'agendado', canalResultado: r.canal_resultado || 'email' };
 }
 // O bucket "documentos" é privado (RLS por pasta do cliente) — um public_url
 // fixo, salvo no upload, não abre mais depois disso. Por isso o link é
@@ -643,14 +647,19 @@ async function uploadDocumento(body) {
     checklist_item: checklistItem || null
   }).select().single();
   if (error) throw error;
-  // mensagem doc-upload no chat (a notificação ao contador é criada por trigger no banco).
+  // No Atendimento sem agendamento o documento alimenta a triagem/dossiê,
+  // mas não abre conversa. Nos atendimentos com horário, preserva a mensagem
+  // de documento no chat usada pelo fluxo atual.
   // Quando o anexo veio da triagem, o chat mostra o nome do ITEM ("Notificação da
   // Receita") em vez do nome do arquivo ("IMG_4471.pdf") — o contador lê o que importa.
-  await sb.from('mensagens').insert({
-    id: genId(), cliente_id: clientId, sender: uploadedBy === 'agent' ? 'agent' : 'client',
-    text: `Arquivo enviado: ${fileName}`, time: nowTime(), type: 'doc-upload',
-    doc_name: checklistItem || fileName
-  });
+  const { data: clienteModo } = await sb.from('clientes').select('atendimento_modalidade').eq('id', clientId).maybeSingle();
+  if (!clienteModo || clienteModo.atendimento_modalidade !== 'sem_agendamento') {
+    await sb.from('mensagens').insert({
+      id: genId(), cliente_id: clientId, sender: uploadedBy === 'agent' ? 'agent' : 'client',
+      text: `Arquivo enviado: ${fileName}`, time: nowTime(), type: 'doc-upload',
+      doc_name: checklistItem || fileName
+    });
+  }
   // Gatilho automático para a IA ler o documento via Visão Computacional / OCR
   // Disparado no background (sem await) para não atrasar a resposta da triagem.
   fetch(API_BASE + `/api/documentos/${doc.id}/analisar`, { method: 'POST' }).catch(e => console.error('Auto OCR falhou:', e));

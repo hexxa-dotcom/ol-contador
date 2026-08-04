@@ -257,8 +257,11 @@ document.addEventListener("DOMContentLoaded", async () => {
   await Promise.all([refreshAllData(), OC_TRIAGEM.carregar(), carregarWorkspacePersistente()]);
   renderRadarInternoClientes();
   renderRadarFiscalConfigToUI();
-  if (clientsData[activeClientId]) loadClient(activeClientId);
-  else { const first = Object.keys(clientsData)[0]; if (first) loadClient(first); }
+  if (clientsData[activeClientId] && clientsData[activeClientId].atendimentoModalidade !== 'sem_agendamento') loadClient(activeClientId);
+  else {
+    const first = Object.values(clientsData).find(c => c.atendimentoModalidade !== 'sem_agendamento');
+    if (first) loadClient(first.id);
+  }
 });
 
 // Botão de sair (encerra a sessão do contador).
@@ -421,6 +424,7 @@ function assinaturaDosAtendimentos(data) {
   return Object.values(data || {}).map(cliente => [
     cliente.id,
     cliente.status,
+    cliente.atendimentoModalidade,
     ...(cliente.messages || []).map(m => `${m.id}:${m.readAt || ''}`)
   ].join('|')).sort().join('||');
 }
@@ -1201,7 +1205,11 @@ function renderClientList(filter = "") {
   // Ordem: quem tem mensagem não lida primeiro, depois quem falou por último.
   // A ordem antiga era o horário agendado — fixo, então a fila ficava parada
   // mesmo quando alguém estava esperando resposta há uma hora.
-  const ordenados = Object.values(clientsData).sort((a, b) => {
+  const ordenados = Object.values(clientsData)
+  // Atendimento sem agendamento vai direto para triagem, documentos, dossiê
+  // e Kanban. Não deve aparecer como se houvesse uma conversa esperando.
+  .filter(client => client.atendimentoModalidade !== 'sem_agendamento')
+  .sort((a, b) => {
     const na = naoLidasDoCliente(a), nb = naoLidasDoCliente(b);
     if ((na > 0) !== (nb > 0)) return nb - na;
 
@@ -4227,7 +4235,9 @@ function renderKanban() {
   const board = document.querySelector('#section-acompanhamento .kanban-board');
   if (!board) return;
   board.innerHTML = KANBAN_STAGES.map(([status, label, color]) => {
-    const items = Object.values(clientsData).filter(c => kanbanEtapas[c.id] && etapaDoCliente(c) === status);
+    const items = Object.values(clientsData).filter(c =>
+      (kanbanEtapas[c.id] || c.atendimentoModalidade === 'sem_agendamento') && etapaDoCliente(c) === status
+    );
     return `<div class="kanban-col"><div class="kanban-col-header" style="border-top-color:${color}"><h4>${label}</h4><span class="kanban-badge" style="background:${color};color:#fff">${items.length}</span></div><div class="kanban-col-body" data-kanban-status="${status}">${items.map(c => {
       
       // SLA logic para o Kanban
@@ -4244,8 +4254,8 @@ function renderKanban() {
 
       return `<button type="button" class="kanban-card ${status === 'done' ? 'done' : ''}" draggable="true" data-client-id="${safe(c.id)}">
         <div class="kanban-card-title">${safe(c.name)}</div>
-        <div class="kanban-card-tags"><span>${safe(c.taxType || 'Atendimento')}</span>${slaHtml}</div>
-        <div class="kanban-card-meta"><i class="fa-solid fa-folder-open"></i> ${safe(c.diagnosis || 'Sem diagnóstico')}</div>
+        <div class="kanban-card-tags"><span>${safe(c.taxType || 'Atendimento')}</span>${c.atendimentoModalidade === 'sem_agendamento' ? '<span style="background:#E8F5EF;color:#0A5C42">Sem agendamento</span>' : ''}${slaHtml}</div>
+        <div class="kanban-card-meta"><i class="fa-solid ${c.atendimentoModalidade === 'sem_agendamento' ? 'fa-bolt' : 'fa-folder-open'}"></i> ${c.atendimentoModalidade === 'sem_agendamento' ? 'Resultado por ' + (c.canalResultado === 'whatsapp' ? 'WhatsApp' : 'e-mail') : safe(c.diagnosis || 'Sem diagnóstico')}</div>
       </button>`;
     }).join('') || '<p style="font-size:12px;color:var(--color-text-secondary);padding:8px">Sem casos</p>'}</div></div>`;
   }).join('');

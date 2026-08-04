@@ -78,6 +78,9 @@ function mapClient(row, messages) {
     recorrenteDiaVenc: row.recorrente_dia_venc || null,
     ultimoFinalizadoEm: row.ultimo_atendimento_finalizado_em || null,
     sexo: row.sexo || null, cidade: row.cidade || null, estado: row.estado || null,
+    atendimentoModalidade: row.atendimento_modalidade || 'agendado',
+    canalResultado: row.canal_resultado || 'email',
+    semAgendamentoRecebidoEm: row.sem_agendamento_recebido_em || null,
     messages: messages || []
   };
 }

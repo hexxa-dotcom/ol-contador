@@ -7,6 +7,7 @@ const { adminClient } = require('./_lib/auth');
 const { validarCpfCnpj } = require('../documento');
 const { enviarLinkDeAcesso, gerarAutoLogin } = require('./_lib/pagamento');
 const { checarRateLimit } = require('./_lib/rateLimit');
+const notify = require('./_lib/notify');
 
 // Mesmo teto do campo no site — ver comentário em signup-checkout.js.
 const LIMITE_RESUMO = 150;
@@ -17,7 +18,7 @@ function nowTime() {
 
 module.exports = async (req, res) => {
   if (req.method !== 'POST') return res.status(405).json({ error: 'method_not_allowed' });
-  const { codigo, name, cpfCnpj, email, phone, sexo, cidade, estado, servicoId, date, time, summary, assunto } = req.body || {};
+  const { codigo, name, cpfCnpj, email, phone, sexo, cidade, estado, servicoId, date, time, summary, assunto, modalidade, canalResultado } = req.body || {};
   if (!codigo || !name || !email || !phone || !servicoId) return res.status(400).json({ error: 'invalid_params' });
   const { valido, digitos } = validarCpfCnpj(cpfCnpj);
   if (!valido) return res.status(400).json({ error: 'cpf_cnpj_invalido' });
@@ -36,6 +37,9 @@ module.exports = async (req, res) => {
   const { data: servico } = await admin.from('servicos').select('*').eq('id', servicoId).single();
   if (!servico) return res.status(404).json({ error: 'servico_not_found' });
   if (servico.price_cents > credito.valor_cents) return res.status(400).json({ error: 'credito_insuficiente' });
+  const modo = modalidade === 'sem_agendamento' ? 'sem_agendamento' : 'agendado';
+  const canal = canalResultado === 'whatsapp' ? 'whatsapp' : 'email';
+  if (modo === 'agendado' && (!date || !time)) return res.status(400).json({ error: 'invalid_params' });
 
   try {
     const clientId = digitos;
@@ -47,7 +51,9 @@ module.exports = async (req, res) => {
         id: clientId, name, cpf: digitos, email, phone,
         sexo: sexo || null, cidade: cidade || null, estado: estado || null,
         tax_type: servico.name, honorarios: Math.round(servico.price_cents / 100),
-        status: 'pending', onboarding_pendente: true
+        status: 'pending', onboarding_pendente: true,
+        atendimento_modalidade: modo, canal_resultado: canal,
+        sem_agendamento_recebido_em: modo === 'sem_agendamento' ? new Date().toISOString() : null
       });
       if (erroInsert) throw erroInsert;
     } else {
@@ -57,7 +63,12 @@ module.exports = async (req, res) => {
       // jeito trivial de herdar o login automático de outra pessoa (mesmo risco
       // corrigido em signup-checkout.js/pagamento.js). Só completa o que ainda
       // estiver vazio.
-      const baseUpdate = {};
+      const baseUpdate = {
+        atendimento_modalidade: modo,
+        canal_resultado: canal,
+        sem_agendamento_recebido_em: modo === 'sem_agendamento' ? new Date().toISOString() : null
+      };
+      if (modo === 'sem_agendamento') baseUpdate.onboarding_pendente = true;
       if (!existente.email && email) baseUpdate.email = email;
       if (!existente.phone && phone) baseUpdate.phone = phone;
       if (!existente.sexo && sexo) baseUpdate.sexo = sexo;
@@ -82,15 +93,20 @@ module.exports = async (req, res) => {
       });
     }
 
-    const { data: appt } = await admin.from('agendamentos').insert({
-      cliente_ref: clientId, client_name: name, date: date || 'A definir', time: time || '',
-      tax_type: servico.name, status: 'pending'
-    }).select().single();
+    let appt = null;
+    if (modo === 'agendado') {
+      const { data } = await admin.from('agendamentos').insert({
+        cliente_ref: clientId, client_name: name, date, time,
+        tax_type: servico.name, status: 'pending'
+      }).select().single();
+      appt = data || null;
+    }
 
     const { data: cob, error: erroCob } = await admin.from('cobrancas').insert({
       cliente_ref: clientId, servico_id: servicoId, valor_cents: servico.price_cents,
       status: 'paid', billing_type: 'CREDITO', paid_at: new Date().toISOString(),
-      appt_date: date || null, appt_time: time || null, appointment_id: appt ? appt.id : null
+      appt_date: modo === 'agendado' ? date : null, appt_time: modo === 'agendado' ? time : null,
+      appointment_id: appt ? appt.id : null, modalidade: modo, canal_resultado: canal
     }).select().single();
     if (erroCob) throw erroCob;
 
@@ -99,7 +115,9 @@ module.exports = async (req, res) => {
     }).eq('id', credito.id);
 
     await admin.from('notificacoes').insert({
-      text: `Crédito resgatado: ${name} agendou ${servico.name} com o código ${credito.codigo}.`,
+      text: modo === 'sem_agendamento'
+        ? `Crédito resgatado: ${name} iniciou Atendimento sem agendamento de ${servico.name}.`
+        : `Crédito resgatado: ${name} agendou ${servico.name} com o código ${credito.codigo}.`,
       time: nowTime(), unread: true, cliente_ref: clientId
     });
 
@@ -124,6 +142,16 @@ module.exports = async (req, res) => {
     // já pode voltar nesta mesma resposta — sem precisar de polling como no
     // checkout com Pix/cartão (ver checkout.html).
     const autoLogin = emailParaAcesso ? await gerarAutoLogin(admin, clientId) : null;
+
+    const { data: clienteParaAviso } = await admin.from('clientes').select('*').eq('id', clientId).single();
+    if (clienteParaAviso) {
+      notify.notifyCliente(clienteParaAviso,
+        modo === 'sem_agendamento' ? 'Atendimento sem agendamento recebido' : 'Atendimento confirmado',
+        modo === 'sem_agendamento'
+          ? `Seu atendimento de <strong>${servico.name}</strong> foi recebido. Entre na sua área para concluir a triagem e enviar os documentos.`
+          : `Seu atendimento de <strong>${servico.name}</strong> está confirmado para ${date} às ${time}.`,
+        modo === 'sem_agendamento' ? { channel: canal } : {});
+    }
 
     res.json({
       clientId, appointmentId: appt ? appt.id : null,

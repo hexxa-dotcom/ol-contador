@@ -356,7 +356,9 @@ window.TriagemUI = (function () {
     barra.style.width = pct + '%';
     $('triagem-medidor-pct').textContent = pct + '%';
     $('triagem-medidor-texto').textContent =
-      pct >= 90 ? 'O contador vai chegar sabendo do seu caso' :
+      pct >= 90 ? ((window.atendimentoSemAgendamento && window.atendimentoSemAgendamento())
+        ? 'Seu caso está pronto para entrar na fila de análise'
+        : 'O contador vai chegar sabendo do seu caso') :
       pct >= 60 ? 'Já dá um bom contexto — se puder, complete' :
       pct >= 30 ? 'Falta o principal: o que aconteceu' :
                   'Vamos lá';
@@ -398,7 +400,9 @@ window.TriagemUI = (function () {
     btn.innerHTML = '<i class="fa-solid fa-check"></i> Enviado — atualizar';
     var primeiroNome = window.primeiroNomeCliente ? window.primeiroNomeCliente() : '';
     avisar((primeiroNome ? 'Pronto, ' + primeiroNome + '! ' : 'Pronto! ') +
-      'O contador já foi avisado e vai chegar sabendo do seu caso.', 'ok');
+      ((window.atendimentoSemAgendamento && window.atendimentoSemAgendamento())
+        ? 'Seu caso entrou na fila de análise, sem precisar esperar um horário.'
+        : 'O contador já foi avisado e vai chegar sabendo do seu caso.'), 'ok');
     atualizarBadge();
     desenharSalaDeEspera();
     // Espera um instante antes de trocar pro resumo — senão o aviso "Pronto!"

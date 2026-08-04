@@ -4,14 +4,14 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Planos e preços — Olá, Contador</title>
-<meta name="description" content="Preço fixo por atendimento, combinado antes. Chat seguro com contador, relatório assinado com CRC e garantia de reembolso. PF R$ 199, PJ R$ 399, sob demanda a partir de R$ 899." />
+<meta name="description" content="Preço fixo e duas formas de resolver: Atendimento sem agendamento, mais ágil e sem reunião, ou atendimento com horário. Relatório assinado com CRC." />
 <link rel="canonical" href="https://www.olacontador.com.br/precos" />
 <link rel="icon" href="logo.svg" type="image/svg+xml" />
 <meta name="robots" content="index, follow" />
 <meta property="og:type" content="website" />
 <meta property="og:site_name" content="Olá, Contador" />
 <meta property="og:title" content="Planos e preços — Olá, Contador" />
-<meta property="og:description" content="Preço fixo por atendimento, combinado antes. Chat seguro com contador, relatório assinado com CRC e garantia de reembolso. PF R$ 199, PJ R$ 399, sob demanda a partir de R$ 899." />
+<meta property="og:description" content="Resolva sem esperar uma vaga na agenda: envie a triagem e os documentos, acompanhe online e receba o resultado por e-mail ou WhatsApp." />
 <meta property="og:url" content="https://www.olacontador.com.br/precos" />
 <meta property="og:locale" content="pt_BR" />
 <meta property="og:image" content="https://www.olacontador.com.br/og-image.png" />
@@ -19,7 +19,7 @@
 <meta property="og:image:height" content="630" />
 <meta name="twitter:card" content="summary_large_image" />
 <meta name="twitter:title" content="Planos e preços — Olá, Contador" />
-<meta name="twitter:description" content="Preço fixo por atendimento, combinado antes. Chat seguro com contador, relatório assinado com CRC e garantia de reembolso. PF R$ 199, PJ R$ 399, sob demanda a partir de R$ 899." />
+<meta name="twitter:description" content="Atendimento sem agendamento: envie tudo quando puder, sem reunião, e receba o resultado pelo canal que escolher." />
 <meta name="twitter:image" content="https://www.olacontador.com.br/og-image.png" />
 <script type="application/ld+json">
 {
@@ -77,7 +77,7 @@
     {
       "@type": "Question",
       "name": "Como funciona o pagamento?",
-      "acceptedAnswer": { "@type": "Answer", "text": "Preço fixo, combinado antes, pago na hora de agendar — no Pix ou no cartão, em até 3x. Sem mensalidade e sem fidelidade. No plano sob demanda, o valor é fechado por escrito antes de qualquer cobrança." }
+      "acceptedAnswer": { "@type": "Answer", "text": "Preço fixo, combinado antes, pago na contratação — no Pix ou no cartão, em até 3x. Você escolhe Atendimento sem agendamento ou atendimento com horário. Sem mensalidade e sem fidelidade." }
     },
     {
       "@type": "Question",
@@ -92,7 +92,7 @@
     {
       "@type": "Question",
       "name": "Em quanto tempo meu caso é resolvido?",
-      "acceptedAnswer": { "@type": "Answer", "text": "Para pessoa física, em até 24 horas. Para empresas, em até 48 horas. Em casos mais complexos, pode levar até 5 dias, com o chat aberto durante todo esse período." }
+      "acceptedAnswer": { "@type": "Answer", "text": "Para pessoa física, em até 24 horas. Para empresas, em até 48 horas. Em casos mais complexos, pode levar até 5 dias. No Atendimento sem agendamento, o caso pode entrar na fila antes porque não depende de uma vaga na agenda." }
     },
     {
       "@type": "Question",
@@ -137,6 +137,13 @@
   .passo-n{width:30px;height:30px;border-radius:50%;background:#344C4B;color:#FFFFFF;font-weight:800;font-size:14px;display:flex;align-items:center;justify-content:center;margin-bottom:12px}
   .passo b{font-family:"Bricolage Grotesque",sans-serif;font-size:16.5px;color:#344C4B;display:block;margin-bottom:6px}
   .passo p{font-size:14px;color:#344C4B;line-height:1.5}
+  .sem-agendamento-venda{margin:28px auto 8px;max-width:960px;border-radius:24px;padding:28px 32px;background:#344C4B;color:#fff;text-align:left;display:grid;grid-template-columns:1.1fr 1fr;gap:32px;align-items:center;box-shadow:0 24px 50px -34px rgba(52,76,75,.75)}
+  .sem-agendamento-venda .eyebrow{font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:800;color:#F5A78D;margin-bottom:8px}
+  .sem-agendamento-venda h2{font-family:'Bricolage Grotesque',sans-serif;font-size:29px;line-height:1.08;letter-spacing:-.03em;margin:0 0 10px}
+  .sem-agendamento-venda p{font-size:15px;line-height:1.55;color:rgba(255,255,255,.86)}
+  .sem-agendamento-venda ul{list-style:none;display:grid;gap:10px}
+  .sem-agendamento-venda li{display:flex;gap:9px;font-size:14px;line-height:1.4}
+  .sem-agendamento-venda li span{color:#F5A78D;font-weight:900}
 
   .planos{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;align-items:stretch;text-align:left;margin-top:48px}
   .plano{display:flex;flex-direction:column;border-radius:24px;padding:32px 28px}
@@ -211,6 +218,7 @@
     .marca b{font-size:17px !important}
     .nav-acoes{gap:8px !important}
     .wrap{padding:0 18px}
+    .sem-agendamento-venda{grid-template-columns:1fr;padding:24px 21px;gap:18px}
   }
   @media (max-width:900px){
     .rodape-grid{grid-template-columns:1fr 1fr !important;gap:28px !important}
@@ -243,15 +251,30 @@
   <!-- ================= HERO ================= -->
   <div style="font-size:13px;letter-spacing:.24em;text-transform:uppercase;color:#EE5F3A;font-weight:700;margin-bottom:16px;">Planos e preços</div>
   <h1 style="font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:52px;letter-spacing:-.03em;color:#344C4B;line-height:1.04;max-width:820px;margin:0 auto;">Problema com a Receita tem solução. E a solução tem preço fixo.</h1>
-  <p style="font-size:19px;color:#344C4B;max-width:640px;margin:22px auto 0;">Você sabe quanto custa antes de começar e recebe tudo por escrito no fim — inclusive um relatório assinado por contador com registro CRC. Sem mensalidade, sem fidelidade, sem surpresa.</p>
+  <p style="font-size:19px;color:#344C4B;max-width:680px;margin:22px auto 0;">Você sabe quanto custa antes de começar e escolhe como quer resolver: sem esperar uma vaga na agenda ou com horário para conversar. No fim, recebe tudo por escrito e assinado por contador com CRC.</p>
 
   <!-- ================= COMO FUNCIONA ================= -->
   <div class="passos">
-    <div class="passo"><div class="passo-n">1</div><b>Agende</b><p>Escolha o dia e o horário que funcionam para você. Leva menos de um minuto.</p></div>
-    <div class="passo"><div class="passo-n">2</div><b>Conte seu caso</b><p>Com o horário garantido, você escreve o que está acontecendo com as suas palavras e anexa o que tiver. Não precisa saber os termos técnicos — é justo para isso que você contratou alguém.</p></div>
-    <div class="passo"><div class="passo-n">3</div><b>Resolva no chat</b><p>No horário marcado, você fala direto com o contador no chat seguro. Documentos entram e saem por ali, sem e-mail perdido.</p></div>
+    <div class="passo"><div class="passo-n">1</div><b>Escolha o formato</b><p>Vá de Atendimento sem agendamento para ganhar agilidade ou escolha um horário para conversar.</p></div>
+    <div class="passo"><div class="passo-n">2</div><b>Conte seu caso</b><p>Explique com suas palavras e anexe o que tiver. Não precisa conhecer os termos técnicos.</p></div>
+    <div class="passo"><div class="passo-n">3</div><b>A análise começa</b><p>Sem agendamento, o caso entra na fila assim que a triagem e os documentos chegam. Com horário, você fala com o contador.</p></div>
     <div class="passo"><div class="passo-n">4</div><b>Receba o relatório</b><p>No fim, um PDF assinado com CRC: o que aconteceu, o que foi feito e os próximos passos. Seu, para sempre, na área do cliente.</p></div>
   </div>
+
+  <section class="sem-agendamento-venda" aria-labelledby="titulo-sem-agendamento">
+    <div>
+      <div class="eyebrow">A opção mais ágil</div>
+      <h2 id="titulo-sem-agendamento">Atendimento sem agendamento</h2>
+      <p>Seu problema não precisa esperar uma reunião. Envie a triagem e os documentos no seu tempo, inclusive à noite ou no fim de semana. Quando estiver completo, o caso entra direto na fila de análise.</p>
+    </div>
+    <ul>
+      <li><span>✓</span> Sem disputar horário na agenda.</li>
+      <li><span>✓</span> Sem chamada, reunião ou conversa obrigatória.</li>
+      <li><span>✓</span> Possibilidade de começar a análise mais cedo.</li>
+      <li><span>✓</span> Acompanhamento de cada etapa pelo portal.</li>
+      <li><span>✓</span> Aviso do resultado por e-mail ou WhatsApp.</li>
+    </ul>
+  </section>
 
   <!-- ================= PLANOS ================= -->
   <div class="planos" id="planos">
@@ -267,8 +290,8 @@
       <div style="font-size:13.5px;color:#344C4B;font-weight:600;margin-bottom:8px;">no Pix ou em até 3x no cartão</div>
       <div class="resolve-rotulo" style="color:#344C4B;">Resolve, por exemplo</div>
       <div class="chips"><span class="chip" style="background:rgba(245, 167, 141, .16);color:#344C4B;">Malha fina e cartas da Receita</span><span class="chip" style="background:rgba(245, 167, 141, .16);color:#344C4B;">Declarar ou corrigir o IR</span><span class="chip" style="background:rgba(245, 167, 141, .16);color:#344C4B;">Vendi imóvel, carro ou outro bem</span><span class="chip" style="background:rgba(245, 167, 141, .16);color:#344C4B;">Recebo como autônomo (carnê-leão)</span><span class="chip" style="background:rgba(245, 167, 141, .16);color:#344C4B;">Outros assuntos</span></div>
-      <details class="entregas" style="color:#344C4B;"><summary>O que está incluído</summary><div class="ent"><span class="selo-check" style="color:#344C4B;">✓</span><span><b>Pré-atendimento guiado</b><small>Você conta o caso antes, com suas palavras, e anexa o que tiver. O contador chega sabendo de tudo.</small></span></div><div class="ent"><span class="selo-check" style="color:#344C4B;">✓</span><span><b>Atendimento individual no chat seguro</b><small>Direto com o contador, do celular ou do computador — com envio de documentos e confirmação de leitura.</small></span></div><div class="ent"><span class="selo-check" style="color:#344C4B;">✓</span><span><b>Relatório do atendimento em PDF</b><small>O que aconteceu, o que foi feito e os próximos passos — assinado por contador com registro CRC.</small></span></div><div class="ent"><span class="selo-check" style="color:#344C4B;">✓</span><span><b>Conclusão em até 24 horas</b><small>Muitos casos se resolvem no mesmo dia. Em casos mais complexos, pode levar até 5 dias — com o chat sempre aberto nesse período.</small></span></div><div class="ent"><span class="selo-check" style="color:#344C4B;">✓</span><span><b>Transparência total, do começo ao fim</b><small>Cada etapa registrada na sua área do cliente: linha do tempo do caso, documentos e lembretes de vencimentos. Você nunca fica no escuro.</small></span></div><div class="ent"><span class="selo-check" style="color:#344C4B;">✓</span><span><b>Sigilo e segurança dos seus dados</b><small>Conversa e documentos protegidos, visíveis só para você e para o contador responsável pelo caso.</small></span></div></details>
-      <a class="btng" href="agendamento?plano=pf" style="display:block;text-align:center;margin-top:28px;background:#344C4B;color:#FFFFFF;font-weight:700;font-size:19px;padding:16px;border-radius:14px;">Agendar Pessoa Física</a>
+      <details class="entregas" style="color:#344C4B;"><summary>O que está incluído</summary><div class="ent"><span class="selo-check" style="color:#344C4B;">✓</span><span><b>Pré-atendimento guiado</b><small>Você conta o caso antes, com suas palavras, e anexa o que tiver. O contador recebe tudo organizado.</small></span></div><div class="ent"><span class="selo-check" style="color:#344C4B;">✓</span><span><b>Formato que você escolher</b><small>Envie tudo sem agendar e sem conversar, ou escolha um horário para falar pelo chat seguro.</small></span></div><div class="ent"><span class="selo-check" style="color:#344C4B;">✓</span><span><b>Relatório do atendimento em PDF</b><small>O que aconteceu, o que foi feito e os próximos passos — assinado por contador com registro CRC.</small></span></div><div class="ent"><span class="selo-check" style="color:#344C4B;">✓</span><span><b>Conclusão em até 24 horas</b><small>Muitos casos se resolvem no mesmo dia. Em casos mais complexos, pode levar até 5 dias — com acompanhamento pela sua área do cliente.</small></span></div><div class="ent"><span class="selo-check" style="color:#344C4B;">✓</span><span><b>Transparência total, do começo ao fim</b><small>Cada etapa registrada na sua área do cliente: linha do tempo do caso, documentos e lembretes de vencimentos. Você nunca fica no escuro.</small></span></div><div class="ent"><span class="selo-check" style="color:#344C4B;">✓</span><span><b>Sigilo e segurança dos seus dados</b><small>Dados e documentos protegidos, visíveis só para você e para o contador responsável pelo caso.</small></span></div></details>
+      <a class="btng" href="agendamento?plano=pf" style="display:block;text-align:center;margin-top:28px;background:#344C4B;color:#FFFFFF;font-weight:700;font-size:19px;padding:16px;border-radius:14px;">Escolher Pessoa Física</a>
     </div>
 
     <!-- Pessoa Jurídica -->
@@ -282,8 +305,8 @@
       <div style="font-size:13.5px;color:#F5A78D;font-weight:600;margin-bottom:8px;">no Pix ou em até 3x no cartão</div>
       <div class="resolve-rotulo" style="color:#F5A78D;">Resolve, por exemplo</div>
       <div class="chips"><span class="chip" style="background:rgba(245, 167, 141, .16);color:#F5A78D;">Guias e impostos atrasados</span><span class="chip" style="background:rgba(245, 167, 141, .16);color:#F5A78D;">Declaração anual (DASN/DEFIS)</span><span class="chip" style="background:rgba(245, 167, 141, .16);color:#F5A78D;">Abertura ou regularização de CNPJ</span><span class="chip" style="background:rgba(245, 167, 141, .16);color:#F5A78D;">Dúvidas do Simples Nacional</span><span class="chip" style="background:rgba(245, 167, 141, .16);color:#F5A78D;">Outros assuntos da empresa</span></div>
-      <details class="entregas" style="color:#FFFFFF;"><summary>O que está incluído</summary><div class="ent"><span class="selo-check" style="color:#F5A78D;">✓</span><span><b>Tudo do plano Pessoa Física</b><small>Pré-atendimento, chat seguro, relatório assinado e transparência total.</small></span></div><div class="ent"><span class="selo-check" style="color:#F5A78D;">✓</span><span><b>Contador especialista em empresas</b><small>MEI, Simples Nacional, Ltda e a rotina fiscal do seu negócio.</small></span></div><div class="ent"><span class="selo-check" style="color:#F5A78D;">✓</span><span><b>Conclusão em até 48 horas</b><small>Da abertura do caso à entrega do relatório. Em casos mais complexos, pode levar até 5 dias — com o chat sempre aberto nesse período.</small></span></div><div class="ent"><span class="selo-check" style="color:#F5A78D;">✓</span><span><b>Emissão de guias quando necessário</b><small>DAS, guias do Simples e outras guias da empresa, emitidas e enviadas pela sua área do cliente.</small></span></div><div class="ent"><span class="selo-check" style="color:#F5A78D;">✓</span><span><b>Acompanhamento das obrigações do mês*</b><small>Lembretes de prazos e pendências para você não perder data — nem pagar multa boba.</small></span></div></details>
-      <a class="btnp" href="agendamento?plano=pj" style="display:block;text-align:center;margin-top:28px;background:#EE5F3A;color:#fff;font-weight:700;font-size:19px;padding:16px;border-radius:14px;">Agendar Pessoa Jurídica</a>
+      <details class="entregas" style="color:#FFFFFF;"><summary>O que está incluído</summary><div class="ent"><span class="selo-check" style="color:#F5A78D;">✓</span><span><b>Tudo do plano Pessoa Física</b><small>Pré-atendimento, formato à sua escolha, relatório assinado e transparência total.</small></span></div><div class="ent"><span class="selo-check" style="color:#F5A78D;">✓</span><span><b>Contador especialista em empresas</b><small>MEI, Simples Nacional, Ltda e a rotina fiscal do seu negócio.</small></span></div><div class="ent"><span class="selo-check" style="color:#F5A78D;">✓</span><span><b>Conclusão em até 48 horas</b><small>Da abertura do caso à entrega do relatório. Em casos mais complexos, pode levar até 5 dias — com acompanhamento pela sua área do cliente.</small></span></div><div class="ent"><span class="selo-check" style="color:#F5A78D;">✓</span><span><b>Emissão de guias quando necessário</b><small>DAS, guias do Simples e outras guias da empresa, emitidas e enviadas pela sua área do cliente.</small></span></div><div class="ent"><span class="selo-check" style="color:#F5A78D;">✓</span><span><b>Acompanhamento das obrigações do mês*</b><small>Lembretes de prazos e pendências para você não perder data — nem pagar multa boba.</small></span></div></details>
+      <a class="btnp" href="agendamento?plano=pj" style="display:block;text-align:center;margin-top:28px;background:#EE5F3A;color:#fff;font-weight:700;font-size:19px;padding:16px;border-radius:14px;">Escolher Pessoa Jurídica</a>
     </div>
 
     <!-- Sob demanda -->
@@ -348,7 +371,7 @@
       </details>
       <details>
         <summary>Como funciona o pagamento?</summary>
-        <p>Preço fixo, combinado antes, pago na hora de agendar — no Pix ou no cartão, em até 3x. Sem mensalidade e sem fidelidade: você paga pelo atendimento que usar. No plano sob demanda, o valor é fechado por escrito antes de qualquer cobrança.</p>
+        <p>Preço fixo, combinado antes, pago na contratação — no Pix ou no cartão, em até 3x. Você escolhe Atendimento sem agendamento ou atendimento com horário. Sem mensalidade e sem fidelidade: paga apenas pelo serviço que usar.</p>
       </details>
       <details>
         <summary>O diagnóstico do plano sob demanda é cobrado?</summary>
@@ -360,7 +383,7 @@
       </details>
       <details>
         <summary>Em quanto tempo meu caso é resolvido?</summary>
-        <p>Para pessoa física, em até 24 horas — muitos casos se resolvem no mesmo dia. Para empresas, em até 48 horas. Em casos mais complexos, pode levar até 5 dias — mas o chat com o contador fica aberto durante todo esse período, então você acompanha e tira dúvida a qualquer momento. E você não fica no escuro: pela área do cliente acompanha cada etapa, do pré-atendimento ao relatório entregue.</p>
+        <p>Para pessoa física, em até 24 horas — muitos casos se resolvem no mesmo dia. Para empresas, em até 48 horas. Em casos mais complexos, pode levar até 5 dias. No Atendimento sem agendamento, o caso pode entrar na fila mais cedo porque não depende de uma vaga na agenda. Você acompanha cada etapa pela área do cliente.</p>
       </details>
       <details>
         <summary>E se eu ficar com dúvida depois?</summary>

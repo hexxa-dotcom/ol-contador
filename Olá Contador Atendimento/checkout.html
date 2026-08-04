@@ -34,10 +34,18 @@
 
       <div class="etapa-topo">
         <h1>Falta só confirmar quem é você.</h1>
-        <p>Com esses dados criamos seu acesso e o contador já sabe com quem vai falar.</p>
+        <p id="checkout-intro">Com esses dados criamos seu acesso e o contador já sabe com quem vai falar.</p>
       </div>
 
       <div class="resumo" id="resumo-pedido"></div>
+      <div class="vantagens-sem-agendamento" id="checkout-vantagem-sem-agendamento" hidden>
+        <strong>Seu caso pode começar mais rápido</strong>
+        <ul>
+          <li><span>✓</span> Sem esperar dia e horário disponíveis.</li>
+          <li><span>✓</span> A fila começa depois da triagem e dos documentos.</li>
+          <li><span>✓</span> Resultado avisado pelo canal que você escolher.</li>
+        </ul>
+      </div>
       <div class="alerta" id="alerta"></div>
 
       <form id="form-checkout" novalidate>
@@ -108,6 +116,21 @@
           </div>
         </section>
 
+        <section class="bloco" id="bloco-canal-resultado" hidden>
+          <h2>Como você quer receber o resultado?</h2>
+          <p class="ajuda">O documento completo fica protegido na sua área. O canal escolhido recebe o aviso e o link de acesso.</p>
+          <div class="metodo-pagamento">
+            <label class="metodo-opcao">
+              <input type="radio" name="canal-resultado" value="email" checked>
+              <span><strong>E-mail</strong><small>Receba as atualizações no e-mail informado acima.</small></span>
+            </label>
+            <label class="metodo-opcao" id="opcao-canal-whatsapp">
+              <input id="canal-whatsapp" type="radio" name="canal-resultado" value="whatsapp">
+              <span><strong>WhatsApp</strong><small id="canal-whatsapp-ajuda">Receba os avisos no número informado acima.</small></span>
+            </label>
+          </div>
+        </section>
+
         <section class="bloco">
           <h2>Pagamento</h2>
           <p class="ajuda" id="ajuda-pagamento">Escolha como prefere pagar. A confirmação é automática nos dois casos.</p>
@@ -150,8 +173,8 @@
         </label>
 
         <button class="submit btnp" type="submit" id="btn-pagar">Ir para o pagamento</button>
-        <a class="voltar" id="link-voltar" href="agendamento.html">← Voltar e mudar o horário</a>
-        <p class="note">O horário escolhido só fica reservado depois que o pagamento é confirmado. Se você não concluir, ele continua disponível para outras pessoas.</p>
+        <a class="voltar" id="link-voltar" href="agendamento.html">← Voltar e alterar o atendimento</a>
+        <p class="note" id="checkout-note">O horário escolhido só fica reservado depois que o pagamento é confirmado. Se você não concluir, ele continua disponível para outras pessoas.</p>
       </form>
     </div>
 
@@ -333,6 +356,7 @@
   // ---------- resumo do pedido ----------
   function renderResumo(){
     const coberto = credito && credito.valorCents >= pedido.precoCents;
+    const semAgendamento = pedido.modalidade === 'sem_agendamento';
     $('resumo-pedido').innerHTML = `
       <div class="resumo-topo">
         <span>Seu atendimento</span>
@@ -340,7 +364,7 @@
       </div>
       <strong>${esc(pedido.servicoNome)}</strong>
       <div class="resumo-linha">
-        <span class="resumo-quando">${esc(labelDia(pedido.dia))} às ${esc(pedido.hora)}</span>
+        <span class="resumo-quando">${semAgendamento ? 'Atendimento sem agendamento' : esc(labelDia(pedido.dia)) + ' às ' + esc(pedido.hora)}</span>
         <span class="resumo-preco ${coberto ? 'coberto' : ''}">${coberto ? 'Coberto pelo crédito' : money(pedido.precoCents)}</span>
       </div>`;
     $('btn-pagar').textContent = coberto ? 'Confirmar atendimento' : 'Ir para o pagamento';
@@ -448,6 +472,8 @@
       summary: pedido.resumo,
       date: pedido.dia,
       time: pedido.hora,
+      modalidade: pedido.modalidade === 'sem_agendamento' ? 'sem_agendamento' : 'agendado',
+      canalResultado: document.querySelector('input[name="canal-resultado"]:checked')?.value || 'email',
       metodoPagamento: document.querySelector('input[name="metodo"]:checked')?.value || 'pix'
     };
   }
@@ -510,7 +536,9 @@
   function mostrarPagamento(data, email){
     $('tela-dados').hidden = true;
     $('tela-pagamento').hidden = false;
-    $('pag-desc').textContent = `${money(Math.round(data.valor * 100))} — ${pedido.servicoNome}, ${labelDia(pedido.dia)} às ${pedido.hora}.`;
+    $('pag-desc').textContent = pedido.modalidade === 'sem_agendamento'
+      ? `${money(Math.round(data.valor * 100))} — ${pedido.servicoNome}, atendimento sem agendamento.`
+      : `${money(Math.round(data.valor * 100))} — ${pedido.servicoNome}, ${labelDia(pedido.dia)} às ${pedido.hora}.`;
 
     const ehCartao = data.metodoPagamento === 'cartao';
     $('pag-titulo').textContent = ehCartao ? 'Pague com cartão para confirmar' : 'Pague com Pix para confirmar';
@@ -572,21 +600,47 @@
     $('tela-pagamento').hidden = true;
     $('tela-pronto').hidden = false;
     $('pronto-titulo').textContent = pago ? 'Pagamento confirmado!' : 'Atendimento confirmado!';
-    $('pronto-desc').innerHTML = `Seu atendimento está marcado para <b>${esc(labelDia(pedido.dia))} às ${esc(pedido.hora)}</b>. `
-      + `Mandamos um e-mail para <b>${esc(email)}</b> com o link de acesso — é só abrir e clicar que você entra na sua área, sem precisar de senha.`;
+    const canal = document.querySelector('input[name="canal-resultado"]:checked')?.value || 'email';
+    $('pronto-desc').innerHTML = pedido.modalidade === 'sem_agendamento'
+      ? `Seu <b>Atendimento sem agendamento</b> foi recebido. Entre na sua área agora para concluir a triagem e enviar os documentos. Você receberá o aviso do resultado por <b>${canal === 'whatsapp' ? 'WhatsApp' : 'e-mail'}</b>.`
+      : `Seu atendimento está marcado para <b>${esc(labelDia(pedido.dia))} às ${esc(pedido.hora)}</b>. Mandamos um e-mail para <b>${esc(email)}</b> com o link de acesso — é só abrir e clicar que você entra na sua área, sem precisar de senha.`;
     window.scrollTo({top:0,behavior:'smooth'});
   }
 
   // ---------- início ----------
+  async function carregarCanaisResultado(){
+    try {
+      const res = await fetch('/api/status?acao=canais-notificacao');
+      const canais = await res.json();
+      if(!res.ok || canais.whatsapp) return;
+      $('canal-whatsapp').disabled = true;
+      $('opcao-canal-whatsapp').style.opacity = '.58';
+      $('canal-whatsapp-ajuda').textContent = 'Em ativação. Por enquanto, escolha e-mail.';
+    } catch(_) {
+      // Falha de consulta não bloqueia o checkout; o backend ainda usa e-mail
+      // como contingência caso o WhatsApp não esteja configurado.
+    }
+  }
+
   function iniciar(){
     try { pedido = JSON.parse(sessionStorage.getItem(CHAVE) || 'null'); } catch(_){ pedido = null; }
     // Chegou aqui sem passar pela etapa 1 (link direto, aba reaberta): manda
     // escolher primeiro, senão não há o que cobrar.
-    if(!pedido || !pedido.servicoId || !pedido.dia || !pedido.hora){
+    if(!pedido || !pedido.servicoId || (pedido.modalidade !== 'sem_agendamento' && (!pedido.dia || !pedido.hora))){
       location.replace('agendamento.html');
       return;
     }
     renderResumo();
+    const semAgendamento = pedido.modalidade === 'sem_agendamento';
+    $('bloco-canal-resultado').hidden = !semAgendamento;
+    if(semAgendamento) carregarCanaisResultado();
+    $('checkout-vantagem-sem-agendamento').hidden = !semAgendamento;
+    $('checkout-intro').textContent = semAgendamento
+      ? 'Com esses dados criamos seu acesso. Depois do pagamento você segue direto para a triagem e o envio dos documentos.'
+      : 'Com esses dados criamos seu acesso e o contador já sabe com quem vai falar.';
+    $('checkout-note').textContent = semAgendamento
+      ? 'Depois da confirmação, você entra direto na triagem. Não é necessário escolher horário nem conversar pelo chat.'
+      : 'O horário escolhido só fica reservado depois que o pagamento é confirmado. Se você não concluir, ele continua disponível para outras pessoas.';
     // Voltar tem que levar o plano junto, senão a etapa 1 não sabe o que agendar.
     $('link-voltar').href = 'agendamento?servico=' + encodeURIComponent(pedido.servicoId);
 
