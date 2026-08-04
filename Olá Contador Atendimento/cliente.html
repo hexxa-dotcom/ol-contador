@@ -5,13 +5,56 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Portal do Cliente - Olá Contador</title>
   <meta name="robots" content="noindex" />
-  <link rel="stylesheet" href="styles.css?v=20">
-  <link rel="stylesheet" href="cliente.css?v=7">
-  
+
+  <!-- Fontes do app: Sora nos títulos, Inter no corpo. Antes o CSS já pedia
+       'Outfit', mas nunca era carregada — o app inteiro rodava na fonte
+       padrão do sistema sem ninguém perceber. -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="styles.css?v=32">
+  <link rel="stylesheet" href="cliente.css?v=31">
+
   <!-- FontAwesome -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
-<body>
+<body class="pagina-cliente">
+
+  <!-- Onboarding pós-pagamento: reduz a fricção entre pagar e começar de fato.
+       Bloqueia a navegação (sidebar/header somem) até o cliente concluir a
+       triagem obrigatória — só então ele é liberado pro resto do portal. -->
+  <div class="onboarding-overlay" id="onboarding-overlay">
+    <div class="onboarding-card" id="onboarding-step-obrigado">
+      <i class="fa-solid fa-circle-check onboarding-icone"></i>
+      <h2>Muito obrigado, <span id="onboarding-nome-1"></span>!</h2>
+      <p>Seu pagamento foi confirmado.</p>
+      <div class="onboarding-agendamento" id="onboarding-agendamento" hidden>
+        <span class="onboarding-agendamento-label">Seu atendimento</span>
+        <strong id="onboarding-agendamento-servico"></strong>
+        <span id="onboarding-agendamento-quando"></span>
+      </div>
+      <p>Mas antes, vamos entender rapidinho o que está acontecendo — assim o contador já chega sabendo do seu caso.
+      Vamos iniciar seu pré-atendimento agora?</p>
+      <div class="onboarding-acoes">
+        <button type="button" class="btn-utility primary" onclick="entrarNaTriagemObrigatoria()">Iniciar meu atendimento</button>
+        <button type="button" class="btn-utility" onclick="avancarOnboarding('depois')">Agora não</button>
+      </div>
+    </div>
+    <div class="onboarding-card" id="onboarding-step-depois" hidden>
+      <i class="fa-solid fa-envelope onboarding-icone"></i>
+      <h2>Sem problemas, <span id="onboarding-nome-4"></span>.</h2>
+      <p>Vamos te mandar o link de acesso por e-mail. Mas é indispensável fazer o pré-atendimento e contar o que aconteceu
+      <strong>antes do horário marcado</strong> do seu atendimento — isso deixa tudo muito mais efetivo.</p>
+      <button type="button" class="btn-utility primary" onclick="sairSemTriagemAgora()">Entendi</button>
+    </div>
+    <div class="onboarding-card" id="onboarding-step-final" hidden>
+      <i class="fa-solid fa-headset onboarding-icone"></i>
+      <h2>Recebemos o seu caso, <span id="onboarding-nome-3"></span>!</h2>
+      <p>Nosso time já está cuidando do seu caso. Você pode acessar o sistema quando quiser para acrescentar informações ou aguardar o horário agendado.</p>
+      <button type="button" class="btn-utility primary" onclick="concluirOnboarding()">Acessar meu painel</button>
+    </div>
+  </div>
 
   <!-- App Header -->
   <header class="app-header">
@@ -26,18 +69,47 @@
     </div>
 
     <div class="header-right">
-      <div class="agent-profile" style="cursor: pointer;" onclick="abrirSecaoCliente('section-perfil')" title="Ver meu perfil">
-        <div class="agent-avatar" style="background: var(--color-coral);" id="client-header-avatar">--</div>
-        <div class="agent-info">
-          <h4 id="client-header-name">Carregando...</h4>
-          <span id="client-header-doc">CPF: --</span>
+      <!-- Reserva visual pro sino de notificações (mensagens, mudanças no
+           processo etc.) — ainda sem lógica por trás, é só o lugar dele no
+           cabeçalho, à esquerda do perfil, mesmo padrão do painel do
+           contador. -->
+      <div class="notification-trigger" title="Notificações">
+        <i class="fa-solid fa-bell"></i>
+      </div>
+      <div class="agent-profile-wrap">
+        <!-- Perfil e Sair juntos num menu só, em qualquer tamanho de tela —
+             mesmo padrão do painel do contador. Antes só o celular abria
+             esse menu; no desktop o clique ia direto pro Meu Perfil e o
+             Sair ficava num botão solto ao lado. -->
+        <div class="agent-profile" style="cursor: pointer;" onclick="toggleAgentMenu(event)" title="Menu do perfil">
+          <div class="agent-avatar" style="background: var(--color-coral);" id="client-header-avatar">--</div>
+          <div class="agent-info">
+            <h4 id="client-header-name">Carregando...</h4>
+            <span id="client-header-doc">CPF: --</span>
+          </div>
+          <i class="fa-solid fa-chevron-down agent-profile-caret"></i>
+        </div>
+        <div class="agent-profile-menu" id="agent-profile-menu" hidden>
+          <button type="button" onclick="fecharAgentMenuEIr('section-perfil')">
+            <i class="fa-solid fa-user-gear"></i> Meu Perfil
+          </button>
+          <button type="button" onclick="fecharAgentMenuEIr('section-agendamento')">
+            <i class="fa-solid fa-calendar-days"></i> Novo Agendamento
+          </button>
+          <button type="button" onclick="fecharAgentMenuEIr('section-triagem')">
+            <i class="fa-solid fa-clipboard-question"></i> Pré-atendimento
+          </button>
+          <button type="button" onclick="fecharAgentMenuEIr('section-historico')">
+            <i class="fa-solid fa-clock-rotate-left"></i> Histórico
+          </button>
+          <button type="button" onclick="fecharAgentMenuEIr('section-caixa-postal')">
+            <i class="fa-solid fa-envelope"></i> Mensagens
+          </button>
+          <button type="button" data-logout>
+            <i class="fa-solid fa-arrow-right-from-bracket"></i> Sair
+          </button>
         </div>
       </div>
-      <!-- No celular o menu lateral vira barra inferior e o "Sair" não cabe lá.
-           Este botão só aparece em tela pequena; usa o mesmo handler [data-logout]. -->
-      <button class="hdr-sair" data-logout title="Sair" aria-label="Sair">
-        <i class="fa-solid fa-arrow-right-from-bracket"></i>
-      </button>
     </div>
   </header>
 
@@ -46,6 +118,11 @@
     
     <!-- Global App Sidebar Menu (Left Navigation) -->
     <aside class="app-sidebar-nav collapsed">
+      <!-- Indicador "líquido": só existe visualmente na pílula do celular (ver
+           media query em cliente.css). Desliza e muda de largura pra baixo do
+           ícone ativo — cliente.js (moverIndicadorLiquido) recalcula a posição
+           a cada troca de aba. -->
+      <div class="nav-liquid-indicator" id="nav-liquid-indicator" aria-hidden="true"></div>
       <div class="nav-section-title" style="display: flex; justify-content: space-between; align-items: center;">
         <span>Área do Cliente</span>
         <button id="btn-toggle-sidebar-cliente" class="btn-sidebar-collapse"
@@ -54,61 +131,65 @@
         </button>
       </div>
 
-      <!-- DESKTOP ORDER (Original) -->
-      
+      <!-- DESKTOP ORDER (Original). No celular, a barra vira uma pílula
+           flutuante de só 4 ícones do mesmo tamanho (classes mobile-order-N):
+           Início, Atendimento, Documentos, Ajuda. Pré-atendimento, Agendamento,
+           Histórico e Mensagens migraram pro menu do avatar no cabeçalho
+           (agent-profile-menu) — a barra de baixo é só 4 pra ficar limpa; o
+           resto continua a uma mão de distância no menu de perfil. -->
+
       <!-- 1. Início -->
-      <button class="nav-item active mobile-order-3 nav-item-home-center" data-target="section-dashboard" title="Início">
+      <button class="nav-item active mobile-order-1" data-target="section-dashboard" title="Início">
         <i class="fa-solid fa-house"></i> <span class="nav-label">Início</span>
       </button>
 
-      <!-- 2. Pré-atendimento -->
-      <button class="nav-item mobile-order-1" data-target="section-triagem" title="Antes do atendimento" style="position: relative;">
+      <!-- 2. Pré-atendimento (só desktop; no celular mora no menu de perfil) -->
+      <button class="nav-item nav-item-desktop-only" data-target="section-triagem" title="Antes do atendimento" style="position: relative;">
         <i class="fa-solid fa-clipboard-question"></i> <span class="nav-label">Pré-atendimento</span>
         <span class="chat-unread-badge" id="badge-triagem" style="display:none;">!</span>
       </button>
 
       <!-- 3. Atendimento (Chat) -->
-      <button class="nav-item mobile-order-5" data-target="section-chat" title="Atendimento" style="position: relative;">
+      <button class="nav-item mobile-order-2" data-target="section-chat" title="Atendimento" style="position: relative;">
         <i class="fa-solid fa-comments"></i> <span class="nav-label">Atendimento</span>
         <span class="chat-unread-badge" id="badge-atendimentos-cliente">0</span>
       </button>
 
-      <!-- 4. Avisos (Hidden on mobile) -->
-      <button class="nav-item nav-item-desktop-only" data-target="section-caixa-postal" title="Avisos" style="position: relative;">
-        <i class="fa-solid fa-envelope"></i> <span class="nav-label">Avisos</span>
+      <!-- 4. Mensagens (só desktop; no celular mora no menu de perfil) -->
+      <button class="nav-item nav-item-desktop-only" data-target="section-caixa-postal" title="Mensagens" style="position: relative;">
+        <i class="fa-solid fa-envelope"></i> <span class="nav-label">Mensagens</span>
         <span class="chat-unread-badge" id="badge-caixa-postal-cliente" style="display:none;">0</span>
       </button>
 
       <!-- 5. Documentos -->
-      <button class="nav-item mobile-order-2" data-target="section-documentos" title="Meus Documentos">
+      <button class="nav-item mobile-order-3" data-target="section-documentos" title="Meus Documentos">
         <i class="fa-solid fa-folder-open"></i> <span class="nav-label">Documentos</span>
       </button>
 
-      <!-- 6. Radar Fiscal (Hidden on mobile) -->
-      <button class="nav-item nav-item-desktop-only" data-target="section-radar" title="Radar Fiscal (Serviço Preventivo)" style="position: relative;">
+      <!-- 6. Radar Fiscal (só desktop; e desligado pro cliente por config —
+           ver RADAR_FISCAL_CLIENTE em config.js) -->
+      <button class="nav-item nav-item-desktop-only" data-target="section-radar" title="Radar Fiscal (Serviço Preventivo)" style="position: relative;" hidden>
         <i class="fa-solid fa-shield-halved" style="color: var(--color-coral);"></i> <span class="nav-label">Radar Fiscal</span>
       </button>
 
-      <!-- 7. Agendamento -->
-      <button class="nav-item mobile-order-4" data-target="section-agendamento" title="Agendar Horário">
+      <!-- 7. Agendamento (só desktop; no celular mora no menu de perfil, como "Novo Agendamento") -->
+      <button class="nav-item nav-item-desktop-only" data-target="section-agendamento" title="Agendar Horário">
         <i class="fa-solid fa-calendar-days"></i> <span class="nav-label">Agendamento</span>
       </button>
 
-      <!-- 8. Histórico (Hidden on mobile) -->
+      <!-- 8. Histórico (só desktop; no celular mora no menu de perfil) -->
       <button class="nav-item nav-item-desktop-only" data-target="section-historico" title="Histórico">
         <i class="fa-solid fa-clock-rotate-left"></i> <span class="nav-label">Histórico</span>
       </button>
 
-      <!-- 9. Meu Perfil (Hidden on mobile) -->
-      <button class="nav-item nav-item-desktop-only" data-target="section-perfil" title="Meu Perfil">
-        <i class="fa-solid fa-user-gear"></i> <span class="nav-label">Meu Perfil</span>
+      <!-- 9. Ajuda / FAQ -->
+      <button class="nav-item mobile-order-4" data-target="section-faq" title="Ajuda e Dúvidas Frequentes">
+        <i class="fa-solid fa-circle-question"></i> <span class="nav-label">Ajuda</span>
       </button>
-      
-      <div style="flex: 1;"></div>
-      
-      <button class="nav-item" title="Sair do Sistema" data-logout>
-        <i class="fa-solid fa-arrow-right-from-bracket"></i> <span class="nav-label">Sair</span>
-      </button>
+
+      <!-- Meu Perfil saiu da sidebar: é redundante com o menu do avatar no
+           cabeçalho (Meu Perfil / Sair), que já leva pra mesma seção-perfil. -->
+
     </aside>
 
     <!-- Main Content Panels -->
@@ -116,25 +197,15 @@
 
       <!-- SECTION 0: Dashboard (Início) -->
       <section class="content-panel active" id="section-dashboard">
-        <div class="panel-header-desc" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
-          <div>
-            <h2>Bem-vindo ao Olá, Contador</h2>
-            <p>Acompanhe o andamento do seu serviço e gerencie seus dados com facilidade.</p>
-          </div>
-          <button type="button" class="btn-utility" onclick="abrirSecaoCliente('section-perfil')" style="white-space: nowrap;">
-            <i class="fa-solid fa-user-gear" style="color: var(--color-coral); margin-right: 6px;"></i> Ver Meu Perfil & Senha
-          </button>
+        <div class="panel-header-desc">
+          <h2 id="dash-boas-vindas">Bem-vindo(a)</h2>
+          <p>Acompanhe o andamento do seu serviço e gerencie seus dados com facilidade.</p>
         </div>
 
-        <section class="case-next-action" id="case-next-action" aria-live="polite">
-          <div class="case-next-action-icon" id="case-next-action-icon"><i class="fa-solid fa-circle-notch fa-spin"></i></div>
-          <div>
-            <span class="case-next-action-eyebrow">Próximo passo</span>
-            <h3 id="case-next-action-title">Carregando seu atendimento...</h3>
-            <p id="case-next-action-text">Só um instante.</p>
-          </div>
-          <button type="button" class="btn-utility primary" id="case-next-action-button" disabled>Carregando</button>
-        </section>
+        <!-- O card "Próximo passo" saiu daqui: seu principal motivo de existir
+             era empurrar o cliente pra triagem, e isso agora é obrigatório
+             logo após o pagamento (ver onboarding em showCheckoutSuccess) —
+             quem chega no dashboard já passou por essa etapa. -->
 
         <!-- Acesso: por padrão você entra pelo link no e-mail (sem senha). Criar uma
              senha aqui é opcional. Quando salva ou dispensada, o card desparece. -->
@@ -156,136 +227,108 @@
           <p style="font-size: 12px; margin-top: 10px; display:none;" id="msg-criar-senha"></p>
         </div>
 
-        <div class="dashboard-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(450px, 1fr)); gap: 24px; align-items: start;">
-          
-          <!-- Coluna Esquerda: Como Funciona + Vencimentos/Avaliação -->
-          <div style="display: flex; flex-direction: column; gap: 24px;">
-            
-            <!-- Como Funciona o Serviço -->
-            <div class="tracking-card" style="border-radius: 24px; position: relative;">
-              <div class="tracking-header">
-                <h3><i class="fa-solid fa-map-location-dot" style="color: var(--color-coral); margin-right: 8px;"></i>Como funciona o processo</h3>
-              </div>
-              
-              <!-- Linha conectando os passos -->
-              <div style="position: relative; margin-top: 24px;">
-                <!-- A linha real -->
-                <div style="position: absolute; top: 16px; left: 12%; right: 12%; height: 2px; background: var(--color-border); z-index: 0;"></div>
-                
-                <div style="display: flex; gap: 16px; position: relative; z-index: 1; flex-wrap: wrap;">
-                  <div id="step-processo-1" style="flex: 1; min-width: 100px; text-align: center;">
-                    <div class="step-circle" style="width: 32px; height: 32px; border-radius: 50%; background: var(--color-coral); color: white; display: flex; align-items: center; justify-content: center; margin: 0 auto 8px; font-weight: bold; border: 4px solid var(--color-card); transition: all 0.3s;">1</div>
-                    <h4 style="font-size: 13px; color: var(--color-pine); margin-bottom: 4px; transition: color 0.3s;">Pré-atendimento</h4>
-                    <p style="font-size: 11px; color: var(--color-text-secondary); margin: 0;">Conte o seu caso</p>
-                  </div>
-                  <div id="step-processo-2" style="flex: 1; min-width: 100px; text-align: center;">
-                    <div class="step-circle" style="width: 32px; height: 32px; border-radius: 50%; background: var(--color-bg); color: var(--color-text-secondary); display: flex; align-items: center; justify-content: center; margin: 0 auto 8px; font-weight: bold; border: 4px solid var(--color-card); transition: all 0.3s;">2</div>
-                    <h4 style="font-size: 13px; color: var(--color-text-secondary); margin-bottom: 4px; transition: color 0.3s;">Atendimento</h4>
-                    <p style="font-size: 11px; color: var(--color-text-secondary); margin: 0;">Fale pelo chat</p>
-                  </div>
-                  <div id="step-processo-3" style="flex: 1; min-width: 100px; text-align: center;">
-                    <div class="step-circle" style="width: 32px; height: 32px; border-radius: 50%; background: var(--color-bg); color: var(--color-text-secondary); display: flex; align-items: center; justify-content: center; margin: 0 auto 8px; font-weight: bold; border: 4px solid var(--color-card); transition: all 0.3s;">3</div>
-                    <h4 style="font-size: 13px; color: var(--color-text-secondary); margin-bottom: 4px; transition: color 0.3s;">Entrega</h4>
-                    <p style="font-size: 11px; color: var(--color-text-secondary); margin: 0;">Receba o relatório</p>
-                  </div>
-                  <div id="step-processo-4" style="flex: 1; min-width: 100px; text-align: center;">
-                    <div class="step-circle" style="width: 32px; height: 32px; border-radius: 50%; background: var(--color-bg); color: var(--color-text-secondary); display: flex; align-items: center; justify-content: center; margin: 0 auto 8px; font-weight: bold; border: 4px solid var(--color-card); transition: all 0.3s;">4</div>
-                    <h4 style="font-size: 13px; color: var(--color-text-secondary); margin-bottom: 4px; transition: color 0.3s;">Conclusão</h4>
-                    <p style="font-size: 11px; color: var(--color-text-secondary); margin: 0;">Serviço finalizado</p>
-                  </div>
-                </div>
-              </div>
-              
-              <div style="margin-top: 16px; display: flex; flex-wrap: wrap; gap: 12px; justify-content: flex-end; border-top: 1px solid var(--color-border); padding-top: 16px;">
-                <button class="btn-utility primary" onclick="document.querySelector('[data-target=\'section-triagem\']').click()"><i class="fa-solid fa-clipboard-question" style="margin-right: 6px;"></i> Preencher Triagem</button>
-                <button class="btn-utility" onclick="document.querySelector('[data-target=\'section-chat\']').click()"><i class="fa-solid fa-comments" style="margin-right: 6px;"></i> Ir para o Chat</button>
-              </div>
-            </div>
-
-            <!-- Grid interno para Vencimentos e Agendamento -->
-            <div class="tracking-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px;">
-              
-              <!-- Agenda Fiscal: próximos vencimentos -->
-              <div class="tracking-card" style="display: flex; flex-direction: column;">
-                <div class="tracking-header">
-                  <h3><i class="fa-solid fa-calendar-check" style="color: var(--color-coral); margin-right: 8px;"></i>Próximos Vencimentos</h3>
-                </div>
-                <div id="client-agenda-fiscal" style="margin-top: 12px; flex: 1;">
-                  <p style="font-size:13px;color:var(--color-text-secondary);">Carregando...</p>
-                </div>
-              </div>
-              
-              <!-- Agendamento + Avaliação -->
-              <div style="display: flex; flex-direction: column; gap: 24px;">
-                
-                <!-- Agendamento Ativo -->
-                <div class="tracking-card" id="card-agendamento-ativo" style="display: flex; flex-direction: column;">
-                  <div class="tracking-header">
-                    <h3><i class="fa-solid fa-clock" style="color: var(--color-coral); margin-right: 8px;"></i>Seu Agendamento</h3>
-                  </div>
-                  
-                  <!-- Estado com agendamento -->
-                  <div id="agendamento-com-dados" style="margin-top: 12px; display: none; flex: 1;">
-                    <p style="font-size: 13px; color: var(--color-text-secondary); margin-bottom: 8px;">Você tem um horário marcado com o contador:</p>
-                    <div style="background: var(--color-bg); padding: 12px; border-radius: 12px; display: flex; align-items: center; gap: 12px;">
-                      <div style="width: 40px; height: 40px; border-radius: 50%; background: var(--color-pine-ultra-light); color: var(--color-pine); display: flex; align-items: center; justify-content: center; font-size: 18px;">
-                        <i class="fa-regular fa-calendar-check"></i>
-                      </div>
-                      <div>
-                        <strong style="color: var(--color-pine); font-size: 15px; display: block;" id="agendamento-data-hora">--</strong>
-                        <span style="color: var(--color-text-secondary); font-size: 12px;" id="agendamento-servico">--</span>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <!-- Estado sem agendamento -->
-                  <div id="agendamento-vazio" style="margin-top: 12px; text-align: center; padding: 12px 0; flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center;">
-                    <i class="fa-regular fa-calendar" style="font-size: 24px; color: var(--color-text-secondary); margin-bottom: 8px; display: block;"></i>
-                    <p style="font-size: 13px; color: var(--color-text-secondary); margin-bottom: 12px;">Nenhum horário marcado no momento.</p>
-                    <button class="btn-utility" style="font-size: 12px; padding: 6px 12px;" onclick="document.querySelector('[data-target=\'section-agendamento\']').click()">Agendar Agora</button>
-                  </div>
-                </div>
-
-                <!-- Avaliação: só aparece quando há relatório entregue e nota ainda não dada -->
-                <div class="tracking-card" id="card-avaliacao" hidden>
-                  <div class="tracking-header">
-                    <h3><i class="fa-solid fa-star" style="color: var(--color-coral); margin-right: 8px;"></i>Como foi seu atendimento?</h3>
-                  </div>
-                  <p style="font-size: 13px; color: var(--color-text-secondary); margin: 8px 0 14px;">Sua nota ajuda o contador a melhorar. Leva 5 segundos.</p>
-                  <div class="aval-estrelas" id="aval-estrelas">
-                    <button type="button" data-nota="1" aria-label="1 estrela"><i class="fa-regular fa-star"></i></button>
-                    <button type="button" data-nota="2" aria-label="2 estrelas"><i class="fa-regular fa-star"></i></button>
-                    <button type="button" data-nota="3" aria-label="3 estrelas"><i class="fa-regular fa-star"></i></button>
-                    <button type="button" data-nota="4" aria-label="4 estrelas"><i class="fa-regular fa-star"></i></button>
-                    <button type="button" data-nota="5" aria-label="5 estrelas"><i class="fa-regular fa-star"></i></button>
-                  </div>
-                  <textarea id="aval-comentario" class="triagem-textarea" rows="2" placeholder="Quer comentar alguma coisa? (opcional)" style="width: 100%; margin-top: 12px;"></textarea>
-                  <button class="btn-primary" id="btn-enviar-avaliacao" style="margin-top: 12px;" disabled>Enviar avaliação</button>
-                </div>
-
-                <!-- Agradecimento depois de avaliar -->
-                <div class="tracking-card" id="card-avaliacao-feita" hidden>
-                  <div class="tracking-header">
-                    <h3><i class="fa-solid fa-circle-check" style="color: #1F8A5F; margin-right: 8px;"></i>Obrigado pela avaliação!</h3>
-                  </div>
-                  <p style="font-size: 13px; color: var(--color-text-secondary); margin-top: 8px;" id="aval-feita-texto"></p>
-                </div>
-              </div>
-            </div>
+        <!-- Linha do tempo do caso, em destaque: horizontal e sozinha no topo,
+             antes dos cards menores. Montada por cliente.js a partir do
+             estado real. -->
+        <div class="tracking-card" id="card-tracker" style="border-radius: 24px; display: flex; flex-direction: column; margin-bottom: 24px;">
+          <div class="tracking-header">
+            <h3 id="tracker-titulo">Seu atendimento</h3>
+            <span class="status-badge" id="tracker-status" style="background: var(--color-pine); color: white;">Carregando...</span>
           </div>
-          
-          <!-- Coluna Direita: Rastreador -->
-          <div style="display: flex; flex-direction: column;">
-            <!-- Linha do tempo do caso — montada por cliente.js a partir do estado real -->
-            <div class="tracking-card" style="border-radius: 24px; flex: 1; display: flex; flex-direction: column;">
-              <div class="tracking-header">
-                <h3 id="tracker-titulo">Seu atendimento</h3>
-                <span class="status-badge" id="tracker-status" style="background: var(--color-pine); color: white;">Carregando...</span>
-              </div>
-              <div class="tracker-stepper" id="tracker-passos" style="flex: 1;"></div>
-            </div>
+          <!-- Card horizontal e largo: a linha do tempo sozinha deixava a
+               metade direita vazia. Agora ela mora numa coluna mais estreita
+               à esquerda, e a direita ganha um resumo do estágio atual —
+               aproveita o espaço em vez de deixá-lo em branco. -->
+          <div style="display: flex; gap: 32px; margin-top: 8px; align-items: flex-start; flex-wrap: wrap;">
+            <div class="tracker-stepper" id="tracker-passos" style="flex: 1 1 320px; max-width: 380px;"></div>
+            <div id="tracker-detalhe" style="flex: 1 1 280px; background: var(--color-bg); border-radius: 16px; padding: 20px;"></div>
           </div>
-          
+        </div>
+
+        <!-- Cards menores em 2 colunas do mesmo tamanho (esticadas pra
+             sempre baterem a mesma altura). Agendamento e Últimas
+             atualizações ficam sempre lado a lado nessa ordem — os cards
+             condicionais (vencimentos, avaliação) entram depois, sem
+             empurrar esse par. -->
+        <div class="dashboard-grid">
+
+            <!-- Agendamento Ativo -->
+            <div class="tracking-card" id="card-agendamento-ativo" style="display: flex; flex-direction: column;">
+              <div class="tracking-header">
+                <h3><i class="fa-solid fa-clock" style="color: var(--color-coral); margin-right: 8px;"></i>Seu Agendamento</h3>
+              </div>
+
+              <!-- Estado com agendamento -->
+              <div id="agendamento-com-dados" style="margin-top: 12px; display: none; flex: 1;">
+                <p style="font-size: 13px; color: var(--color-text-secondary); margin-bottom: 8px;">Você tem um horário marcado com o contador:</p>
+                <div style="background: var(--color-bg); padding: 12px; border-radius: 12px; display: flex; align-items: center; gap: 12px;">
+                  <div style="width: 40px; height: 40px; border-radius: 50%; background: var(--color-pine-ultra-light); color: var(--color-pine); display: flex; align-items: center; justify-content: center; font-size: 18px;">
+                    <i class="fa-regular fa-calendar-check"></i>
+                  </div>
+                  <div>
+                    <strong style="color: var(--color-pine); font-size: 15px; display: block;" id="agendamento-data-hora">--</strong>
+                    <span style="color: var(--color-text-secondary); font-size: 12px;" id="agendamento-servico">--</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Estado sem agendamento -->
+              <div id="agendamento-vazio" style="margin-top: 12px; text-align: center; padding: 12px 0; flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center;">
+                <i class="fa-regular fa-calendar" style="font-size: 24px; color: var(--color-text-secondary); margin-bottom: 8px; display: block;"></i>
+                <p style="font-size: 13px; color: var(--color-text-secondary); margin-bottom: 12px;">Nenhum horário marcado no momento.</p>
+                <button class="btn-utility" style="font-size: 12px; padding: 6px 12px;" onclick="document.querySelector('[data-target=\'section-agendamento\']').click()">Agendar Agora</button>
+              </div>
+            </div>
+
+            <!-- Mensagens: resumo da caixa postal — o cliente vê de cara se
+                 chegou mensagem nova sem precisar abrir a aba. -->
+            <div class="tracking-card" id="card-caixa-postal-resumo" style="display: flex; flex-direction: column;">
+              <div class="tracking-header">
+                <h3><i class="fa-solid fa-envelope" style="color: var(--color-coral); margin-right: 8px;"></i>Mensagens</h3>
+                <span class="status-badge" id="dash-caixa-postal-badge" style="display:none; background: var(--color-coral); color: white;">0 novas</span>
+              </div>
+              <div id="dash-caixa-postal-resumo" style="margin-top: 12px; flex: 1;">
+                <p style="font-size:13px;color:var(--color-text-secondary);">Carregando...</p>
+              </div>
+            </div>
+
+            <!-- Agenda Fiscal: próximos vencimentos — só existe pra quem tem
+                 um serviço recorrente ativo (Radar Fiscal, Assessoria MEI...);
+                 pra um atendimento avulso não há vencimento nenhum a mostrar. -->
+            <div class="tracking-card" id="card-vencimentos-fiscais" hidden style="display: flex; flex-direction: column;">
+              <div class="tracking-header">
+                <h3><i class="fa-solid fa-calendar-check" style="color: var(--color-coral); margin-right: 8px;"></i>Próximos Vencimentos</h3>
+              </div>
+              <div id="client-agenda-fiscal" style="margin-top: 12px; flex: 1;">
+                <p style="font-size:13px;color:var(--color-text-secondary);">Carregando...</p>
+              </div>
+            </div>
+
+            <!-- Avaliação: só aparece quando há relatório entregue e nota ainda não dada -->
+            <div class="tracking-card" id="card-avaliacao" hidden>
+              <div class="tracking-header">
+                <h3><i class="fa-solid fa-star" style="color: var(--color-coral); margin-right: 8px;"></i>Como foi seu atendimento?</h3>
+              </div>
+              <p style="font-size: 13px; color: var(--color-text-secondary); margin: 8px 0 14px;">Sua nota ajuda o contador a melhorar. Leva 5 segundos.</p>
+              <div class="aval-estrelas" id="aval-estrelas">
+                <button type="button" data-nota="1" aria-label="1 estrela"><i class="fa-regular fa-star"></i></button>
+                <button type="button" data-nota="2" aria-label="2 estrelas"><i class="fa-regular fa-star"></i></button>
+                <button type="button" data-nota="3" aria-label="3 estrelas"><i class="fa-regular fa-star"></i></button>
+                <button type="button" data-nota="4" aria-label="4 estrelas"><i class="fa-regular fa-star"></i></button>
+                <button type="button" data-nota="5" aria-label="5 estrelas"><i class="fa-regular fa-star"></i></button>
+              </div>
+              <textarea id="aval-comentario" class="triagem-textarea" rows="2" placeholder="Quer comentar alguma coisa? (opcional)" style="width: 100%; margin-top: 12px;"></textarea>
+              <button class="btn-primary" id="btn-enviar-avaliacao" style="margin-top: 12px;" disabled>Enviar avaliação</button>
+            </div>
+
+            <!-- Agradecimento depois de avaliar -->
+            <div class="tracking-card" id="card-avaliacao-feita" hidden>
+              <div class="tracking-header">
+                <h3><i class="fa-solid fa-circle-check" style="color: #1F8A5F; margin-right: 8px;"></i>Obrigado pela avaliação!</h3>
+              </div>
+              <p style="font-size: 13px; color: var(--color-text-secondary); margin-top: 8px;" id="aval-feita-texto"></p>
+            </div>
+
         </div>
       </section>
 
@@ -293,17 +336,31 @@
       <section class="content-panel" id="section-chat" style="padding: 16px 24px 24px 24px; box-sizing: border-box;">
         <div class="cliente-chat-shell">
           <div class="cliente-chat-main">
-            <div class="chat-container" style="position: relative;">
-              <!-- Locked Overlay (Hidden by default, shown by JS) -->
-              <div id="chat-locked-overlay" style="display: none; position: absolute; inset: 0; background: rgba(255, 255, 255, 0.9); z-index: 10; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 24px;">
-                <i class="fa-solid fa-lock" id="chat-lock-icon" style="font-size: 48px; color: var(--color-pine); margin-bottom: 16px;"></i>
-                <h3 id="chat-lock-title" style="color: var(--color-pine); margin-bottom: 8px;">Atendimento Bloqueado</h3>
-                <p id="chat-lock-text" style="color: var(--color-text-secondary); margin-bottom: 16px;">Seu chat será liberado no momento da sua reunião.</p>
-                <div id="chat-lock-schedule" style="background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 8px; padding: 12px 24px;">
-                  <span id="chat-lock-label" style="font-size: 12px; color: var(--color-text-secondary); display: block; margin-bottom: 4px;">Seu agendamento:</span>
-                  <strong id="chat-lock-value" style="color: var(--color-coral); font-size: 16px;"><i class="fa-solid fa-calendar"></i> Consulte a sua agenda</strong>
+            <div class="chat-container">
+              <!-- O bloqueio (total ou parcial) só cobre header+histórico. Antes o
+                   overlay usava inset:0 no .chat-container inteiro, que também é o
+                   pai do rodapé de digitação — cobria e travava o clique no campo de
+                   mensagem, mesmo com o input habilitado, porque o overlay some por
+                   cima na pilha de camadas (z-index). Esse wrapper isola só a parte
+                   que precisa ficar coberta e deixa o rodapé sempre alcançável, para
+                   o encaminhamento automático pra Caixa Postal funcionar. -->
+              <div style="position: relative; flex: 1; display: flex; flex-direction: column; min-height: 0;">
+              <!-- Locked Overlay (Hidden by default, shown by JS). Fundo bem mais
+                   translúcido + blur (em vez de quase opaco): dá pra notar que
+                   existe uma conversa ali atrás, sem escondê-la atrás de uma
+                   parede branca. O texto mora num "cartão" fosco por cima, pra
+                   não perder legibilidade com a conversa borrada atrás. -->
+              <div id="chat-locked-overlay" style="display: none; position: absolute; inset: 0; background: rgba(255, 255, 255, 0.35); backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px); z-index: 10; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 24px;">
+                <div style="background: rgba(255, 255, 255, 0.88); border-radius: 20px; padding: 28px 32px; box-shadow: 0 8px 28px rgba(12, 84, 70, 0.14); max-width: 340px;">
+                  <i class="fa-solid fa-lock" id="chat-lock-icon" style="font-size: 48px; color: var(--color-pine); margin-bottom: 16px;"></i>
+                  <h3 id="chat-lock-title" style="color: var(--color-pine); margin-bottom: 8px;">Atendimento Bloqueado</h3>
+                  <p id="chat-lock-text" style="color: var(--color-text-secondary); margin-bottom: 16px;">Seu chat será liberado no momento da sua reunião.</p>
+                  <div id="chat-lock-schedule" hidden style="background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 8px; padding: 12px 24px; margin-bottom: 16px;">
+                    <span id="chat-lock-label" style="font-size: 12px; color: var(--color-text-secondary); display: block; margin-bottom: 4px;">Seu agendamento:</span>
+                    <strong id="chat-lock-value" style="color: var(--color-coral); font-size: 16px;"><i class="fa-solid fa-calendar"></i> Consulte a sua agenda</strong>
+                  </div>
+                  <button type="button" class="btn-utility primary" id="chat-lock-action" hidden></button>
                 </div>
-                <button type="button" class="btn-utility primary" id="chat-lock-action" hidden></button>
               </div>
               <!-- Chat Header -->
               <div class="chat-header" style="display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px 20px;">
@@ -338,6 +395,7 @@
 
               <!-- Chat History (preenchido dinamicamente por cliente.js a partir do banco) -->
               <div class="chat-history" id="client-chat-history"></div>
+              </div>
 
               <!-- Chat Input -->
               <div class="chat-input-area">
@@ -352,90 +410,145 @@
         </div>
       </section>
 
-      <!-- SECTION: Caixa Postal — avisos/mensagens fora do chat ao vivo, que só
-           abre no horário agendado. Fica sempre disponível, sem depender de sessão. -->
+      <!-- SECTION: Caixa Postal — mensagens assíncronas fora do chat ao vivo, no
+           padrão visual das demais seções do sistema (não é chat: sem balão
+           verde, sem "capa" de conversa em tempo real). Formato de caixa de
+           e-mail: lista de conversas (por assunto) com indicação de lida/não
+           lida; a conversa completa e o campo de escrever só aparecem quando
+           o cliente abre uma conversa ou clica em "Criar nova mensagem". -->
       <section class="content-panel" id="section-caixa-postal">
-        <div class="chat-container" style="position: relative; height: 100%;">
-          <div class="chat-header">
-            <div class="chat-header-avatar"><i class="fa-solid fa-envelope"></i></div>
-            <div class="chat-header-info">
-              <div class="chat-header-nome"><h3>Avisos e mensagens</h3></div>
-              <p style="font-size: 11px; margin: 0; color: rgba(255,255,255,0.8);">Fora do horário do chat ao vivo — fica aqui até você ler.</p>
+        <div class="panel-header-desc" style="display:flex; justify-content:space-between; align-items:flex-start; gap:16px; flex-wrap:wrap;">
+          <div>
+            <button type="button" id="btn-voltar-caixa-postal" class="btn-utility" style="display:none; margin-bottom:12px;">
+              <i class="fa-solid fa-arrow-left"></i> Voltar
+            </button>
+            <h2 id="caixa-postal-titulo"><i class="fa-solid fa-envelope" style="color: var(--color-coral); margin-right: 8px;"></i>Mensagens</h2>
+            <p id="caixa-postal-subtitulo">Fora do horário do chat ao vivo — resposta em até 1 dia útil.</p>
+          </div>
+          <button type="button" id="btn-nova-mensagem-cliente" class="btn-utility primary" style="white-space:nowrap;">
+            <i class="fa-solid fa-pen-to-square"></i> Criar nova mensagem
+          </button>
+        </div>
+
+        <!-- Aviso de não lidas: some quando tudo estiver lido. -->
+        <div id="caixa-postal-resumo-naolidas" class="status-badge" style="display:none; background: rgba(255,106,69,0.1); color: var(--color-coral); border: 1px solid rgba(255,106,69,0.3); margin-bottom: 16px;">
+          <i class="fa-solid fa-circle-exclamation"></i> <span id="caixa-postal-resumo-naolidas-texto"></span>
+        </div>
+
+        <!-- Visão 1: overview das conversas (inbox) -->
+        <div id="caixa-postal-cliente-inbox" style="display:flex; flex-direction:column; gap:10px;">
+          <p style="font-size:13px;color:var(--color-text-secondary);text-align:center;padding:40px 0;">Carregando...</p>
+        </div>
+
+        <!-- Visão 2: conversa aberta -->
+        <div id="caixa-postal-cliente-historico" style="display:none; flex-direction:column; gap:10px;"></div>
+
+        <!-- Composer: some por padrão; aparece só ao responder uma conversa ou
+             escrever uma mensagem nova. O seletor de assunto só faz sentido
+             numa mensagem nova — ao responder, o assunto já é o da conversa. -->
+        <div id="caixa-postal-composer" style="display:none; flex-direction: column; gap: 10px; margin-top: 20px; background: white; border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 16px; box-shadow: 0 4px 20px rgba(10, 49, 33, 0.06);">
+          <form id="form-caixa-postal-cliente" style="display:flex; flex-direction: column; gap: 10px;">
+            <select id="caixa-postal-cliente-assunto" class="form-select" style="width: 100%;">
+              <option value="Dúvida sobre meu atendimento">Dúvida sobre meu atendimento</option>
+              <option value="Preciso enviar um documento">Preciso enviar um documento</option>
+              <option value="Suporte com o portal">Suporte com o portal</option>
+              <option value="Outro assunto">Outro assunto</option>
+            </select>
+            <div style="display: flex; gap: 8px; align-items: center;">
+              <input type="text" id="caixa-postal-cliente-mensagem" class="form-select" placeholder="Escreva sua mensagem..." autocomplete="off" style="flex: 1;">
+              <button type="submit" class="btn-utility primary" style="white-space:nowrap;"><i class="fa-solid fa-paper-plane"></i> Enviar</button>
             </div>
-          </div>
-          <div class="chat-history" id="caixa-postal-cliente-historico">
-            <p style="font-size:13px;color:var(--color-text-secondary);text-align:center;padding:40px 0;">Carregando...</p>
-          </div>
-          <div class="chat-input-area">
-            <form class="chat-form" id="form-caixa-postal-cliente">
-              <input type="text" id="caixa-postal-cliente-mensagem" placeholder="Escreva uma mensagem para o contador..." autocomplete="off">
-              <button type="submit" class="btn-send"><i class="fa-solid fa-paper-plane"></i></button>
-            </form>
-          </div>
+          </form>
         </div>
       </section>
 
       <!-- SECTION: Triagem / pré-atendimento (montada por triagem.js a partir do catálogo) -->
       <section class="content-panel" id="section-triagem">
         <div class="panel-header-desc">
-          <h2>Antes do atendimento</h2>
-          <p>Conte o que está acontecendo. Quanto mais o contador souber antes, menos tempo vocês gastam se apresentando — e mais sobra para resolver.</p>
+          <h2>
+            <span class="triagem-titulo-padrao">Antes do atendimento</span>
+            <span class="triagem-titulo-onboarding">Seu atendimento já começou</span>
+          </h2>
+          <p class="triagem-titulo-padrao">Conte o que está acontecendo. Quanto mais o contador souber antes, menos tempo vocês gastam se apresentando — e mais sobra para resolver.</p>
+          <p class="triagem-titulo-onboarding">Agora conte o que aconteceu. Esta triagem já faz parte do seu atendimento e prepara nosso time para cuidar do seu caso.</p>
         </div>
 
-        <div class="triagem-wrap">
-          <!-- Sala de espera: aparece quando há horário marcado -->
-          <div class="triagem-espera" id="triagem-espera" hidden></div>
+        <!-- Sala de espera: aparece quando há horário marcado (nos dois modos) -->
+        <div class="triagem-espera" id="triagem-espera" hidden></div>
 
-          <!-- Passo 1 -->
-          <div class="triagem-bloco">
-            <div class="triagem-bloco-topo">
-              <span class="triagem-passo">1</span>
-              <h3>Sobre o que você precisa falar?</h3>
+        <!-- Resumo: some no lugar do formulário assim que a triagem já foi
+             enviada — em vez de parecer uma tarefa pendente, vira "isso é o
+             que você nos contou", com um jeito discreto de mudar algo. -->
+        <div class="triagem-resumo" id="triagem-resumo" hidden>
+          <div class="triagem-resumo-topo">
+            <div>
+              <span class="triagem-resumo-eyebrow">Você já contou seu caso</span>
+              <h3 id="triagem-resumo-assunto"></h3>
             </div>
-            <div class="triagem-assuntos" id="triagem-assuntos"></div>
-          </div>
-
-          <!-- Passo 2 (só depois de escolher o assunto) -->
-          <div class="triagem-bloco" id="triagem-bloco-detalhes" hidden>
-            <div class="triagem-bloco-topo">
-              <span class="triagem-passo">2</span>
-              <h3>Me conta um pouco mais</h3>
-            </div>
-            <div id="triagem-perguntas"></div>
-            <label class="triagem-label" for="triagem-descricao">
-              O que aconteceu? <span class="triagem-obrig">obrigatório</span>
-            </label>
-            <p class="triagem-dica">Escreva com suas palavras, do seu jeito. Não precisa saber os termos técnicos — é justo para isso que você contratou alguém.</p>
-            <textarea id="triagem-descricao" class="triagem-textarea" rows="5"
-              placeholder="Ex.: recebi uma carta da Receita dizendo que caí na malha fina do IR de 2024. Não entendi o motivo e estou com medo de dar problema no meu CPF."></textarea>
-          </div>
-
-          <!-- Passo 3 -->
-          <div class="triagem-bloco" id="triagem-bloco-docs" hidden>
-            <div class="triagem-bloco-topo">
-              <span class="triagem-passo">3</span>
-              <h3>Documentos que costumam ajudar</h3>
-              <span class="triagem-opcional">opcional</span>
-            </div>
-            <p class="triagem-dica">Se tiver algum em mãos, anexe agora. Se não tiver, tudo bem — dá para mandar depois, durante o atendimento.</p>
-            <div id="triagem-docs"></div>
-          </div>
-        </div>
-
-        <!-- Barra de envio: fica colada embaixo, sempre à vista -->
-        <div class="triagem-barra" id="triagem-barra" hidden>
-          <div class="triagem-medidor">
-            <div class="triagem-medidor-topo">
-              <span id="triagem-medidor-texto">Vamos lá</span>
-              <strong id="triagem-medidor-pct">0%</strong>
-            </div>
-            <div class="triagem-medidor-trilho"><div class="triagem-medidor-barra" id="triagem-medidor-barra"></div></div>
-          </div>
-          <div class="triagem-acoes">
-            <span class="triagem-salvo" id="triagem-salvo"></span>
-            <button class="btn-utility primary" id="triagem-enviar">
-              <i class="fa-solid fa-paper-plane"></i> Enviar para o contador
+            <button type="button" class="btn-utility" id="triagem-resumo-editar">
+              <i class="fa-solid fa-pen"></i> Editar
             </button>
+          </div>
+          <div class="triagem-resumo-item">
+            <span class="triagem-resumo-label">O que aconteceu</span>
+            <p id="triagem-resumo-descricao"></p>
+          </div>
+          <div id="triagem-resumo-respostas"></div>
+        </div>
+
+        <div id="triagem-form-area">
+          <div class="triagem-wrap">
+            <!-- Passo 1 -->
+            <div class="triagem-bloco">
+              <div class="triagem-bloco-topo">
+                <span class="triagem-passo">1</span>
+                <h3>Sobre o que você precisa falar?</h3>
+              </div>
+              <div class="triagem-assuntos" id="triagem-assuntos"></div>
+            </div>
+
+            <!-- Passo 2 (só depois de escolher o assunto) -->
+            <div class="triagem-bloco" id="triagem-bloco-detalhes" hidden>
+              <div class="triagem-bloco-topo">
+                <span class="triagem-passo">2</span>
+                <h3>Me conta um pouco mais</h3>
+              </div>
+              <div id="triagem-perguntas"></div>
+              <label class="triagem-label" for="triagem-descricao">
+                O que aconteceu? <span class="triagem-obrig">obrigatório</span>
+              </label>
+              <p class="triagem-dica">Escreva com suas palavras, do seu jeito. Não precisa saber os termos técnicos — é justo para isso que você contratou alguém.</p>
+              <textarea id="triagem-descricao" class="triagem-textarea" rows="5"
+                placeholder="Ex.: recebi uma carta da Receita dizendo que caí na malha fina do IR de 2024. Não entendi o motivo e estou com medo de dar problema no meu CPF."></textarea>
+            </div>
+
+            <!-- Passo 3 -->
+            <div class="triagem-bloco" id="triagem-bloco-docs" hidden>
+              <div class="triagem-bloco-topo">
+                <span class="triagem-passo">3</span>
+                <h3>Documentos que costumam ajudar</h3>
+                <span class="triagem-opcional">opcional</span>
+              </div>
+              <p class="triagem-dica">Se tiver algum em mãos, anexe agora. Se não tiver, tudo bem — dá para mandar depois, durante o atendimento.</p>
+              <div id="triagem-docs"></div>
+            </div>
+          </div>
+
+          <!-- Barra de envio: fica colada embaixo, sempre à vista -->
+          <div class="triagem-barra" id="triagem-barra" hidden>
+            <div class="triagem-medidor">
+              <div class="triagem-medidor-topo">
+                <span id="triagem-medidor-texto">Vamos lá</span>
+                <strong id="triagem-medidor-pct">0%</strong>
+              </div>
+              <div class="triagem-medidor-trilho"><div class="triagem-medidor-barra" id="triagem-medidor-barra"></div></div>
+            </div>
+            <div class="triagem-acoes">
+              <span class="triagem-salvo" id="triagem-salvo"></span>
+              <button class="btn-utility primary" id="triagem-enviar">
+                <i class="fa-solid fa-paper-plane"></i> Enviar para o contador
+              </button>
+            </div>
           </div>
         </div>
       </section>
@@ -447,47 +560,72 @@
           <p>Escolha o serviço, veja os horários disponíveis e confirme seu atendimento com o contador.</p>
         </div>
 
-        <!-- ETAPA 1+2: escolha do serviço e horário -->
-        <div id="checkout-form" class="agendamento-card">
-          <h3 style="color: var(--color-pine); font-size: 16px; margin-bottom: 16px;">1. Escolha o serviço</h3>
-          <div id="servicos-list" style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 28px;">
-            <p style="color: var(--color-text-secondary); font-size: 13px;">Carregando serviços...</p>
-          </div>
-
-          <h3 style="color: var(--color-pine); font-size: 16px; margin-bottom: 16px;">2. Data e horário</h3>
-          <div class="agenda-cliente-wrap">
-            <div class="agenda-cliente-toolbar">
-              <button type="button" class="agenda-nav" id="agenda-cliente-prev" title="Semana anterior" aria-label="Semana anterior">
-                <i class="fa-solid fa-chevron-left"></i>
-              </button>
-              <strong id="agenda-cliente-periodo">Carregando agenda...</strong>
-              <button type="button" class="agenda-nav" id="agenda-cliente-next" title="Próxima semana" aria-label="Próxima semana">
-                <i class="fa-solid fa-chevron-right"></i>
-              </button>
+        <!-- ETAPA 1+2: escolha do serviço e horário — dois cards flutuantes
+             lado a lado (mesmo padrão do dashboard), em vez de um card único
+             com uma caixa aninhada dentro pra agenda. -->
+        <div id="checkout-form" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(380px, 100%), 1fr)); gap: 24px; align-items: stretch; width: 100%; max-width: 980px;">
+          <div class="tracking-card">
+            <h3 style="color: var(--color-pine); font-size: 16px; margin-bottom: 16px;">1. Escolha o serviço</h3>
+            <div id="servicos-list" style="display: flex; flex-direction: column; gap: 12px;">
+              <p style="color: var(--color-text-secondary); font-size: 13px;">Carregando serviços...</p>
             </div>
-            <div class="agenda-cliente-grid" id="agenda-cliente-grid" aria-live="polite"></div>
-            <p class="agenda-cliente-dica" id="agenda-cliente-dica">
-              Selecione um horário disponível para liberar o chat no momento do atendimento.
-            </p>
-            <input type="hidden" id="checkout-date">
-            <input type="hidden" id="checkout-time">
           </div>
 
-          <button id="btn-gerar-pix" class="btn-utility primary" style="width: 100%; justify-content: center;">
-            <i class="fa-solid fa-qrcode"></i> Gerar pagamento Pix
-          </button>
-          <p id="checkout-msg" style="font-size: 12px; color: var(--color-coral); margin-top: 12px; display: none;"></p>
+          <div class="tracking-card" style="display: flex; flex-direction: column;">
+            <h3 style="color: var(--color-pine); font-size: 16px; margin-bottom: 16px;">2. Data e horário</h3>
+            <div class="agenda-cliente-wrap">
+              <div class="agenda-cliente-toolbar">
+                <button type="button" class="agenda-nav" id="agenda-cliente-prev" title="Semana anterior" aria-label="Semana anterior">
+                  <i class="fa-solid fa-chevron-left"></i>
+                </button>
+                <strong id="agenda-cliente-periodo">Carregando agenda...</strong>
+                <button type="button" class="agenda-nav" id="agenda-cliente-next" title="Próxima semana" aria-label="Próxima semana">
+                  <i class="fa-solid fa-chevron-right"></i>
+                </button>
+              </div>
+              <div class="agenda-cliente-grid" id="agenda-cliente-grid" aria-live="polite"></div>
+              <p class="agenda-cliente-dica" id="agenda-cliente-dica">
+                Selecione um horário disponível para liberar o chat no momento do atendimento.
+              </p>
+              <input type="hidden" id="checkout-date">
+              <input type="hidden" id="checkout-time">
+            </div>
+
+            <!-- Método de pagamento — mesmo padrão do checkout público
+                 (Pix com desconto vs. cartão à vista ou em até 3x). -->
+            <div class="metodo-pagamento" style="margin-top: 16px;">
+              <label class="metodo-opcao">
+                <input type="radio" name="metodo-agendamento" value="pix" checked>
+                <span><strong>Pix</strong><small>5% de desconto</small></span>
+              </label>
+              <label class="metodo-opcao">
+                <input type="radio" name="metodo-agendamento" value="cartao">
+                <span><strong>Cartão de crédito</strong><small>à vista ou em até 3x</small></span>
+              </label>
+            </div>
+
+            <button id="btn-gerar-pix" class="btn-utility primary" style="width: 100%; justify-content: center; margin-top: 16px;">
+              <i class="fa-solid fa-qrcode"></i> Gerar pagamento Pix
+            </button>
+            <p id="checkout-msg" style="font-size: 12px; color: var(--color-coral); margin-top: 12px; display: none;"></p>
+          </div>
         </div>
 
-        <!-- ETAPA 3: pagamento Pix -->
+        <!-- ETAPA 3: pagamento (Pix ou cartão, conforme escolhido acima) -->
         <div id="checkout-payment" class="agendamento-card" style="display: none; background: white; border: 1px solid var(--color-border); border-radius: var(--border-radius); padding: 32px; max-width: 640px;">
           <div style="text-align: center;">
-            <h3 style="color: var(--color-pine); font-size: 16px; margin-bottom: 4px;">Pague com Pix para confirmar</h3>
+            <h3 id="pag-titulo" style="color: var(--color-pine); font-size: 16px; margin-bottom: 4px;">Pague com Pix para confirmar</h3>
             <p id="pix-resumo" style="font-size: 13px; color: var(--color-text-secondary); margin-bottom: 20px;"></p>
-            <img id="pix-qr" alt="QR Code Pix" style="width: 220px; height: 220px; object-fit: contain; border: 1px solid var(--color-border); border-radius: 8px; padding: 8px; margin: 0 auto 16px; display: block;">
-            <div style="display: flex; gap: 8px; align-items: center; max-width: 420px; margin: 0 auto 16px;">
-              <input id="pix-copia-cola" readonly style="flex: 1; padding: 10px; border: 1px solid var(--color-border); border-radius: 8px; font-size: 12px; color: var(--color-text-secondary);">
-              <button id="btn-copiar-pix" class="btn-utility" style="white-space: nowrap;"><i class="fa-solid fa-copy"></i> Copiar</button>
+            <div id="pag-pix-bloco">
+              <img id="pix-qr" alt="QR Code Pix" style="width: 220px; height: 220px; object-fit: contain; border: 1px solid var(--color-border); border-radius: 8px; padding: 8px; margin: 0 auto 16px; display: block;">
+              <div style="display: flex; gap: 8px; align-items: center; max-width: 420px; margin: 0 auto 16px;">
+                <input id="pix-copia-cola" readonly style="flex: 1; padding: 10px; border: 1px solid var(--color-border); border-radius: 8px; font-size: 12px; color: var(--color-text-secondary);">
+                <button id="btn-copiar-pix" class="btn-utility" style="white-space: nowrap;"><i class="fa-solid fa-copy"></i> Copiar</button>
+              </div>
+            </div>
+            <div id="pag-cartao-bloco" hidden>
+              <a id="link-cartao" href="#" target="_blank" rel="noopener" class="btn-utility primary" style="display: flex; justify-content: center; text-decoration: none; margin-bottom: 14px;">Abrir pagamento seguro</a>
+              <p style="font-size: 12px; color: var(--color-text-secondary); margin-bottom: 16px;">Abrimos a página segura do Asaas em outra aba pra você inserir os dados do cartão (à vista ou parcelado). Depois de pagar, volte pra esta aba.</p>
             </div>
             <div id="pix-status" style="font-size: 14px; font-weight: 600; color: var(--color-coral); margin-bottom: 16px;">
               <i class="fa-solid fa-clock"></i> Aguardando pagamento...
@@ -511,67 +649,41 @@
 
       <!-- SECTION 3: Documentos -->
       <!-- SECTION: Radar Fiscal (Prevenção e Monitoramento) -->
-      <section class="content-panel" id="section-radar">
-        <div class="panel-header-desc" style="display: flex; justify-content: space-between; align-items: flex-start;">
-          <div>
-            <h2><i class="fa-solid fa-shield-halved" style="color: var(--color-coral); margin-right: 8px;"></i> Radar Fiscal</h2>
-            <p>Monitoramento 24h da saúde do seu <strong>CPF</strong> ou <strong>CNPJ</strong> (O seu "Serasa" da Receita Federal).</p>
-          </div>
-          <span class="status-badge" style="background: rgba(46,204,113,0.1); color: #27AE60; border: 1px solid rgba(46,204,113,0.3); padding: 6px 12px; font-size: 13px; font-weight: 600;">
-            <i class="fa-solid fa-satellite-dish fa-beat"></i> Monitoramento Ativo
-          </span>
+      <!-- ATENÇÃO ao editar: nada aqui pode afirmar situação fiscal do cliente.
+           Já houve um caso de certidão e aviso de cobrança fixos no HTML como
+           exemplo — o JS só reescrevia a tela para quem assinava, então todo
+           cliente real lia aqueles números como sendo a própria situação.
+           Situação fiscal só aparece quando vem do Serpro, datada. -->
+      <section class="content-panel" id="section-radar" hidden>
+        <div class="panel-header-desc">
+          <h2><i class="fa-solid fa-shield-halved" style="color: var(--color-coral); margin-right: 8px;"></i> Radar Fiscal</h2>
+          <p>Acompanhamento da sua Caixa Postal do e-CAC e da sua situação junto à Receita Federal.</p>
         </div>
 
-        <div style="background: var(--color-bg); padding: 24px; border-radius: var(--radius-md); border: 1px solid var(--color-border); margin-bottom: 24px; text-align: center;">
-           <div style="width: 64px; height: 64px; border-radius: 50%; background: #FAD7A1; color: #E67E22; display: flex; align-items: center; justify-content: center; font-size: 28px; margin: 0 auto 16px;">
-              <i class="fa-solid fa-triangle-exclamation"></i>
-           </div>
-           <h3 style="color: var(--color-pine); font-size: 20px; margin-bottom: 8px;">Atenção: Há pendências no seu CPF / CNPJ</h3>
-           <p style="color: var(--color-text-secondary); font-size: 14px; max-width: 500px; margin: 0 auto 16px;">O nosso radar detectou divergências na Receita Federal que podem bloquear o seu CPF em bancos (Malha Fina) ou impedir sua empresa de emitir notas.</p>
-           <button id="btn-subscribe-radar" class="btn-primary" onclick="subscribeRadar()" style="background: var(--color-coral); color: white; padding: 12px 24px; border: none; border-radius: 24px; font-weight: 600; cursor: pointer; transition: 0.2s;"><i class="fa-solid fa-headset"></i> Assinar Radar Fiscal (R$ 29,90/mês)</button>
+        <!-- Tela de venda (quem ainda não assina) -->
+        <div id="radar-oferta" style="background: white; padding: 28px; border-radius: 24px; border: 1px solid var(--color-border); box-shadow: 0 4px 20px rgba(10, 49, 33, 0.06); max-width: 640px;">
+          <div style="width: 56px; height: 56px; border-radius: 50%; background: var(--color-pine-ultra-light); color: var(--color-coral); display: flex; align-items: center; justify-content: center; font-size: 24px; margin-bottom: 16px;">
+            <i class="fa-solid fa-satellite-dish"></i>
+          </div>
+          <h3 style="color: var(--color-pine); font-size: 20px; margin-bottom: 10px;">Fique sabendo antes de virar problema</h3>
+          <p style="color: var(--color-text-secondary); font-size: 14px; line-height: 1.6; margin-bottom: 18px;">
+            A Receita Federal avisa pela Caixa Postal do e-CAC — e quase ninguém entra lá para conferir.
+            Com o Radar Fiscal, verificamos sua caixa toda semana e avisamos você assim que chegar algo.
+            Seu contador também pode emitir seu relatório de situação fiscal e as guias dos seus
+            parcelamentos direto por aqui.
+          </p>
+          <button id="btn-subscribe-radar" class="btn-primary" onclick="subscribeRadar()" style="background: var(--color-coral); color: white; padding: 12px 24px; border: none; border-radius: 24px; font-weight: 600; cursor: pointer;">
+            <i class="fa-solid fa-headset"></i> Assinar Radar Fiscal (R$ 29,90/mês)
+          </button>
+          <p style="font-size: 12px; color: var(--color-text-secondary); margin-top: 16px; line-height: 1.5;">
+            Para consultar seus dados na Receita, é necessário que você outorgue uma procuração eletrônica
+            ao nosso CNPJ no e-CAC. Explicamos o passo a passo depois da assinatura.
+          </p>
         </div>
 
-        <h3 style="font-size: 16px; color: var(--color-pine); margin-bottom: 16px;">Situação das Certidões (CNDs)</h3>
-        <div class="responsive-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px; margin-bottom: 32px;">
-          <!-- Card 1 -->
-          <div style="background: white; padding: 16px; border-radius: var(--radius-sm); border: 1px solid var(--color-border); border-left: 4px solid #E74C3C;">
-             <h4 style="font-size: 14px; color: var(--color-text-primary); margin-bottom: 12px;"><i class="fa-solid fa-building-columns" style="color: #E74C3C; margin-right: 6px;"></i> Receita Federal e PGFN</h4>
-             <div style="display: flex; justify-content: space-between; align-items: center;">
-                <span style="font-size: 12px; color: var(--color-text-secondary);">Status:</span>
-                <span style="font-size: 12px; font-weight: 600; color: #C0392B; background: rgba(231,76,60,0.1); padding: 4px 8px; border-radius: 8px;">Dívida Ativa</span>
-             </div>
-          </div>
-          <!-- Card 2 -->
-          <div style="background: white; padding: 16px; border-radius: var(--radius-sm); border: 1px solid var(--color-border); border-left: 4px solid #2ECC71;">
-             <h4 style="font-size: 14px; color: var(--color-text-primary); margin-bottom: 12px;"><i class="fa-solid fa-users" style="color: #2ECC71; margin-right: 6px;"></i> FGTS / Trabalhista</h4>
-             <div style="display: flex; justify-content: space-between; align-items: center;">
-                <span style="font-size: 12px; color: var(--color-text-secondary);">Status:</span>
-                <span style="font-size: 12px; font-weight: 600; color: #27AE60; background: rgba(46,204,113,0.1); padding: 4px 8px; border-radius: 8px;">Regular</span>
-             </div>
-          </div>
-          <!-- Card 3 -->
-          <div style="background: white; padding: 16px; border-radius: var(--radius-sm); border: 1px solid var(--color-border); border-left: 4px solid #2ECC71;">
-             <h4 style="font-size: 14px; color: var(--color-text-primary); margin-bottom: 12px;"><i class="fa-solid fa-map-location-dot" style="color: #2ECC71; margin-right: 6px;"></i> Tributos Municipais</h4>
-             <div style="display: flex; justify-content: space-between; align-items: center;">
-                <span style="font-size: 12px; color: var(--color-text-secondary);">Status:</span>
-                <span style="font-size: 12px; font-weight: 600; color: #27AE60; background: rgba(46,204,113,0.1); padding: 4px 8px; border-radius: 8px;">Regular</span>
-             </div>
-          </div>
-        </div>
-
-        <h3 style="font-size: 16px; color: var(--color-pine); margin-bottom: 16px;">Caixa Postal (e-CAC)</h3>
-        <div style="background: white; border-radius: var(--radius-md); border: 1px solid var(--color-border); overflow: hidden;">
-          <div style="padding: 16px; border-bottom: 1px solid var(--color-border); display: flex; gap: 16px; align-items: center;">
-            <div style="width: 40px; height: 40px; border-radius: 50%; background: var(--color-pine-ultra-light); color: var(--color-pine); display: flex; align-items: center; justify-content: center;"><i class="fa-solid fa-envelope-open-text"></i></div>
-            <div>
-               <h4 style="font-size: 14px; margin: 0; color: var(--color-pine);">Aviso de Cobrança - PGFN</h4>
-               <span style="font-size: 11px; color: var(--color-text-secondary);">Recebida há 2 dias</span>
-            </div>
-          </div>
-          <div style="padding: 16px; font-size: 13px; color: var(--color-text-primary); line-height: 1.5; background: #FAFAFA;">
-            <strong>O que isso significa:</strong> A Receita Federal enviou um comunicado oficial informando que o parcelamento do Simples Nacional foi quebrado devido à falta de pagamento das últimas 3 parcelas. É necessário renegociar o valor total de R$ 14.500,00 para evitar a exclusão do Simples no próximo ano.
-          </div>
-        </div>
+        <!-- Área do assinante: preenchida por renderRadarAtivo() com dados reais
+             da consulta. Nasce vazia de propósito — sem consulta, sem afirmação. -->
+        <div id="radar-ativo" hidden></div>
       </section>
 
       <section class="content-panel" id="section-documentos">
@@ -625,6 +737,352 @@
         </div>
       </section>
 
+      <!-- SECTION 4b: Ajuda / FAQ
+           Os passos do gov.br abaixo são um resumo do que está publicado no
+           portal oficial (gov.br/governodigital). Cada bloco leva pro link
+           original — se o governo mudar o procedimento, o link é a fonte da
+           verdade, não este texto. -->
+      <section class="content-panel" id="section-faq">
+        <div class="panel-header-desc">
+          <h2>Ajuda e Dúvidas Frequentes</h2>
+          <p>As dúvidas mais comuns sobre a conta gov.br e sobre como usar a plataforma.</p>
+        </div>
+
+        <div class="faq-wrap">
+
+          <!-- Busca -->
+          <div class="faq-busca">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input type="search" id="faq-busca-input" placeholder="Buscar uma dúvida (ex: duas etapas, bloqueada, nível prata)"
+                   aria-label="Buscar nas dúvidas frequentes" autocomplete="off">
+          </div>
+          <p class="faq-sem-resultado" id="faq-sem-resultado" hidden>
+            Nenhuma dúvida encontrada com esse termo. Tente outra palavra ou fale com seu contador pelas
+            <strong>Mensagens</strong>.
+          </p>
+
+          <!-- ===== GRUPO 1: Conta gov.br ===== -->
+          <div class="faq-grupo" data-faq-grupo>
+            <h3 class="faq-grupo-titulo">
+              <i class="fa-solid fa-id-card-clip"></i> Conta gov.br
+            </h3>
+
+            <!-- Níveis da conta -->
+            <details class="faq-item">
+              <summary>O que são os níveis bronze, prata e ouro da conta gov.br?</summary>
+              <div class="faq-resposta">
+                <p>
+                  Os níveis mostram <strong>como a sua conta foi criada ou validada</strong>. Quanto mais alto o nível,
+                  mais serviços e transações o governo libera pra você — e é por isso que alguns serviços exigem, no
+                  mínimo, o nível prata.
+                </p>
+
+                <div class="faq-nivel faq-nivel-bronze">
+                  <h4><span class="faq-nivel-tag">Bronze</span> Nível básico</h4>
+                  <p>É a validação inicial dos seus dados. Você consegue por:</p>
+                  <ul>
+                    <li>Cadastro online com validação na base da <strong>Receita Federal</strong>;</li>
+                    <li>Cadastro online com validação na base do <strong>INSS</strong>;</li>
+                    <li>Atendimento presencial nas agências do INSS ou em unidades do programa Balcão gov.br.</li>
+                  </ul>
+                </div>
+
+                <div class="faq-nivel faq-nivel-prata">
+                  <h4><span class="faq-nivel-tag">Prata</span> Nível alto</h4>
+                  <p>
+                    É o nível que libera documentos digitais, assinatura eletrônica e a verificação em duas etapas.
+                    Partindo do bronze, você sobe por:
+                  </p>
+                  <ul>
+                    <li><strong>Reconhecimento facial</strong> pelo aplicativo gov.br, conferido na base da CNH;</li>
+                    <li><strong>Internet banking</strong> de um banco credenciado;</li>
+                    <li><strong>SIGEPE</strong>, no caso de servidor público federal.</li>
+                  </ul>
+                </div>
+
+                <div class="faq-nivel faq-nivel-ouro">
+                  <h4><span class="faq-nivel-tag">Ouro</span> Nível máximo</h4>
+                  <p>É o nível de maior confiabilidade, exigido pelos serviços mais sensíveis. Você sobe por:</p>
+                  <ul>
+                    <li><strong>Reconhecimento facial</strong> pelo app gov.br, conferido na base da Justiça Eleitoral (TSE);</li>
+                    <li>Leitura do <strong>QR Code da Carteira de Identidade Nacional (CIN)</strong> pelo app gov.br;</li>
+                    <li><strong>Certificado digital</strong> de pessoa física compatível com a ICP-Brasil.</li>
+                  </ul>
+                </div>
+
+                <p class="faq-dica">
+                  <i class="fa-solid fa-lightbulb"></i>
+                  Na dúvida sobre qual nível você tem: abra o app gov.br e veja o selo no seu perfil. Para a maioria
+                  dos serviços que tratamos aqui, o nível <strong>prata</strong> já é suficiente.
+                </p>
+
+                <a class="faq-link" href="https://www.gov.br/governodigital/pt-br/identidade/conta-gov-br/niveis-da-conta-govbr"
+                   target="_blank" rel="noopener noreferrer">
+                  Ver a página oficial sobre os níveis <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                </a>
+              </div>
+            </details>
+
+            <!-- Ativar 2FA -->
+            <details class="faq-item">
+              <summary>Como ativar a verificação em duas etapas no gov.br?</summary>
+              <div class="faq-resposta">
+                <p>
+                  A verificação em duas etapas é uma camada extra de segurança: além da senha, o acesso passa a exigir
+                  um código gerado no seu celular. A ativação acontece <strong>somente pelo aplicativo gov.br</strong>,
+                  não pelo site.
+                </p>
+
+                <h4 class="faq-sub">Antes de começar, confira</h4>
+                <ul>
+                  <li>Sua conta precisa estar no nível <strong>prata</strong> ou <strong>ouro</strong>;</li>
+                  <li>O aplicativo gov.br precisa estar instalado no seu celular (Android ou iOS);</li>
+                  <li>Você precisa estar logado no app com a sua conta;</li>
+                  <li>A data e a hora do celular precisam estar sincronizadas com a internet.</li>
+                </ul>
+
+                <h4 class="faq-sub">Passo a passo</h4>
+                <ol class="faq-passos">
+                  <li>Abra o aplicativo gov.br no celular.</li>
+                  <li>Acesse <strong>Segurança da conta</strong>.</li>
+                  <li>Localize <strong>Verificação em duas etapas</strong>.</li>
+                  <li>Habilite a opção.</li>
+                  <li>Confirme a ativação.</li>
+                </ol>
+
+                <p class="faq-alerta">
+                  <i class="fa-solid fa-triangle-exclamation"></i>
+                  <span>
+                    Só um celular pode ficar vinculado por vez. <strong>Não desinstale o app nem troque de celular sem
+                    desativar antes</strong> — sem isso, você perde o acesso à conta. Vale também cadastrar um e-mail de
+                    recuperação logo depois de ativar.
+                  </span>
+                </p>
+
+                <a class="faq-link" href="https://www.gov.br/governodigital/pt-br/acessibilidade-e-usuario/atendimento-gov.br/duvidas-na-conta-gov.br/ativar-a-verificacao-em-duas-etapas"
+                   target="_blank" rel="noopener noreferrer">
+                  Ver a página oficial de ativação <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                </a>
+              </div>
+            </details>
+
+            <!-- Desativar 2FA -->
+            <details class="faq-item">
+              <summary>Como desativar a verificação em duas etapas no gov.br?</summary>
+              <div class="faq-resposta">
+                <p>
+                  Precisa trocar de celular, formatar o aparelho ou desinstalar o app? <strong>Desative antes</strong> —
+                  esse é o passo que evita ficar trancado fora da conta.
+                </p>
+
+                <h4 class="faq-sub">Passo a passo</h4>
+                <ol class="faq-passos">
+                  <li>Abra o aplicativo gov.br.</li>
+                  <li>Acesse <strong>Segurança da conta</strong>.</li>
+                  <li>Selecione <strong>Verificação em duas etapas</strong>.</li>
+                  <li>Clique em <strong>Desabilitar</strong>.</li>
+                </ol>
+
+                <p>
+                  Também dá para desativar saindo da sessão logada no aplicativo, em <strong>Menu &rsaquo; Sair</strong>.
+                </p>
+
+                <p class="faq-alerta">
+                  <i class="fa-solid fa-triangle-exclamation"></i>
+                  <span>
+                    Se você já perdeu o acesso (trocou de celular ou apagou o app com a verificação ativa), use a opção
+                    <strong>&ldquo;Não tenho mais acesso ao código&rdquo;</strong> na tela de login. A recuperação pode
+                    ser feita pelo e-mail cadastrado, pela Carteira de Identidade Nacional (CIN) ou por atendimento
+                    especializado.
+                  </span>
+                </p>
+
+                <a class="faq-link" href="https://www.gov.br/governodigital/pt-br/acessibilidade-e-usuario/atendimento-gov.br/duvidas-na-conta-gov.br/desativar-a-verificacao-em-duas-etapas"
+                   target="_blank" rel="noopener noreferrer">
+                  Ver a página oficial de desativação <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                </a>
+              </div>
+            </details>
+
+            <!-- Conta bloqueada -->
+            <details class="faq-item">
+              <summary>Minha conta gov.br está bloqueada. Como desbloquear?</summary>
+              <div class="faq-resposta">
+                <p>Primeiro é preciso saber <strong>por que</strong> ela bloqueou — o caminho muda em cada caso.</p>
+
+                <h4 class="faq-sub">Caso 1 &mdash; Bloqueio por senha incorreta (o mais comum)</h4>
+                <p>
+                  Depois de algumas tentativas de senha errada, o gov.br bloqueia a conta por segurança. Você tem duas
+                  saídas:
+                </p>
+                <ul>
+                  <li><strong>Esperar:</strong> o desbloqueio acontece sozinho depois de algumas horas;</li>
+                  <li><strong>Desbloquear na hora:</strong> é só fazer a recuperação de senha — ao criar a nova senha,
+                      a conta destrava imediatamente.</li>
+                </ul>
+
+                <h4 class="faq-sub">Como recuperar a senha</h4>
+                <p>Você informa o CPF e o gov.br mostra as opções disponíveis pro seu perfil:</p>
+                <ol class="faq-passos">
+                  <li><strong>Reconhecimento facial</strong> — pelo app gov.br, na opção QR code, lendo o código da tela;</li>
+                  <li><strong>Banco credenciado</strong> — a autenticação acontece dentro do ambiente do seu banco;</li>
+                  <li><strong>E-mail cadastrado</strong> — você recebe um código para confirmar a identidade;</li>
+                  <li><strong>Celular cadastrado</strong> — o código chega por SMS;</li>
+                  <li><strong>Formulário de atendimento</strong> — quando nenhuma das opções acima funcionar.</li>
+                </ol>
+
+                <h4 class="faq-sub">Caso 2 &mdash; Bloqueio administrativo ou judicial</h4>
+                <p>
+                  A conta também pode ser bloqueada por decisão administrativa do próprio gov.br ou por ordem judicial.
+                  Nesse caso <strong>não adianta esperar nem recuperar a senha</strong>: ela não é liberada
+                  automaticamente. É preciso falar com a equipe de atendimento do gov.br para entender o motivo.
+                </p>
+
+                <p class="faq-dica">
+                  <i class="fa-solid fa-lightbulb"></i>
+                  Se você tentou recuperar a senha e a conta continuou bloqueada, provavelmente é o caso 2 — nos avise
+                  pelas <strong>Mensagens</strong> que te orientamos sobre o próximo passo.
+                </p>
+
+                <a class="faq-link" href="https://www.gov.br/governodigital/pt-br/acessibilidade-e-usuario/atendimento-gov.br/duvidas-na-conta-gov.br/conta-gov-br-bloqueada"
+                   target="_blank" rel="noopener noreferrer">
+                  Ver a página oficial sobre conta bloqueada <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                </a>
+              </div>
+            </details>
+
+            <!-- Por que pedimos gov.br -->
+            <details class="faq-item">
+              <summary>Por que preciso da conta gov.br para o meu atendimento?</summary>
+              <div class="faq-resposta">
+                <p>
+                  A conta gov.br é a chave de acesso aos sistemas oficiais onde a sua situação fiscal realmente mora —
+                  e-CAC da Receita Federal, portal do Simples Nacional, INSS, entre outros. É por ela que se consulta
+                  pendência, emite guia, tira certidão e acompanha a caixa postal do e-CAC.
+                </p>
+                <p>
+                  Por isso, quando o serviço contratado depende de um desses sistemas, a conta precisa estar
+                  <strong>ativa, desbloqueada e no nível exigido</strong> pelo serviço. Deixar isso resolvido antes do
+                  horário marcado é o que evita perder o tempo do atendimento tentando entrar na conta.
+                </p>
+              </div>
+            </details>
+          </div>
+
+          <!-- ===== GRUPO 2: Plataforma ===== -->
+          <div class="faq-grupo" data-faq-grupo>
+            <h3 class="faq-grupo-titulo">
+              <i class="fa-solid fa-laptop"></i> Usando a plataforma
+            </h3>
+
+            <details class="faq-item">
+              <summary>Como funciona o atendimento, do começo ao fim?</summary>
+              <div class="faq-resposta">
+                <ol class="faq-passos">
+                  <li><strong>Agendamento</strong> — você escolhe o serviço, a data e o horário, e faz o pagamento.</li>
+                  <li><strong>Pré-atendimento</strong> — antes da conversa, você responde algumas perguntas e envia os
+                      documentos. É isso que permite ao contador chegar no horário já sabendo do seu caso.</li>
+                  <li><strong>Atendimento</strong> — no horário marcado, o chat é liberado e vocês conversam.</li>
+                  <li><strong>Depois</strong> — o contador registra o que foi resolvido, e o relatório e os arquivos
+                      ficam guardados em <strong>Documentos</strong> e no <strong>Histórico</strong>.</li>
+                </ol>
+              </div>
+            </details>
+
+            <details class="faq-item">
+              <summary>Preciso preencher o pré-atendimento? O que acontece se eu não preencher?</summary>
+              <div class="faq-resposta">
+                <p>
+                  Preencher é o que faz o atendimento render. Sem as suas respostas e documentos, boa parte do horário
+                  vai embora só levantando informação que poderia ter sido enviada antes.
+                </p>
+                <p>
+                  Você encontra o formulário em <strong>Pré-atendimento</strong>, na barra lateral. Dá pra preencher a
+                  qualquer momento antes do horário marcado, e revisar depois se lembrar de algo.
+                </p>
+              </div>
+            </details>
+
+            <details class="faq-item">
+              <summary>Quais são as formas de pagamento?</summary>
+              <div class="faq-resposta">
+                <ul>
+                  <li><strong>Pix</strong> — com 5% de desconto;</li>
+                  <li><strong>Cartão de crédito</strong> — à vista ou em até 3x.</li>
+                </ul>
+                <p>A escolha é feita na própria tela de <strong>Agendamento</strong>, junto com a data e o horário.</p>
+              </div>
+            </details>
+
+            <details class="faq-item">
+              <summary>Qual a diferença entre "Atendimento" e "Mensagens"?</summary>
+              <div class="faq-resposta">
+                <p>
+                  <strong>Atendimento</strong> é a conversa ao vivo, que abre no horário que você agendou — é ali que o
+                  caso é tratado.
+                </p>
+                <p>
+                  <strong>Mensagens</strong> é a sua caixa postal com o escritório: recados, avisos e assuntos que não
+                  dependem de um horário marcado. Funciona como um e-mail, organizado por assunto — você abre uma
+                  conversa e ela fica registrada.
+                </p>
+              </div>
+            </details>
+
+            <details class="faq-item">
+              <summary>Onde encontro o relatório e os documentos do meu atendimento?</summary>
+              <div class="faq-resposta">
+                <p>
+                  Tudo fica em <strong>Documentos</strong>, separado em três blocos: os relatórios de atendimento
+                  gerados pelo contador, os arquivos que <em>você</em> enviou e os documentos que o contador enviou pra
+                  você (guias, certidões e afins).
+                </p>
+                <p>
+                  Já o <strong>Histórico</strong> lista os atendimentos anteriores, para consultar o que foi tratado em
+                  cada um.
+                </p>
+              </div>
+            </details>
+
+            <details class="faq-item">
+              <summary>O que é o Radar Fiscal?</summary>
+              <div class="faq-resposta">
+                <p>
+                  É um serviço de monitoramento contínuo do seu CPF ou CNPJ — algo como um &ldquo;Serasa da Receita
+                  Federal&rdquo;. Ele acompanha a situação das suas certidões (Receita Federal e PGFN, FGTS/trabalhista,
+                  tributos municipais) e a caixa postal do e-CAC, avisando quando aparece uma pendência.
+                </p>
+                <p>
+                  A ideia é você descobrir o problema enquanto ele ainda é pequeno, em vez de na hora em que o CPF trava
+                  num banco ou a empresa não consegue emitir nota.
+                </p>
+              </div>
+            </details>
+
+            <details class="faq-item">
+              <summary>Minha dúvida não está aqui. Com quem eu falo?</summary>
+              <div class="faq-resposta">
+                <p>
+                  Abra uma conversa em <strong>Mensagens</strong> e escreva sua dúvida — o escritório responde por lá.
+                  Se for algo que precisa de análise do seu caso, o próprio contador vai orientar se cabe agendar um
+                  atendimento.
+                </p>
+                <button type="button" class="btn-utility primary" onclick="abrirSecaoCliente('section-caixa-postal')">
+                  <i class="fa-solid fa-envelope"></i> Ir para Mensagens
+                </button>
+              </div>
+            </details>
+          </div>
+
+          <p class="faq-rodape">
+            As orientações sobre a conta gov.br seguem o que está publicado no portal oficial do Governo Digital.
+            Procedimentos do governo mudam de tempos em tempos — em caso de divergência, vale o que estiver no link
+            oficial de cada resposta.
+          </p>
+
+        </div>
+      </section>
+
       <!-- SECTION 5: Perfil do Cliente -->
       <section class="content-panel" id="section-perfil">
         <div class="panel-header-desc">
@@ -632,8 +1090,8 @@
           <p>Confira seus dados cadastrais e gerencie sua senha de acesso à conta.</p>
         </div>
 
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 24px; align-items: start;">
-          
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(340px, 100%), 1fr)); gap: 24px; align-items: start;">
+
           <!-- Card: Dados Cadastrais -->
           <div class="tracking-card" style="border-radius: 24px;">
             <div class="tracking-header">
@@ -702,11 +1160,11 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.2/dist/html2pdf.bundle.min.js"></script>
-  <script src="config.js"></script>
-  <script src="oc-data.js?v=3"></script>
+  <script src="config.js?v=2"></script>
+  <script src="oc-data.js?v=4"></script>
   <script src="triagem-catalogo.js"></script>
   <script src="triagem.js?v=3"></script>
   <script src="relatorio-pdf.js"></script>
-  <script src="cliente.js?v=5"></script>
+  <script src="cliente.js?v=22"></script>
 </body>
 </html>

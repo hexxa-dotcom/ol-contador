@@ -54,6 +54,7 @@
             <label for="cpf">CPF ou CNPJ</label>
             <input id="cpf" inputmode="numeric" autocomplete="off" placeholder="000.000.000-00" />
             <span class="erro" id="erro-cpf" hidden>Confira os números — esse CPF/CNPJ não é válido.</span>
+            <span class="busca-status" id="cnpj-status" hidden></span>
           </div>
           <div class="field">
             <label for="email">E-mail</label>
@@ -65,37 +66,44 @@
             <input id="telefone" inputmode="tel" autocomplete="tel" placeholder="(51) 99999-9999" />
             <span class="erro" id="erro-telefone" hidden>Digite um telefone com DDD.</span>
           </div>
-          <!-- Endereço: opcional pro cliente, mas usado como dado do tomador na nota
-               fiscal de serviço (Asaas) quando o contador emite — sem isso a nota pode
-               ser recusada pela prefeitura em municípios que exigem endereço completo. -->
+          <!-- Endereço obrigatório: é o dado do tomador na nota fiscal de serviço
+               (Asaas) quando o contador emite — sem ele a nota é recusada pela
+               prefeitura em municípios que exigem endereço completo. -->
           <div class="dupla">
             <div class="field" style="flex:1">
-              <label for="cep">CEP <span style="font-weight:500;color:var(--muted)">(opcional)</span></label>
+              <label for="cep">CEP</label>
               <input id="cep" inputmode="numeric" autocomplete="postal-code" placeholder="00000-000" />
+              <span class="busca-status" id="cep-status" hidden></span>
+              <span class="erro" id="erro-cep" hidden>Digite um CEP válido.</span>
             </div>
             <div class="field" style="flex:2">
-              <label for="bairro">Bairro <span style="font-weight:500;color:var(--muted)">(opcional)</span></label>
+              <label for="bairro">Bairro</label>
               <input id="bairro" autocomplete="address-level3" placeholder="Ex.: Centro" />
+              <span class="erro" id="erro-bairro" hidden>Digite o bairro.</span>
             </div>
           </div>
           <div class="dupla">
             <div class="field" style="flex:3">
-              <label for="endereco">Endereço <span style="font-weight:500;color:var(--muted)">(opcional)</span></label>
+              <label for="endereco">Endereço</label>
               <input id="endereco" autocomplete="address-line1" placeholder="Ex.: Rua das Flores" />
+              <span class="erro" id="erro-endereco" hidden>Digite o endereço.</span>
             </div>
             <div class="field" style="flex:1">
-              <label for="numero">Número <span style="font-weight:500;color:var(--muted)">(opcional)</span></label>
+              <label for="numero">Número</label>
               <input id="numero" autocomplete="address-line2" placeholder="123" />
+              <span class="erro" id="erro-numero" hidden>Digite o número (ou "S/N").</span>
             </div>
           </div>
           <div class="dupla">
             <div class="field" style="flex:2">
-              <label for="cidade">Cidade <span style="font-weight:500;color:var(--muted)">(opcional)</span></label>
+              <label for="cidade">Cidade</label>
               <input id="cidade" autocomplete="address-level2" placeholder="Ex.: Porto Alegre" />
+              <span class="erro" id="erro-cidade" hidden>Digite a cidade.</span>
             </div>
             <div class="field" style="flex:1">
-              <label for="uf">UF <span style="font-weight:500;color:var(--muted)">(opcional)</span></label>
+              <label for="uf">UF</label>
               <input id="uf" autocomplete="address-level1" maxlength="2" placeholder="RS" style="text-transform:uppercase" />
+              <span class="erro" id="erro-uf" hidden>Digite a UF.</span>
             </div>
           </div>
         </section>
@@ -130,6 +138,16 @@
             <span id="credito-feedback" style="font-size:12.5px;font-weight:600"></span>
           </div>
         </section>
+
+        <!-- Aceite explícito antes da contratação: o serviço coleta CPF/CNPJ e
+             documentos pessoais, então a LGPD exige que a pessoa saiba a que
+             está consentindo — e o CDC, que conheça as condições antes de pagar.
+             `required` deixa o navegador barrar o envio sem marcar. -->
+        <label class="aceite-legal" style="display:flex;gap:10px;align-items:flex-start;margin:4px 0 18px;font-size:13.5px;line-height:1.55;cursor:pointer;">
+          <input type="checkbox" id="aceite-termos" required style="margin-top:3px;flex-shrink:0;width:17px;height:17px;accent-color:#FF6700;cursor:pointer;" />
+          <span>Li e concordo com os <a href="/termos" target="_blank" rel="noopener">Termos de Uso</a>
+          e com a <a href="/privacidade" target="_blank" rel="noopener">Política de Privacidade</a>.</span>
+        </label>
 
         <button class="submit btnp" type="submit" id="btn-pagar">Ir para o pagamento</button>
         <a class="voltar" id="link-voltar" href="agendamento.html">← Voltar e mudar o horário</a>
@@ -170,6 +188,8 @@
     © 2026 Olá, Contador · Contadores com registro CRC · <a href="mailto:ola@olacontador.com.br" style="color:#0E5C43;font-weight:700;">ola@olacontador.com.br</a>
   </footer>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
 <script src="documento.js"></script>
 <script>
 (function(){
@@ -183,6 +203,17 @@
   let pedido = null;      // o que veio da etapa 1
   let credito = null;     // { codigo, valorCents }
   let poll = null;
+  let pollToken = null;   // segredo da cobrança atual — obrigatório pro /api/status aceitar a consulta
+
+  // Login automático pós-pagamento: usa a MESMA storageKey que cliente.html
+  // usa pra sua própria sessão (config.js resolve isso pelo papel da página —
+  // 'cliente' — e aqui estamos fora dele, em 'geral'). Guardando com a chave
+  // certa, quando o navegador for redirecionado pra lá a sessão já está pronta,
+  // sem precisar abrir e-mail nenhum.
+  const sbClienteLogin = window.supabase.createClient(
+    window.OC_CONFIG.SUPABASE_URL, window.OC_CONFIG.SUPABASE_ANON_KEY,
+    { auth: { persistSession: true, autoRefreshToken: true, storageKey: 'oc-auth-cliente' } }
+  );
 
   function labelDia(isoDate){
     const [y,m,d] = isoDate.split('-').map(Number);
@@ -209,6 +240,90 @@
     const d = v.replace(/\D/g,'').slice(0,11);
     if(d.length <= 10) return d.replace(/(\d{2})(\d)/,'($1) $2').replace(/(\d{4})(\d{1,4})$/,'$1-$2');
     return d.replace(/(\d{2})(\d)/,'($1) $2').replace(/(\d{5})(\d{1,4})$/,'$1-$2');
+  }
+  function mascaraCep(v){
+    return v.replace(/\D/g,'').slice(0,8).replace(/(\d{5})(\d)/,'$1-$2');
+  }
+
+  function statusBusca(el, texto, ehErro){
+    if(!el) return;
+    if(!texto){ el.hidden = true; el.textContent = ''; return; }
+    el.hidden = false;
+    el.textContent = texto;
+    el.style.color = ehErro ? 'var(--erro)' : 'var(--muted)';
+  }
+
+  // Evita que uma busca antiga (CEP ou CNPJ editado, corrigido, editado de novo)
+  // sobrescreva o formulário depois de uma busca mais nova já ter respondido —
+  // sem isto, uma resposta lenta que chega por último "vence" mesmo sendo velha.
+  let buscaCepSeq = 0;
+  let buscaCnpjSeq = 0;
+
+  // ---------- CEP: preenche o endereço sozinho (ViaCEP, público, sem chave) ----------
+  async function buscarEnderecoPorCep(){
+    const cep = $('cep').value.replace(/\D/g,'');
+    const status = $('cep-status');
+    if(cep.length !== 8){ statusBusca(status, ''); return; }
+    const minhaVez = ++buscaCepSeq;
+    statusBusca(status, 'Buscando endereço…', false);
+    try {
+      const res = await fetch('https://viacep.com.br/ws/' + cep + '/json/');
+      const data = await res.json();
+      if(minhaVez !== buscaCepSeq) return; // uma busca mais nova já respondeu
+      if(!res.ok || data.erro){ statusBusca(status, 'CEP não encontrado — preencha manualmente.', true); return; }
+      if(data.logradouro) $('endereco').value = data.logradouro;
+      if(data.bairro) $('bairro').value = data.bairro;
+      if(data.localidade) $('cidade').value = data.localidade;
+      if(data.uf) $('uf').value = data.uf;
+      statusBusca(status, '');
+      if(!$('numero').value) $('numero').focus();
+    } catch(_){
+      if(minhaVez === buscaCepSeq) statusBusca(status, 'Não consegui buscar o CEP agora — preencha manualmente.', true);
+    }
+  }
+
+  // ---------- CNPJ: preenche razão social e endereço sozinho (BrasilAPI, público, sem chave) ----------
+  // Só CNPJ (pessoa jurídica) — não existe (nem deveria existir) uma API pública
+  // que devolva nome a partir de CPF; seria uma porta pra fraude de identidade.
+  async function buscarDadosPorCnpj(){
+    const digitos = window.OCDocumento.somenteDigitos($('cpf').value);
+    const status = $('cnpj-status');
+    if(digitos.length !== 14 || !window.OCDocumento.validarCNPJ(digitos)){ statusBusca(status, ''); return; }
+    const minhaVez = ++buscaCnpjSeq;
+    statusBusca(status, 'Buscando dados do CNPJ…', false);
+    try {
+      const res = await fetch('https://brasilapi.com.br/api/cnpj/v1/' + digitos);
+      if(minhaVez !== buscaCnpjSeq) return; // uma busca mais nova já respondeu
+      if(!res.ok){ statusBusca(status, 'CNPJ não encontrado — preencha manualmente.', true); return; }
+      const data = await res.json();
+      if(minhaVez !== buscaCnpjSeq) return;
+      // Só completa o que a pessoa ainda não digitou — o CNPJ pode vir depois
+      // do nome no preenchimento, e a busca não deve apagar o que já foi escrito.
+      if(!$('nome').value.trim()) $('nome').value = data.razao_social || data.nome_fantasia || '';
+      if(!$('email').value.trim() && data.email) $('email').value = data.email;
+      if(!$('telefone').value.trim() && data.ddd_telefone_1) $('telefone').value = mascaraTelefone(data.ddd_telefone_1);
+      if(data.cep) $('cep').value = mascaraCep(String(data.cep));
+      // "AVENIDA" + "PAULISTA" fica "Avenida Paulista" — sem o tipo de logradouro
+      // (que a Receita guarda num campo separado), o endereço saía incompleto
+      // (só "Paulista"), ruim pra nota fiscal.
+      if(data.logradouro){
+        const tipo = data.descricao_tipo_de_logradouro ? data.descricao_tipo_de_logradouro + ' ' : '';
+        $('endereco').value = (tipo + data.logradouro).trim();
+      }
+      if(data.numero) $('numero').value = data.numero;
+      if(data.bairro) $('bairro').value = data.bairro;
+      if(data.municipio) $('cidade').value = data.municipio;
+      if(data.uf) $('uf').value = data.uf;
+      statusBusca(status, '');
+      // A Receita às vezes não tem rua/número parseados para o CNPJ (registro
+      // antigo ou informal) — como esses campos agora são obrigatórios, avisa
+      // pra pessoa completar em vez de deixar sumir sem explicação.
+      if(!data.logradouro || !data.numero){
+        statusBusca(status, 'Encontrei parte do endereço — complete o que faltar.', false);
+      }
+    } catch(_){
+      if(minhaVez === buscaCnpjSeq) statusBusca(status, 'Não consegui buscar o CNPJ agora — preencha manualmente.', true);
+    }
   }
 
   // Mesmo desconto aplicado no backend (api/signup-checkout.js) — só pra
@@ -281,7 +396,7 @@
   // ---------- validação ----------
   function validar(){
     let ok = true;
-    const campos = ['nome','cpf','email','telefone'];
+    const campos = ['nome','cpf','email','telefone','cep','endereco','numero','bairro','cidade','uf'];
     campos.forEach(c => { $('erro-'+c).hidden = true; $(c).setAttribute('aria-invalid','false'); });
 
     const nome = $('nome').value.trim();
@@ -295,6 +410,18 @@
 
     const tel = $('telefone').value.replace(/\D/g,'');
     if(tel.length < 10){ $('erro-telefone').hidden = false; $('telefone').setAttribute('aria-invalid','true'); ok = false; }
+
+    // Endereço completo é obrigatório: é o dado do tomador na nota fiscal de
+    // serviço, emitida pelo contador depois — sem ele a prefeitura recusa a nota
+    // em municípios que exigem endereço completo.
+    const cep = $('cep').value.replace(/\D/g,'');
+    if(cep.length !== 8){ $('erro-cep').hidden = false; $('cep').setAttribute('aria-invalid','true'); ok = false; }
+
+    if(!$('endereco').value.trim()){ $('erro-endereco').hidden = false; $('endereco').setAttribute('aria-invalid','true'); ok = false; }
+    if(!$('numero').value.trim()){ $('erro-numero').hidden = false; $('numero').setAttribute('aria-invalid','true'); ok = false; }
+    if(!$('bairro').value.trim()){ $('erro-bairro').hidden = false; $('bairro').setAttribute('aria-invalid','true'); ok = false; }
+    if(!$('cidade').value.trim()){ $('erro-cidade').hidden = false; $('cidade').setAttribute('aria-invalid','true'); ok = false; }
+    if($('uf').value.trim().length !== 2){ $('erro-uf').hidden = false; $('uf').setAttribute('aria-invalid','true'); ok = false; }
 
     if(!ok){
       const primeiro = campos.map(c => $(c)).find(el => el.getAttribute('aria-invalid') === 'true');
@@ -341,6 +468,16 @@
     avisar('');
     if(!validar()) return;
 
+    // O <form> tem novalidate (a validação de campos é feita por validar()),
+    // então o `required` da caixa de aceite não barra o envio sozinho — a
+    // checagem precisa ser explícita aqui.
+    const aceite = $('aceite-termos');
+    if (aceite && !aceite.checked) {
+      avisar('Para continuar, é preciso aceitar os Termos de Uso e a Política de Privacidade.');
+      aceite.focus();
+      return;
+    }
+
     const btn = $('btn-pagar');
     const textoOriginal = btn.textContent;
     btn.disabled = true;
@@ -361,7 +498,8 @@
       }
       sessionStorage.removeItem(CHAVE);
       sessionStorage.removeItem(CHAVE_CREDITO);
-      if(credito) mostrarPronto(corpo.email);
+      pollToken = data.pollToken || null;
+      if(credito) finalizarComLoginAutomatico(corpo.email, data.autoLogin, false);
       else mostrarPagamento(data, corpo.email);
     } catch(_){
       avisar('Falha de conexão. Confira sua internet e tente novamente.');
@@ -389,16 +527,44 @@
 
     poll = setInterval(async () => {
       try {
-        const res = await fetch('/api/status?cobrancaId=' + data.cobrancaId);
+        const res = await fetch('/api/status?cobrancaId=' + data.cobrancaId + '&pollToken=' + encodeURIComponent(pollToken || ''));
         if(!res.ok) return;
         const st = await res.json();
         if(st.status === 'paid'){
           clearInterval(poll);
           $('tela-pagamento').hidden = true;
-          mostrarPronto(email, true);
+          finalizarComLoginAutomatico(email, st.autoLogin, true);
         }
       } catch(_){ /* segue tentando */ }
     }, 4000);
+  }
+
+  // Tenta logar a pessoa direto, sem esperar ela abrir o e-mail: o servidor já
+  // gerou um token válido (autoLogin) assim que confirmou o pagamento — ver
+  // gerarAutoLogin em api/_lib/pagamento.js. Trocando esse token por sessão
+  // aqui mesmo, ela cai direto na triagem obrigatória (cliente.js) em vez de
+  // ficar parada nesta tela. Se por qualquer motivo o token faltar ou falhar
+  // (ex.: migração ainda não rodou no banco), cai no comportamento antigo:
+  // mostra a confirmação e o link de acesso continua valendo por e-mail.
+  async function finalizarComLoginAutomatico(email, autoLogin, pago){
+    if(autoLogin && autoLogin.tokenHash){
+      try {
+        // Este navegador pode já ter outra pessoa logada na área do cliente —
+        // computador compartilhado (família, escritório) com uma aba aberta.
+        // supabase-js sincroniza a sessão entre abas da MESMA storageKey, então
+        // logar aqui sem checar sobrescreveria silenciosamente a sessão alheia.
+        // Só segue com o login automático se não houver ninguém (ou se for a
+        // mesma pessoa); senão cai no link por e-mail, que não mexe em nada.
+        const { data: { session: sessaoExistente } } = await sbClienteLogin.auth.getSession();
+        const outraPessoaLogada = sessaoExistente && sessaoExistente.user &&
+          sessaoExistente.user.email && sessaoExistente.user.email !== email;
+        if(!outraPessoaLogada){
+          const { error } = await sbClienteLogin.auth.verifyOtp({ token_hash: autoLogin.tokenHash, type: 'magiclink' });
+          if(!error){ location.href = 'cliente.html'; return; }
+        }
+      } catch(_){ /* cai no fallback abaixo */ }
+    }
+    mostrarPronto(email, pago);
   }
 
   function mostrarPronto(email, pago){
@@ -424,8 +590,15 @@
     // Voltar tem que levar o plano junto, senão a etapa 1 não sabe o que agendar.
     $('link-voltar').href = 'agendamento?servico=' + encodeURIComponent(pedido.servicoId);
 
-    $('cpf').addEventListener('input', e => { e.target.value = mascaraDocumento(e.target.value); });
+    $('cpf').addEventListener('input', e => {
+      e.target.value = mascaraDocumento(e.target.value);
+      buscarDadosPorCnpj();
+    });
     $('telefone').addEventListener('input', e => { e.target.value = mascaraTelefone(e.target.value); });
+    $('cep').addEventListener('input', e => {
+      e.target.value = mascaraCep(e.target.value);
+      buscarEnderecoPorCep();
+    });
     $('form-checkout').addEventListener('submit', enviar);
 
     $('btn-abrir-credito').addEventListener('click', () => {

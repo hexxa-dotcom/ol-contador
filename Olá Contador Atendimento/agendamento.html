@@ -76,16 +76,6 @@
           <span class="ajuda" id="assunto-dica" style="margin:0"></span>
           <span class="erro" id="erro-assunto" hidden>Escolha a opção que mais se parece com o seu caso.</span>
         </div>
-
-        <!-- Bem curto de propósito: o detalhamento completo, com documentos,
-             acontece na triagem da área do cliente depois do pagamento. -->
-        <div class="field" style="margin-bottom:0">
-          <label for="resumo">Em poucas palavras, o que houve? <span id="resumo-opcional" style="font-weight:500;color:var(--muted)">(opcional)</span></label>
-          <textarea id="resumo" maxlength="150" rows="2" aria-describedby="contador-resumo"
-            placeholder="Opcional. Ex.: recebi uma carta da Receita sobre a declaração de 2024."></textarea>
-          <span class="contador" id="contador-resumo" aria-live="polite">0/150</span>
-          <span class="erro" id="erro-resumo" hidden>Conte em uma frase o que aconteceu.</span>
-        </div>
       </section>
 
       <button class="submit btnp" type="submit" id="btn-continuar">Continuar para seus dados</button>
@@ -118,8 +108,6 @@
     pj:['pj-atendimento'], 'pessoa-juridica':['pj-atendimento'], pessoa_juridica:['pj-atendimento'], empresa:['pj-atendimento'],
     sob:['consulta'], 'sob-demanda':['consulta'], sob_demanda:['consulta']
   };
-
-  const LIMITE_RESUMO = 150;
 
   const $ = id => document.getElementById(id);
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -179,14 +167,15 @@
   // escolhe plano. A lista vem dos itens do plano contratado, então quem agenda
   // Pessoa Física não vê pendência de MEI e vice-versa. Serve também de rede de
   // segurança: mesmo sem detalhes escritos, o contador já sabe o tipo do caso.
+  // O detalhamento completo (com documentos) acontece na triagem obrigatória,
+  // logo depois do pagamento — por isso não existe mais um campo de texto livre
+  // aqui, que só duplicaria a mesma pergunta.
   function renderAssuntos(){
-    // Plano ainda sem lista cadastrada no painel: some com a pergunta em vez de
-    // mostrar um "Selecione…" vazio e impossível de responder. Aí a descrição
-    // vira o único canal, e passa a ser obrigatória.
+    // Plano ainda sem lista cadastrada no painel: some com a pergunta — sem ela
+    // não sobra o que escolher aqui, e o assunto de qualquer forma vai ser
+    // detalhado na triagem.
     if(!assuntos.length){
       $('campo-assunto').hidden = true;
-      $('resumo-opcional').hidden = true;
-      $('resumo').placeholder = 'Em uma frase: o que aconteceu?';
       return;
     }
     const sel = $('assunto');
@@ -203,28 +192,9 @@
 
   // O resumo do assunto não cabe dentro do <option>, então aparece embaixo —
   // é a explicação que dá segurança de que a pessoa escolheu a opção certa.
-  // Em "outro" a descrição deixa de ser opcional: é a única pista que sobra.
   function mostrarDicaAssunto(){
     const a = assuntos.find(x => x.id === assuntoId);
     $('assunto-dica').textContent = a ? a.resumo : '';
-    const obrigatorio = assuntoId === 'outro';
-    $('resumo-opcional').hidden = obrigatorio;
-    $('resumo').placeholder = obrigatorio
-      ? 'Em uma frase: o que aconteceu?'
-      : 'Opcional. Ex.: recebi uma carta da Receita sobre a declaração de 2024.';
-    if(!obrigatorio) $('erro-resumo').hidden = true;
-  }
-
-  function atualizarContador(){
-    // O maxlength só barra digitação/colagem; texto colocado por script passa
-    // reto e o contador aparecia acima do teto. Corta aqui também.
-    const ta = $('resumo');
-    if(ta.value.length > LIMITE_RESUMO) ta.value = ta.value.slice(0, LIMITE_RESUMO);
-    const n = ta.value.length;
-    const el = $('contador-resumo');
-    el.textContent = n + '/' + LIMITE_RESUMO;
-    el.classList.toggle('perto', n > LIMITE_RESUMO - 30);
-    if(n) $('erro-resumo').hidden = true;
   }
 
   function renderDias(){
@@ -296,7 +266,6 @@
     e.preventDefault();
     avisar('');
     $('erro-assunto').hidden = true;
-    $('erro-resumo').hidden = true;
 
     if(!dia || !hora){ avisar('Escolha um dia e um horário para continuar.'); return; }
     if(assuntos.length && !assuntoId){
@@ -305,21 +274,11 @@
       $('assunto').focus();
       return;
     }
-    // Os detalhes são opcionais de propósito: o assunto escolhido já diz ao
-    // contador que tipo de caso é, mesmo que a pessoa não escreva nada. A
-    // exceção é "meu caso é outro", onde não sobra nenhuma outra pista.
-    const resumo = $('resumo').value.trim().slice(0, LIMITE_RESUMO);
-    if((assuntoId === 'outro' || !assuntos.length) && !resumo){
-      $('erro-resumo').hidden = false;
-      $('resumo').scrollIntoView({ behavior:'smooth', block:'center' });
-      $('resumo').focus();
-      return;
-    }
     const s = servicos.find(x => x.id === servicoId);
     const a = assuntos.find(x => x.id === assuntoId);
     sessionStorage.setItem(CHAVE, JSON.stringify({
       servicoId, servicoNome: s.name, precoCents: s.price_cents,
-      assuntoId, assuntoTitulo: a ? a.titulo : '', dia, hora, resumo
+      assuntoId, assuntoTitulo: a ? a.titulo : '', dia, hora
     }));
     location.href = 'checkout.html';
   }
@@ -356,7 +315,6 @@
         dia = salvo.dia; hora = salvo.hora;
         // Só restaura o assunto se ele ainda existir na lista do plano.
         assuntoId = assuntos.some(a => a.id === salvo.assuntoId) ? salvo.assuntoId : null;
-        $('resumo').value = salvo.resumo || '';
       }
     } catch(_){}
 
@@ -365,8 +323,6 @@
     renderAssuntos();
     renderDias();
     renderHorarios();
-    atualizarContador();
-    $('resumo').addEventListener('input', atualizarContador);
     $('form-agendamento').addEventListener('submit', continuar);
   }
 

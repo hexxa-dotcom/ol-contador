@@ -199,8 +199,17 @@
     .preco-num{font-size:72px}
     h1{font-size:36px !important}
     h2{font-size:30px !important}
-    .topo-in{padding:12px 16px}
-    .nav-links,.nav-entrar{display:none}
+    .topo-in{padding:12px 14px}
+    /* .nav-entrar (Já sou cliente) fica visível — sem ele, o celular não
+       tinha nenhum jeito de chegar no portal do cliente pelo cabeçalho. */
+    .nav-links{display:none}
+    /* Com "Já sou cliente" de volta, sobra pouco espaço pro CTA num celular
+       estreito — aperta os dois pra caber numa linha só (os estilos do CTA
+       são inline no HTML, então !important é necessário pra vencer). */
+    .nav-entrar{font-size:12px !important;white-space:nowrap}
+    .btng{font-size:12px !important;padding:8px 12px !important;white-space:nowrap}
+    .marca b{font-size:17px !important}
+    .nav-acoes{gap:8px !important}
     .wrap{padding:0 18px}
   }
   @media (max-width:900px){
@@ -306,9 +315,12 @@
     </div>
   </div>
 
-  <!-- Radar Fiscal — fora da grade dos 3 planos de propósito: é uma assinatura
-       da área do cliente (ativa depois do primeiro atendimento), não mais um
-       atendimento avulso pra escolher junto com PF/PJ/Sob demanda. -->
+  <!-- Radar Fiscal removido da oferta pública em 2026-08-03: a integração com
+       o Integra Contador (Serpro) ainda não foi validada com um cliente real,
+       e não se anuncia preço de um serviço que não se provou que entrega. O
+       bloco volta quando a consulta funcionar ponta a ponta — junto com a
+       chave RADAR_FISCAL_CLIENTE em config.js, que reabre a aba na área do
+       cliente. As ferramentas continuam disponíveis no painel do contador.
   <div class="radar-faixa">
     <div class="radar-icone"><i class="fa-solid fa-shield-halved"></i></div>
     <div class="radar-texto">
@@ -318,6 +330,7 @@
     <div class="radar-preco">R$ 29,90<small>por mês</small></div>
     <a class="radar-cta" href="login">Já sou cliente — Ativar</a>
   </div>
+  -->
 
   <div style="text-align:left;font-size:13px;color:#344C4B;opacity:.85;margin-top:16px;">* O acompanhamento das obrigações do mês é feito via pagamento de recorrência mensal, combinado com o contador no atendimento.</div>
 

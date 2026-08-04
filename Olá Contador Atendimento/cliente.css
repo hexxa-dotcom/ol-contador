@@ -1,5 +1,116 @@
 /* Specific Client Portal Styles */
 
+/* Dashboard: a linha do tempo do caso (#card-tracker, no HTML) é o card que
+   mais varia de altura — por isso saiu do grid e virou um card horizontal
+   sozinho, no topo. O que sobra (agendamento, últimas atualizações e os
+   condicionais vencimentos/avaliação) são cards mais parecidos em tamanho,
+   então formam pares em 2 colunas iguais — align-items:stretch faz os dois
+   da mesma fileira baterem sempre a mesma altura. No celular vira 1 coluna
+   (regra genérica de [class*="grid"] no media query 768px). */
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  align-items: stretch;
+  max-width: 820px;
+}
+
+/* Sidebar sem moldura (desktop): nada de card branco com borda/sombra em
+   volta dos ícones — eles ficam soltos, flutuando direto sobre o fundo da
+   página. O primeiro ícone (Início) alinha com o topo do primeiro card do
+   conteúdo, em vez de ficar centralizado na coluna toda (ficava jogado pra
+   baixo demais). No celular a barra vira um rodapé fixo com sua própria
+   lógica, então é desfeito lá embaixo (ver @media 768px). */
+body.pagina-cliente .app-sidebar-nav {
+  background: transparent;
+  border-right: none;
+  justify-content: flex-start;
+  padding-top: 60px;
+  flex-grow: 0;
+}
+
+/* Ícones do menu, um pouco maiores — mesmo tamanho usado nos outros ícones
+   "soltos" do sistema (ex.: o sino/sair no cabeçalho), pra ficar
+   padronizado em vez de menor que o resto. */
+body.pagina-cliente .app-sidebar-nav .nav-item i {
+  font-size: 20px;
+  width: 22px;
+}
+
+/* Sidebar recolhida (só ícone, sem rótulo): vira um chip circular em vez de
+   uma barra retangular — o resto do sistema é todo arredondado (cards,
+   botões em pill, o próprio avatar), então um ícone solto em retângulo
+   destoava. Só se aplica com a barra recolhida — expandida, o item volta a
+   ser uma linha normal (precisa caber o texto do rótulo). Preso a um
+   min-width: com 4 classes na seletor, a especificidade venceria até a barra
+   inferior do celular (2 classes) se não tivesse esse limite — o tab bar
+   viraria bolinhas de 44px em vez de dividir a largura em partes iguais. */
+@media (min-width: 769px) {
+  body.pagina-cliente .app-sidebar-nav.collapsed .nav-item {
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    margin: 0 auto 10px;
+    border-radius: 50%;
+    justify-content: center;
+  }
+
+  /* A regra genérica de .collapsed .nav-label só zera a opacidade — o texto
+     continua no fluxo do flex (por causa da transição suave ao expandir em
+     outras telas). Aqui isso quebrava o círculo: pra itens com rótulo longo
+     ("Radar Fiscal (Serviço Preventivo)", "Antes do atendimento"...), o texto
+     invisível empurrava o ícone pra fora da caixa de 44px — cortado pelo
+     overflow:hidden da barra, o ícone simplesmente sumia. display:none tira
+     o rótulo do cálculo do flex de vez, deixando só o ícone pra centralizar. */
+  body.pagina-cliente .app-sidebar-nav.collapsed .nav-item .nav-label {
+    display: none;
+  }
+
+  body.pagina-cliente .app-sidebar-nav.collapsed .nav-item i {
+    width: auto;
+  }
+}
+
+/* Método de pagamento no agendamento de novo serviço — mesmo padrão visual
+   do checkout público (booking.css .metodo-pagamento), só que com as
+   variáveis de cor deste portal em vez das do site. */
+.metodo-pagamento { display: flex; gap: 10px; }
+.metodo-opcao {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  padding: 12px 14px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.metodo-opcao:has(input:checked) {
+  border-color: var(--color-coral);
+  background: var(--color-coral-light);
+  box-shadow: 0 0 0 2px rgba(255, 106, 69, 0.14);
+}
+.metodo-opcao input { accent-color: var(--color-coral); width: 16px; height: 16px; flex: none; cursor: pointer; }
+.metodo-opcao strong { display: block; font-size: 14px; color: var(--color-pine); }
+.metodo-opcao small { display: block; font-size: 12px; color: var(--color-text-secondary); margin-top: 2px; }
+@media (max-width: 420px) { .metodo-pagamento { flex-direction: column; } }
+
+/* Cabeçalho (modo PC): o cliente não tem "status online" de verdade — aquele
+   pontinho verde era herdado do mesmo componente usado no painel do contador
+   (lá faz sentido, é o status do contador). Aqui na frente do CPF ele só
+   confundia. Removido; sem o pontinho+gap antes do texto, o CPF já fica
+   alinhado à esquerda com o nome acima, sem precisar de mais nada. */
+.agent-info span::before { display: none; }
+
+/* Nome muito comprido não estoura o cabeçalho — corta com reticências. */
+.agent-info h4 {
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 /* Sidebar Profile Override */
 .client-profile-sidebar {
   padding: 24px 20px;
@@ -35,8 +146,12 @@
   font-size: 11px;
 }
 
-/* Chat Layout Override */
-#section-chat {
+/* Chat Layout Override. Precisa do ".active": sem ele, o "display: flex
+   !important" (especificidade de id) vencia o ".content-panel { display:
+   none }" e deixava a seção de chat sempre visível por baixo de qualquer
+   outra aba ativa — no desktop passava despercebido pelo layout, mas no
+   celular, tudo em largura cheia, as seções apareciam empilhadas. */
+#section-chat.active {
   display: flex !important;
   flex-direction: column !important;
   height: 100% !important;
@@ -389,71 +504,9 @@
   margin: 0;
 }
 
-.case-next-action {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 18px;
-  margin: 0 0 24px;
-  padding: 20px 24px;
-  border: 1px solid rgba(12, 84, 70, 0.12);
-  border-radius: 20px;
-  background: var(--color-card);
-  box-shadow: 0 4px 20px var(--color-shadow);
-  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.case-next-action:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 10px 28px rgba(12, 84, 70, 0.12);
-  border-color: rgba(12, 84, 70, 0.2);
-}
-
-.case-next-action-icon {
-  display: grid;
-  place-items: center;
-  width: 46px;
-  height: 46px;
-  border-radius: 14px;
-  color: #fff;
-  font-size: 18px;
-  box-shadow: 0 4px 12px rgba(12, 84, 70, 0.18);
-  flex-shrink: 0;
-}
-
-.case-next-action-eyebrow {
-  display: block;
-  margin-bottom: 4px;
-  color: var(--color-coral);
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.case-next-action h3 {
-  margin: 0;
-  color: var(--color-pine);
-  font-size: 16px;
-  font-weight: 700;
-  line-height: 1.3;
-}
-
-.case-next-action p {
-  margin: 4px 0 0;
-  color: var(--color-text-secondary);
-  font-size: 13.5px;
-  line-height: 1.4;
-}
-
 #chat-locked-overlay.is-finished #chat-lock-icon { color: #1F8A5F; }
 #chat-locked-overlay.is-finished #chat-lock-schedule { display: none; }
 #chat-lock-action { margin-top: 14px; }
-
-@media (max-width: 640px) {
-  .case-next-action { grid-template-columns: auto minmax(0, 1fr); }
-  .case-next-action .btn-utility { grid-column: 1 / -1; width: 100%; }
-}
 
 .status-online {
   display: inline-block;
@@ -643,6 +696,123 @@
   color: rgba(255, 255, 255, 0.7);
 }
 
+/* ==========================================================================
+   CAIXA POSTAL — lista de mensagens, não chat. Usa o padrão visual das
+   outras seções do sistema (panel-header-desc + cards brancos), sem balão
+   verde nem moldura de conversa em tempo real — é assíncrono (resposta em
+   até 1 dia útil), então a "cara de chat" passava a ideia errada.
+   ========================================================================== */
+#caixa-postal-cliente-historico,
+#caixa-postal-cliente-inbox {
+  align-items: stretch;
+}
+#caixa-postal-cliente-historico > *:first-child,
+#caixa-postal-cliente-inbox > *:first-child { margin-top: 0; }
+
+/* Overview da caixa de entrada: uma linha por conversa (agrupada por
+   assunto), não por mensagem — igual uma lista de e-mails. */
+.caixa-postal-thread-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: white;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  padding: 13px 16px;
+  cursor: pointer;
+  transition: box-shadow 0.2s ease, transform 0.2s ease, border-color 0.2s ease;
+  font-family: inherit;
+}
+.caixa-postal-thread-item:hover {
+  box-shadow: 0 6px 18px rgba(10, 49, 33, 0.08);
+  transform: translateY(-1px);
+  border-color: var(--color-pine-light, var(--color-border));
+}
+.caixa-postal-thread-item.nao-lida {
+  background: var(--color-pine-ultra-light);
+  border-left: 3px solid var(--color-coral);
+}
+.caixa-postal-thread-topo {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+.caixa-postal-thread-assunto {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.caixa-postal-thread-hora {
+  font-size: 11px;
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+}
+.caixa-postal-thread-preview {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.caixa-postal-thread-preview strong {
+  color: var(--color-text-primary);
+}
+
+.caixa-postal-msg {
+  background: white;
+  border: 1px solid var(--color-border);
+  border-left: 3px solid var(--color-border);
+  border-radius: 10px;
+  padding: 13px 16px;
+}
+.caixa-postal-msg.minha { border-left-color: var(--color-coral); }
+.caixa-postal-msg.contador { border-left-color: var(--color-pine); }
+.caixa-postal-msg.nao-lida { background: var(--color-pine-ultra-light); }
+
+.caixa-postal-msg-topo {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+  gap: 10px;
+}
+.caixa-postal-msg-remetente {
+  font-size: 11.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .3px;
+  color: var(--color-pine);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.caixa-postal-msg.minha .caixa-postal-msg-remetente { color: var(--color-coral); }
+.caixa-postal-msg-remetente i:first-child { font-size: 11px; }
+.caixa-postal-dot { font-size: 7px !important; color: var(--color-coral); }
+.caixa-postal-msg-hora {
+  font-size: 11px;
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+}
+.caixa-postal-msg-assunto {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin-bottom: 4px;
+}
+.caixa-postal-msg-corpo {
+  font-size: 13.5px;
+  color: var(--color-text-primary);
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
 .chat-input-area {
   padding: 16px;
   background: white;
@@ -697,13 +867,21 @@
   color: var(--color-pine);
 }
 
-/* Tracking Card */
+/* Tracking Card — usado em quase toda seção do portal (dashboard, kanban,
+   etc). Um único lugar pra dar o efeito "flutuante": sombra leve em vez de
+   só borda, pra parecer elevado sobre o fundo em vez de plano/colado nele. */
 .tracking-card {
   background: white;
   border: 1px solid var(--color-border);
   border-radius: 24px;
   padding: 32px;
   width: 100%;
+  box-shadow: 0 1px 2px rgba(10, 49, 33, 0.08), 0 4px 20px rgba(10, 49, 33, 0.06);
+  transition: box-shadow 0.25s ease, transform 0.25s ease;
+}
+.tracking-card:hover {
+  box-shadow: 0 1px 2px rgba(10, 49, 33, 0.08), 0 10px 28px rgba(10, 49, 33, 0.1);
+  transform: translateY(-2px);
 }
 
 .tracking-header {
@@ -715,8 +893,28 @@
 
 .tracking-header h3 {
   color: var(--color-pine);
-  font-size: 16px;
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.2px;
   margin: 0;
+}
+
+/* Ícone do título vira um chip circular flutuante — mesmo efeito da sidebar
+   (ícone solto num círculo com leve gradiente), aplicado aqui pra dar a
+   mesma "cara" nos cabeçalhos dos cards. Cobre qualquer card com esse
+   padrão de título (cabeçalho da seção ou de um card) sem precisar editar
+   ícone por ícone no HTML. */
+.tracking-header h3 > i:first-child,
+.panel-header-desc h2 > i:first-child {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: linear-gradient(155deg, #EDF6F3 0%, var(--color-pine-ultra-light) 70%);
+  font-size: 13px;
+  vertical-align: middle;
 }
 
 /* Progress Tracker */
@@ -788,21 +986,26 @@
   margin: 0;
 }
 
-/* Agenda de atendimento */
+/* Agenda de atendimento — usada sozinha nas telas de Pix/sucesso do
+   checkout (fora do grid de 2 colunas), então mantém seu próprio card
+   flutuante. */
 .agendamento-card {
   width: min(100%, 980px);
   padding: 28px;
   border: 1px solid var(--color-border);
   border-radius: 18px;
   background: #fff;
+  box-shadow: 0 4px 20px rgba(10, 49, 33, 0.06);
 }
 
+/* Antes era uma caixa cinza com borda própria (card dentro do card "Data e
+   horário"). Como agora ela já mora dentro de um .tracking-card, vira só um
+   agrupador — a única borda visível é o traço fino separando a barra de
+   navegação da grade de horários. */
 .agenda-cliente-wrap {
   margin-bottom: 28px;
-  border: 1px solid var(--color-border);
   border-radius: 14px;
   overflow: hidden;
-  background: var(--color-bg);
 }
 
 .agenda-cliente-toolbar {
@@ -810,9 +1013,9 @@
   grid-template-columns: 36px minmax(0, 1fr) 36px;
   align-items: center;
   gap: 10px;
-  padding: 12px;
+  padding: 0 0 12px;
   border-bottom: 1px solid var(--color-border);
-  background: #fff;
+  margin-bottom: 12px;
 }
 
 .agenda-cliente-toolbar strong {
@@ -841,39 +1044,70 @@
   cursor: default;
 }
 
+/* Antes mostrava os 5 dias da semana lado a lado — em qualquer tela mais
+   estreita (o card de metade da largura no desktop, ou o celular) os dias
+   não cabiam e cortavam ao meio. Agora mostra um dia por vez: uma fileira
+   de "pills" pra escolher o dia, e embaixo só os horários daquele dia. */
 .agenda-cliente-grid {
-  display: grid;
-  grid-template-columns: repeat(5, minmax(118px, 1fr));
-  gap: 1px;
-  background: var(--color-border);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
 }
 
-.agenda-dia {
-  min-width: 0;
+.agenda-dia-pills {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+
+.agenda-dia-pill {
+  flex: 1 0 auto;
+  min-width: 56px;
+  padding: 8px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
   background: #fff;
-}
-
-.agenda-dia-head {
-  padding: 12px 10px;
-  border-bottom: 1px solid var(--color-border);
+  cursor: pointer;
+  font-family: inherit;
   text-align: center;
+  transition: all 0.15s;
 }
 
-.agenda-dia-head strong {
+.agenda-dia-pill strong {
   display: block;
   color: var(--color-pine);
-  font-size: 13px;
+  font-size: 12px;
+  text-transform: capitalize;
 }
 
-.agenda-dia-head span {
+.agenda-dia-pill span {
   display: block;
   margin-top: 2px;
   color: var(--color-text-secondary);
   font-size: 11px;
 }
 
+.agenda-dia-pill:hover { border-color: var(--color-pine); }
+
+.agenda-dia-pill.selecionado {
+  border-color: var(--color-pine);
+  background: var(--color-pine);
+}
+.agenda-dia-pill.selecionado strong,
+.agenda-dia-pill.selecionado span { color: #fff; }
+
+.agenda-dia-pill.lotado { opacity: 0.5; }
+
+.agenda-dia-painel {
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+  padding: 4px;
+}
+
 .agenda-slots {
   display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
   gap: 7px;
   padding: 10px;
 }
@@ -938,6 +1172,7 @@
   cursor: pointer;
   transition: all 0.2s;
   height: fit-content;
+  box-shadow: 0 4px 20px rgba(10, 49, 33, 0.06);
 }
 
 .upload-zone:hover {
@@ -1018,6 +1253,12 @@
   background: white;
   border: 1px solid var(--color-border);
   border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(10, 49, 33, 0.05);
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+.doc-item:hover {
+  box-shadow: 0 6px 16px rgba(10, 49, 33, 0.08);
+  transform: translateY(-1px);
 }
 
 .doc-info {
@@ -1058,6 +1299,12 @@
   background: white;
   border: 1px solid var(--color-border);
   border-radius: var(--border-radius);
+  box-shadow: 0 4px 20px rgba(10, 49, 33, 0.06);
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+.history-card:hover {
+  box-shadow: 0 8px 22px rgba(10, 49, 33, 0.09);
+  transform: translateY(-1px);
 }
 
 .history-icon {
@@ -1162,12 +1409,21 @@
   padding-bottom: 8px;
 }
 
+/* Antes cada passo era um card branco com borda — e dentro dele, os
+   assuntos/opções também eram caixas com fundo e borda. Isso lia como
+   "card dentro de card". Agora o passo é só um agrupador transparente
+   (título + espaçamento); o único nível de "card" fica nos itens de
+   verdade (.triagem-assunto e o textarea), que ganham sombra flutuante. */
 .triagem-bloco {
-  background: white;
-  border: 1px solid var(--color-border);
-  border-radius: 12px;
-  padding: 22px 24px;
+  padding: 4px 0 22px;
   margin-bottom: 16px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.triagem-bloco:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+  padding-bottom: 4px;
 }
 
 .triagem-bloco-topo {
@@ -1212,12 +1468,13 @@
   padding: 16px;
   border: 1px solid var(--color-border);
   border-radius: 10px;
-  background: var(--color-bg);
+  background: white;
+  box-shadow: 0 2px 10px rgba(10, 49, 33, 0.05);
   cursor: pointer;
   font-family: inherit;
-  transition: border-color .15s, background .15s, transform .1s;
+  transition: border-color .15s, background .15s, transform .1s, box-shadow .15s;
 }
-.triagem-assunto:hover { border-color: var(--color-pine); transform: translateY(-1px); }
+.triagem-assunto:hover { border-color: var(--color-pine); transform: translateY(-1px); box-shadow: 0 6px 16px rgba(10, 49, 33, 0.1); }
 .triagem-assunto i { font-size: 18px; color: var(--color-coral); margin-bottom: 4px; }
 
 .triagem-assunto.escolhido {
@@ -1347,6 +1604,51 @@
 }
 .triagem-doc-btn:hover:not(:disabled) { border-color: var(--color-pine); background: var(--color-bg); }
 .triagem-doc-btn:disabled { opacity: .5; cursor: default; }
+
+/* ---- resumo: some no lugar do formulário quando já foi enviada ---- */
+.triagem-resumo {
+  background: white;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  padding: 22px 24px;
+  margin-bottom: 16px;
+}
+.triagem-resumo-topo {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 18px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--color-border);
+}
+.triagem-resumo-eyebrow {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .5px;
+  color: var(--color-coral);
+  margin-bottom: 4px;
+}
+.triagem-resumo-topo h3 { font-size: 17px; color: var(--color-pine); }
+.triagem-resumo-item { margin-bottom: 16px; }
+.triagem-resumo-item:last-child { margin-bottom: 0; }
+.triagem-resumo-label {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .4px;
+  color: var(--color-text-secondary);
+  margin-bottom: 4px;
+}
+.triagem-resumo-item p {
+  font-size: 13.5px;
+  color: var(--color-text-primary);
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
 
 /* ---- sala de espera ---- */
 .triagem-espera {
@@ -1496,11 +1798,15 @@
    @media, senão vence por ordem e esconde o botão também no celular. */
 .hdr-sair { display: none; }
 
+/* Indicador líquido: só existe na pílula do celular. Precisa vir antes do
+   @media pelo mesmo motivo do .hdr-sair acima (especificidade/ordem). */
+.nav-liquid-indicator { display: none; }
+
 @media (max-width: 768px) {
 
   :root {
     --oc-header-h: 54px;
-    --oc-nav-h: 62px;
+    --oc-nav-h: 72px;
     --oc-safe-b: env(safe-area-inset-bottom, 0px);
   }
 
@@ -1528,13 +1834,44 @@
   .header-right .agent-avatar { width: 32px; height: 32px; font-size: 12px; }
   .header-right { gap: 8px; }
 
-  .hdr-sair {
+  /* Menu do avatar: Meu Perfil + Sair, aberto pelo clique no avatar (ver
+     toggleAgentMenu em cliente.js). Substitui o botão de Sair solto que
+     disputava espaço ao lado do avatar numa barra já apertada. */
+  .agent-profile-wrap { position: relative; }
+  .agent-profile-caret {
+    font-size: 9px;
+    color: rgba(255, 255, 255, 0.6);
+    margin-left: 2px;
+  }
+  .agent-profile-menu {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    min-width: 160px;
+    background: var(--color-card);
+    border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+    overflow: hidden;
+    z-index: 70;
+  }
+  .agent-profile-menu button {
     display: flex;
     align-items: center;
-    justify-content: center;
-    font-size: 15px;
+    gap: 10px;
+    width: 100%;
+    padding: 12px 16px;
+    border: none;
+    background: none;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--color-text-primary);
+    text-align: left;
     cursor: pointer;
   }
+  .agent-profile-menu button:active { background: var(--color-bg); }
+  .agent-profile-menu button + button { border-top: 1px solid var(--color-border); }
+  .agent-profile-menu button[data-logout] { color: #C0392B; }
 
   /* ---- Corpo (área de conteúdo) ---- */
   .dashboard-container {
@@ -1547,42 +1884,53 @@
      BOTTOM TAB BAR — App-like
      ======================== */
   .app-sidebar-nav,
-  .app-sidebar-nav.collapsed {
+  .app-sidebar-nav.collapsed,
+  body.pagina-cliente .app-sidebar-nav {
     position: fixed;
-    left: 0;
-    right: 0;
-    bottom: 0;
+    left: 14px;
+    right: 14px;
+    /* Flutua acima da borda da tela (e da faixa de gestos do iPhone), em vez
+       de ficar colada — a folga soma 14px ao que a área seguindo já reserva. */
+    bottom: calc(var(--oc-safe-b) + 14px);
     z-index: 60;
-    width: 100%;
-    height: calc(var(--oc-nav-h) + var(--oc-safe-b));
-    padding: 0 0 var(--oc-safe-b) 0;
+    width: auto;
+    height: var(--oc-nav-h);
+    margin: 0;
+    padding: 0;
     flex-direction: row;
     align-items: stretch;
     border-right: none;
-    border-top: 1px solid rgba(10, 49, 33, 0.12);
-    box-shadow: 0 -4px 24px rgba(10, 49, 33, 0.1);
-    background: var(--color-pine);
+    border-top: none;
+    border-radius: 999px;
+    box-shadow: 0 8px 32px rgba(10, 49, 33, 0.28);
+    /* Vidro líquido: o mesmo degradê diagonal do .app-header (pine claro ->
+       pine escuro), só que translúcido + desfocado por trás — textura
+       consistente entre as duas barras, em vez de uma cor chapada. */
+    background: linear-gradient(165deg, rgba(17, 112, 93, 0.88) 0%, rgba(12, 84, 70, 0.88) 55%);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
     transition: none;
-    overflow: visible;        /* permite o botão home sobresair */
+    overflow: hidden;
   }
 
   /* Título da seção e espaçador: não fazem sentido na barra horizontal */
   .app-sidebar-nav .nav-section-title,
-  .app-sidebar-nav [data-logout],
   .app-sidebar-nav > div[style*="flex: 1"] { display: none !important; }
-
-  /* Itens desktop-only: ficam na sidebar do desktop, sumem no celular */
-  .app-sidebar-nav .nav-item-desktop-only { display: none !important; }
 
   /* ---- Itens da bottom tab bar ---- */
   .app-sidebar-nav .nav-item {
     flex: 1;
+    min-width: 0; /* essencial: sem isso, um item flex nunca encolhe abaixo do
+      conteúdo (o "min-width:auto" padrão do flexbox, com o rótulo em
+      nowrap). Com min-width:0 os 4 dividem o espaço em partes iguais de verdade. */
     display: flex !important;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 3px;
-    padding: 8px 4px 6px;
+    gap: 4px;
+    /* Simétrico (topo = base): com padding desigual o conteúdo ficava puxado
+       pra cima dentro da pílula, mesmo com justify-content:center. */
+    padding: 10px 4px;
     font-size: 9.5px;
     font-weight: 600;
     letter-spacing: 0.02em;
@@ -1592,8 +1940,9 @@
     border-radius: 0;
     min-height: 0;
     cursor: pointer;
-    transition: color 0.15s ease, background 0.15s ease;
+    transition: color 0.15s ease;
     position: relative;
+    z-index: 1; /* acima do indicador líquido, que é absolute */
     text-transform: uppercase;
   }
 
@@ -1601,84 +1950,71 @@
   .mobile-order-2 { order: 2; }
   .mobile-order-3 { order: 3; }
   .mobile-order-4 { order: 4; }
-  .mobile-order-5 { order: 5; }
+
+  /* ---- Indicador líquido: pílula que desliza por baixo do ícone ativo ----
+     Posição/largura calculadas em JS (moverIndicadorLiquido, cliente.js) a
+     partir do retângulo real do botão ativo — flexbox não expõe isso em CSS
+     puro. A curva com "overshoot" (o pico de 1.2 na curva bezier) é o que dá
+     a sensação de líquido: passa um pouco do alvo e volta, em vez de parar seco. */
+  .app-sidebar-nav .nav-liquid-indicator {
+    display: block;
+    position: absolute;
+    top: 6px;
+    bottom: 6px;
+    left: 0;
+    width: 0;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.14);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.16);
+    opacity: 0;
+    z-index: 0;
+    pointer-events: none;
+    transition: left 0.45s cubic-bezier(0.34, 1.4, 0.4, 1),
+                width 0.45s cubic-bezier(0.34, 1.4, 0.4, 1),
+                opacity 0.2s ease;
+  }
+
+  /* Itens desktop-only (Pré-atendimento, Mensagens, Radar Fiscal, Agendamento,
+     Histórico — no celular moram no menu de perfil, ver agent-profile-menu)
+     e o Sair: ficam de fora da barra do celular. Precisam vir DEPOIS da regra
+     genérica acima e com uma classe a mais na seletor — ".nav-item-desktop-only"
+     sozinho empata em especificidade com ".app-sidebar-nav .nav-item" (ambas
+     0-2-0, ambas com !important), e nesse empate quem vier depois no arquivo
+     vence. Sem esse reforço o "display:none" perdia e esses itens extras
+     apareciam todos juntos na barra, fora da ordem esperada. */
+  .app-sidebar-nav .nav-item.nav-item-desktop-only,
+  .app-sidebar-nav .nav-item[data-logout] {
+    display: none !important;
+  }
 
   .app-sidebar-nav .nav-item i {
-    font-size: 18px;
+    font-size: 26px;
     width: auto;
     margin: 0;
+    transition: transform 0.35s cubic-bezier(0.34, 1.4, 0.4, 1);
   }
 
   .app-sidebar-nav .nav-item span.nav-label {
     display: block;
-    font-size: 9px;
-    line-height: 1;
+    font-size: 10px;
+    line-height: 1.15;
+    white-space: nowrap;
+    text-align: center;
+    max-width: 100%;
   }
 
-  /* Ativo: linha coral no topo + texto branco */
+  /* Ativo: ícone e rótulo em laranja — os 4 itens têm o mesmo tamanho, então
+     é só a cor que marca qual seção está aberta (sem borda: numa pílula com
+     cantos arredondados uma linha reta no topo cortaria o arredondado). O
+     ícone cresce um pouco (scale) — é o "líquido" reagindo ao toque, junto
+     com o indicador deslizando por baixo. */
   .app-sidebar-nav .nav-item.active {
-    color: #FFFFFF;
+    color: var(--color-coral);
     background: transparent;
-    border-top: 3px solid var(--color-coral);
-    padding-top: 5px;
   }
-
-  /* ========================
-     HOME — botão flutuante centralizado
-     ======================== */
-  .app-sidebar-nav .nav-item-home-center {
-    flex-direction: column;
-    align-items: center;
-    justify-content: flex-end;
-    padding-bottom: 6px;
-    overflow: visible;
-    background: transparent !important;
-    border-top: none !important;
-    padding-top: 8px !important;
-    color: rgba(255, 255, 255, 0.65);
-    position: relative;
-  }
-
-  .app-sidebar-nav .nav-item-home-center::before {
-    content: '';
-    position: absolute;
-    top: -18px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 52px;
-    height: 52px;
-    border-radius: 50%;
-    background: var(--color-coral);
-    box-shadow: 0 4px 16px rgba(255, 106, 69, 0.45), 0 0 0 3px var(--color-pine), 0 0 0 4px var(--color-coral);
-    z-index: 1;
-  }
-
-  .app-sidebar-nav .nav-item-home-center i {
-    position: absolute;
-    top: -14px;
-    left: 50%;
-    transform: translateX(-50%);
-    font-size: 20px;
-    color: #FFFFFF;
-    z-index: 2;
-    pointer-events: none;
-  }
-
-  .app-sidebar-nav .nav-item-home-center span.nav-label {
-    position: relative;
-    z-index: 3;
-    font-size: 9px;
-    color: rgba(255, 255, 255, 0.75);
-    margin-top: 20px;  /* espaço para o círculo elevado */
-  }
-
-  .app-sidebar-nav .nav-item-home-center.active::before {
-    background: var(--color-coral);
-    box-shadow: 0 6px 20px rgba(255, 106, 69, 0.55), 0 0 0 3px var(--color-pine), 0 0 0 5px var(--color-coral);
-  }
-
-  .app-sidebar-nav .nav-item-home-center.active span.nav-label {
-    color: #FFFFFF;
+  .app-sidebar-nav .nav-item.active i {
+    color: var(--color-coral);
+    transform: scale(1.12);
   }
 
   /* ---- Badge de não lido ---- */
@@ -1702,7 +2038,7 @@
     overflow: hidden;
     text-overflow: ellipsis;
   }
-  body.oc-teste-on .app-sidebar-nav { bottom: 24px; }
+  body.oc-teste-on .app-sidebar-nav { bottom: calc(var(--oc-safe-b) + 14px + 26px); }
 
   /* ========================
      ÁREA DE CONTEÚDO
@@ -1710,10 +2046,13 @@
   .main-content-panels {
     display: flex;
     flex-direction: column;
-    padding-bottom: calc(var(--oc-nav-h) + var(--oc-safe-b));
+    /* +14px: a barra agora flutua com essa folga em vez de ficar colada
+       embaixo (ver .app-sidebar-nav) — o conteúdo precisa da mesma folga
+       pra não ficar escondido atrás dela. */
+    padding-bottom: calc(var(--oc-nav-h) + var(--oc-safe-b) + 14px);
   }
   body.oc-teste-on .main-content-panels {
-    padding-bottom: calc(var(--oc-nav-h) + var(--oc-safe-b) + 26px);
+    padding-bottom: calc(var(--oc-nav-h) + var(--oc-safe-b) + 14px + 26px);
   }
 
   .content-panel { 
@@ -1730,7 +2069,11 @@
      CHAT — tela cheia no mobile
      Sem título, sem margem, sem moldura: a conversa É a tela.
      ======================== */
-  #section-chat.content-panel {
+  /* Precisa do ".active" na seletor: sem ele, o "display: flex !important"
+     tinha especificidade maior que ".content-panel { display: none }" e
+     mostrava a aba de chat por cima de qualquer outra seção o tempo todo,
+     mesmo com ela escondida — foi a causa das seções aparecerem empilhadas. */
+  #section-chat.content-panel.active {
     padding: 0 !important;
     overflow: hidden !important;
     flex: 1 !important;
@@ -1780,18 +2123,46 @@
     margin: 0 !important;
   }
 
-  /* Header do chat compacto + oculta metadados do caso (pequenos demais no mobile) */
-  .chat-header {
-    padding: 10px 14px;
-    gap: 10px;
-    flex-shrink: 0;
+  /* O topo do app (verde) some quando o chat está aberto — dois cabeçalhos
+     verdes empilhados (o do app + o do chat) ficavam pesados e repetitivos,
+     e o do chat já mostra tudo que importa (nome do contador + o atendimento).
+     A área de conteúdo ocupa esse espaço sozinha via flex, sem precisar de
+     ajuste de altura à parte. */
+  body:has(#section-chat.content-panel.active) .app-header {
+    display: none !important;
   }
-  .chat-header-avatar { width: 34px; height: 34px; font-size: 15px; }
-  .chat-header-info h3 { font-size: 14px; }
-  .chat-header-info p { font-size: 11px; }
 
-  /* Esconde metadados do atendimento no mobile (muito pequeno) */
-  .chat-header-meta { display: none !important; }
+  /* Header do chat: uma linha só, compacta — avatar+nome à esquerda, dados
+     do atendimento (assunto+protocolo) à direita, igual ao desktop, só que
+     em fonte menor. Duas linhas empilhadas (testado antes) deixava o verde
+     ainda mais pesado; e como o topo do app já some, sobra altura de sobra
+     nenhuma para desperdiçar aqui. */
+  .chat-header {
+    padding: 8px 12px;
+    gap: 8px;
+    flex-shrink: 0;
+    flex-wrap: nowrap;
+  }
+  .chat-header-avatar { width: 32px; height: 32px; font-size: 14px; }
+  .chat-header-info h3 { font-size: 13px; }
+  .chat-header-info p { font-size: 10px; }
+
+  .chat-header-meta {
+    flex-shrink: 0;
+    max-width: 42vw;
+  }
+  /* O rótulo "Atendimento sobre:" some — a própria pílula com o assunto já
+     comunica isso sozinha, e sobra espaço pro protocolo por baixo. */
+  .chat-header-meta > span:first-child { display: none !important; }
+  #chat-header-assunto {
+    font-size: 10.5px !important;
+    padding: 2px 8px !important;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  #chat-header-codigo { font-size: 9px !important; }
 
   /* Histórico de mensagens: ocupa toda a área entre o header e o input */
   .chat-history {
@@ -1811,17 +2182,26 @@
     line-height: 1.45;
   }
 
-  /* Input fixo no rodapé com safe area do iOS */
+  /* Input fixo no rodapé, com safe area do iOS. Sem linha divisória: o fundo
+     é o mesmo tom do histórico de mensagens (--color-bg), então não sobra
+     nenhuma borda entre a conversa e o rodapé — só a pílula flutuando por
+     cima, com sombra em vez de contorno, fazendo a própria distinção. */
   .chat-input-area {
     flex-shrink: 0;
-    padding: 8px 10px;
+    padding: 10px 10px 8px;
     padding-bottom: calc(8px + var(--oc-safe-b));
-    background: var(--color-card);
-    border-top: 1px solid var(--color-border);
+    background: var(--color-bg);
+    border-top: none;
   }
 
   /* 16px obrigatório — abaixo disso o iOS faz zoom ao focar */
-  .chat-form { gap: 6px; padding: 5px 5px 5px 12px; }
+  .chat-form {
+    gap: 6px;
+    padding: 5px 5px 5px 14px;
+    background: var(--color-card);
+    border: none;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+  }
   .chat-form input { font-size: 16px; min-width: 0; }
 
   .btn-send { width: 40px; height: 40px; flex-shrink: 0; }
@@ -1845,16 +2225,7 @@
 
   .agenda-cliente-toolbar strong { font-size: 13px; }
 
-  .agenda-cliente-grid { grid-template-columns: 1fr !important; }
-
-  .agenda-dia-head {
-    display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    text-align: left;
-  }
-
-  .agenda-slots { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .agenda-slots { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 
   .history-card {
     align-items: flex-start;
@@ -1871,6 +2242,14 @@
   .triagem-wrap { max-width: none; }
   .triagem-bloco { padding: 16px 14px; }
   .triagem-textarea { font-size: 16px; }
+  .triagem-barra {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 12px;
+    padding: 14px;
+  }
+  .triagem-acoes { width: 100%; }
+  .triagem-acoes .btn-utility { width: 100%; justify-content: center; }
 
   .docs-layout,
   .content-panel [class*="grid"] {
@@ -1910,17 +2289,8 @@
 /* Telas muito estreitas (iPhone SE, Galaxy A série) */
 @media (max-width: 360px) {
   .app-sidebar-nav .nav-item { font-size: 8px; }
-  .app-sidebar-nav .nav-item i { font-size: 16px; }
+  .app-sidebar-nav .nav-item i { font-size: 23px; }
   .logo-text { font-size: 15px; }
-  .app-sidebar-nav .nav-item-home-center::before {
-    width: 46px;
-    height: 46px;
-    top: -15px;
-  }
-  .app-sidebar-nav .nav-item-home-center i {
-    font-size: 18px;
-    top: -11px;
-  }
 }
 
 /* ==================================================
@@ -1940,6 +2310,86 @@
   margin-bottom: 8px;
 }
 
+/* ==================================================
+   ONBOARDING PÓS-PAGAMENTO (bloqueia navegação até a
+   triagem ser enviada — ver showCheckoutSuccess/entrarNaTriagemObrigatoria
+   em cliente.js)
+   ================================================== */
+.onboarding-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  background: var(--color-bg, #F7F8FA);
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+.onboarding-overlay.ativo { display: flex; }
+.onboarding-card {
+  max-width: 440px;
+  width: 100%;
+  text-align: center;
+  background: white;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md, 12px);
+  padding: 40px 32px;
+}
+.onboarding-icone { font-size: 44px; color: var(--color-pine); margin-bottom: 16px; }
+.onboarding-card h2 { font-size: 19px; color: var(--color-pine); margin-bottom: 10px; }
+.onboarding-card p { font-size: 14px; color: var(--color-text-secondary); margin-bottom: 22px; }
+
+/* O agendamento precisa ser a coisa mais visível do card — é a prova concreta
+   de que o pagamento virou um horário marcado, antes de pedir mais um passo
+   (a triagem) de quem acabou de pagar. */
+.onboarding-agendamento {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  background: var(--color-pine-ultra-light, rgba(12,84,70,0.06));
+  border-radius: var(--radius-md, 12px);
+  padding: 18px 20px;
+  margin-bottom: 22px;
+  text-align: left;
+}
+.onboarding-agendamento-label {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .03em;
+  color: var(--color-text-secondary);
+}
+.onboarding-agendamento strong {
+  font-size: 20px;
+  color: var(--color-pine);
+  line-height: 1.3;
+}
+.onboarding-agendamento span:last-child {
+  font-size: 15px;
+  color: var(--color-text-secondary);
+}
+
+.onboarding-acoes {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Enquanto o cliente está preso na triagem obrigatória, some com qualquer
+   rota de fuga: cabeçalho (Sair/Meu Perfil) e a barra lateral/inferior. */
+body.onboarding-bloqueio .app-header,
+body.onboarding-bloqueio .app-sidebar-nav {
+  display: none !important;
+}
+
+/* A triagem obrigatória vira uma experiência focada: nenhuma outra seção pode
+   aparecer, nem sobra o espaço reservado para a navegação inferior no celular. */
+.triagem-titulo-onboarding { display: none; }
+body.onboarding-bloqueio .main-content-panels { padding-bottom: 0 !important; }
+body.onboarding-bloqueio .content-panel:not(#section-triagem) { display: none !important; }
+body.onboarding-bloqueio #section-triagem { display: flex !important; }
+body.onboarding-bloqueio #section-triagem .triagem-titulo-padrao { display: none; }
+body.onboarding-bloqueio #section-triagem .triagem-titulo-onboarding { display: block; }
 
 /* ==================================================
    ROUNDED OVERRIDES (Global Client specific)
@@ -1956,4 +2406,334 @@
 .chat-input-container {
   border-radius: 50px !important;
   margin-bottom: 8px;
+}
+
+/* ==================================================
+   FAQ / AJUDA (section-faq)
+   Acordeão em <details> nativo: abre/fecha sem JS, já vem acessível
+   por teclado e — o detalhe que importa aqui — o Ctrl+F do navegador
+   encontra texto dentro de bloco fechado e abre sozinho.
+   ================================================== */
+
+.faq-wrap {
+  max-width: 860px;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+/* Busca */
+.faq-busca {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.faq-busca i {
+  position: absolute;
+  left: 18px;
+  color: var(--color-text-secondary);
+  font-size: 14px;
+  pointer-events: none;
+}
+
+.faq-busca input {
+  width: 100%;
+  padding: 14px 18px 14px 44px;
+  border-radius: 30px;
+  border: 1px solid var(--color-border);
+  background: #FFFFFF;
+  font-family: var(--font-body);
+  font-size: 14px;
+  color: var(--color-text-primary);
+  box-shadow: 0 1px 2px rgba(10, 49, 33, 0.04), 0 6px 18px rgba(10, 49, 33, 0.05);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.faq-busca input:focus {
+  outline: none;
+  border-color: var(--color-coral);
+  box-shadow: 0 0 0 3px rgba(255, 103, 0, 0.12), 0 6px 18px rgba(10, 49, 33, 0.05);
+}
+
+.faq-sem-resultado {
+  font-size: 14px;
+  color: var(--color-text-secondary);
+  background: #FFF;
+  border: 1px dashed var(--color-border);
+  border-radius: 16px;
+  padding: 20px;
+  text-align: center;
+  margin: -14px 0 0 0;
+}
+
+/* Grupos */
+.faq-grupo {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.faq-grupo-titulo {
+  font-family: var(--font-title);
+  font-size: 13px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--color-text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 6px 4px;
+}
+
+.faq-grupo-titulo i {
+  color: var(--color-coral);
+  font-size: 14px;
+}
+
+/* Item do acordeão */
+.faq-item {
+  background: #FFFFFF;
+  border: 1px solid var(--color-border);
+  border-radius: 18px;
+  box-shadow: 0 1px 2px rgba(10, 49, 33, 0.03), 0 4px 16px rgba(10, 49, 33, 0.04);
+  overflow: hidden;
+  transition: box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.faq-item[open] {
+  box-shadow: 0 1px 2px rgba(10, 49, 33, 0.04), 0 12px 30px rgba(10, 49, 33, 0.09);
+}
+
+.faq-item summary {
+  list-style: none;
+  cursor: pointer;
+  padding: 18px 52px 18px 22px;
+  position: relative;
+  font-family: var(--font-title);
+  font-size: 15.5px;
+  font-weight: 700;
+  letter-spacing: -0.2px;
+  color: var(--color-pine);
+  line-height: 1.4;
+  transition: color 0.2s ease;
+}
+
+/* O triângulo padrão do <details> sai nos dois motores (WebKit usa o
+   pseudo-elemento próprio; o resto usa list-style). */
+.faq-item summary::-webkit-details-marker { display: none; }
+.faq-item summary::marker { content: ''; }
+
+.faq-item summary:hover { color: var(--color-coral); }
+
+.faq-item summary:focus-visible {
+  outline: 2px solid var(--color-coral);
+  outline-offset: -2px;
+}
+
+/* Seta própria, que gira ao abrir */
+.faq-item summary::after {
+  content: '\f078'; /* chevron-down */
+  font-family: 'Font Awesome 6 Free';
+  font-weight: 900;
+  position: absolute;
+  right: 22px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 12px;
+  color: var(--color-coral);
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.faq-item[open] summary::after {
+  transform: translateY(-50%) rotate(180deg);
+}
+
+/* Corpo da resposta */
+.faq-resposta {
+  padding: 0 22px 22px 22px;
+  font-size: 14.5px;
+  line-height: 1.65;
+  color: var(--color-text-primary);
+  border-top: 1px solid var(--color-border);
+  padding-top: 18px;
+  margin-top: 2px;
+}
+
+.faq-resposta p { margin: 0 0 12px 0; }
+.faq-resposta p:last-child { margin-bottom: 0; }
+
+.faq-resposta ul,
+.faq-resposta ol {
+  margin: 0 0 14px 0;
+  padding-left: 22px;
+}
+
+.faq-resposta li { margin-bottom: 7px; }
+
+.faq-sub {
+  font-family: var(--font-title);
+  font-size: 13px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-text-secondary);
+  margin: 20px 0 10px 0;
+}
+
+/* Passos numerados com destaque no número */
+.faq-passos {
+  counter-reset: faq-passo;
+  list-style: none;
+  padding-left: 0;
+}
+
+.faq-passos > li {
+  counter-increment: faq-passo;
+  position: relative;
+  padding-left: 38px;
+  margin-bottom: 11px;
+}
+
+.faq-passos > li::before {
+  content: counter(faq-passo);
+  position: absolute;
+  left: 0;
+  top: 1px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--color-pine-ultra-light);
+  color: var(--color-pine);
+  font-family: var(--font-title);
+  font-size: 12px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Blocos de nível da conta gov.br */
+.faq-nivel {
+  border-radius: 14px;
+  padding: 16px 18px;
+  margin-bottom: 14px;
+  border-left: 4px solid;
+}
+
+.faq-nivel h4 {
+  font-family: var(--font-title);
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--color-pine);
+  margin: 0 0 8px 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.faq-nivel-tag {
+  font-size: 10.5px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 4px 10px;
+  border-radius: 20px;
+  color: #FFFFFF;
+}
+
+.faq-nivel p { margin-bottom: 8px; }
+.faq-nivel ul { margin-bottom: 0; }
+
+.faq-nivel-bronze { background: rgba(176, 118, 62, 0.07); border-left-color: #B0763E; }
+.faq-nivel-bronze .faq-nivel-tag { background: #B0763E; }
+
+.faq-nivel-prata { background: rgba(120, 132, 142, 0.08); border-left-color: #78848E; }
+.faq-nivel-prata .faq-nivel-tag { background: #78848E; }
+
+.faq-nivel-ouro { background: rgba(198, 154, 42, 0.09); border-left-color: #C69A2A; }
+.faq-nivel-ouro .faq-nivel-tag { background: #C69A2A; }
+
+/* Caixas de dica e de alerta */
+.faq-dica,
+.faq-alerta {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  border-radius: 14px;
+  padding: 14px 16px;
+  font-size: 14px;
+  line-height: 1.6;
+  margin: 16px 0 0 0 !important;
+}
+
+.faq-dica {
+  background: var(--color-pine-ultra-light);
+  color: var(--color-pine);
+}
+
+.faq-dica i { color: var(--color-coral); margin-top: 3px; }
+
+.faq-alerta {
+  background: rgba(231, 76, 60, 0.07);
+  border: 1px solid rgba(231, 76, 60, 0.18);
+  color: #8E2A1E;
+}
+
+.faq-alerta i { color: #C0392B; margin-top: 3px; }
+
+/* Link pra fonte oficial */
+.faq-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 18px;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--color-coral);
+  text-decoration: none;
+  border-bottom: 1px solid rgba(255, 103, 0, 0.3);
+  padding-bottom: 2px;
+  transition: all 0.2s ease;
+}
+
+.faq-link:hover {
+  border-bottom-color: var(--color-coral);
+  gap: 11px;
+}
+
+.faq-link i { font-size: 11px; }
+
+.faq-resposta .btn-utility {
+  margin-top: 8px;
+}
+
+.faq-rodape {
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--color-text-secondary);
+  border-top: 1px solid var(--color-border);
+  padding-top: 20px;
+  margin: 0;
+}
+
+@media (max-width: 768px) {
+  .faq-item summary {
+    font-size: 15px;
+    padding: 16px 46px 16px 18px;
+  }
+  .faq-item summary::after { right: 18px; }
+  .faq-resposta { padding: 16px 18px 20px 18px; font-size: 14px; }
+  .faq-nivel { padding: 14px 16px; }
+}
+
+/* O atributo `hidden` do HTML equivale a `display:none`, mas vem da folha de
+   estilo do navegador — qualquer regra nossa com `display` (como
+   `.nav-item{display:flex}`) vence por especificidade e o elemento continua
+   aparecendo. Isso deixava o ícone do Radar Fiscal visível na barra mesmo com
+   `hidden = true`. Esta regra devolve ao atributo o efeito esperado. */
+.app-sidebar-nav .nav-item[hidden],
+.content-panel[hidden] {
+  display: none !important;
 }

@@ -5,8 +5,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Olá, Contador - Painel Administrativo</title>
   <meta name="robots" content="noindex" />
+
+  <!-- Fontes do app: Sora nos títulos, Inter no corpo (mesma decisão do
+       portal do cliente — ver cliente.html). -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
   <!-- CSS Stylesheet -->
-  <link rel="stylesheet" href="styles.css?v=20">
+  <link rel="stylesheet" href="styles.css?v=32">
   <!-- FontAwesome for icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
@@ -38,16 +45,27 @@
         <i class="fa-solid fa-bell"></i>
         <span class="notification-badge" id="noti-badge-count">3</span>
       </div>
-      <div class="agent-profile" id="header-agent-profile" style="cursor: pointer; transition: opacity 0.2s;" title="Acessar Meu Perfil" onmouseover="this.style.opacity=0.8" onmouseout="this.style.opacity=1">
-        <div class="agent-avatar">CF</div>
-        <div class="agent-info">
-          <h4>Contador Felipe</h4>
-          <span>Online</span>
+      <!-- Perfil e Sair juntos num menu só (mesmo padrão do portal do
+           cliente): um clique no avatar abre as duas opções, em vez de ter
+           o "Sair" solto competindo por espaço ao lado do perfil. -->
+      <div class="agent-profile-wrap">
+        <div class="agent-profile" id="header-agent-profile" style="cursor: pointer;" title="Menu do perfil">
+          <div class="agent-avatar">CF</div>
+          <div class="agent-info">
+            <h4>Contador Felipe</h4>
+            <span>Online</span>
+          </div>
+          <i class="fa-solid fa-chevron-down agent-profile-caret"></i>
+        </div>
+        <div class="agent-profile-menu" id="agent-profile-menu-contador" hidden>
+          <button type="button" id="btn-agent-menu-meu-perfil">
+            <i class="fa-solid fa-user-gear"></i> Meu Perfil
+          </button>
+          <button type="button" data-logout>
+            <i class="fa-solid fa-arrow-right-from-bracket"></i> Sair
+          </button>
         </div>
       </div>
-      <button class="notification-trigger" title="Sair" data-logout style="cursor:pointer;background:none;border:none;font-size:16px;color:var(--color-text-secondary);">
-        <i class="fa-solid fa-arrow-right-from-bracket"></i>
-      </button>
     </div>
   </header>
 
@@ -55,11 +73,11 @@
   <div class="dashboard-container">
 
     <!-- Global App Sidebar Menu (Left Navigation) -->
-    <aside class="app-sidebar-nav">
+    <aside class="app-sidebar-nav collapsed">
       <div class="nav-section-title" style="display: flex; justify-content: space-between; align-items: center;">
         <span>Menu do Contador</span>
-        <button id="btn-toggle-sidebar" class="btn-sidebar-collapse" title="Recolher Menu">
-          <i class="fa-solid fa-chevron-left" id="icon-toggle-sidebar"></i>
+        <button id="btn-toggle-sidebar" class="btn-sidebar-collapse" title="Expandir Menu">
+          <i class="fa-solid fa-chevron-right" id="icon-toggle-sidebar"></i>
         </button>
       </div>
       <button class="nav-item active" data-target="section-dashboard" title="Dashboard">
@@ -163,6 +181,15 @@
             </div>
           </div>
 
+          <!-- Agenda da semana -->
+          <div class="dash-card">
+            <div class="dash-card-header">
+              <h3><i class="fa-solid fa-calendar-week" style="color: var(--color-pine)"></i> Agenda da Semana</h3>
+              <span class="chat-count-badge" id="agenda-semana-count-badge">0 pendentes</span>
+            </div>
+            <div id="agenda-semana-lista" style="padding: 16px; display: flex; flex-direction: column; gap: 12px; max-height: 300px; overflow-y: auto;"></div>
+          </div>
+
           <!-- Tarefas de atendimentos em andamento -->
           <div class="dash-card">
             <div class="dash-card-header" style="justify-content: space-between; align-items: flex-start;">
@@ -175,17 +202,6 @@
 
             <!-- Tarefas renderizadas pelo app.js (localStorage oc_tarefas) — os cards demo fixos saíram -->
             <div id="tarefas-lista" style="padding: 16px; display: flex; flex-direction: column; gap: 12px; max-height: 300px; overflow-y: auto;"></div>
-          </div>
-
-          <!-- Tarefas de clientes recorrentes -->
-          <div class="dash-card">
-            <div class="dash-card-header" style="justify-content: space-between; align-items: flex-start;">
-              <div>
-                <h3><i class="fa-solid fa-file-invoice" style="color: var(--color-pine)"></i> Clientes Recorrentes</h3>
-                <p style="font-size: 11px; color: var(--color-text-secondary); margin-top: 4px;">Guia/parcelamento a gerar este mês</p>
-              </div>
-            </div>
-            <div id="guias-mensais-lista" style="padding: 16px; display: flex; flex-direction: column; gap: 12px; max-height: 300px; overflow-y: auto;"></div>
           </div>
 
         </div>
@@ -203,15 +219,15 @@
             <div id="mensagens-abertas-lista" style="padding: 16px; display: flex; flex-direction: column; gap: 12px; max-height: 300px; overflow-y: auto;"></div>
           </div>
 
-          <!-- Pagamentos não finalizados -->
+          <!-- Clientes recorrentes -->
           <div class="dash-card">
-            <div class="dash-card-header">
+            <div class="dash-card-header" style="justify-content: space-between; align-items: flex-start;">
               <div>
-                <h3><i class="fa-solid fa-file-invoice-dollar" style="color: var(--color-coral)"></i> Pagamentos Não Finalizados</h3>
-                <p style="font-size: 11px; color: var(--color-text-secondary); margin-top: 4px;">Contato direto por e-mail/WhatsApp — o cliente ainda não tem chat aberto</p>
+                <h3><i class="fa-solid fa-file-invoice" style="color: var(--color-pine)"></i> Clientes Recorrentes</h3>
+                <p style="font-size: 11px; color: var(--color-text-secondary); margin-top: 4px;">Guia/parcelamento a gerar este mês</p>
               </div>
             </div>
-            <div id="pagamentos-pendentes-lista" style="padding: 16px; display: flex; flex-direction: column; gap: 12px; max-height: 300px; overflow-y: auto;"></div>
+            <div id="guias-mensais-lista" style="padding: 16px; display: flex; flex-direction: column; gap: 12px; max-height: 300px; overflow-y: auto;"></div>
           </div>
 
         </div>
@@ -355,14 +371,16 @@
                   <button id="btn-start-timer" title="Iniciar Atendimento" style="background: none; border: none; cursor: pointer; color: #2ECC71; margin-left: 2px; padding: 0; font-size: 13px; display: flex; align-items: center;"><i class="fa-solid fa-play"></i></button>
                   <button id="btn-stop-timer" title="Pausar Atendimento" style="background: none; border: none; cursor: pointer; color: var(--color-coral); margin-left: 2px; padding: 0; display: none; font-size: 13px; align-items: center;"><i class="fa-solid fa-pause"></i></button>
                 </div>
-                <button class="btn-utility" id="btn-toggle-lock" onclick="toggleChatLock()" style="height: 32px; padding: 0 16px; border-radius: 24px; color: var(--color-text-primary); border-color: var(--color-border); margin-right: 8px; font-size: 12px; font-weight: 500; display: flex; align-items: center; gap: 6px; background-color: white;">
-                  <i class="fa-solid fa-lock"></i> Bloquear Chat
+                <!-- Ações secundárias ficam só no ícone: o nome aparece ao passar o
+                     mouse. Encerrar continua com texto por ser a única sem volta. -->
+                <button class="btn-utility btn-acao-icone" id="btn-toggle-lock" onclick="toggleChatLock()" aria-label="Bloquear chat" data-nome="Bloquear chat">
+                  <i class="fa-solid fa-lock"></i>
                 </button>
-                <button class="btn-utility" id="btn-send-acompanhamento" title="Encaminhar para o quadro de Acompanhamento — use quando o caso precisa de uma ação sua depois (declaração, parcelamento etc.)." style="height: 32px; padding: 0 16px; border-radius: 24px; color: var(--color-text-primary); border-color: var(--color-border); margin-right: 8px; font-size: 12px; font-weight: 500; display: flex; align-items: center; gap: 6px; background-color: white;">
-                  <i class="fa-solid fa-list-check"></i> Acompanhamento
+                <button class="btn-utility btn-acao-icone" id="btn-send-acompanhamento" aria-label="Acompanhamento" data-nome="Acompanhamento — o caso precisa de uma ação sua depois (declaração, parcelamento etc.)">
+                  <i class="fa-solid fa-list-check"></i>
                 </button>
                 <button class="btn-utility" id="btn-finish-chat" style="height: 32px; padding: 0 16px; border-radius: 24px; color: white; background-color: var(--color-coral); border-color: var(--color-coral); margin-right: 12px; font-size: 12px; font-weight: 500; display: flex; align-items: center; gap: 6px;">
-                  <i class="fa-solid fa-check-double"></i> Encerrar
+                  <i class="fa-solid fa-check-double"></i> Encerrar atendimento
                 </button>
               </div>
             </div>
@@ -789,6 +807,7 @@
           <div class="settings-sidebar">
             <button class="settings-tab active" data-tab="tab-geral"><i class="fa-solid fa-sliders"></i> Geral & Notificações</button>
             <button class="settings-tab" data-tab="tab-cliente"><i class="fa-solid fa-user-gear"></i> Área do Cliente</button>
+            <button class="settings-tab" data-tab="tab-radar-config"><i class="fa-solid fa-satellite-dish"></i> Radar Fiscal</button>
             <button class="settings-tab" data-tab="tab-acessos"><i class="fa-solid fa-users"></i> Acessos e Equipe</button>
             <button class="settings-tab" data-tab="tab-integracoes"><i class="fa-solid fa-link"></i> Integrações</button>
             <button class="settings-tab" data-tab="tab-ia"><i class="fa-solid fa-robot"></i> Inteligência Artificial (AIA)</button>
@@ -888,6 +907,68 @@
 
                 <button type="button" class="btn-utility primary" id="btn-timer-salvar" style="margin-top: 8px;">Salvar configuração do cronômetro</button>
                 <span id="timer-cfg-status-msg" style="font-size:12.5px;font-weight:600;margin-left:10px"></span>
+              </div>
+            </div>
+
+            <!-- TAB: Radar Fiscal -->
+            <div class="settings-pane" id="tab-radar-config">
+              <h3>Radar Fiscal</h3>
+              <p style="font-size:13px;color:var(--color-text-secondary);margin-bottom:20px;">Controle quem pode usar o Radar e quando uma consulta paga pode ser repetida.</p>
+
+              <div class="setting-block">
+                <h4 style="font-size:14px;color:var(--color-pine);margin-bottom:4px;">Regras de consulta</h4>
+                <p style="font-size:12px;color:var(--color-text-secondary);margin-bottom:14px;">Os resultados salvos são reutilizados para reduzir o consumo do Integra Contador.</p>
+
+                <div class="cfg-linha">
+                  <div>
+                    <strong class="cfg-linha-titulo">Radar no portal do cliente</strong>
+                    <span class="cfg-linha-nota">A aba só aparece para os clientes liberados na lista abaixo.</span>
+                  </div>
+                  <label class="switch"><input type="checkbox" id="cfg-radar-portal"><span class="slider round"></span></label>
+                </div>
+                <div class="cfg-linha">
+                  <div>
+                    <strong class="cfg-linha-titulo">Caixa Postal automática</strong>
+                    <span class="cfg-linha-nota">Monitora somente os clientes liberados, respeitando o intervalo definido.</span>
+                  </div>
+                  <label class="switch"><input type="checkbox" id="cfg-radar-caixa-auto"><span class="slider round"></span></label>
+                </div>
+                <div class="cfg-linha">
+                  <div>
+                    <strong class="cfg-linha-titulo">Intervalo da Caixa Postal</strong>
+                    <span class="cfg-linha-nota">Uma verificação por cliente dentro deste período.</span>
+                  </div>
+                  <div style="display:flex;align-items:center;gap:7px;"><input type="number" class="cfg-input" id="cfg-radar-caixa-dias" min="1" max="30" style="width:72px;"><span style="font-size:12px;color:var(--color-text-secondary);">dias</span></div>
+                </div>
+                <div class="cfg-linha">
+                  <div>
+                    <strong class="cfg-linha-titulo">Validade dos parcelamentos</strong>
+                    <span class="cfg-linha-nota">Use 0 para consultar uma vez e manter o resultado até você atualizar manualmente.</span>
+                  </div>
+                  <div style="display:flex;align-items:center;gap:7px;"><input type="number" class="cfg-input" id="cfg-radar-parcelamentos-dias" min="0" max="365" style="width:72px;"><span style="font-size:12px;color:var(--color-text-secondary);">dias</span></div>
+                </div>
+                <div class="cfg-linha">
+                  <div>
+                    <strong class="cfg-linha-titulo">Situação Fiscal sob demanda</strong>
+                    <span class="cfg-linha-nota">Sem bloqueio de frequência: você decide quando solicitar um novo relatório.</span>
+                  </div>
+                  <span class="status-badge" style="background:var(--color-pine-ultra-light);color:var(--color-pine);">Livre</span>
+                </div>
+                <div class="cfg-linha">
+                  <div>
+                    <strong class="cfg-linha-titulo">Cliente pode emitir guias</strong>
+                    <span class="cfg-linha-nota">Libera a emissão das parcelas encontradas no portal do cliente.</span>
+                  </div>
+                  <label class="switch"><input type="checkbox" id="cfg-radar-cliente-das"><span class="slider round"></span></label>
+                </div>
+                <button type="button" class="btn-utility primary" id="btn-radar-config-salvar" style="margin-top:10px;"><i class="fa-solid fa-save"></i> Salvar regras</button>
+                <span id="radar-config-status" style="font-size:12.5px;font-weight:600;margin-left:10px;"></span>
+              </div>
+
+              <div class="setting-block">
+                <h4 style="font-size:14px;color:var(--color-pine);margin-bottom:4px;">Clientes liberados</h4>
+                <p style="font-size:12px;color:var(--color-text-secondary);margin-bottom:14px;">Ative individualmente. Quem estiver desligado não vê a aba e não gera consultas.</p>
+                <div id="cfg-radar-clientes" class="radar-config-clientes"><p class="cfg-vazio">Carregando clientes…</p></div>
               </div>
             </div>
 
@@ -1606,20 +1687,59 @@
       <section class="content-panel" id="section-radar-fiscal">
         <div class="panel-header-desc">
           <h2>Radar Fiscal</h2>
-          <p>Consulte pendências na Receita Federal (Caixa Postal) pra qualquer CPF ou CNPJ, sem precisar de um cliente cadastrado.</p>
+          <p>Consulte um serviço por vez e reutilize os dados já salvos para controlar o custo do Integra Contador.</p>
         </div>
 
-        <div class="financeiro-card" style="max-width: 640px;">
-          <label style="font-size: 13px; font-weight: 600; color: var(--color-text-secondary); margin-bottom: 6px; display: block;">CPF ou CNPJ</label>
-          <div style="display: flex; gap: 10px;">
-            <input type="text" id="radar-avulso-documento" class="form-input" placeholder="000.000.000-00 ou 00.000.000/0000-00" style="flex: 1;">
-            <button class="btn-utility primary" onclick="consultarRadarFiscalAvulso()"><i class="fa-solid fa-magnifying-glass-arrow-right"></i> Consultar</button>
+        <div class="radar-cliente-bar">
+          <div class="radar-cliente-campo">
+            <label class="form-label" for="radar-interno-cliente">Cliente com procuração eletrônica</label>
+            <select id="radar-interno-cliente" class="form-select"><option value="">Selecione um cliente</option></select>
           </div>
+          <div id="radar-interno-cliente-meta" class="radar-cliente-meta">Escolha um cliente para vincular o resultado e evitar consultas repetidas.</div>
+          <button type="button" class="btn-utility" onclick="radarInternoTestarConexao(this)"><i class="fa-solid fa-plug-circle-check"></i> Testar conexão</button>
+          <span id="radar-interno-conexao-resultado" class="radar-conexao-status"></span>
         </div>
 
-        <div id="radar-avulso-content" style="background: var(--color-bg); border-radius: 12px; padding: 24px; text-align: center; border: 1px dashed var(--color-border); max-width: 640px; margin-top: 16px;">
-          <i class="fa-solid fa-satellite-dish" style="font-size: 32px; color: var(--color-text-secondary); opacity: 0.3; margin-bottom: 12px;"></i>
-          <p style="font-size: 14px; color: var(--color-text-secondary); margin: 0;">Digite um CPF/CNPJ acima e clique em "Consultar".</p>
+        <div class="settings-tabs" id="radar-secao-tabs">
+          <button type="button" class="settings-tab active" data-radar-secao-tab="caixa"><i class="fa-solid fa-envelope-open-text"></i> Caixa Postal</button>
+          <button type="button" class="settings-tab" data-radar-secao-tab="sitfis"><i class="fa-solid fa-file-lines"></i> Situação Fiscal</button>
+          <button type="button" class="settings-tab" data-radar-secao-tab="parcelamentos"><i class="fa-solid fa-file-invoice-dollar"></i> Parcelamentos</button>
+          <button type="button" class="settings-tab" data-radar-secao-tab="cnd"><i class="fa-solid fa-certificate"></i> CND</button>
+        </div>
+
+        <div class="settings-pane active radar-servico-pane" id="radar-pane-caixa">
+          <h3><i class="fa-solid fa-envelope-open-text"></i> Caixa Postal do e-CAC</h3>
+          <p>Mostra as mensagens do cliente. Dentro do intervalo configurado, o resultado salvo é reutilizado sem uma nova cobrança.</p>
+          <button type="button" class="btn-utility primary" onclick="radarInternoCaixaPostal(this)">Consultar Caixa Postal</button>
+          <div id="radar-interno-caixa-resultado" class="radar-resultado"></div>
+        </div>
+
+        <div class="settings-pane radar-servico-pane" id="radar-pane-sitfis">
+          <h3><i class="fa-solid fa-file-lines"></i> Situação Fiscal</h3>
+          <p>Solicita um novo protocolo e emite somente o relatório SITFIS oficial. Esta consulta fica livre, sempre sob demanda.</p>
+          <button type="button" class="btn-utility primary" onclick="radarInternoSituacaoFiscal(this)">Emitir Situação Fiscal</button>
+          <div id="radar-interno-sitfis-resultado" class="radar-resultado"></div>
+        </div>
+
+        <div class="settings-pane radar-servico-pane" id="radar-pane-parcelamentos">
+          <h3><i class="fa-solid fa-file-invoice-dollar"></i> Parcelamentos</h3>
+          <p>A primeira consulta fica salva. As próximas aberturas usam esse resultado até você atualizar a regra ou forçar uma nova consulta.</p>
+          <div class="radar-parcelamento-acoes">
+            <select id="radar-interno-regime" class="form-select">
+              <option value="">Selecione o regime</option>
+              <option value="simples">Simples Nacional</option>
+              <option value="mei">MEI</option>
+            </select>
+            <button type="button" class="btn-utility primary" onclick="radarInternoParcelamentos(this)">Consultar Parcelamentos</button>
+            <label class="radar-forcar"><input type="checkbox" id="radar-interno-forcar"> Atualizar mesmo se houver dados salvos</label>
+          </div>
+          <div id="radar-interno-parcelamentos-resultado" class="radar-resultado"></div>
+        </div>
+
+        <div class="settings-pane radar-servico-pane" id="radar-pane-cnd">
+          <h3><i class="fa-solid fa-certificate"></i> CND</h3>
+          <p>A CND usa uma API separada do Integra Contador e exige contratação e credenciais próprias. Ela permanece indisponível para não confundir o relatório SITFIS com uma certidão.</p>
+          <button type="button" class="btn-utility" disabled>Credenciais não configuradas</button>
         </div>
       </section>
 
@@ -1935,12 +2055,19 @@
               <h3 style="margin: 0; color: var(--color-pine);"><i class="fa-solid fa-shield-halved" style="color: var(--color-coral);"></i> Radar Fiscal (Serpro)</h3>
               <p style="margin: 4px 0 0 0; font-size: 13px; color: var(--color-text-secondary);">Consulte pendências na Receita Federal e dívida ativa sob demanda.</p>
             </div>
-            <button class="btn-utility primary" onclick="consultarRadarFiscalDossie()"><i class="fa-solid fa-magnifying-glass-arrow-right"></i> Puxar Capivara</button>
           </div>
-          
+
+          <!-- Uma ação por serviço: o Integra Contador cobra por requisição,
+               então nada é disparado junto nem automaticamente. -->
+          <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px;">
+            <button class="btn-utility primary" onclick="radarCaixaPostal()"><i class="fa-solid fa-envelope-open-text"></i> Caixa Postal</button>
+            <button class="btn-utility" onclick="radarSituacaoFiscal()"><i class="fa-solid fa-file-lines"></i> Situação fiscal</button>
+            <button class="btn-utility" onclick="radarParcelamentos()"><i class="fa-solid fa-file-invoice-dollar"></i> Parcelamentos e guias</button>
+          </div>
+
           <div id="dossier-radar-content" style="background: var(--color-bg); border-radius: 12px; padding: 24px; text-align: center; border: 1px dashed var(--color-border);">
             <i class="fa-solid fa-satellite-dish" style="font-size: 32px; color: var(--color-text-secondary); opacity: 0.3; margin-bottom: 12px;"></i>
-            <p style="font-size: 14px; color: var(--color-text-secondary); margin: 0;">Clique em "Puxar Capivara" para consultar os dados oficiais em tempo real (Simulação).</p>
+            <p style="font-size: 14px; color: var(--color-text-secondary); margin: 0;">Cada consulta acima é uma requisição paga ao Integra Contador e exige procuração eletrônica do cliente no e-CAC.</p>
           </div>
         </div>
 
@@ -2046,15 +2173,15 @@
   <!-- JS Logic -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.2/dist/html2pdf.bundle.min.js"></script>
-  <script src="config.js"></script>
-  <script src="oc-data.js"></script>
+  <script src="config.js?v=2"></script>
+  <script src="oc-data.js?v=32"></script>
   <script src="triagem-catalogo.js"></script>
   <script src="config-cliente.js"></script>
   <script src="relatorio-pdf.js"></script>
   <script src="ai-analysis.js"></script>
   <script src="kanban.js"></script>
   <script src="equipe.js"></script>
-  <script src="app.js"></script>
+  <script src="app.js?v=34"></script>
   <!-- Depois do app.js: reorganiza o painel para o celular (barra inferior,
        folha "Mais" e as três vistas do atendimento). Só age abaixo de 768px. -->
   <script src="contador-mobile.js"></script>

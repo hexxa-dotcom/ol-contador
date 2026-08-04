@@ -48,6 +48,10 @@ async function confirmCobranca(admin, cob) {
       // existir no banco — sem este fallback, um erro de "coluna não existe"
       // derrubava o INSERT/UPDATE inteiro e o cliente deixava de ser criado.
       const enderecoCampos = { cep: d.cep || null, endereco: d.endereco || null, numero: d.numero || null, bairro: d.bairro || null };
+      // Aciona a triagem obrigatória no primeiro login (ver cliente.js e
+      // scripts/onboarding-pendente.sql). Só em clientes NOVOS — quem já tinha
+      // conta e comprou de novo não volta a ficar preso nessa tela.
+      const onboardingCampos = { onboarding_pendente: true };
       const colunaFaltando = (msg) => /column|schema cache/i.test(msg || '');
 
       if (!cliente) {
@@ -59,25 +63,55 @@ async function confirmCobranca(admin, cob) {
           status: 'pending'
         };
         let { data: novoCliente, error: erroCliente } = await admin.from('clientes')
-          .insert({ ...basePayload, ...enderecoCampos }).select().single();
+          .insert({ ...basePayload, ...enderecoCampos, ...onboardingCampos }).select().single();
         if (erroCliente && colunaFaltando(erroCliente.message)) {
           ({ data: novoCliente, error: erroCliente } = await admin.from('clientes').insert(basePayload).select().single());
         }
         if (erroCliente) console.error('criação do cliente na confirmação falhou:', erroCliente.message);
         cliente = novoCliente || null;
       } else {
-        // Já existia (comprou de novo) — atualiza só o contato, preserva o resto do prontuário.
-        const baseUpdate = { email: d.email, phone: d.phone, sexo: d.sexo || null, cidade: d.cidade || null, estado: d.estado || null };
-        const { error: erroUpdate } = await admin.from('clientes').update({ ...baseUpdate, ...enderecoCampos }).eq('id', cliente.id);
-        if (erroUpdate && colunaFaltando(erroUpdate.message)) {
-          await admin.from('clientes').update(baseUpdate).eq('id', cliente.id);
+        // Já existia (comprou de novo). NUNCA sobrescreve contato já cadastrado
+        // com o que veio agora no formulário: o checkout é público, sem login,
+        // então nada garante que quem digitou este CPF/CNPJ é o dono dele —
+        // sobrescrever e-mail/telefone aqui seria um jeito trivial de sequestrar
+        // a conta de outra pessoa (bastaria saber o CPF dela e comprar de novo
+        // com o próprio e-mail, herdando o link de acesso e o login automático).
+        // Só completa o que ainda estiver vazio (ex.: cadastro feito pelo
+        // contador sem e-mail). Atualização de contato de verdade só logado,
+        // na área do cliente.
+        const baseUpdate = {};
+        if (!cliente.email && d.email) baseUpdate.email = d.email;
+        if (!cliente.phone && d.phone) baseUpdate.phone = d.phone;
+        if (!cliente.sexo && d.sexo) baseUpdate.sexo = d.sexo;
+        if (!cliente.cidade && d.cidade) baseUpdate.cidade = d.cidade;
+        if (!cliente.estado && d.estado) baseUpdate.estado = d.estado;
+        const enderecoSoVazio = {};
+        if (!cliente.cep && enderecoCampos.cep) enderecoSoVazio.cep = enderecoCampos.cep;
+        if (!cliente.endereco && enderecoCampos.endereco) enderecoSoVazio.endereco = enderecoCampos.endereco;
+        if (!cliente.numero && enderecoCampos.numero) enderecoSoVazio.numero = enderecoCampos.numero;
+        if (!cliente.bairro && enderecoCampos.bairro) enderecoSoVazio.bairro = enderecoCampos.bairro;
+        if (Object.keys(baseUpdate).length || Object.keys(enderecoSoVazio).length) {
+          const { error: erroUpdate } = await admin.from('clientes').update({ ...baseUpdate, ...enderecoSoVazio }).eq('id', cliente.id);
+          if (erroUpdate && colunaFaltando(erroUpdate.message)) {
+            await admin.from('clientes').update(baseUpdate).eq('id', cliente.id);
+          }
+          // Reflete no objeto em memória: o resto desta função (criação de
+          // conta, link de acesso, login automático) tem que enxergar o e-mail
+          // certo — o que ficou no banco, não o que foi só digitado agora.
+          Object.assign(cliente, baseUpdate, enderecoSoVazio);
         }
       }
       if (cliente && (d.assunto || d.summary)) {
+        // Status 'rascunho', não 'enviada': isto é só o resumo que a pessoa
+        // escreveu na hora de agendar, pré-preenchendo o formulário da
+        // triagem. Se nascesse como 'enviada', a tela mostraria direto o modo
+        // resumo (ver triagem.js) e a pessoa nunca passaria pelo formulário —
+        // era exatamente por isso que a triagem obrigatória pós-pagamento não
+        // acontecia. Só um envio de verdade pelo cliente muda esse status.
         await admin.from('triagens').insert({
           cliente_ref: cliente.id, assunto: d.assunto || (servico ? servico.name : ''),
           descricao: d.summary ? String(d.summary).slice(0, LIMITE_RESUMO) : null,
-          status: 'enviada', enviada_at: new Date().toISOString()
+          status: 'rascunho'
         });
       }
     }
@@ -144,4 +178,35 @@ async function confirmCobranca(admin, cob) {
   return { status: 'paid', appointmentId };
 }
 
-module.exports = { confirmCobranca, nowTime, enviarLinkDeAcesso };
+// Login automático logo após o pagamento — sem esperar o cliente abrir o
+// e-mail e clicar no link (esse link continua sendo enviado, como reserva
+// pra quando a pessoa voltar depois). `generateLink` não manda nada: só gera
+// um token válido que o navegador troca por sessão na hora, via
+// sb.auth.verifyOtp({ token_hash, type: 'magiclink' }) — ver checkout.html.
+// Chamar isto exige que quem pediu já provou ser o dono do pagamento (o
+// poll_token da cobrança), nunca a partir de um id adivinhável.
+async function gerarAutoLogin(admin, clienteRef) {
+  try {
+    const { data: cliente } = await admin.from('clientes').select('email, user_id').eq('id', clienteRef).maybeSingle();
+    if (!cliente || !cliente.email) return null;
+    const { data, error } = await admin.auth.admin.generateLink({ type: 'magiclink', email: cliente.email });
+    if (error || !data || !data.properties) {
+      if (error) console.error('geração de login automático falhou:', error.message);
+      return null;
+    }
+    // generateLink cria a conta de autenticação sozinho se, por algum motivo,
+    // o createUser lá em cima (confirmCobranca) tiver falhado antes. Sem este
+    // reforço, o cliente ficaria autenticado com um user_id que a tabela
+    // `clientes` nunca chegou a registrar — e my_client_id() (RLS) não
+    // resolveria mais para ninguém.
+    if (data.user && data.user.id && data.user.id !== cliente.user_id) {
+      await admin.from('clientes').update({ user_id: data.user.id }).eq('id', clienteRef);
+    }
+    return { email: cliente.email, tokenHash: data.properties.hashed_token };
+  } catch (e) {
+    console.error('geração de login automático falhou:', e.message);
+    return null;
+  }
+}
+
+module.exports = { confirmCobranca, nowTime, enviarLinkDeAcesso, gerarAutoLogin };

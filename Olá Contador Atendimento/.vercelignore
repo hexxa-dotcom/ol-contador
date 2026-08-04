@@ -11,3 +11,21 @@
 /db/
 /.npm-cache/
 .DS_Store
+
+# Nada abaixo é servido ao público. Estes arquivos estavam respondendo 200 em
+# produção: as migrações entregavam o desenho inteiro do banco (nomes de
+# tabelas, funções privilegiadas e o texto de cada policy de RLS), e as notas
+# internas expunham backlog, CNPJ e o histórico de vulnerabilidades já
+# corrigidas. Nenhum deles vazava credencial, mas juntos davam o mapa pronto
+# pra quem quisesse sondar o RLS.
+/scripts/
+/backups/
+*.backup
+/PENDENCIAS-MVP.md
+/MODO-DEV.md
+/README.md
+/test-sb.js
+/update_bg.py
+/update_colors.py
+/skills-lock.json
+/.agents/

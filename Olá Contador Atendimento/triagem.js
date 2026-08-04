@@ -16,6 +16,9 @@ window.TriagemUI = (function () {
   var documentos = [];
   var salvarTimer = null;
   var enviando = false;
+  // true só enquanto o cliente clicou em "Editar" no resumo — volta pra false
+  // assim que ele salva de novo, pra reaparecer como resumo (não como formulário).
+  var editandoManualmente = false;
 
   // --------------------------------------------------------------- utilidades
   function $(id) { return document.getElementById(id); }
@@ -42,9 +45,55 @@ window.TriagemUI = (function () {
       agendarSalvar();
       atualizarMedidor();
     });
+    var btnEditar = $('triagem-resumo-editar');
+    if (btnEditar) btnEditar.addEventListener('click', function () {
+      editandoManualmente = true;
+      atualizarModoExibicao();
+    });
     atualizarMedidor();
     atualizarBadge();
     desenharSalaDeEspera();
+    atualizarModoExibicao();
+  }
+
+  // Enquanto a triagem não foi enviada, mostra o formulário normal (é a
+  // primeira vez que a pessoa está contando o caso). Depois de enviada, o
+  // padrão vira o resumo — sem parecer uma tarefa pendente — e o formulário
+  // só reaparece se o cliente pedir pra editar.
+  function atualizarModoExibicao() {
+    var resumo = $('triagem-resumo');
+    var formArea = $('triagem-form-area');
+    if (!resumo || !formArea) return;
+    var mostrarResumo = triagem.status === 'enviada' && !editandoManualmente;
+    resumo.hidden = !mostrarResumo;
+    formArea.hidden = mostrarResumo;
+    if (mostrarResumo) desenharResumo();
+  }
+
+  function desenharResumo() {
+    var a = OC_TRIAGEM.acharAssunto(triagem.assunto);
+    var elAssunto = $('triagem-resumo-assunto');
+    if (elAssunto) {
+      elAssunto.innerHTML = a
+        ? '<i class="fa-solid ' + a.icone + '"></i> ' + esc(a.titulo)
+        : 'Seu caso';
+    }
+    var elDescricao = $('triagem-resumo-descricao');
+    if (elDescricao) elDescricao.textContent = triagem.descricao || '—';
+
+    var box = $('triagem-resumo-respostas');
+    if (!box) return;
+    box.innerHTML = '';
+    if (a) {
+      a.perguntas.forEach(function (p) {
+        var valor = triagem.respostas[p.id];
+        if (!valor) return;
+        var item = document.createElement('div');
+        item.className = 'triagem-resumo-item';
+        item.innerHTML = '<span class="triagem-resumo-label">' + esc(p.label) + '</span><p>' + esc(valor) + '</p>';
+        box.appendChild(item);
+      });
+    }
   }
 
   async function carregarTriagem() {
@@ -347,10 +396,21 @@ window.TriagemUI = (function () {
     if (!ok) { btn.innerHTML = antes; return; }
 
     btn.innerHTML = '<i class="fa-solid fa-check"></i> Enviado — atualizar';
-    avisar('Pronto! O contador já foi avisado e vai chegar sabendo do seu caso.', 'ok');
+    var primeiroNome = window.primeiroNomeCliente ? window.primeiroNomeCliente() : '';
+    avisar((primeiroNome ? 'Pronto, ' + primeiroNome + '! ' : 'Pronto! ') +
+      'O contador já foi avisado e vai chegar sabendo do seu caso.', 'ok');
     atualizarBadge();
     desenharSalaDeEspera();
+    // Espera um instante antes de trocar pro resumo — senão o aviso "Pronto!"
+    // (que mora dentro da barra de envio) some junto com ela na mesma hora.
+    setTimeout(function () {
+      editandoManualmente = false;
+      atualizarModoExibicao();
+    }, 1800);
     if (window.montarLinhaDoTempo) window.montarLinhaDoTempo();
+    // Se essa triagem era a etapa obrigatória do onboarding pós-pagamento,
+    // libera o cliente pro resto do portal (ver cliente.js).
+    if (window.finalizarOnboardingAposTriagem) window.finalizarOnboardingAposTriagem();
   }
 
   // Aviso no menu enquanto a triagem não foi entregue.
@@ -382,8 +442,8 @@ window.TriagemUI = (function () {
         '<i class="fa-solid ' + (enviada ? 'fa-circle-check' : 'fa-hourglass-half') + '"></i>' +
         '<div>' +
           '<strong>' + (enviada
-            ? 'Tudo certo — é só aguardar seu horário'
-            : 'Seu atendimento já está marcado') + '</strong>' +
+            ? 'Tudo certo — nosso time já está cuidando'
+            : 'Seu atendimento já começou') + '</strong>' +
           '<p>' + esc(formatarQuando(quando)) +
             (enviada ? '' : '. Aproveite a espera para contar seu caso aqui embaixo.') + '</p>' +
         '</div>';

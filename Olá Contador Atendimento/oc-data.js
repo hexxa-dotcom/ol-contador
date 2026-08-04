@@ -396,6 +396,15 @@ async function routeTesteContador(path, method, q, body) {
     salvarDemo(TEST_KEYS.config, testConfigStore);
     return jsonResponse({ ok: true, salvas: Object.keys(body || {}) });
   }
+  // Move o card do cliente no Kanban de Acompanhamento. Em modo demo não há
+  // e-mail de verdade (não tem RESEND_API_KEY nem cliente real do outro
+  // lado) — só grava a etapa, pra o board continuar funcionando na demo.
+  if (path === '/api/status' && q.get('acao') === 'mover-etapa-kanban' && method === 'POST') {
+    const cfg = configTeste();
+    cfg.kanban_etapas = { ...(cfg.kanban_etapas || {}), [body.clientId]: body.status };
+    salvarDemo(TEST_KEYS.config, testConfigStore);
+    return jsonResponse({ ok: true, status: body.status });
+  }
   if (path === '/api/servicos' && method === 'GET') return jsonResponse([
     { id: 'irpf', name: 'Consulta IRPF', description: 'Atendimento para declaração, malha fina e pendências de CPF.', price: 197, priceCents: 19700, recurrence: 'once', active: true },
     { id: 'mei', name: 'Regularização MEI', description: 'Orientação para DAS, declaração anual e pendências do MEI.', price: 147, priceCents: 14700, recurrence: 'once', active: true }
@@ -454,10 +463,18 @@ function mapClient(r, messages, triagem) {
     checklist: r.checklist || {}, email: r.email || null, phone: r.phone || null,
     recorrente: !!r.recorrente, recorrenteTipo: r.recorrente_tipo || null,
     recorrenteDiaVenc: r.recorrente_dia_venc || null,
+    // Radar Fiscal: sinalizador levantado pela varredura semanal da Caixa
+    // Postal e o regime que define qual sistema de parcelamento consultar.
+    caixaPostalNovas: !!r.caixa_postal_novas,
+    caixaPostalChecadaEm: r.caixa_postal_checada_em || null,
+    regimeTributario: r.regime_tributario || null,
     ultimoFinalizadoEm: r.ultimo_atendimento_finalizado_em || null,
     sexo: r.sexo || null, cidade: r.cidade || null, estado: r.estado || null,
     cep: r.cep || null, endereco: r.endereco || null, numero: r.numero || null,
     bairro: r.bairro || null, notas: r.notas || null,
+    // Onboarding obrigatório pós-pagamento (ver cliente.js) — true só entre a
+    // confirmação do pagamento (api/_lib/pagamento.js) e o envio da triagem.
+    onboardingPendente: !!r.onboarding_pendente,
     messages: messages || [], triagem: triagem || null };
 }
 function mapTriagem(r) {
@@ -647,6 +664,7 @@ async function uploadDocumento(body) {
 // ============================================================================
 const PASSTHROUGH = [
   /^\/api\/copilot$/,
+  /^\/api\/radar-fiscal$/,
   /^\/api\/documentos\/\d+\/analisar$/,
   /^\/api\/checkout$/,
   /^\/api\/checkout\/\d+\/status$/,
@@ -912,6 +930,13 @@ async function routeApi(u, init, _fetch) {
         const { data, error } = await sb.from('triagens').insert(patch).select().single();
         if (error) throw error;
         linha = data;
+      }
+      if (body.enviar) {
+        // Libera o onboarding obrigatório pós-pagamento (ver cliente.js). O
+        // RLS de clientes só deixa staff atualizar a linha, então isto passa
+        // por uma função SECURITY DEFINER restrita a apagar a própria flag
+        // (scripts/onboarding-pendente.sql) — nunca um update direto na tabela.
+        await sb.rpc('concluir_onboarding_cliente');
       }
       return jsonResponse(mapTriagem(linha));
     }

@@ -7,6 +7,7 @@
 // expirava) ficava para sempre como um cliente "pending" órfão, sem nenhuma
 // cobrança paga atrás dele.
 // body: { name, cpfCnpj, email, phone, sexo, cep, endereco, numero, bairro, cidade, estado, servicoId, date, time, summary, assunto, metodoPagamento }
+const crypto = require('crypto');
 const asaas = require('./_lib/asaas');
 const { adminClient } = require('./_lib/auth');
 const { validarCpfCnpj } = require('../documento');
@@ -49,6 +50,10 @@ module.exports = async (req, res) => {
       cep: cep || null, endereco: endereco || null, numero: numero || null, bairro: bairro || null,
       cidade: cidade || null, estado: estado || null, assunto: assunto || null, summary: summary || null
     };
+    // Segredo opaco que só este navegador recebe — sem ele, /api/status?cobrancaId=
+    // seria adivinhável (id sequencial) e daria pra consultar, ou herdar o login
+    // automático de, o pagamento de outra pessoa (ver checkout-login-automatico.sql).
+    const pollToken = crypto.randomUUID();
 
     if (cartao) {
       // Sem formulário de cartão aqui: o cliente completa em `invoiceUrl`, a
@@ -59,11 +64,11 @@ module.exports = async (req, res) => {
         cliente_ref: clientId, servico_id: servicoId, asaas_customer_id: customerId,
         asaas_payment_id: payment.id, valor_cents: precoCents, status: 'pending',
         billing_type: 'CREDIT_CARD', invoice_url: payment.invoiceUrl,
-        appt_date: date || null, appt_time: time || null, dados_cliente: dadosCliente
+        appt_date: date || null, appt_time: time || null, dados_cliente: dadosCliente, poll_token: pollToken
       }).select().single();
       if (error) throw error;
       return res.json({
-        clientId, cobrancaId: cob.id, servico: { id: servico.id, name: servico.name },
+        clientId, cobrancaId: cob.id, pollToken, servico: { id: servico.id, name: servico.name },
         valor: precoCents / 100, metodoPagamento: 'cartao', invoiceUrl: payment.invoiceUrl, status: 'pending'
       });
     }
@@ -74,12 +79,12 @@ module.exports = async (req, res) => {
       cliente_ref: clientId, servico_id: servicoId, asaas_customer_id: customerId,
       asaas_payment_id: payment.id, valor_cents: precoCents, status: 'pending',
       billing_type: 'PIX', pix_payload: qr.payload, pix_image: qr.encodedImage, invoice_url: payment.invoiceUrl,
-      appt_date: date || null, appt_time: time || null, dados_cliente: dadosCliente
+      appt_date: date || null, appt_time: time || null, dados_cliente: dadosCliente, poll_token: pollToken
     }).select().single();
     if (error) throw error;
 
     res.json({
-      clientId, cobrancaId: cob.id, servico: { id: servico.id, name: servico.name },
+      clientId, cobrancaId: cob.id, pollToken, servico: { id: servico.id, name: servico.name },
       valor: precoCents / 100, valorOriginal: servico.price_cents / 100, metodoPagamento: 'pix',
       pixPayload: qr.payload, pixImage: qr.encodedImage, invoiceUrl: payment.invoiceUrl, status: 'pending'
     });

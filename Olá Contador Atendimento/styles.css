@@ -13,8 +13,8 @@
   --color-text-secondary: #4A6B63;
   --color-border: #C8BCAC;
   --color-shadow: rgba(12, 84, 70, 0.08);
-  --font-title: 'Outfit', sans-serif;
-  --font-body: 'Outfit', sans-serif;
+  --font-title: 'Sora', sans-serif;
+  --font-body: 'Inter', sans-serif;
   
   /* Chat Customization Variables */
   --chat-bg-color: #EBEBDF;
@@ -115,7 +115,7 @@ body {
 /* Header */
 .app-header {
   height: 70px;
-  background-color: var(--color-pine);
+  background: linear-gradient(165deg, var(--color-pine-light) 0%, var(--color-pine) 55%);
   color: white;
   display: flex;
   align-items: center;
@@ -210,11 +210,62 @@ body {
   background: rgba(255, 255, 255, 0.12);
 }
 
+/* Menu do avatar (Meu Perfil + Sair juntos): base pro desktop — o portal do
+   cliente já tinha essa mesma peça, mas só ligada dentro do media query de
+   celular. Aqui vira o padrão nas duas telas, pros dois lados do sistema. */
+.agent-profile-wrap { position: relative; }
+
+.agent-profile-caret {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.6);
+  margin-left: 2px;
+}
+
+.agent-profile-menu {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  min-width: 180px;
+  background: var(--color-card);
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+  overflow: hidden;
+  z-index: 70;
+}
+
+.agent-profile-menu button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 12px 16px;
+  border: none;
+  background: none;
+  font-family: var(--font-title);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text-primary);
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.agent-profile-menu button:hover { background: var(--color-bg); }
+
+.agent-profile-menu button + button {
+  border-top: 1px solid var(--color-border);
+}
+/* Vermelho só no Sair — os outros itens (Agendamento, Histórico, Mensagens
+   etc.) são navegação normal, não uma ação destrutiva. */
+.agent-profile-menu button[data-logout] {
+  color: #C0392B;
+}
+
 .agent-avatar {
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  background-color: var(--color-coral);
+  background: linear-gradient(155deg, #FF8A42 0%, var(--color-coral) 60%);
   color: white;
   display: flex;
   align-items: center;
@@ -222,7 +273,7 @@ body {
   font-weight: 700;
   font-size: 13px;
   font-family: var(--font-title);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18), inset 0 1px 1px rgba(255, 255, 255, 0.35);
 }
 
 .agent-info h4 {
@@ -341,14 +392,18 @@ body {
 }
 
 .nav-item.active {
-  background-color: var(--color-pine-ultra-light);
+  background: linear-gradient(155deg, #EDF6F3 0%, var(--color-pine-ultra-light) 70%);
   color: var(--color-pine);
   font-weight: 600;
   box-shadow: inset 0 0 0 1px rgba(12, 84, 70, 0.15);
 }
 
 .nav-item.active i {
-  color: var(--color-coral);
+  /* Antes usava var(--color-coral) — a mesma cor do badge de não-lidas.
+     Quando o item "Atendimento" está ativo E tem badge, ícone e aviso
+     ficavam ambos laranja, um colado no outro, e o badge (que precisa
+     chamar atenção) se camuflava no ícone (que só indica seleção). */
+  color: var(--color-pine);
 }
 
 .nav-item i {
@@ -369,7 +424,13 @@ body {
   height: 100%;
   overflow: hidden;
   position: relative;
-  background-color: var(--color-bg);
+  /* Gradiente radial bem sutil (tom mais claro e quente no topo, sem puxar
+     pro verde) em vez de cor chapada — dá uma leve profundidade ao fundo.
+     Repara na cor de base (--color-bg): sozinha ela já é neutra, mas outros
+     elementos da tela usam bastante --color-pine-ultra-light (um verde-menta
+     bem claro) em destaques, o que faz o conjunto ler "esverdeado". Este
+     gradiente usa um creme mais quente de propósito, pra contrabalançar. */
+  background: radial-gradient(1400px 900px at 50% -5%, #F5F4E9 0%, var(--color-bg) 60%);
 }
 
 .content-panel {
@@ -378,6 +439,20 @@ body {
   height: 100%;
   overflow-y: auto;
   padding: 28px;
+}
+
+/* Sem isso, os filhos diretos de um content-panel (flex-direction:column)
+   ficam com flex-shrink:1 por padrão — quando o conteúdo junto é mais alto
+   que a tela, em vez de rolar (que é o que overflow-y:auto acima deveria
+   garantir), o flexbox ESPREME cada filho pra caber, sem nunca disparar
+   scroll (scrollHeight fica igual a clientHeight, porque nada realmente
+   "estoura" a caixa — só fica menor que deveria). Card com overflow:hidden
+   nessa situação perde conteúdo de verdade (ex.: Caixa Postal do Radar
+   Fiscal cortada, mostrando só o cabeçalho). flex-shrink:0 garante que cada
+   filho mantém o tamanho natural do conteúdo, e aí o scroll do painel entra
+   em ação normalmente. */
+.content-panel > * {
+  flex-shrink: 0;
 }
 
 @keyframes panelFadeInUp {
@@ -402,16 +477,17 @@ body {
 
 .panel-header-desc h2 {
   font-family: var(--font-title);
-  font-size: 26px;
+  font-size: 28px;
   font-weight: 700;
   color: var(--color-pine);
   margin-bottom: 4px;
-  letter-spacing: -0.5px;
+  letter-spacing: -0.7px;
 }
 
 .panel-header-desc p {
-  font-size: 14px;
+  font-size: 13.5px;
   color: var(--color-text-secondary);
+  font-weight: 400;
 }
 
 /* Rótulo de cada grupo do dashboard */
@@ -441,7 +517,7 @@ body {
   border: 1px solid rgba(12, 84, 70, 0.12);
   border-radius: 20px;
   padding: 22px 20px;
-  box-shadow: 0 4px 20px var(--color-shadow);
+  box-shadow: 0 1px 2px rgba(10, 49, 33, 0.08), 0 4px 20px var(--color-shadow);
   transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
   position: relative;
   overflow: hidden;
@@ -515,7 +591,7 @@ body {
   border: 1px solid rgba(12, 84, 70, 0.12);
   border-radius: 20px;
   padding: 24px;
-  box-shadow: 0 4px 20px var(--color-shadow);
+  box-shadow: 0 1px 2px rgba(10, 49, 33, 0.08), 0 4px 20px var(--color-shadow);
   transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
@@ -1606,13 +1682,14 @@ body {
 }
 
 .btn-utility.primary {
-  background-color: var(--color-coral);
+  background: linear-gradient(155deg, #FF8A42 0%, var(--color-coral) 65%);
   color: white;
   border-color: var(--color-coral);
+  box-shadow: 0 2px 6px rgba(255, 103, 0, 0.25);
 }
 
 .btn-utility.primary:hover {
-  background-color: var(--color-coral-dark);
+  background: linear-gradient(155deg, var(--color-coral) 0%, var(--color-coral-dark) 65%);
 }
 
 .form-group {
@@ -2447,7 +2524,7 @@ body {
   width: 44px;
   height: 44px;
   border-radius: 50%;
-  background-color: var(--color-coral);
+  background: linear-gradient(155deg, #FF8A42 0%, var(--color-coral) 65%);
   color: white;
   border: none;
   display: flex;
@@ -2456,10 +2533,11 @@ body {
   cursor: pointer;
   transition: background-color 0.2s;
   font-size: 16px;
+  box-shadow: 0 2px 6px rgba(255, 103, 0, 0.25);
 }
 
 .btn-send:hover {
-  background-color: var(--color-coral-dark);
+  background: linear-gradient(155deg, var(--color-coral) 0%, var(--color-coral-dark) 65%);
 }
 
 .sim-client-actions {
@@ -2471,6 +2549,98 @@ body {
   align-items: center;
   font-size: 11px;
   color: var(--color-text-secondary);
+}
+
+/* Ações secundárias do topo do chat: círculo com o ícone, sem texto. O nome
+   aparece numa dica abaixo do botão só no hover/foco — assim a barra fica curta
+   sem esconder o que cada botão faz de quem está aprendendo a tela. */
+.btn-acao-icone {
+  position: relative;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  margin-right: 8px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  color: var(--color-text-primary);
+  border-color: var(--color-border);
+  background-color: white;
+}
+
+.btn-acao-icone.ativo {
+  background-color: var(--color-coral);
+  border-color: var(--color-coral);
+  color: white;
+}
+
+.btn-acao-icone::after {
+  content: attr(data-nome);
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: 220px;
+  width: max-content;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: var(--color-pine);
+  color: #FFFFFF;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.3;
+  text-align: center;
+  white-space: normal;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.15s ease;
+  pointer-events: none;
+  z-index: 40;
+}
+
+.btn-acao-icone:hover::after,
+.btn-acao-icone:focus-visible::after {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* Confirmação de que a mensagem digitada com o chat bloqueado foi para a Caixa
+   Postal — aparece embaixo do campo, some sozinha depois de alguns segundos. */
+.aviso-envio-caixa-postal {
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--color-text-secondary);
+  padding: 6px 4px 0;
+  opacity: 0;
+  max-height: 0;
+  overflow: hidden;
+  transition: opacity 0.2s ease;
+}
+
+.aviso-envio-caixa-postal.visivel {
+  opacity: 1;
+  max-height: 60px;
+}
+
+.aviso-envio-caixa-postal i {
+  color: var(--color-coral);
+  margin-right: 4px;
+}
+
+.aviso-envio-caixa-postal a {
+  color: var(--color-pine);
+  font-weight: 600;
+  text-decoration: underline;
+  white-space: nowrap;
+}
+
+/* O bloco nasce com o atributo hidden e só o modo dev revela — mas o display:flex
+   acima é do autor e vence o display:none do navegador, então a barra "Simular
+   Cliente" aparecia no painel real. */
+.sim-client-actions[hidden] {
+  display: none !important;
 }
 
 .btn-sim-action {
@@ -3315,10 +3485,9 @@ body {
 
 .financeiro-card {
   background-color: var(--color-card);
-  border: 1px solid var(--color-border);
   border-radius: 12px;
   padding: 24px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+  box-shadow: 0 1px 2px rgba(12, 84, 70, 0.06), 0 6px 18px rgba(12, 84, 70, 0.08);
 }
 
 .financeiro-card.full-width {
@@ -3907,6 +4076,51 @@ input:checked + .slider:before {
 }
 .cfg-input:focus { border-color: var(--color-pine); }
 .cfg-input-fraco { font-size: 12px; color: var(--color-text-secondary); margin-top: 6px; }
+
+/* Radar Fiscal — segue a mesma navegação por abas usada em Relatórios. */
+.radar-cliente-bar {
+  display: grid;
+  grid-template-columns: minmax(260px, 420px) minmax(220px, 1fr) auto;
+  align-items: end;
+  gap: 12px 18px;
+  margin-bottom: 18px;
+  padding: 18px 20px;
+  background: #fff;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+}
+.radar-cliente-campo .form-label { margin-bottom: 7px; }
+.radar-cliente-meta { font-size: 12px; line-height: 1.5; color: var(--color-text-secondary); padding-bottom: 8px; }
+.radar-conexao-status { grid-column: 1 / -1; font-size: 12.5px; color: var(--color-text-secondary); }
+.radar-servico-pane { max-width: 920px; padding: 26px 4px 0; }
+.radar-servico-pane > h3 { margin: 0 0 7px; color: var(--color-pine); font-size: 17px; }
+.radar-servico-pane > h3 i { color: var(--color-coral); margin-right: 7px; }
+.radar-servico-pane > p { max-width: 720px; margin: 0 0 18px; color: var(--color-text-secondary); font-size: 13px; line-height: 1.55; }
+.radar-resultado { margin-top: 18px; max-width: 760px; }
+.radar-parcelamento-acoes { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
+.radar-parcelamento-acoes .form-select { width: min(280px, 100%); }
+.radar-forcar { display: inline-flex; align-items: center; gap: 7px; font-size: 11.5px; color: var(--color-text-secondary); }
+.radar-config-clientes { display: flex; flex-direction: column; gap: 8px; }
+.radar-config-cliente {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 12px;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+.radar-config-cliente-info { flex: 1; min-width: 0; }
+.radar-config-cliente-info strong { display: block; color: var(--color-pine); font-size: 13px; }
+.radar-config-cliente-info span { display: block; margin-top: 2px; color: var(--color-text-secondary); font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+@media (max-width: 820px) {
+  .radar-cliente-bar { grid-template-columns: 1fr; align-items: stretch; }
+  .radar-conexao-status { grid-column: auto; }
+  .radar-servico-pane { padding-top: 20px; }
+  .radar-parcelamento-acoes { align-items: stretch; flex-direction: column; }
+  .radar-parcelamento-acoes .form-select { width: 100%; }
+}
 
 .cfg-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
 
@@ -4873,20 +5087,37 @@ input:checked + .slider:before {
    ========================================================================== */
 
 body.pagina-contador {
-  background-color: #EBEBDF !important;
-  color: #1C1C1C;
+  /* Redefine as variáveis de cor só dentro do painel do contador — cascata
+     automática pro resto do arquivo que usa var(--color-pine) etc, sem
+     mexer no cliente (que usa a mesma folha de estilo). Verde vira preto
+     (texto/ícone), o laranja é que fica reservado pra destaque. */
+  --color-pine: #141414;
+  --color-pine-light: #2B2B2B;
+  --color-pine-ultra-light: rgba(255, 103, 0, 0.10);
+  --color-text-primary: #141414;
+  --color-text-secondary: #6B6B6B;
+  --color-border: rgba(0, 0, 0, 0.08);
+  /* Fundo greige quente (referência do usuário) — uma superfície única e
+     contínua do topo ao rodapé; quem "flutua" são os cards brancos. */
+  --contador-bg: #EBEBE2;
+  background-color: var(--contador-bg) !important;
+  color: #141414;
 }
 
-/* 1. Header Translucency & Floating Pills */
+/* 1. Header: fundo branco, texto/ícone em preto — a marca entra pelo logo
+   coral e pelos acentos (badge, avatar), não mais por uma superfície verde
+   ou bege inteira. */
 body.pagina-contador .app-header {
-  background: #EBEBDF !important;
+  /* Mesmo tom do fundo — sem borda nem sombra, pra sumir a "barra" e o
+     fundo ficar inteiriço como na referência. */
+  background: var(--contador-bg) !important;
   border-bottom: none !important;
   box-shadow: none !important;
   padding: 16px 28px !important;
 }
 
 body.pagina-contador .logo-text {
-  color: var(--color-pine) !important;
+  color: #141414 !important;
   font-size: 22px !important;
   font-weight: 800 !important;
   letter-spacing: -0.5px !important;
@@ -4898,66 +5129,84 @@ body.pagina-contador .header-right {
 
 body.pagina-contador .notification-trigger {
   background: #FFFFFF !important;
-  border: 1px solid rgba(12, 84, 70, 0.12) !important;
+  border: 1px solid rgba(0, 0, 0, 0.08) !important;
   border-radius: 50% !important;
   width: 44px !important;
   height: 44px !important;
   display: grid !important;
   place-items: center !important;
-  box-shadow: 0 4px 16px rgba(12, 84, 70, 0.06) !important;
-  color: var(--color-pine) !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05), 0 8px 20px rgba(0, 0, 0, 0.08) !important;
+  color: #141414 !important;
   transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
 }
 
 body.pagina-contador .notification-trigger:hover {
   transform: translateY(-2px) scale(1.05) !important;
-  box-shadow: 0 8px 20px rgba(12, 84, 70, 0.12) !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05), 0 14px 30px rgba(255, 103, 0, 0.18) !important;
 }
 
 body.pagina-contador .agent-profile {
   background: #FFFFFF !important;
-  border: 1px solid rgba(12, 84, 70, 0.12) !important;
+  border: 1px solid rgba(0, 0, 0, 0.08) !important;
   border-radius: 30px !important;
   padding: 5px 16px 5px 6px !important;
-  box-shadow: 0 4px 16px rgba(12, 84, 70, 0.06) !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05), 0 8px 20px rgba(0, 0, 0, 0.08) !important;
   transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
 }
 
 body.pagina-contador .agent-profile:hover {
   transform: translateY(-2px) !important;
-  box-shadow: 0 8px 20px rgba(12, 84, 70, 0.12) !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05), 0 14px 30px rgba(255, 103, 0, 0.18) !important;
 }
 
 body.pagina-contador .agent-info h4 {
-  color: var(--color-pine) !important;
+  color: #141414 !important;
   font-weight: 700 !important;
 }
 
 body.pagina-contador .agent-info span {
-  color: #5C7068 !important;
+  color: #6B6B6B !important;
 }
 
-/* 2. Floating Island Sidebar with Crisp Orange Outline */
+/* 2. Sidebar flutuante e limpa (mesmo padrão do cliente) sobre fundo
+   branco — texto/ícone em preto, item ativo em laranja (o destaque). */
 body.pagina-contador .dashboard-container {
   padding: 12px 24px 24px 24px !important;
   gap: 20px !important;
   height: calc(100vh - 76px) !important;
-  background: #EBEBDF !important;
+}
+
+body.pagina-contador .dashboard-container,
+body.pagina-contador .main-content-panels {
+  background: var(--contador-bg) !important;
 }
 
 body.pagina-contador .app-sidebar-nav {
-  background: #FFFFFF !important;
-  border: 2px solid var(--color-coral) !important; /* Linha de contorno Laranja */
-  border-radius: 28px !important;
-  box-shadow: 0 8px 28px rgba(255, 103, 0, 0.12), 0 10px 30px rgba(12, 84, 70, 0.05) !important;
-  padding: 18px 12px !important;
   margin: 0 !important;
-  height: 100% !important;
   transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
 }
 
+/* Fica preso ao desktop de propósito: essa mesma regra (com !important) vira
+   a barra inferior do celular fora daqui — aplicar sem media query pisaria
+   no padding/fundo/altura que o bloco mobile já define pra ela lá embaixo.
+   O height:100% em especial já causava isso ANTES desta mudança (bug
+   pré-existente, só que nunca tinha sido testado no celular): sem essa
+   media query, ele vencia (por !important) o "height: var(--oc-rodape)"
+   do bloco mobile — e sem outra âncora de tamanho, o sidebar.collapsed
+   virava uma barra cobrindo a tela toda, em vez de ficar preso ao rodapé. */
+@media (min-width: 769px) {
+  body.pagina-contador .app-sidebar-nav {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    padding: 60px 10px 18px !important;
+    height: 100% !important;
+  }
+}
+
 body.pagina-contador .nav-section-title {
-  color: #5C7068 !important;
+  color: #8A8A8A !important;
   font-weight: 800 !important;
   letter-spacing: 0.14em !important;
   margin: 8px 12px 14px 12px !important;
@@ -4967,47 +5216,111 @@ body.pagina-contador .nav-item {
   border-radius: 18px !important;
   padding: 12px 16px !important;
   font-weight: 600 !important;
-  color: #33443C !important;
+  color: #141414 !important;
   margin-bottom: 4px !important;
   transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
 }
 
 body.pagina-contador .nav-item:hover {
-  background-color: rgba(12, 84, 70, 0.06) !important;
-  color: var(--color-pine) !important;
+  background: #FFFFFF !important;
+  color: #141414 !important;
+  box-shadow: 0 2px 8px rgba(20, 20, 20, 0.06) !important;
   transform: translateX(3px) !important;
 }
 
+/* Ativo: preenchimento coral sólido e ícone branco. Isso deixa a seleção
+   inequívoca, inclusive quando a barra está recolhida em ícones. */
 body.pagina-contador .nav-item.active {
-  background-color: var(--color-pine) !important;
+  background: linear-gradient(145deg, #FF8A42 0%, var(--color-coral) 62%, #E95800 100%) !important;
   color: #FFFFFF !important;
-  box-shadow: 0 8px 20px rgba(12, 84, 70, 0.22) !important;
+  border: none !important;
+  box-shadow: 0 10px 18px rgba(255, 103, 0, 0.32), inset 0 1px 1px rgba(255, 255, 255, 0.42), inset 0 -2px 3px rgba(166, 58, 0, 0.24) !important;
+  transform: translateY(-2px) !important;
 }
 
 body.pagina-contador .nav-item.active i {
-  color: var(--color-coral) !important;
+  color: #FFFFFF !important;
 }
 
-/* 3. Ultra-Clean High-Contrast Cards (Without Icon Clutter) */
+/* Ícones num chip circular quando a barra está recolhida (só ícone, sem
+   rótulo) — mesmo tratamento do portal do cliente, só que aqui com
+   !important porque as regras de cima (item "2.") já usam !important e
+   venceriam sem isso. Preso a min-width pelo mesmo motivo de lá: não pode
+   vazar pra dentro da barra inferior do celular. */
+@media (min-width: 769px) {
+  body.pagina-contador .app-sidebar-nav.collapsed .nav-item {
+    width: 44px !important;
+    height: 44px !important;
+    padding: 0 !important;
+    margin: 0 auto 10px !important;
+    border-radius: 50% !important;
+    justify-content: center !important;
+    border: none !important;
+    background: transparent !important;
+  }
+
+  body.pagina-contador .app-sidebar-nav.collapsed .nav-item:hover:not(.active) {
+    background: rgba(255, 255, 255, 0.86) !important;
+    box-shadow: 0 5px 12px rgba(20, 20, 20, 0.08) !important;
+    transform: translateY(-1px) !important;
+  }
+
+  body.pagina-contador .app-sidebar-nav.collapsed .nav-item.active {
+    background: linear-gradient(145deg, #FF8A42 0%, var(--color-coral) 62%, #E95800 100%) !important;
+  }
+
+  body.pagina-contador .app-sidebar-nav.collapsed .nav-item .nav-label {
+    display: none !important;
+  }
+
+  body.pagina-contador .app-sidebar-nav.collapsed .nav-item i {
+    width: auto !important;
+  }
+}
+
+/* 3. Cards brancos sólidos sobre o fundo greige (padrão da referência):
+   contraste vem da diferença branco × greige, não de sombra pesada nem
+   vidro. Sombra bem suave, borda quase invisível. */
 body.pagina-contador .kpi-card,
 body.pagina-contador .dash-card,
 body.pagina-contador .tracking-card,
 body.pagina-contador .painel-abas-container,
-body.pagina-contador .relatorios-card {
+body.pagina-contador .relatorios-card,
+body.pagina-contador .financeiro-card {
   background: #FFFFFF !important;
-  border-radius: 24px !important;
-  border: 1px solid rgba(12, 84, 70, 0.12) !important;
-  box-shadow: 0 8px 24px rgba(12, 84, 70, 0.07), 0 2px 6px rgba(0, 0, 0, 0.03) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border-radius: 20px !important;
+  border: 1px solid rgba(0, 0, 0, 0.04) !important;
+  box-shadow: 0 1px 2px rgba(20, 20, 20, 0.03), 0 6px 18px rgba(20, 20, 20, 0.05) !important;
   padding: 24px 28px !important;
+  color: #141414 !important;
   transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1) !important;
 }
 
 body.pagina-contador .kpi-card:hover,
 body.pagina-contador .dash-card:hover,
 body.pagina-contador .tracking-card:hover {
-  transform: translateY(-4px) !important;
-  box-shadow: 0 16px 36px rgba(12, 84, 70, 0.12), 0 4px 12px rgba(0, 0, 0, 0.04) !important;
-  border-color: rgba(12, 84, 70, 0.22) !important;
+  transform: translateY(-3px) !important;
+  box-shadow: 0 1px 2px rgba(20, 20, 20, 0.03), 0 14px 30px rgba(20, 20, 20, 0.1) !important;
+}
+
+/* Card de destaque em laranja (como o card "Activity" da referência, só
+   que na nossa cor de destaque): o último KPI da grade vira o "hero". */
+body.pagina-contador .kpi-cards-grid .kpi-card:last-child {
+  background: linear-gradient(150deg, #FF8A42 0%, var(--color-coral) 70%) !important;
+  border: none !important;
+  box-shadow: 0 8px 24px rgba(255, 103, 0, 0.3) !important;
+}
+
+body.pagina-contador .kpi-cards-grid .kpi-card:last-child .kpi-card-header span,
+body.pagina-contador .kpi-cards-grid .kpi-card:last-child h3,
+body.pagina-contador .kpi-cards-grid .kpi-card:last-child .kpi-trend {
+  color: #FFFFFF !important;
+}
+
+body.pagina-contador .kpi-cards-grid .kpi-card:last-child .kpi-trend {
+  background: rgba(255, 255, 255, 0.2) !important;
 }
 
 /* Retirar traço superior e ícones dos cards KPI para visual 100% limpo & moderno */
@@ -5026,14 +5339,14 @@ body.pagina-contador .kpi-card-header span {
   font-weight: 700 !important;
   text-transform: uppercase !important;
   letter-spacing: 0.08em !important;
-  color: #5C7068 !important;
+  color: #5A5A5A !important;
 }
 
 body.pagina-contador .kpi-card h3 {
   font-size: 36px !important;
   font-weight: 800 !important;
   letter-spacing: -1.2px !important;
-  color: var(--color-pine) !important;
+  color: #141414 !important;
   margin: 14px 0 10px 0 !important;
   line-height: 1.1 !important;
 }
@@ -5042,7 +5355,7 @@ body.pagina-contador .dash-card-header h3 {
   font-size: 18px !important;
   font-weight: 800 !important;
   letter-spacing: -0.4px !important;
-  color: var(--color-pine) !important;
+  color: #141414 !important;
 }
 
 body.pagina-contador .kpi-trend {
@@ -5058,8 +5371,8 @@ body.pagina-contador .settings-tabs {
   background: #FFFFFF !important;
   padding: 6px !important;
   border-radius: 20px !important;
-  border: 2px solid var(--color-coral) !important; /* Contorno Laranja completo nos 4 lados */
-  box-shadow: 0 6px 20px rgba(255, 103, 0, 0.1), 0 6px 20px rgba(12, 84, 70, 0.05) !important;
+  border: 1px solid rgba(0, 0, 0, 0.04) !important;
+  box-shadow: 0 1px 2px rgba(20, 20, 20, 0.03), 0 6px 18px rgba(20, 20, 20, 0.05) !important;
   display: inline-flex !important;
   gap: 6px !important;
   margin-bottom: 24px !important;
@@ -5071,7 +5384,7 @@ body.pagina-contador .settings-tab {
   padding: 10px 20px !important;
   font-weight: 700 !important;
   font-size: 13.5px !important;
-  color: #5C7068 !important;
+  color: #6B6B6B !important;
   background: transparent !important;
   border: none !important;
   cursor: pointer !important;
@@ -5080,15 +5393,15 @@ body.pagina-contador .settings-tab {
 
 body.pagina-contador .painel-aba-btn:hover,
 body.pagina-contador .settings-tab:hover {
-  background: rgba(12, 84, 70, 0.05) !important;
-  color: var(--color-pine) !important;
+  background: rgba(255, 103, 0, 0.06) !important;
+  color: #141414 !important;
 }
 
 body.pagina-contador .painel-aba-btn.active,
 body.pagina-contador .settings-tab.active {
-  background: var(--color-pine) !important;
+  background: var(--color-coral) !important;
   color: #FFFFFF !important;
-  box-shadow: 0 4px 14px rgba(12, 84, 70, 0.22) !important;
+  box-shadow: 0 4px 14px rgba(255, 103, 0, 0.28) !important;
 }
 
 /* Caixa Postal Thread Frame Floating Card */
@@ -5125,9 +5438,13 @@ body.pagina-contador .atendimento-module-container {
   box-sizing: border-box !important;
 }
 
-.atendimento-toolbar-left,
+/* A trilha vertical (Chat / Copiloto) fica dentro da moldura laranja, sem borda
+   própria — é ela que troca o conteúdo do painel esquerdo. A regra que escondia
+   estes ícones no desktop veio junto com uma limpeza feita para o portal do
+   cliente e deixava o contador sem como voltar para a fila. */
 body.pagina-contador .atendimento-toolbar-left {
-  display: none !important; /* Removido o submenu lateral poluído */
+  background: #FFFFFF !important;
+  border-right: 1px solid rgba(12, 84, 70, 0.1) !important;
 }
 
 body.pagina-contador .atendimento-side-panel,

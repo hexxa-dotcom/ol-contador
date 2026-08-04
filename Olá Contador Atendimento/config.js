@@ -17,6 +17,12 @@ window.OC_CONFIG = {
   // real fica para a etapa final.
   TESTE_CONTADOR_SEM_LOGIN: {
     enabled: false
+  },
+
+  // Compatibilidade com versões antigas. A permissão real agora é individual
+  // por cliente e fica em Configurações → Radar Fiscal no painel do contador.
+  RADAR_FISCAL_CLIENTE: {
+    enabled: true
   }
 };
 
@@ -36,11 +42,15 @@ window.OC_ROLE = (function () {
   return 'geral';
 })();
 
-// No modo dev cada papel guarda a sessão numa chave própria, senão abrir o painel
-// do cliente numa aba derruba a sessão do contador na outra (mesma origem, mesmo
-// localStorage) — e não dá para testar os dois lados do chat ao mesmo tempo.
-// Em produção é uma chave só: a pessoa entra uma vez no /login e o painel dela
-// acha a sessão. Uma pessoa real é de um papel só.
+// Cada papel guarda a sessão numa chave própria do localStorage. O supabase-js
+// sincroniza a sessão entre abas da mesma origem que usam a MESMA storageKey —
+// então com uma chave única, abrir /contador numa aba e /cliente em outra (o
+// jeito natural de testar os dois lados do chat) fazia o login de uma aba
+// substituir silenciosamente a sessão da outra. Foi por isso que o bloqueio de
+// chat "só funcionava no meu lado": a aba do cliente ficava autenticada como o
+// contador (ou com uma sessão morta), then my_client_id() não resolvia mais
+// para aquele cliente e o Realtime nunca entregava a mudança de status pra ela.
+// Um papel real só usa a própria página, então isolar por papel não tem custo.
 window.sb = window.supabase.createClient(
   window.OC_CONFIG.SUPABASE_URL,
   window.OC_CONFIG.SUPABASE_ANON_KEY,
@@ -48,7 +58,7 @@ window.sb = window.supabase.createClient(
     auth: {
       persistSession: true,
       autoRefreshToken: true,
-      storageKey: 'oc-auth'
+      storageKey: 'oc-auth-' + window.OC_ROLE
     }
   }
 );

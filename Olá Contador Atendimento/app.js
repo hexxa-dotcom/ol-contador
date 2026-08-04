@@ -191,6 +191,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   setupAbasDoPainel();
   setupClientesSecaoTabs();
   setupRelatorioSecaoTabs();
+  setupRadarSecaoTabs();
 
   // Chat + eventos em tempo real via Supabase Realtime (substitui o Socket.io).
   OCRealtime.subscribe({
@@ -254,6 +255,8 @@ document.addEventListener("DOMContentLoaded", async () => {
   // dossiê traduz as respostas com ele, e a lista embutida no arquivo pode estar
   // desatualizada em relação ao que o contador editou.
   await Promise.all([refreshAllData(), OC_TRIAGEM.carregar(), carregarWorkspacePersistente()]);
+  renderRadarInternoClientes();
+  renderRadarFiscalConfigToUI();
   if (clientsData[activeClientId]) loadClient(activeClientId);
   else { const first = Object.keys(clientsData)[0]; if (first) loadClient(first); }
 });
@@ -396,6 +399,8 @@ async function refreshAllData() {
     updateDashboardData();
     renderClientList();
     renderCRM();
+    renderRadarFiscalConfigToUI();
+    renderRadarInternoClientes();
     renderKanban();
     renderAppointments();
     renderCalendarioAgendamentos();
@@ -692,46 +697,48 @@ function renderMensagensAbertas() {
   `).join('');
 }
 
-// Pagamentos não finalizados: cobranças ainda não pagas. Enquanto o pagamento
-// não confirma, o cliente ainda não existe no CRM (ver signup-checkout.js) —
-// por isso o contato aqui é direto por e-mail/WhatsApp, usando os dados
-// guardados na própria cobrança (dados_cliente), e não o chat interno.
-function renderPagamentosNaoFinalizados() {
-  const list = document.getElementById('pagamentos-pendentes-lista');
+function renderAgendaSemana() {
+  const list = document.getElementById('agenda-semana-lista');
+  const badge = document.getElementById('agenda-semana-count-badge');
   if (!list) return;
 
-  const abertas = financeiro.cobrancas
-    .filter(c => c.status !== 'paid')
-    .sort((a, b) => new Date(a.createdAt || 0) - new Date(b.createdAt || 0));
+  const inicio = startOfWeekLocal();
+  const fim = endOfWeekLocal();
+  const daSemana = appointments
+    .filter(app => {
+      const data = dataLocalFromISO(normalizeAppointmentDate(app.date));
+      return data && data >= inicio && data < fim;
+    })
+    .sort((a, b) => {
+      const dataA = parseDateTimeLocal(a.date, a.time)?.getTime() || 0;
+      const dataB = parseDateTimeLocal(b.date, b.time)?.getTime() || 0;
+      return dataA - dataB;
+    });
 
-  if (!abertas.length) {
+  const pendentes = daSemana.filter(app => app.status !== 'done').length;
+  if (badge) badge.textContent = `${pendentes} pendente${pendentes !== 1 ? 's' : ''}`;
+
+  if (!daSemana.length) {
     list.innerHTML = `
       <div class="dashboard-empty-state">
-        <i class="fa-solid fa-file-invoice-dollar"></i>
-        <p>Nenhum pagamento em aberto no momento.</p>
-        <span>Quando houver cobrança gerada sem pagamento confirmado, ela aparece aqui.</span>
+        <i class="fa-solid fa-calendar-week"></i>
+        <p>Nenhum atendimento agendado para esta semana.</p>
+        <span>Os próximos atendimentos aparecerão aqui conforme forem agendados.</span>
       </div>`;
     return;
   }
 
-  list.innerHTML = abertas.slice(0, 8).map(c => {
-    const client = clientsData[c.clientRef] || {};
-    const dados = c.dadosCliente || {};
-    const nome = client.name || dados.name || c.clientRef || 'Cliente';
-    const email = client.email || dados.email;
-    const phone = client.phone || dados.phone;
-    const dias = c.createdAt ? Math.max(0, Math.floor((Date.now() - new Date(c.createdAt).getTime()) / 86400000)) : null;
+  list.innerHTML = daSemana.map(app => {
+    const concluido = app.status === 'done';
+    const data = `${OCTempo.rotuloDia(normalizeAppointmentDate(app.date))} · ${safe(app.time || '--:--')}`;
     return `
       <div class="dashboard-alert-card">
         <div class="dashboard-alert-card-top">
-          <span>${safe(nome)}</span>
-          <span class="sla-badge sla-yellow" style="margin: 0;">${formatBRL((c.valueCents || 0) / 100)}</span>
+          <span>${data}</span>
+          <span class="sla-badge ${concluido ? 'sla-green' : 'sla-yellow'}" style="margin: 0;">${concluido ? 'Concluído' : 'Agendado'}</span>
         </div>
-        <p>${dias == null ? 'Cobrança em aberto' : `Cobrança aberta há ${dias} dia${dias !== 1 ? 's' : ''}`} · status: ${safe(c.status || 'aberta')}</p>
-        <div class="dashboard-card-actions">
-          ${dashboardContatoLinks(nome, email, phone)}
-          ${c.invoiceUrl ? `<a class="btn-doc-action" href="${safe(c.invoiceUrl)}" target="_blank" rel="noopener"><i class="fa-solid fa-link"></i> Cobrança</a>` : ''}
-        </div>
+        <p>${safe(app.clientName || 'Cliente')} · ${safe(app.taxType || 'Atendimento')}</p>
+        ${app.clientRef ? dashboardClientButton(app.clientRef, 'Abrir chat') : ''}
       </div>`;
   }).join('');
 }
@@ -790,8 +797,8 @@ function updateDashboardData() {
   updateDashboardFinanceiroKpis();
   updateDashboardAtendimentosMes();
   renderMensagensAbertas();
-  renderPagamentosNaoFinalizados();
   renderGuiasMensais();
+  renderAgendaSemana();
 
   const todayApps = appointments.filter(a => OCTempo.ehHoje(normalizeAppointmentDate(a.date)));
   const timelineContainer = document.getElementById("dashboard-timeline");
@@ -1415,13 +1422,15 @@ function loadClient(clientId) {
   // Atualiza botão de bloqueio
   const lockBtn = document.getElementById('btn-toggle-lock');
   if (lockBtn) {
-    if (client.status === 'locked') {
-      lockBtn.innerHTML = '<i class="fa-solid fa-lock-open"></i> Desbloquear Chat';
-      lockBtn.style.backgroundColor = 'var(--color-bg)';
-    } else {
-      lockBtn.innerHTML = '<i class="fa-solid fa-lock"></i> Bloquear Chat';
-      lockBtn.style.backgroundColor = '';
-    }
+    const bloqueado = client.status === 'locked';
+    // Só o ícone na barra; o nome vive no data-nome, que a dica de hover mostra.
+    lockBtn.innerHTML = bloqueado
+      ? '<i class="fa-solid fa-lock-open"></i>'
+      : '<i class="fa-solid fa-lock"></i>';
+    const nome = bloqueado ? 'Liberar chat do cliente' : 'Bloquear chat do cliente';
+    lockBtn.dataset.nome = nome;
+    lockBtn.setAttribute('aria-label', nome);
+    lockBtn.classList.toggle('ativo', bloqueado);
   }
 
   // 1. Marcar aba lateral ativa
@@ -2436,6 +2445,17 @@ function setupRelatorioSecaoTabs() {
   }));
 }
 
+function setupRadarSecaoTabs() {
+  const barra = document.getElementById('radar-secao-tabs');
+  if (!barra) return;
+  const ids = ['caixa', 'sitfis', 'parcelamentos', 'cnd'];
+  barra.querySelectorAll('[data-radar-secao-tab]').forEach(btn => btn.addEventListener('click', () => {
+    const alvo = btn.dataset.radarSecaoTab;
+    barra.querySelectorAll('[data-radar-secao-tab]').forEach(item => item.classList.toggle('active', item === btn));
+    ids.forEach(id => document.getElementById('radar-pane-' + id)?.classList.toggle('active', id === alvo));
+  }));
+}
+
 // "Aguardando Relatório": clientes com o atendimento encerrado (done/locked)
 // cujo último relatório é mais antigo que a última finalização — ou seja,
 // finalizaram de novo depois do último relatório entregue (ou nunca tiveram um).
@@ -3280,21 +3300,28 @@ async function moverParaAcompanhamento() {
   if (!activeClientId) return;
   const clientId = activeClientId;
   kanbanEtapas = { ...kanbanEtapas, [clientId]: 'pending' };
-  const res = await fetch(API_BASE + '/api/status?acao=salvar-config', {
+  // Passa pela rota /api/status (não pelo /api/config direto) porque essa
+  // etapa também dispara o e-mail "seu caso entrou em acompanhamento" pro
+  // cliente — e mandar e-mail exige a chave do Resend, que só existe no
+  // servidor.
+  const res = await fetch(API_BASE + '/api/status?acao=mover-etapa-kanban', {
     method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${await tokenSessaoAtual()}` },
-    body: JSON.stringify({ config: { kanban_etapas: kanbanEtapas } })
+    body: JSON.stringify({ clientId, status: 'pending' })
   });
   if (!res.ok) { showToast('Não foi possível encaminhar para o Acompanhamento.'); return; }
   await postSystemMessageToChat("Caso encaminhado para o Acompanhamento — vai aparecer no quadro de pós-atendimento.");
   
-  // SLA Automático: Criar tarefa no painel
+  // Cria a tarefa de acompanhamento com início e prazo definidos.
   const clienteNome = clientsData[clientId] ? clientsData[clientId].name : 'Cliente';
+  const dataInicial = new Date();
   const deadline = new Date();
   deadline.setHours(deadline.getHours() + 48); // Padrão: 48 horas úteis (SLA)
   ocTarefas.unshift({
-    texto: `SLA 48h (Acompanhamento): ${clienteNome}`,
+    texto: `Acompanhamento: ${clienteNome}`,
     feita: false,
     clientId: clientId,
+    dataInicial: dataInicial.toISOString(),
+    dataFinal: deadline.toISOString(),
     deadline: deadline.toISOString()
   });
   await salvarTarefas();
@@ -3332,14 +3359,17 @@ async function finishActiveChat() {
       type: "avaliacao-card"
     });
 
-    // SLA Automático: Criar tarefa no painel
+    // Cria a tarefa pós-atendimento com início e prazo definidos.
     const clienteNome = clientsData[clientId] ? clientsData[clientId].name : 'Cliente';
+    const dataInicial = new Date();
     const deadline = new Date();
     deadline.setHours(deadline.getHours() + 48); // Padrão: 48 horas úteis (SLA)
     ocTarefas.unshift({
-      texto: `SLA 48h: Concluir serviço de ${clienteNome}`,
+      texto: `Concluir serviço de ${clienteNome}`,
       feita: false,
       clientId: clientId,
+      dataInicial: dataInicial.toISOString(),
+      dataFinal: deadline.toISOString(),
       deadline: deadline.toISOString()
     });
     await salvarTarefas();
@@ -4232,7 +4262,15 @@ function renderKanban() {
 
 async function salvarStatusCliente(clientId, status) {
   kanbanEtapas = { ...kanbanEtapas, [clientId]: status };
-  const res = await fetch(API_BASE + '/api/config', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ kanban_etapas: kanbanEtapas }) });
+  // Antes gravava direto em /api/config (o navegador falando com o Supabase
+  // pelo oc-data.js, sem nenhuma função serverless no meio). Passou a usar
+  // /api/status pra poder mandar o e-mail "seu caso avançou" pro cliente a
+  // cada etapa — a chave do Resend só existe no servidor.
+  const res = await fetch(API_BASE + '/api/status?acao=mover-etapa-kanban', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${await tokenSessaoAtual()}` },
+    body: JSON.stringify({ clientId, status })
+  });
   if (!res.ok) { showToast('Não foi possível atualizar a etapa.'); return; }
   
   // Automação: Se foi para "Concluído" (done), dar baixa automática na tarefa SLA
@@ -4317,12 +4355,10 @@ async function refreshFinanceiro() {
     const clientsById = clientsData;
     document.getElementById('financeiro-cobrancas-lista').innerHTML = financeiro.cobrancas.length ? `<table class="financeiro-table"><thead><tr><th>Cliente</th><th>Valor</th><th>Status</th><th>Data</th></tr></thead><tbody>${financeiro.cobrancas.slice(0, 12).map(c => `<tr><td>${safe(clientsById[c.clientRef]?.name || c.clientRef)}</td><td>${formatBRL((c.valueCents || 0) / 100)}</td><td>${safe(c.status)}</td><td>${c.createdAt ? new Date(c.createdAt).toLocaleDateString('pt-BR') : '—'}</td></tr>`).join('')}</tbody></table>` : 'Nenhuma cobrança criada ainda.';
     updateDashboardFinanceiroKpis();
-    renderPagamentosNaoFinalizados();
     renderFinanceiroCobrancasAbertas();
   } catch (e) {
     serviceList.innerHTML = '<tr><td colspan="5">Não foi possível carregar o financeiro.</td></tr>';
     updateDashboardFinanceiroKpis();
-    renderPagamentosNaoFinalizados();
     renderFinanceiroCobrancasAbertas();
   }
 }
@@ -4512,7 +4548,7 @@ async function openDossier(clientId) {
   if (radarContent) {
     radarContent.innerHTML = `
       <i class="fa-solid fa-satellite-dish" style="font-size: 32px; color: var(--color-text-secondary); opacity: 0.3; margin-bottom: 12px;"></i>
-      <p style="font-size: 14px; color: var(--color-text-secondary); margin: 0;">Clique em "Puxar Capivara" para consultar os dados oficiais em tempo real (Simulação).</p>
+      <p style="font-size: 14px; color: var(--color-text-secondary); margin: 0;">Escolha apenas a consulta necessária acima. Nada é buscado automaticamente.</p>
     `;
   }
 
@@ -4535,16 +4571,35 @@ document.addEventListener("DOMContentLoaded", () => {
   const panelContentFila = document.getElementById("panel-content-fila");
   const panelContentDossie = document.getElementById("panel-content-dossie");
 
-  // Route header profile to "Meu Perfil"
+  // Clique no avatar do header abre o menu com Meu Perfil + Sair juntos
+  // (antes ia direto pro Meu Perfil e o Sair ficava num botão solto ao lado).
+  function irParaMeuPerfilContador() {
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    document.querySelectorAll('.content-panel').forEach(p => p.classList.remove('active'));
+    const sec = document.getElementById('section-perfil');
+    if (sec) sec.classList.add('active');
+  }
+
   const headerAgentProfile = document.getElementById("header-agent-profile");
-  if (headerAgentProfile) {
-    headerAgentProfile.addEventListener("click", () => {
-      document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-      document.querySelectorAll('.content-panel').forEach(p => p.classList.remove('active'));
-      const sec = document.getElementById('section-perfil');
-      if (sec) sec.classList.add('active');
+  const agentMenuContador = document.getElementById("agent-profile-menu-contador");
+  if (headerAgentProfile && agentMenuContador) {
+    headerAgentProfile.addEventListener("click", (e) => {
+      e.stopPropagation();
+      agentMenuContador.hidden = !agentMenuContador.hidden;
     });
   }
+  const btnAgentMenuMeuPerfil = document.getElementById("btn-agent-menu-meu-perfil");
+  if (btnAgentMenuMeuPerfil) {
+    btnAgentMenuMeuPerfil.addEventListener("click", () => {
+      if (agentMenuContador) agentMenuContador.hidden = true;
+      irParaMeuPerfilContador();
+    });
+  }
+  document.addEventListener("click", (e) => {
+    if (agentMenuContador && !agentMenuContador.hidden && !e.target.closest('.agent-profile-wrap')) {
+      agentMenuContador.hidden = true;
+    }
+  });
 
   function toggleLeftPanel(targetId) {
     if (!sidePanelLeft) return;
@@ -5012,6 +5067,7 @@ document.addEventListener("DOMContentLoaded", () => {
   setupTarefas();
   setupNotaFiscalConfig();
   setupTimerConfig();
+  setupRadarFiscalConfig();
 });
 
 // ===== Tarefas Pendentes (dashboard) =====
@@ -5022,6 +5078,21 @@ let ocTarefas = [];
 async function salvarTarefas() {
   const res = await fetch(API_BASE + '/api/config', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ tarefas: ocTarefas }) });
   if (!res.ok) throw new Error('tarefas_nao_salvas');
+}
+
+function formatarDataTarefa(valor) {
+  if (!valor) return 'Não definida';
+  const data = new Date(valor);
+  return isNaN(data) ? 'Não definida' : data.toLocaleDateString('pt-BR');
+}
+
+function dataTarefaParaISO(valor) {
+  const partes = String(valor || '').trim().split('/').map(Number);
+  if (partes.length !== 3 || partes.some(n => !Number.isInteger(n))) return null;
+  const [dia, mes, ano] = partes;
+  const data = new Date(ano, mes - 1, dia);
+  if (data.getFullYear() !== ano || data.getMonth() !== mes - 1 || data.getDate() !== dia) return null;
+  return data.toISOString();
 }
 
 function renderTarefas() {
@@ -5060,28 +5131,10 @@ function renderTarefas() {
     titulo.textContent = t.texto;
     info.appendChild(titulo);
 
-    // SLA Badge Visual
-    if (t.deadline && !t.feita) {
-      const now = new Date();
-      const dead = new Date(t.deadline);
-      const diffMs = dead - now;
-      const diffHours = diffMs / (1000 * 60 * 60);
-
-      let color = '#2ECC71'; // Verde (OK)
-      let label = Math.floor(diffHours) + 'h restantes';
-      
-      if (diffHours <= 0) {
-        color = '#E74C3C'; // Vermelho (Estourado)
-        label = 'Atrasado';
-      } else if (diffHours <= 12) {
-        color = '#F1C40F'; // Amarelo (Atenção)
-      }
-
-      const badge = document.createElement('div');
-      badge.innerHTML = `<i class="fa-solid fa-clock"></i> SLA: ${label}`;
-      badge.style.cssText = `display: inline-block; margin-top: 6px; padding: 2px 6px; font-size: 10px; font-weight: 700; border-radius: 4px; color: #fff; background-color: ${color};`;
-      info.appendChild(badge);
-    }
+    const periodo = document.createElement('p');
+    periodo.style.cssText = 'display: flex; flex-wrap: wrap; gap: 4px 12px; margin: 6px 0 0; font-size: 10px; color: var(--color-text-secondary);';
+    periodo.innerHTML = `<span><i class="fa-solid fa-calendar-plus"></i> Data inicial: ${formatarDataTarefa(t.dataInicial || t.createdAt)}</span><span><i class="fa-solid fa-calendar-check"></i> Prazo (data final): ${formatarDataTarefa(t.dataFinal || t.deadline)}</span>`;
+    info.appendChild(periodo);
 
     const remover = document.createElement('button');
     remover.title = 'Remover tarefa';
@@ -5102,11 +5155,18 @@ function setupTarefas() {
   const btn = document.getElementById('btn-nova-tarefa');
   if (btn) btn.addEventListener('click', () => {
     const texto = prompt('Descreva a tarefa (ex.: "Enviar relatório — Ana Silva"):');
-    if (texto && texto.trim()) {
-      ocTarefas.unshift({ texto: texto.trim(), feita: false });
-      salvarTarefas().catch(() => showToast('Não foi possível salvar a tarefa.'));
-      renderTarefas();
-    }
+    if (!texto || !texto.trim()) return;
+
+    const hoje = new Date().toLocaleDateString('pt-BR');
+    const inicio = dataTarefaParaISO(prompt('Data inicial (dd/mm/aaaa):', hoje));
+    if (!inicio) { showToast('Informe uma data inicial válida.'); return; }
+
+    const fim = dataTarefaParaISO(prompt('Prazo / data final (dd/mm/aaaa):', hoje));
+    if (!fim) { showToast('Informe uma data final válida.'); return; }
+
+    ocTarefas.unshift({ texto: texto.trim(), feita: false, dataInicial: inicio, dataFinal: fim, deadline: fim });
+    salvarTarefas().catch(() => showToast('Não foi possível salvar a tarefa.'));
+    renderTarefas();
   });
   renderTarefas();
 }
@@ -5120,6 +5180,130 @@ function configObject(value, fallback) {
   if (value && typeof value === 'object' && !Array.isArray(value)) return value;
   if (typeof value === 'string') { try { const parsed = JSON.parse(value); return parsed && typeof parsed === 'object' ? parsed : fallback; } catch (_) {} }
   return fallback;
+}
+
+// ===== Radar Fiscal (Configurações + seleção do cliente) =====
+const DEFAULT_RADAR_FISCAL_CONFIG = {
+  portalAtivo: true,
+  caixaPostalAutomatica: true,
+  caixaPostalIntervaloDias: 7,
+  parcelamentosValidadeDias: 0,
+  clientePodeEmitirDas: true
+};
+let radarFiscalConfig = { ...DEFAULT_RADAR_FISCAL_CONFIG };
+let radarFiscalClientes = {};
+
+function normalizarRadarFiscalConfig(valor) {
+  const cfg = { ...DEFAULT_RADAR_FISCAL_CONFIG, ...configObject(valor, {}) };
+  cfg.portalAtivo = cfg.portalAtivo !== false;
+  cfg.caixaPostalAutomatica = cfg.caixaPostalAutomatica !== false;
+  cfg.caixaPostalIntervaloDias = Math.min(30, Math.max(1, parseInt(cfg.caixaPostalIntervaloDias, 10) || 7));
+  cfg.parcelamentosValidadeDias = Math.min(365, Math.max(0, parseInt(cfg.parcelamentosValidadeDias, 10) || 0));
+  cfg.clientePodeEmitirDas = cfg.clientePodeEmitirDas !== false;
+  return cfg;
+}
+
+function radarClienteEstaLiberado(c) {
+  if (!c) return false;
+  if (Object.prototype.hasOwnProperty.call(radarFiscalClientes, c.id)) return radarFiscalClientes[c.id] === true;
+  return !!(c.recorrente && c.recorrenteTipo === 'Radar Fiscal');
+}
+
+function renderRadarFiscalConfigToUI() {
+  const portal = document.getElementById('cfg-radar-portal');
+  const caixaAuto = document.getElementById('cfg-radar-caixa-auto');
+  const caixaDias = document.getElementById('cfg-radar-caixa-dias');
+  const parcelasDias = document.getElementById('cfg-radar-parcelamentos-dias');
+  const clienteDas = document.getElementById('cfg-radar-cliente-das');
+  if (portal) portal.checked = radarFiscalConfig.portalAtivo !== false;
+  if (caixaAuto) caixaAuto.checked = radarFiscalConfig.caixaPostalAutomatica !== false;
+  if (caixaDias) caixaDias.value = radarFiscalConfig.caixaPostalIntervaloDias;
+  if (parcelasDias) parcelasDias.value = radarFiscalConfig.parcelamentosValidadeDias;
+  if (clienteDas) clienteDas.checked = radarFiscalConfig.clientePodeEmitirDas !== false;
+
+  const lista = document.getElementById('cfg-radar-clientes');
+  if (!lista) return;
+  const clientes = Object.values(clientsData || {}).sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''), 'pt-BR'));
+  lista.innerHTML = clientes.length ? clientes.map(c => `
+    <label class="radar-config-cliente">
+      <div class="chat-item-avatar" style="width:34px;height:34px;font-size:11px;">${safe(c.avatar || initials(c.name))}</div>
+      <span class="radar-config-cliente-info"><strong>${safe(c.name)}</strong><span>${safe(c.cpf || 'Sem CPF/CNPJ')} · ${safe(c.regimeTributario || 'regime não definido')}</span></span>
+      <span class="switch"><input type="checkbox" data-radar-cliente-id="${safe(c.id)}" ${radarClienteEstaLiberado(c) ? 'checked' : ''}><span class="slider round"></span></span>
+    </label>`).join('') : '<p class="cfg-vazio">Nenhum cliente cadastrado.</p>';
+
+  lista.querySelectorAll('[data-radar-cliente-id]').forEach(input => input.addEventListener('change', async () => {
+    radarFiscalClientes[input.dataset.radarClienteId] = input.checked;
+    await salvarRadarFiscalConfig('Permissão do cliente atualizada.');
+  }));
+}
+
+async function salvarRadarFiscalConfig(mensagem) {
+  const status = document.getElementById('radar-config-status');
+  if (status) { status.textContent = 'Salvando…'; status.style.color = 'var(--color-text-secondary)'; }
+  try {
+    const res = await fetch(API_BASE + '/api/config', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ radar_fiscal_config: radarFiscalConfig, radar_fiscal_clientes: radarFiscalClientes })
+    });
+    if (!res.ok) throw new Error('falha');
+    if (status) { status.textContent = 'Salvo.'; status.style.color = '#1F8A5B'; }
+    if (mensagem) showToast(mensagem);
+  } catch (_) {
+    if (status) { status.textContent = 'Erro ao salvar.'; status.style.color = '#C0392B'; }
+    showToast('Não foi possível salvar as regras do Radar Fiscal.');
+  }
+}
+
+function setupRadarFiscalConfig() {
+  const btn = document.getElementById('btn-radar-config-salvar');
+  if (!btn) return;
+  btn.addEventListener('click', async () => {
+    radarFiscalConfig = normalizarRadarFiscalConfig({
+      portalAtivo: document.getElementById('cfg-radar-portal').checked,
+      caixaPostalAutomatica: document.getElementById('cfg-radar-caixa-auto').checked,
+      caixaPostalIntervaloDias: document.getElementById('cfg-radar-caixa-dias').value,
+      parcelamentosValidadeDias: document.getElementById('cfg-radar-parcelamentos-dias').value,
+      clientePodeEmitirDas: document.getElementById('cfg-radar-cliente-das').checked
+    });
+    renderRadarFiscalConfigToUI();
+    await salvarRadarFiscalConfig('Regras do Radar Fiscal salvas.');
+  });
+}
+
+function renderRadarInternoClientes() {
+  const select = document.getElementById('radar-interno-cliente');
+  if (!select) return;
+  const atual = select.value;
+  const clientes = Object.values(clientsData || {}).filter(c => c.cpf).sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''), 'pt-BR'));
+  select.innerHTML = '<option value="">Selecione um cliente</option>' + clientes.map(c => `<option value="${safe(c.id)}">${safe(c.name)} · ${safe(c.cpf)}</option>`).join('');
+  if (clientes.some(c => c.id === atual)) select.value = atual;
+  else if (activeClientId && clientes.some(c => c.id === activeClientId)) select.value = activeClientId;
+  if (!select.dataset.bound) {
+    select.dataset.bound = '1';
+    select.addEventListener('change', atualizarClienteRadarInterno);
+  }
+  atualizarClienteRadarInterno();
+}
+
+function atualizarClienteRadarInterno() {
+  const id = document.getElementById('radar-interno-cliente')?.value;
+  const c = id && clientsData[id];
+  const meta = document.getElementById('radar-interno-cliente-meta');
+  const regime = document.getElementById('radar-interno-regime');
+  if (regime) regime.value = c && ['mei', 'simples'].includes(c.regimeTributario) ? c.regimeTributario : '';
+  if (meta) meta.innerHTML = c
+    ? `<strong>${safe(c.cpf || '')}</strong> · ${radarClienteEstaLiberado(c) ? 'Radar liberado no portal' : 'uso somente interno'}${c.regimeTributario ? ` · ${safe(c.regimeTributario)}` : ''}`
+    : 'Escolha um cliente para vincular o resultado e evitar consultas repetidas.';
+}
+
+function clienteRadarInternoSelecionado() {
+  const clienteRef = document.getElementById('radar-interno-cliente')?.value || '';
+  if (!clienteRef || !clientsData[clienteRef]) {
+    showToast('Selecione o cliente antes de consultar.');
+    document.getElementById('radar-interno-cliente')?.focus();
+    return '';
+  }
+  return clienteRef;
 }
 // ===== Nota Fiscal de Serviço (Configurações → Integrações) =====
 // Persistido na mesma tabela chave-valor 'configuracoes' usada por tarefas,
@@ -5273,6 +5457,10 @@ async function carregarWorkspacePersistente() {
     renderNotaFiscalConfigToUI();
     timerConfig = { ...timerConfig, ...configObject(cfg.timer_config, {}) };
     renderTimerConfigToUI();
+    radarFiscalConfig = normalizarRadarFiscalConfig(cfg.radar_fiscal_config);
+    radarFiscalClientes = configObject(cfg.radar_fiscal_clientes, {});
+    renderRadarFiscalConfigToUI();
+    renderRadarInternoClientes();
     renderTarefas();
     renderProfileToUI(contadorProfile);
     renderSkillsTable();
@@ -5868,160 +6056,326 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 });
 
-// ========== RADAR FISCAL (Serpro) ==========
-// A chave 'sb_session_token' nunca foi gravada em lugar nenhum do app — esse
-// header sempre saía com "Bearer null", então essa consulta nunca funcionou
-// de verdade em produção (só rodava simulado). O token de verdade vem da
-// sessão do Supabase já aberta pelo login.
+// ========== RADAR FISCAL (Integra Contador / Serpro) ==========
+// CADA AÇÃO AQUI CUSTA DINHEIRO: o Integra Contador cobra por requisição. Por
+// isso nada dispara sozinho ao abrir a aba — quem clica é a equipe, sabendo o
+// que está gastando —, e o resultado fica guardado (serpro_resultados) pro
+// cliente ver depois sem pagar de novo.
+//
+// A consulta "avulsa" por CPF/CNPJ digitado foi removida de propósito: sem um
+// cliente vinculado não há como atribuir o custo nem saber se existe procuração
+// — e uma consulta recusada por falta de procuração é cobrada igual.
 async function tokenSessaoAtual() {
   const { data } = await sb.auth.getSession();
   return data && data.session ? data.session.access_token : '';
 }
 
-async function consultarRadarFiscalDossie() {
-  if (!activeClientId) return;
+async function chamarRadar(acao, extra) {
+  const res = await fetch('/api/radar-fiscal', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${await tokenSessaoAtual()}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(Object.assign({ acao, clienteRef: activeClientId }, extra || {}))
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    const err = new Error(json.detail || json.error || 'Falha na consulta');
+    err.code = json.error;
+    throw err;
+  }
+  return json;
+}
+
+async function chamarRadarInterno(acao, clienteRef, extra) {
+  const res = await fetch('/api/radar-fiscal', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${await tokenSessaoAtual()}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(Object.assign({ acao, clienteRef: clienteRef || undefined }, extra || {}))
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    const err = new Error(json.detail || json.error || 'Falha na consulta');
+    err.code = json.error;
+    throw err;
+  }
+  return json;
+}
+
+function radarInternoStatus(id, conteudo) {
+  const alvo = document.getElementById(id);
+  if (alvo) alvo.innerHTML = conteudo;
+}
+
+function radarInternoCarregando(id, mensagem) {
+  radarInternoStatus(id, `<p style="font-size:12.5px;color:var(--color-text-secondary);margin:0;"><i class="fa-solid fa-circle-notch fa-spin" style="color:var(--color-coral)"></i> ${safe(mensagem)}</p>`);
+}
+
+function radarInternoErro(id, erro) {
+  const orientacao = erro.code === 'sem_procuracao'
+    ? 'A Receita recusou esta consulta. Confirme se a procuração eletrônica contempla este serviço.'
+    : erro.message;
+  radarInternoStatus(id, `<p style="font-size:12.5px;color:#C0392B;margin:0;line-height:1.5;"><i class="fa-solid fa-triangle-exclamation"></i> ${safe(orientacao)}</p>`);
+}
+
+async function radarInternoTestarConexao(botao) {
+  const id = 'radar-interno-conexao-resultado';
+  botao.disabled = true;
+  radarInternoStatus(id, '<i class="fa-solid fa-circle-notch fa-spin"></i> Validando certificado e OAuth...');
+  try {
+    await chamarRadarInterno('testar-autenticacao', null, { documento: '00000000000' });
+    radarInternoStatus(id, '<span style="color:#1F8A5B;"><i class="fa-solid fa-circle-check"></i> Conexão autenticada.</span>');
+  } catch (e) {
+    radarInternoStatus(id, `<span style="color:#C0392B;"><i class="fa-solid fa-triangle-exclamation"></i> ${safe(e.message)}</span>`);
+  } finally {
+    botao.disabled = false;
+  }
+}
+
+async function radarInternoCaixaPostal(botao) {
+  const clienteRef = clienteRadarInternoSelecionado();
+  if (!clienteRef) return;
+  const id = 'radar-interno-caixa-resultado';
+  botao.disabled = true;
+  radarInternoCarregando(id, 'Consultando somente a Caixa Postal...');
+  try {
+    const r = await chamarRadarInterno('caixa-postal', clienteRef);
+    const mensagens = r.mensagens || [];
+    radarInternoStatus(id, `<div style="font-size:12.5px;line-height:1.5;">
+      <p style="margin:0 0 8px;color:var(--color-pine);font-weight:700;">${mensagens.length} mensagem(ns) · ${r.naoLidas || 0} não lida(s)${r.cacheado ? ' · resultado salvo' : ''}</p>
+      ${mensagens.length ? mensagens.map(m => `<div style="padding:7px 0;border-top:1px solid var(--color-border);"><strong>${safe(m.assunto)}</strong>${m.data ? `<br><span style="color:var(--color-text-secondary)">${safe(new Date(m.data).toLocaleString('pt-BR'))}</span>` : ''}</div>`).join('') : '<span style="color:var(--color-text-secondary)">Nenhuma mensagem encontrada.</span>'}
+    </div>`);
+  } catch (e) {
+    radarInternoErro(id, e);
+  } finally {
+    botao.disabled = false;
+  }
+}
+
+async function radarInternoSituacaoFiscal(botao) {
+  const clienteRef = clienteRadarInternoSelecionado();
+  if (!clienteRef) return;
+  const id = 'radar-interno-sitfis-resultado';
+  botao.disabled = true;
+  radarInternoCarregando(id, 'Solicitando o protocolo SITFIS...');
+  try {
+    const protocolo = await chamarRadarInterno('sitfis-solicitar', clienteRef);
+    if (!protocolo.protocolo) throw new Error('A Receita não devolveu o protocolo do relatório.');
+    if (protocolo.tempoEsperaMs > 0) {
+      radarInternoCarregando(id, `Relatório em processamento. Aguardando ${Math.ceil(protocolo.tempoEsperaMs / 1000)}s...`);
+      await new Promise(resolve => setTimeout(resolve, protocolo.tempoEsperaMs));
+    }
+    radarInternoCarregando(id, 'Emitindo somente o relatório solicitado...');
+    const r = await chamarRadarInterno('sitfis-emitir', clienteRef, { protocolo: protocolo.protocolo });
+    if (!r.pdfBase64) {
+      radarInternoStatus(id, '<p style="font-size:12.5px;color:var(--color-text-secondary);margin:0;">O relatório ainda não ficou pronto. Tente novamente em alguns instantes.</p>');
+      return;
+    }
+    const documento = String(clientsData[clienteRef]?.cpf || '').replace(/\D/g, '');
+    radarInternoStatus(id, `<a class="btn-utility primary" download="situacao-fiscal-${safe(documento)}.pdf" href="data:application/pdf;base64,${r.pdfBase64}"><i class="fa-solid fa-download"></i> Baixar relatório SITFIS</a>`);
+  } catch (e) {
+    radarInternoErro(id, e);
+  } finally {
+    botao.disabled = false;
+  }
+}
+
+async function radarInternoParcelamentos(botao) {
+  const clienteRef = clienteRadarInternoSelecionado();
+  if (!clienteRef) return;
+  const regime = document.getElementById('radar-interno-regime')?.value;
+  if (!regime) {
+    showToast('Selecione MEI ou Simples Nacional para consultar parcelamentos.');
+    return;
+  }
+  const id = 'radar-interno-parcelamentos-resultado';
+  botao.disabled = true;
+  radarInternoCarregando(id, 'Consultando somente os parcelamentos do regime escolhido...');
+  try {
+    const forcar = !!document.getElementById('radar-interno-forcar')?.checked;
+    const r = await chamarRadarInterno('parcelamentos', clienteRef, { regime, forcar });
+    const blocos = (r.sistemas || []).map(s => {
+      if (s.erro) return `<div style="padding:7px 0;border-top:1px solid var(--color-border);"><strong>${safe(s.sistema)}</strong>: consulta não concluída (${safe(s.erro)}).</div>`;
+      const pedidos = s.pedidos || [];
+      const parcelas = s.parcelas || [];
+      return `<div style="padding:8px 0;border-top:1px solid var(--color-border);">
+        <strong>${safe(s.sistema)}</strong>: ${pedidos.length} parcelamento(s)
+        ${pedidos.map(p => `<div style="color:var(--color-text-secondary);margin-top:4px;">${safe(p.numero || 'Sem número')} · ${safe(p.situacao || 'Situação não informada')}</div>`).join('')}
+        ${parcelas.length ? `<div style="margin-top:5px;color:var(--color-text-secondary);">${parcelas.length} parcela(s) disponível(is) para emissão.</div>` : ''}
+      </div>`;
+    }).join('');
+    radarInternoStatus(id, `<div style="font-size:12.5px;line-height:1.5;"><p style="margin:0 0 7px;color:var(--color-pine);font-weight:700;">Regime: ${safe(r.regime)}${r.cacheado ? ' · dados salvos reutilizados (sem nova consulta)' : ' · consulta atualizada agora'}</p>${blocos || '<span style="color:var(--color-text-secondary)">Nenhum resultado.</span>'}</div>`);
+  } catch (e) {
+    radarInternoErro(id, e);
+  } finally {
+    botao.disabled = false;
+  }
+}
+
+function radarCarregando(msg) {
+  const c = document.getElementById('dossier-radar-content');
+  if (c) c.innerHTML = `<div style="text-align:center;padding:24px;">
+    <i class="fa-solid fa-circle-notch fa-spin" style="font-size:24px;color:var(--color-coral);margin-bottom:12px;"></i>
+    <p style="font-size:14px;color:var(--color-text-secondary);">${safe(msg)}</p></div>`;
+}
+
+function radarErro(e) {
+  const c = document.getElementById('dossier-radar-content');
+  if (!c) return;
+  // Falta de procuração não é defeito do sistema: é uma etapa que o
+  // contribuinte precisa cumprir no e-CAC. Merece instrução, não "erro".
+  if (e.code === 'sem_procuracao') {
+    c.innerHTML = `<div style="text-align:left;padding:20px;background:#FFF7ED;border:1px solid rgba(255,103,0,0.25);border-radius:12px;">
+      <h4 style="margin:0 0 8px 0;color:var(--color-pine);font-size:15px;"><i class="fa-solid fa-file-signature" style="color:var(--color-coral);"></i> Falta procuração eletrônica</h4>
+      <p style="font-size:13px;color:var(--color-text-secondary);margin:0;line-height:1.6;">
+        A Receita recusou a consulta porque este contribuinte ainda não outorgou procuração eletrônica ao nosso CNPJ no e-CAC.
+        Oriente o cliente a fazer isso em <strong>e-CAC &rsaquo; Senhas e Procurações &rsaquo; Procuração Eletrônica</strong> antes de tentar de novo.
+      </p></div>`;
+    return;
+  }
+  c.innerHTML = `<div style="color:#E74C3C;text-align:center;padding:24px;">
+    <i class="fa-solid fa-triangle-exclamation" style="font-size:32px;margin-bottom:12px;"></i>
+    <p style="font-size:14px;">${safe(e.message)}</p></div>`;
+}
+
+function radarClienteValido() {
+  if (!activeClientId) return false;
   const c = clientsData[activeClientId];
   if (!c || !c.cpf) {
     showToast('Cliente não possui CPF/CNPJ cadastrado para consulta.');
-    return;
+    return false;
   }
+  return true;
+}
 
-  const container = document.getElementById('dossier-radar-content');
-  container.innerHTML = `
-    <div style="text-align: center; padding: 24px;">
-      <i class="fa-solid fa-circle-notch fa-spin" style="font-size: 24px; color: var(--color-coral); margin-bottom: 12px;"></i>
-      <p style="font-size: 14px; color: var(--color-text-secondary);">Comunicando com Serpro/Integra Contador via mTLS...</p>
-    </div>
-  `;
-
+// ---- 1. Caixa Postal ------------------------------------------------------
+async function radarCaixaPostal() {
+  if (!radarClienteValido()) return;
+  radarCarregando('Consultando a Caixa Postal do e-CAC...');
   try {
-    const res = await fetch(`/api/radar-fiscal?documento=${encodeURIComponent(c.cpf)}`, {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${await tokenSessaoAtual()}` }
-    });
-    if (!res.ok) throw new Error('Falha ao consultar Serpro');
-
-    const radar = await res.json();
-    const isAlert = radar.status === 'alert';
-
-    container.innerHTML = `
-      <div style="text-align: left;">
-        ${isAlert ? `
-          <div style="background: #FDEDEC; padding: 16px; border-radius: var(--radius-md); border: 1px solid #E74C3C; margin-bottom: 24px; display: flex; gap: 16px; align-items: center;">
-             <div style="font-size: 32px; color: #E74C3C;"><i class="fa-solid fa-circle-exclamation"></i></div>
-             <div>
-               <h3 style="color: #C0392B; font-size: 16px; margin: 0 0 4px 0;">Alerta: Pendências Encontradas</h3>
-               <p style="color: #E74C3C; font-size: 13px; margin: 0;">Foi detectada uma pendência nos sistemas do Governo.</p>
-             </div>
-          </div>
-        ` : `
-          <div style="background: #E8F8F5; padding: 16px; border-radius: var(--radius-md); border: 1px solid #2ECC71; margin-bottom: 24px; display: flex; gap: 16px; align-items: center;">
-             <div style="font-size: 32px; color: #2ECC71;"><i class="fa-solid fa-circle-check"></i></div>
-             <div>
-               <h3 style="color: #27AE60; font-size: 16px; margin: 0 0 4px 0;">Tudo Certo!</h3>
-               <p style="color: #2ECC71; font-size: 13px; margin: 0;">CPF/CNPJ está regular e sem pendências ativas.</p>
-             </div>
-          </div>
-        `}
-
-        <div style="background: white; padding: 16px; border-radius: var(--radius-sm); border: 1px solid var(--color-border); border-left: 4px solid ${isAlert ? '#E74C3C' : '#2ECC71'}; margin-bottom: 16px;">
-           <h4 style="font-size: 14px; color: var(--color-text-primary); margin-bottom: 12px;"><i class="fa-solid fa-building-columns"></i> CND - Receita Federal e PGFN</h4>
-           <p style="font-size: 13px; margin: 0; color: var(--color-text-secondary);"><strong>Status:</strong> ${radar.cnd.status === 'negativa' ? 'Regular (Negativa)' : 'Com Pendências'}</p>
-           <p style="font-size: 12px; margin-top: 4px; color: var(--color-text-secondary);">${radar.cnd.mensagem}</p>
-        </div>
-
-        <div style="background: white; padding: 16px; border-radius: var(--radius-sm); border: 1px solid var(--color-border); border-left: 4px solid var(--color-pine);">
-           <h4 style="font-size: 14px; color: var(--color-text-primary); margin-bottom: 12px;"><i class="fa-solid fa-envelope-open-text"></i> Caixa Postal (e-CAC)</h4>
-           ${radar.caixaPostal.mensagens.length > 0 
-              ? radar.caixaPostal.mensagens.map(m => `<div style="font-size: 12px; padding: 4px 0; border-bottom: 1px solid #eee;"><strong>${new Date(m.data).toLocaleDateString('pt-BR')}</strong> - ${m.assunto}</div>`).join('')
-              : '<p style="font-size: 12px; color: var(--color-text-secondary);">Sem mensagens.</p>'
-           }
-        </div>
-      </div>
-    `;
-  } catch (e) {
-    container.innerHTML = `
-      <div style="color: #E74C3C; text-align: center; padding: 24px;">
-        <i class="fa-solid fa-triangle-exclamation" style="font-size: 32px; margin-bottom: 12px;"></i>
-        <p>Não foi possível consultar os dados. ${e.message}</p>
-      </div>
-    `;
-  }
+    const r = await chamarRadar('caixa-postal');
+    const msgs = r.mensagens || [];
+    const c = document.getElementById('dossier-radar-content');
+    c.innerHTML = `<div style="text-align:left;">
+      <h4 style="font-size:14px;margin:0 0 12px 0;color:var(--color-pine);">
+        <i class="fa-solid fa-envelope-open-text"></i> Caixa Postal — ${msgs.length} mensagem(ns), ${r.naoLidas || 0} não lida(s)
+      </h4>
+      ${msgs.length ? msgs.map(m => `
+        <div style="font-size:13px;padding:10px 0;border-bottom:1px solid #eee;display:flex;justify-content:space-between;gap:12px;">
+          <span>${safe(m.assunto)}</span>
+          <span style="color:var(--color-text-secondary);white-space:nowrap;">${m.data ? new Date(m.data).toLocaleDateString('pt-BR') : ''}</span>
+        </div>`).join('')
+        : '<p style="font-size:13px;color:var(--color-text-secondary);">Sem mensagens na caixa postal.</p>'}
+    </div>`;
+  } catch (e) { radarErro(e); }
 }
 
-// Monta o mesmo card de resultado usado no dossiê, mas pra um container
-// qualquer — reaproveitado pela consulta avulsa (fora de um cliente).
-function renderRadarFiscalResultado(radar, container) {
-  const isAlert = radar.status === 'alert';
-  container.innerHTML = `
-    <div style="text-align: left;">
-      ${isAlert ? `
-        <div style="background: #FDEDEC; padding: 16px; border-radius: var(--radius-md); border: 1px solid #E74C3C; margin-bottom: 24px; display: flex; gap: 16px; align-items: center;">
-           <div style="font-size: 32px; color: #E74C3C;"><i class="fa-solid fa-circle-exclamation"></i></div>
-           <div>
-             <h3 style="color: #C0392B; font-size: 16px; margin: 0 0 4px 0;">Alerta: Pendências Encontradas</h3>
-             <p style="color: #E74C3C; font-size: 13px; margin: 0;">Foi detectada uma pendência nos sistemas do Governo.</p>
-           </div>
-        </div>
-      ` : `
-        <div style="background: #E8F8F5; padding: 16px; border-radius: var(--radius-md); border: 1px solid #2ECC71; margin-bottom: 24px; display: flex; gap: 16px; align-items: center;">
-           <div style="font-size: 32px; color: #2ECC71;"><i class="fa-solid fa-circle-check"></i></div>
-           <div>
-             <h3 style="color: #27AE60; font-size: 16px; margin: 0 0 4px 0;">Tudo Certo!</h3>
-             <p style="color: #2ECC71; font-size: 13px; margin: 0;">CPF/CNPJ está regular e sem pendências ativas.</p>
-           </div>
-        </div>
-      `}
-
-      <div style="background: white; padding: 16px; border-radius: var(--radius-sm); border: 1px solid var(--color-border); border-left: 4px solid ${isAlert ? '#E74C3C' : '#2ECC71'}; margin-bottom: 16px;">
-         <h4 style="font-size: 14px; color: var(--color-text-primary); margin-bottom: 12px;"><i class="fa-solid fa-building-columns"></i> CND - Receita Federal e PGFN</h4>
-         <p style="font-size: 13px; margin: 0; color: var(--color-text-secondary);"><strong>Status:</strong> ${radar.cnd.status === 'negativa' ? 'Regular (Negativa)' : 'Com Pendências'}</p>
-         <p style="font-size: 12px; margin-top: 4px; color: var(--color-text-secondary);">${safe(radar.cnd.mensagem)}</p>
-      </div>
-
-      <div style="background: white; padding: 16px; border-radius: var(--radius-sm); border: 1px solid var(--color-border); border-left: 4px solid var(--color-pine);">
-         <h4 style="font-size: 14px; color: var(--color-text-primary); margin-bottom: 12px;"><i class="fa-solid fa-envelope-open-text"></i> Caixa Postal (e-CAC)</h4>
-         ${radar.caixaPostal.erro ? `<p style="font-size: 12px; color: #E74C3C;">${safe(radar.caixaPostal.erro)}</p>` : (
-            radar.caixaPostal.mensagens.length > 0
-              ? radar.caixaPostal.mensagens.map(m => `<div style="font-size: 12px; padding: 4px 0; border-bottom: 1px solid #eee;"><strong>${m.data ? new Date(m.data).toLocaleDateString('pt-BR') : ''}</strong> - ${safe(m.assunto)}</div>`).join('')
-              : '<p style="font-size: 12px; color: var(--color-text-secondary);">Sem mensagens.</p>'
-         )}
-      </div>
-    </div>
-  `;
-}
-
-// Consulta avulsa (aba Radar Fiscal do menu, fora do contexto de um cliente).
-async function consultarRadarFiscalAvulso() {
-  const input = document.getElementById('radar-avulso-documento');
-  const documento = (input.value || '').trim();
-  const container = document.getElementById('radar-avulso-content');
-  if (!documento) { showToast('Digite um CPF ou CNPJ.'); return; }
-
-  container.innerHTML = `
-    <div style="text-align: center; padding: 24px;">
-      <i class="fa-solid fa-circle-notch fa-spin" style="font-size: 24px; color: var(--color-coral); margin-bottom: 12px;"></i>
-      <p style="font-size: 14px; color: var(--color-text-secondary);">Comunicando com Serpro/Integra Contador via mTLS...</p>
-    </div>
-  `;
-
+// ---- 2. Situação fiscal (SITFIS) -----------------------------------------
+// Duas etapas: protocolo e depois o relatório em PDF. Entre elas a API pede um
+// tempo de espera — respeitar isso evita gastar a requisição de emissão à toa.
+async function radarSituacaoFiscal() {
+  if (!radarClienteValido()) return;
+  radarCarregando('Solicitando protocolo da situação fiscal...');
   try {
-    const res = await fetch(`/api/radar-fiscal?documento=${encodeURIComponent(documento)}`, {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${await tokenSessaoAtual()}` }
-    });
-    if (!res.ok) throw new Error('Falha ao consultar Serpro');
-    const radar = await res.json();
-    renderRadarFiscalResultado(radar, container);
-  } catch (e) {
-    container.innerHTML = `
-      <div style="color: #E74C3C; text-align: center; padding: 24px;">
-        <i class="fa-solid fa-triangle-exclamation" style="font-size: 32px; margin-bottom: 12px;"></i>
-        <p>Não foi possível consultar os dados. ${safe(e.message)}</p>
-      </div>
-    `;
-  }
+    const p = await chamarRadar('sitfis-solicitar');
+    if (!p.protocolo) throw new Error('A Receita não devolveu um protocolo.');
+
+    if (p.tempoEsperaMs > 0) {
+      radarCarregando(`Relatório sendo gerado pela Receita. Aguardando ${Math.ceil(p.tempoEsperaMs / 1000)}s...`);
+      await new Promise(r => setTimeout(r, p.tempoEsperaMs));
+    }
+
+    radarCarregando('Emitindo o relatório de situação fiscal...');
+    const r = await chamarRadar('sitfis-emitir', { protocolo: p.protocolo });
+
+    const c = document.getElementById('dossier-radar-content');
+    if (!r.pdfBase64) {
+      c.innerHTML = `<p style="font-size:13px;color:var(--color-text-secondary);padding:20px;">
+        O relatório ainda não ficou pronto na Receita. Tente novamente em alguns instantes.</p>`;
+      return;
+    }
+    // O relatório é um PDF oficial. Ele é entregue como documento, sem
+    // interpretação nossa — não afirmamos "regular" ou "com pendência" a
+    // partir dele; quem lê é o contador.
+    c.innerHTML = `<div style="text-align:left;padding:8px;">
+      <h4 style="font-size:14px;margin:0 0 10px 0;color:var(--color-pine);"><i class="fa-solid fa-file-pdf" style="color:#C0392B;"></i> Relatório de Situação Fiscal</h4>
+      <p style="font-size:13px;color:var(--color-text-secondary);margin:0 0 14px 0;">Emitido agora pela Receita Federal.</p>
+      <a class="btn-utility primary" download="situacao-fiscal.pdf"
+         href="data:application/pdf;base64,${r.pdfBase64}">
+        <i class="fa-solid fa-download"></i> Baixar relatório
+      </a></div>`;
+  } catch (e) { radarErro(e); }
 }
+
+// ---- 3. Parcelamentos ------------------------------------------------------
+// Descobre o regime uma vez (fica gravado), lista os parcelamentos e as
+// parcelas prontas pra emissão. A emissão do DAS é um clique separado, porque
+// é outra requisição paga.
+async function radarParcelamentos() {
+  if (!radarClienteValido()) return;
+  radarCarregando('Verificando o regime do contribuinte...');
+  try {
+    await chamarRadar('regime');
+    radarCarregando('Consultando parcelamentos...');
+    const r = await chamarRadar('parcelamentos');
+
+    const blocos = (r.sistemas || []).map(s => {
+      if (s.erro === 'sem_procuracao') {
+        return `<div style="padding:12px 0;border-bottom:1px solid #eee;font-size:13px;color:var(--color-text-secondary);">
+          <strong>${safe(s.sistema)}</strong> — sem procuração para este serviço.</div>`;
+      }
+      if (!s.pedidos.length) {
+        return `<div style="padding:12px 0;border-bottom:1px solid #eee;font-size:13px;color:var(--color-text-secondary);">
+          <strong>${safe(s.sistema)}</strong> — nenhum parcelamento encontrado.</div>`;
+      }
+      const parcelas = (s.parcelas || []).map(p => `
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;padding:8px 0;font-size:13px;">
+          <span>Parcela ${safe(p.parcela)} · vence ${safe(p.vencimento || '—')}</span>
+          <button class="btn-utility" onclick="radarEmitirDas('${safe(s.sistema)}','${safe(p.parcela)}')">
+            <i class="fa-solid fa-file-invoice-dollar"></i> Emitir guia
+          </button>
+        </div>`).join('') || '<p style="font-size:13px;color:var(--color-text-secondary);">Nenhuma parcela disponível para emissão.</p>';
+
+      return `<div style="padding:14px 0;border-bottom:1px solid #eee;">
+        <h5 style="margin:0 0 8px 0;font-size:13.5px;color:var(--color-pine);">${safe(s.sistema)} — ${s.pedidos.length} parcelamento(s)</h5>
+        ${parcelas}</div>`;
+    }).join('');
+
+    document.getElementById('dossier-radar-content').innerHTML =
+      `<div style="text-align:left;">
+        <p style="font-size:12.5px;color:var(--color-text-secondary);margin:0 0 8px 0;">Regime detectado: <strong>${safe(r.regime)}</strong></p>
+        ${blocos}</div>`;
+  } catch (e) { radarErro(e); }
+}
+
+async function radarEmitirDas(sistema, parcela) {
+  radarCarregando('Emitindo a guia...');
+  try {
+    const r = await chamarRadar('emitir-das', { sistema, parcela });
+    const c = document.getElementById('dossier-radar-content');
+    if (!r.pdfBase64) { c.innerHTML = '<p style="padding:20px;font-size:13px;">A Receita não devolveu o PDF da guia.</p>'; return; }
+    c.innerHTML = `<div style="text-align:left;padding:8px;">
+      <h4 style="font-size:14px;margin:0 0 10px 0;color:var(--color-pine);"><i class="fa-solid fa-file-invoice-dollar" style="color:var(--color-coral);"></i> Guia da parcela ${safe(parcela)}</h4>
+      <a class="btn-utility primary" download="das-${safe(parcela)}.pdf" href="data:application/pdf;base64,${r.pdfBase64}">
+        <i class="fa-solid fa-download"></i> Baixar guia
+      </a>
+      <button class="btn-utility" style="margin-left:8px;" onclick="radarParcelamentos()">Voltar aos parcelamentos</button>
+    </div>`;
+  } catch (e) { radarErro(e); }
+}
+
+window.radarCaixaPostal = radarCaixaPostal;
+window.radarSituacaoFiscal = radarSituacaoFiscal;
+window.radarParcelamentos = radarParcelamentos;
+window.radarEmitirDas = radarEmitirDas;
+window.radarInternoCaixaPostal = radarInternoCaixaPostal;
+window.radarInternoSituacaoFiscal = radarInternoSituacaoFiscal;
+window.radarInternoParcelamentos = radarInternoParcelamentos;
+window.radarInternoTestarConexao = radarInternoTestarConexao;
 
 
 // ==== Kanban Drag & Drop Backend Sync ====

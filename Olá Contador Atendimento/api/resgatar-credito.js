@@ -5,7 +5,7 @@
 // body: { codigo, name, cpfCnpj, email, phone, sexo, cidade, estado, servicoId, date, time, summary }
 const { adminClient } = require('./_lib/auth');
 const { validarCpfCnpj } = require('../documento');
-const { enviarLinkDeAcesso } = require('./_lib/pagamento');
+const { enviarLinkDeAcesso, gerarAutoLogin } = require('./_lib/pagamento');
 const { checarRateLimit } = require('./_lib/rateLimit');
 
 // Mesmo teto do campo no site — ver comentário em signup-checkout.js.
@@ -39,26 +39,46 @@ module.exports = async (req, res) => {
 
   try {
     const clientId = digitos;
-    const { data: existente } = await admin.from('clientes').select('id').eq('id', clientId).maybeSingle();
+    const { data: existente } = await admin.from('clientes').select('*').eq('id', clientId).maybeSingle();
     if (!existente) {
+      // onboarding_pendente aciona a triagem obrigatória no primeiro login (ver
+      // cliente.js) — só em clientes novos, mesmo critério de signup-checkout.js.
       const { error: erroInsert } = await admin.from('clientes').insert({
         id: clientId, name, cpf: digitos, email, phone,
         sexo: sexo || null, cidade: cidade || null, estado: estado || null,
         tax_type: servico.name, honorarios: Math.round(servico.price_cents / 100),
-        status: 'pending'
+        status: 'pending', onboarding_pendente: true
       });
       if (erroInsert) throw erroInsert;
     } else {
-      await admin.from('clientes').update({ email, phone, sexo: sexo || null, cidade: cidade || null, estado: estado || null }).eq('id', clientId);
+      // Cliente já existia. NUNCA sobrescreve contato já cadastrado a partir do
+      // que foi digitado agora: um código de crédito não prova que quem está
+      // resgatando é o dono do CPF — sobrescrever e-mail/telefone aqui seria um
+      // jeito trivial de herdar o login automático de outra pessoa (mesmo risco
+      // corrigido em signup-checkout.js/pagamento.js). Só completa o que ainda
+      // estiver vazio.
+      const baseUpdate = {};
+      if (!existente.email && email) baseUpdate.email = email;
+      if (!existente.phone && phone) baseUpdate.phone = phone;
+      if (!existente.sexo && sexo) baseUpdate.sexo = sexo;
+      if (!existente.cidade && cidade) baseUpdate.cidade = cidade;
+      if (!existente.estado && estado) baseUpdate.estado = estado;
+      if (Object.keys(baseUpdate).length) await admin.from('clientes').update(baseUpdate).eq('id', clientId);
     }
+    // A conta de acesso e o login automático sempre usam o e-mail que ficou no
+    // banco (o já cadastrado, se havia um) — nunca o que veio agora no
+    // formulário, pelo mesmo motivo acima.
+    const emailParaAcesso = (existente && existente.email) || email;
     // O assunto sozinho já diz do que se trata, então a triagem é criada mesmo
     // sem descrição — antes, quem não escrevia nada não gerava triagem nenhuma e
-    // o caso chegava no painel sem contexto.
+    // o caso chegava no painel sem contexto. Status 'rascunho', não 'enviada':
+    // é só um pré-preenchimento, o cliente ainda precisa passar pela triagem de
+    // verdade (mesmo motivo do signup-checkout — ver pagamento.js).
     if (assunto || summary) {
       await admin.from('triagens').insert({
         cliente_ref: clientId, assunto: assunto || servico.name,
         descricao: summary ? String(summary).slice(0, LIMITE_RESUMO) : null,
-        status: 'enviada', enviada_at: new Date().toISOString()
+        status: 'rascunho'
       });
     }
 
@@ -83,11 +103,11 @@ module.exports = async (req, res) => {
       time: nowTime(), unread: true, cliente_ref: clientId
     });
 
-    if (email) {
+    if (emailParaAcesso) {
       try {
         const { data: clienteAtual } = await admin.from('clientes').select('user_id').eq('id', clientId).single();
         if (clienteAtual && !clienteAtual.user_id) {
-          const { data: novoUser, error: erroAuth } = await admin.auth.admin.createUser({ email, email_confirm: true });
+          const { data: novoUser, error: erroAuth } = await admin.auth.admin.createUser({ email: emailParaAcesso, email_confirm: true });
           if (!erroAuth && novoUser && novoUser.user) {
             await admin.from('clientes').update({ user_id: novoUser.user.id }).eq('id', clientId);
           } else if (erroAuth) {
@@ -98,12 +118,17 @@ module.exports = async (req, res) => {
         console.error('criação de conta via crédito falhou:', e.message);
       }
     }
-    if (email) await enviarLinkDeAcesso(admin, email);
+    if (emailParaAcesso) await enviarLinkDeAcesso(admin, emailParaAcesso);
+
+    // Confirmação é síncrona aqui (sem Asaas no meio), então o login automático
+    // já pode voltar nesta mesma resposta — sem precisar de polling como no
+    // checkout com Pix/cartão (ver checkout.html).
+    const autoLogin = emailParaAcesso ? await gerarAutoLogin(admin, clientId) : null;
 
     res.json({
       clientId, appointmentId: appt ? appt.id : null,
       servico: { id: servico.id, name: servico.name },
-      valor: servico.price_cents / 100, status: 'confirmado'
+      valor: servico.price_cents / 100, status: 'confirmado', autoLogin
     });
   } catch (e) {
     console.error('resgatar-credito error:', e.message);

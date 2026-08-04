@@ -6,6 +6,7 @@ let currentChatStatus = 'active';
 // Dia do último separador desenhado, para não repetir "Hoje" a cada mensagem.
 let ultimoDiaDesenhado = null;
 let clienteLogado = null; // Guardará as configs e dados do cliente
+let onboardingAtivo = false; // true entre o pagamento e a triagem obrigatória ser enviada
 
 document.addEventListener('DOMContentLoaded', async () => {
   // Exige login de cliente; redireciona pro login se não autorizado.
@@ -14,6 +15,16 @@ document.addEventListener('DOMContentLoaded', async () => {
   CLIENT_ID = ctx.clientId;
 
   setupNavigation();
+
+  // Retomada após reload: se o cliente pagou, começou o onboarding e recarregou
+  // a página no meio do caminho, não repete as telas de boas-vindas — só
+  // garante que ele continue preso na triagem até enviá-la.
+  if (localStorage.getItem(onboardingStorageKey())) {
+    onboardingAtivo = true;
+    document.body.classList.add('onboarding-bloqueio');
+    abrirSecaoCliente('section-triagem');
+  }
+
   setupChat();
   setupFileUpload();
   setupLogout();
@@ -29,6 +40,10 @@ document.addEventListener('DOMContentLoaded', async () => {
       appendMessageToChat(message);
       // Só avisa com o badge se o chat não estiver aberto na tela.
       if (!chatEstaVisivel() && message.sender !== 'client') incrementClienteBadge();
+      if (clienteLogado) {
+        clienteLogado.messages = clienteLogado.messages || [];
+        clienteLogado.messages.push(message);
+      }
     },
     // Hoje só muda o read_at: é o contador confirmando que leu.
     onMessageUpdate: (clientId, message) => {
@@ -38,8 +53,34 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   setupTyping();
 
+  // chatEstaVisivel() também confere se a ABA está em foco (!document.hidden)
+  // — não só se a seção Atendimento está aberta. Isso é certo pra decidir se
+  // acende o badge quando uma mensagem chega. Mas sem este listener, se o
+  // badge acendia com o cliente trocado de aba (ex.: checando outro app) e
+  // ele já estava com o Atendimento aberto, nada zerava o badge de volta: ele
+  // ficava "travado" aceso até o cliente clicar em outro menu e voltar. Ao
+  // reganhar o foco com o Atendimento já ativo, reavalia e limpa.
+  document.addEventListener('visibilitychange', () => {
+    if (chatEstaVisivel()) { marcarTudoLido(); clearClienteBadge(); }
+  });
+
   // Carrega o histórico persistido (fonte da verdade = banco).
   await loadClientHistory();
+
+  // Onboarding obrigatório pós-pagamento — caminho real (checkout público +
+  // link mágico), não só o embutido no portal (ver showCheckoutSuccess). Sem
+  // isso, quem chegava aqui pela primeira vez caía direto no dashboard sem
+  // nunca passar pela triagem: nada disparava o bloqueio, porque a flag só
+  // era ligada dentro do fluxo de recompra já logado.
+  if (clienteLogado && clienteLogado.onboardingPendente && !localStorage.getItem(onboardingStorageKey())) {
+    localStorage.setItem(onboardingStorageKey(), '1');
+    onboardingAtivo = true;
+    document.body.classList.add('onboarding-bloqueio');
+    personalizarOnboarding();
+    preencherAgendamentoOnboarding();
+    mostrarOnboarding('obrigado');
+  }
+
   if (chatEstaVisivel()) marcarTudoLido();
   iniciarSincronizacaoDeLeituraCliente();
 
@@ -54,15 +95,28 @@ document.addEventListener('DOMContentLoaded', async () => {
   carregarHistoricoAtendimentos();
   carregarRadarFiscal();
 
-  carregarBadgeCaixaPostalCliente();
+  await carregarBadgeCaixaPostalCliente();
   const formCaixaPostal = document.getElementById('form-caixa-postal-cliente');
   if (formCaixaPostal) formCaixaPostal.addEventListener('submit', enviarMensagemCaixaPostalCliente);
+  const btnVoltarCaixaPostal = document.getElementById('btn-voltar-caixa-postal');
+  if (btnVoltarCaixaPostal) btnVoltarCaixaPostal.addEventListener('click', fecharCaixaPostalCliente);
+  const btnNovaMensagem = document.getElementById('btn-nova-mensagem-cliente');
+  if (btnNovaMensagem) btnNovaMensagem.addEventListener('click', abrirComposeCaixaPostalCliente);
 });
 
 // ------------------------------------------------------------ caixa postal
 // Avisos/mensagens com o contador fora do chat ao vivo (que só abre no
 // horário agendado) — fica sempre disponível, independente de ter sessão marcada.
+// Funciona como uma caixa de e-mail: as mensagens são agrupadas por assunto
+// em "conversas" (não existe thread_id no banco, então o assunto faz esse
+// papel — é a mesma lógica de agrupar por "Re: mesmo assunto" que um webmail
+// usa). A lista mostra só o overview; abrir uma conversa é que revela o
+// histórico completo dela e libera o campo de responder.
 let caixaPostalClienteMensagens = [];
+let caixaPostalModo = 'inbox'; // 'inbox' | 'thread' | 'compose'
+let caixaPostalThreadAtiva = null; // assunto (string) da conversa aberta
+
+const ASSUNTO_SEM_CATEGORIA = 'Outro assunto';
 
 async function carregarBadgeCaixaPostalCliente() {
   try {
@@ -72,64 +126,244 @@ async function carregarBadgeCaixaPostalCliente() {
   const naoLidas = caixaPostalClienteMensagens.filter(m => m.remetente === 'contador' && !m.lida).length;
   const badge = document.getElementById('badge-caixa-postal-cliente');
   if (badge) { badge.textContent = naoLidas; badge.style.display = naoLidas ? 'flex' : 'none'; }
+  renderResumoCaixaPostalDashboard();
 }
 
-function renderCaixaPostalCliente() {
-  const container = document.getElementById('caixa-postal-cliente-historico');
-  if (!container) return;
+// Card de resumo da caixa postal na home — separado do card "Últimas
+// atualizações" (que mistura chat + caixa postal): esse aqui é só sobre
+// mensagens assíncronas, e mostra o total de não lidas e a última recebida.
+function renderResumoCaixaPostalDashboard() {
+  const box = document.getElementById('dash-caixa-postal-resumo');
+  const badge = document.getElementById('dash-caixa-postal-badge');
+  if (!box) return;
+  const naoLidas = caixaPostalClienteMensagens.filter(m => m.remetente === 'contador' && !m.lida).length;
+  if (badge) {
+    badge.textContent = naoLidas === 1 ? '1 nova' : `${naoLidas} novas`;
+    badge.style.display = naoLidas ? '' : 'none';
+  }
   if (!caixaPostalClienteMensagens.length) {
-    container.innerHTML = `<p style="font-size:13px;color:var(--color-text-secondary);text-align:center;padding:40px 0;">Nenhuma mensagem ainda. Escreva abaixo se precisar falar com o contador fora do horário do chat.</p>`;
+    box.innerHTML = '<p style="font-size:13px;color:var(--color-text-secondary);">Nenhuma mensagem ainda.</p>';
     return;
   }
-  // Não usa a classe .bolha-texto do chat ao vivo: o espaçador dela reserva só
-  // ~54px pro horário curto ("14:32"), e aqui o carimbo é "dd/mm, HH:MM" — mais
-  // comprido, sobrepunha o fim da mensagem. Sem .bolha-texto, a regra
-  // ".chat-bubble:not(:has(.bolha-texto))" já existente reserva 22px embaixo
-  // (mesmo mecanismo usado pelo card de relatório), o suficiente pro carimbo
-  // maior caber numa linha própria.
-  container.innerHTML = caixaPostalClienteMensagens.map(m => {
+  const ultima = caixaPostalClienteMensagens.reduce((a, b) => new Date(a.createdAt) > new Date(b.createdAt) ? a : b);
+  const meuUltima = ultima.remetente === 'cliente';
+  box.innerHTML = `
+    <div style="background: var(--color-bg); padding: 12px; border-radius: 12px; display: flex; align-items: center; gap: 12px; cursor: pointer;" onclick="abrirSecaoCliente('section-caixa-postal')">
+      <div style="width: 40px; height: 40px; border-radius: 50%; background: var(--color-pine-ultra-light); color: var(--color-pine); display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0;">
+        <i class="fa-solid fa-envelope${naoLidas ? '' : '-open'}"></i>
+      </div>
+      <div style="min-width: 0;">
+        <strong style="color: var(--color-pine); font-size: 14px; display: block;">${escapeHtml(ultima.assunto || 'Outro assunto')}</strong>
+        <span style="color: var(--color-text-secondary); font-size: 12px; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${meuUltima ? 'Você: ' : 'Contador: '}${escapeHtml(ultima.mensagem)}</span>
+      </div>
+    </div>`;
+}
+
+// Agrupa as mensagens em conversas por assunto (mensagens sem assunto caem
+// todas numa conversa "Outro assunto"), ordenadas da mais recente pra mais antiga.
+function agruparCaixaPostalPorAssunto() {
+  const porAssunto = new Map();
+  caixaPostalClienteMensagens.forEach(m => {
+    const chave = m.assunto || ASSUNTO_SEM_CATEGORIA;
+    if (!porAssunto.has(chave)) porAssunto.set(chave, []);
+    porAssunto.get(chave).push(m);
+  });
+  const threads = [];
+  porAssunto.forEach((mensagens, assunto) => {
+    mensagens.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+    const ultima = mensagens[mensagens.length - 1];
+    const naoLidas = mensagens.filter(m => m.remetente === 'contador' && !m.lida).length;
+    threads.push({ assunto, mensagens, ultima, naoLidas });
+  });
+  threads.sort((a, b) => new Date(b.ultima.createdAt) - new Date(a.ultima.createdAt));
+  return threads;
+}
+
+function renderInboxCaixaPostalCliente() {
+  const container = document.getElementById('caixa-postal-cliente-inbox');
+  if (!container) return;
+  atualizarResumoNaoLidasCaixaPostal();
+  if (!caixaPostalClienteMensagens.length) {
+    container.innerHTML = `<p style="font-size:13px;color:var(--color-text-secondary);text-align:center;padding:40px 0;">Nenhuma mensagem ainda. Clique em <i class="fa-solid fa-pen-to-square"></i> pra escrever pro contador fora do horário do chat — resposta em até 1 dia útil.</p>`;
+    return;
+  }
+  const threads = agruparCaixaPostalPorAssunto();
+  container.innerHTML = threads.map(t => {
+    const meuUltima = t.ultima.remetente === 'cliente';
+    const hora = new Date(t.ultima.createdAt).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+    const remetenteLabel = meuUltima ? 'Você' : 'Contador';
+    const naoLida = t.naoLidas > 0;
+    return `<button type="button" class="caixa-postal-thread-item${naoLida ? ' nao-lida' : ''}" data-assunto="${escapeHtml(t.assunto)}">
+      <div class="caixa-postal-thread-topo">
+        <span class="caixa-postal-thread-assunto">${naoLida ? '<i class="fa-solid fa-circle caixa-postal-dot"></i>' : ''}${escapeHtml(t.assunto)}</span>
+        <span class="caixa-postal-thread-hora">${hora}</span>
+      </div>
+      <p class="caixa-postal-thread-preview"><strong>${remetenteLabel}:</strong> ${escapeHtml(t.ultima.mensagem)}</p>
+    </button>`;
+  }).join('');
+  container.querySelectorAll('[data-assunto]').forEach(btn => {
+    btn.addEventListener('click', () => abrirThreadCaixaPostal(btn.dataset.assunto));
+  });
+}
+
+function renderThreadCaixaPostalCliente() {
+  const container = document.getElementById('caixa-postal-cliente-historico');
+  if (!container) return;
+  const mensagens = caixaPostalClienteMensagens.filter(m => (m.assunto || ASSUNTO_SEM_CATEGORIA) === caixaPostalThreadAtiva);
+  container.innerHTML = mensagens.map(m => {
     const meu = m.remetente === 'cliente';
+    const naoLida = !meu && !m.lida;
     const hora = new Date(m.createdAt).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
-    return `<div class="chat-bubble ${meu ? 'cliente' : 'contador'}">
-      ${m.assunto ? `<strong style="display:block;font-size:12.5px;margin-bottom:2px;">${escapeHtml(m.assunto)}</strong>` : ''}
-      <span style="display:block;">${escapeHtml(m.mensagem)}</span>
-      <span class="chat-time">${hora}</span>
+    return `<div class="caixa-postal-msg ${meu ? 'minha' : 'contador'}${naoLida ? ' nao-lida' : ''}">
+      <div class="caixa-postal-msg-topo">
+        <span class="caixa-postal-msg-remetente">
+          <i class="fa-solid ${meu ? 'fa-user' : 'fa-user-tie'}"></i> ${meu ? 'Você' : 'Contador'}
+        </span>
+        <span class="caixa-postal-msg-hora">${hora}</span>
+      </div>
+      <p class="caixa-postal-msg-corpo">${escapeHtml(m.mensagem)}</p>
     </div>`;
   }).join('');
   container.scrollTop = container.scrollHeight;
 }
 
+// Alterna o que aparece na seção: overview (inbox), uma conversa aberta
+// (thread) ou o formulário de mensagem nova (compose). Cada visão controla
+// o próprio header (título/botão voltar) e se o composer aparece ou não.
+function aplicarModoCaixaPostalCliente() {
+  const inbox = document.getElementById('caixa-postal-cliente-inbox');
+  const thread = document.getElementById('caixa-postal-cliente-historico');
+  const composer = document.getElementById('caixa-postal-composer');
+  const btnVoltar = document.getElementById('btn-voltar-caixa-postal');
+  const btnNova = document.getElementById('btn-nova-mensagem-cliente');
+  const titulo = document.getElementById('caixa-postal-titulo');
+  const subtitulo = document.getElementById('caixa-postal-subtitulo');
+  const assuntoSelect = document.getElementById('caixa-postal-cliente-assunto');
+  const input = document.getElementById('caixa-postal-cliente-mensagem');
+
+  const ehInbox = caixaPostalModo === 'inbox';
+  const ehThread = caixaPostalModo === 'thread';
+  const ehCompose = caixaPostalModo === 'compose';
+
+  if (inbox) inbox.style.display = ehInbox ? 'flex' : 'none';
+  if (thread) thread.style.display = ehThread ? 'flex' : 'none';
+  if (composer) composer.style.display = ehThread || ehCompose ? 'flex' : 'none';
+  if (btnVoltar) btnVoltar.style.display = ehInbox ? 'none' : '';
+  if (btnNova) btnNova.style.display = ehInbox ? '' : 'none';
+  if (assuntoSelect) assuntoSelect.style.display = ehCompose ? '' : 'none';
+  // O ícone do título fica só no h2 base — troca de conteúdo via innerHTML
+  // apagaria ele pra sempre (textContent perderia o <i> na primeira troca de
+  // modo e ele nunca mais voltaria, mesmo saindo do modo que o removeu).
+  if (titulo) {
+    if (ehInbox) titulo.innerHTML = '<i class="fa-solid fa-envelope" style="color: var(--color-coral); margin-right: 8px;"></i>Mensagens';
+    else if (ehCompose) titulo.innerHTML = '<i class="fa-solid fa-pen-to-square" style="color: var(--color-coral); margin-right: 8px;"></i>Nova mensagem';
+    else titulo.innerHTML = '<i class="fa-solid fa-envelope-open-text" style="color: var(--color-coral); margin-right: 8px;"></i>' + escapeHtml(caixaPostalThreadAtiva);
+  }
+  if (subtitulo) {
+    if (ehInbox) subtitulo.textContent = 'Fora do horário do chat ao vivo — resposta em até 1 dia útil.';
+    else if (ehCompose) subtitulo.textContent = 'Escolha o assunto e escreva sua mensagem para o contador.';
+    else subtitulo.textContent = 'Histórico desta conversa — responda abaixo.';
+  }
+  if (input) input.placeholder = ehCompose ? 'Escreva sua mensagem...' : 'Responder...';
+
+  const resumo = document.getElementById('caixa-postal-resumo-naolidas');
+  if (resumo) resumo.style.display = ehInbox ? '' : 'none';
+}
+
+// Indicação visual, além do pontinho por conversa: um aviso no topo da caixa
+// contando quantas conversas têm mensagem não lida — aparece assim que o
+// cliente abre a seção, sem precisar entrar em cada conversa pra descobrir.
+function atualizarResumoNaoLidasCaixaPostal() {
+  const resumo = document.getElementById('caixa-postal-resumo-naolidas');
+  const texto = document.getElementById('caixa-postal-resumo-naolidas-texto');
+  if (!resumo || !texto) return;
+  const threads = agruparCaixaPostalPorAssunto();
+  const naoLidas = threads.filter(t => t.naoLidas > 0).length;
+  if (!naoLidas) { resumo.style.display = 'none'; return; }
+  texto.textContent = naoLidas === 1 ? '1 conversa com mensagem não lida' : `${naoLidas} conversas com mensagens não lidas`;
+  resumo.style.display = caixaPostalModo === 'inbox' ? '' : 'none';
+}
+
 async function abrirCaixaPostalCliente() {
-  const container = document.getElementById('caixa-postal-cliente-historico');
+  caixaPostalModo = 'inbox';
+  caixaPostalThreadAtiva = null;
+  const container = document.getElementById('caixa-postal-cliente-inbox');
   if (container) container.innerHTML = `<p style="font-size:13px;color:var(--color-text-secondary);text-align:center;padding:40px 0;">Carregando...</p>`;
   try {
     const res = await fetch('/api/caixa-postal?clientId=' + encodeURIComponent(CLIENT_ID));
     caixaPostalClienteMensagens = await res.json();
   } catch (e) { caixaPostalClienteMensagens = []; }
-  renderCaixaPostalCliente();
+  aplicarModoCaixaPostalCliente();
+  renderInboxCaixaPostalCliente();
+}
+
+// Abre uma conversa específica (por assunto): mostra o histórico completo
+// dela e marca as mensagens do contador como lidas. O endpoint de "marcar
+// lida" é da caixa toda (não existe granularidade por assunto no banco), mas
+// isso é aceitável aqui: só chamamos ele quando o cliente de fato abre e lê
+// uma conversa, nunca só por entrar na seção — diferente do comportamento
+// antigo, que marcava tudo como lido assim que a aba era aberta.
+async function abrirThreadCaixaPostal(assunto) {
+  caixaPostalModo = 'thread';
+  caixaPostalThreadAtiva = assunto;
+  aplicarModoCaixaPostalCliente();
+  renderThreadCaixaPostalCliente();
+  const input = document.getElementById('caixa-postal-cliente-mensagem');
+  if (input) { input.value = ''; input.focus(); }
+
+  const temNaoLida = caixaPostalClienteMensagens.some(m => (m.assunto || ASSUNTO_SEM_CATEGORIA) === assunto && m.remetente === 'contador' && !m.lida);
+  if (!temNaoLida) return;
   try {
     await fetch('/api/caixa-postal/marcar-lida', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ clienteId: CLIENT_ID, remetente: 'cliente' })
     });
+    caixaPostalClienteMensagens.forEach(m => { if (m.remetente === 'contador') m.lida = true; });
+    renderThreadCaixaPostalCliente();
   } catch (e) { /* silencioso */ }
   await carregarBadgeCaixaPostalCliente();
+}
+
+function fecharCaixaPostalCliente() {
+  caixaPostalModo = 'inbox';
+  caixaPostalThreadAtiva = null;
+  aplicarModoCaixaPostalCliente();
+  renderInboxCaixaPostalCliente();
+}
+
+function abrirComposeCaixaPostalCliente() {
+  caixaPostalModo = 'compose';
+  caixaPostalThreadAtiva = null;
+  aplicarModoCaixaPostalCliente();
+  const input = document.getElementById('caixa-postal-cliente-mensagem');
+  if (input) { input.value = ''; input.focus(); }
 }
 
 async function enviarMensagemCaixaPostalCliente(e) {
   e.preventDefault();
   const input = document.getElementById('caixa-postal-cliente-mensagem');
+  const assuntoSelect = document.getElementById('caixa-postal-cliente-assunto');
   const texto = input.value.trim();
   if (!texto) return;
+  // Numa resposta o assunto é o da própria conversa aberta; numa mensagem
+  // nova, é o que o cliente escolheu no seletor.
+  const assunto = caixaPostalModo === 'compose' ? assuntoSelect.value : caixaPostalThreadAtiva;
   input.disabled = true;
   try {
     const res = await fetch('/api/caixa-postal', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ clienteId: CLIENT_ID, remetente: 'cliente', mensagem: texto })
+      body: JSON.stringify({ clienteId: CLIENT_ID, remetente: 'cliente', mensagem: texto, assunto })
     });
     if (!res.ok) throw new Error('falha_ao_enviar');
     input.value = '';
-    await abrirCaixaPostalCliente();
+    try {
+      const resAtual = await fetch('/api/caixa-postal?clientId=' + encodeURIComponent(CLIENT_ID));
+      caixaPostalClienteMensagens = await resAtual.json();
+    } catch (e2) { /* mantém a lista anterior */ }
+    caixaPostalThreadAtiva = assunto;
+    caixaPostalModo = 'thread';
+    aplicarModoCaixaPostalCliente();
+    renderThreadCaixaPostalCliente();
   } catch (err) {
     alert('Não consegui enviar sua mensagem agora. Tente de novo em instantes.');
   } finally {
@@ -219,6 +453,32 @@ function abrirSecaoCliente(id) {
   }
 }
 
+// Clique no avatar do header: abre o menu com Meu Perfil + Sair juntos, em
+// qualquer tamanho de tela (igual ao painel do contador). Antes só o celular
+// abria esse menu — no desktop o clique ia direto pro Meu Perfil e o Sair
+// ficava num botão solto ao lado.
+function toggleAgentMenu(e) {
+  e.stopPropagation();
+  const menu = document.getElementById('agent-profile-menu');
+  if (menu) menu.hidden = !menu.hidden;
+}
+window.toggleAgentMenu = toggleAgentMenu;
+
+function fecharAgentMenuEIr(id) {
+  const menu = document.getElementById('agent-profile-menu');
+  if (menu) menu.hidden = true;
+  abrirSecaoCliente(id);
+}
+window.fecharAgentMenuEIr = fecharAgentMenuEIr;
+
+// Clique fora do menu fecha ele — igual qualquer dropdown.
+document.addEventListener('click', (e) => {
+  const menu = document.getElementById('agent-profile-menu');
+  if (menu && !menu.hidden && !e.target.closest('.agent-profile-wrap')) {
+    menu.hidden = true;
+  }
+});
+
 function populaPerfilCliente(client) {
   if (!client) return;
   const nomeEl = document.getElementById('perfil-nome');
@@ -243,12 +503,15 @@ function populaPerfilCliente(client) {
   if (servEl) servEl.textContent = client.taxType || 'Atendimento Olá, Contador';
 }
 
+// O card "Próximo passo" saiu do dashboard (era sobretudo um empurrão pra
+// triagem, que agora é obrigatória antes de chegar aqui — ver onboarding em
+// showCheckoutSuccess). A função continua calculando o estado porque o chat
+// (atualizarSidebarDoChat) ainda usa esse texto na lateral do atendimento.
 function atualizarProximaAcao({ triagemEnviada, qtdDocs, temAppt, apptFeito, temRelatorio }) {
   const icon = document.getElementById('case-next-action-icon');
   const title = document.getElementById('case-next-action-title');
   const text = document.getElementById('case-next-action-text');
   const button = document.getElementById('case-next-action-button');
-  if (!icon || !title || !text || !button) return;
 
   let state;
   if (temRelatorio) {
@@ -265,13 +528,15 @@ function atualizarProximaAcao({ triagemEnviada, qtdDocs, temAppt, apptFeito, tem
     state = { icon: 'fa-file-lines', title: 'Seu relatório está sendo preparado', text: 'Assim que ele estiver pronto, você receberá um aviso aqui.', button: 'Acompanhar atendimento', target: 'section-chat', color: 'var(--color-pine)' };
   }
 
-  icon.style.background = state.color;
-  icon.innerHTML = `<i class="fa-solid ${state.icon}"></i>`;
-  title.textContent = state.title;
-  text.textContent = state.text;
-  button.disabled = false;
-  button.textContent = state.button;
-  button.onclick = () => abrirSecaoCliente(state.target);
+  if (icon && title && text && button) {
+    icon.style.background = state.color;
+    icon.innerHTML = `<i class="fa-solid ${state.icon}"></i>`;
+    title.textContent = state.title;
+    text.textContent = state.text;
+    button.disabled = false;
+    button.textContent = state.button;
+    button.onclick = () => abrirSecaoCliente(state.target);
+  }
 
   return state;
 }
@@ -347,6 +612,28 @@ async function montarLinhaDoTempo() {
       `<div class="step-content"><h4>${escapeHtml(p.t)}</h4><p>${escapeHtml(p.d)}</p></div>`;
     box.appendChild(el);
   });
+
+  // Resumo do estágio atual — aproveita o espaço que sobrava ao lado da
+  // linha do tempo num card tão largo, em vez de deixá-lo vazio.
+  const detalhe = document.getElementById('tracker-detalhe');
+  if (detalhe) {
+    const concluidos = passos.filter(p => p.feito).length;
+    const passoAtivo = iAtivo >= 0 ? passos[iAtivo] : null;
+    if (passoAtivo) {
+      detalhe.innerHTML =
+        '<span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--color-coral);">Etapa atual</span>' +
+        `<h4 style="color:var(--color-pine);font-size:17px;margin:6px 0 8px;">${escapeHtml(passoAtivo.t)}</h4>` +
+        `<p style="font-size:13px;color:var(--color-text-secondary);line-height:1.5;margin:0 0 16px;">${escapeHtml(passoAtivo.d)}</p>` +
+        `<div style="font-size:12px;color:var(--color-text-secondary);border-top:1px solid var(--color-border);padding-top:12px;">` +
+          `<strong style="color:var(--color-pine);">${concluidos} de ${passos.length}</strong> etapas concluídas` +
+        '</div>';
+    } else {
+      detalhe.innerHTML =
+        '<span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#1F8A5F;">Tudo certo</span>' +
+        '<h4 style="color:var(--color-pine);font-size:17px;margin:6px 0 8px;">Atendimento concluído</h4>' +
+        '<p style="font-size:13px;color:var(--color-text-secondary);line-height:1.5;margin:0;">Todas as etapas foram concluídas. Confira o relatório na aba Documentos.</p>';
+    }
+  }
 
   // Título e status refletem o caso de verdade.
   const titulo = document.getElementById('tracker-titulo');
@@ -517,7 +804,16 @@ async function configurarAvaliacao(temRelatorio, relatorioId) {
   };
 }
 
-function aplicarEstadoDoChat(status) {
+// Guardam o último estado conhecido pra poder reaplicar (ex: logo após marcar
+// um agendamento) sem precisar buscar tudo de novo. chatLockMode é o que o
+// envio de mensagem (setupChat) consulta pra decidir se a mensagem vai pro
+// chat ao vivo ou pra Caixa Postal.
+let ultimoStatusCliente = null;
+let agendamentoPendenteCache = null;
+let chatLockMode = 'none'; // 'none' | 'total' | 'parcial' | 'finalizado'
+
+function aplicarEstadoDoChat(status, agendamentoPendente) {
+  ultimoStatusCliente = status;
   const overlay = document.getElementById('chat-locked-overlay');
   const area = document.querySelector('#section-chat .chat-input-area');
   const input = document.getElementById('client-chat-input');
@@ -525,8 +821,20 @@ function aplicarEstadoDoChat(status) {
   const title = document.getElementById('chat-lock-title');
   const text = document.getElementById('chat-lock-text');
   const action = document.getElementById('chat-lock-action');
+  const schedule = document.getElementById('chat-lock-schedule');
+  const scheduleValue = document.getElementById('chat-lock-value');
+
   const isFinished = status === 'done';
-  const isLocked = status === 'locked' || isFinished;
+  // Bloqueio TOTAL: o horário do atendimento marcado ainda não chegou. É
+  // automático — calculado pela agenda, não depende do contador mexer em nada.
+  const isTotal = !isFinished && !!agendamentoPendente;
+  // Bloqueio PARCIAL: o contador travou o chat na mão durante o atendimento
+  // (foi verificar algo, por exemplo). Só entra em jogo depois que o horário
+  // marcado já chegou — antes disso quem manda é o bloqueio total.
+  const isParcial = !isFinished && !isTotal && status === 'locked';
+  const isLocked = isFinished || isTotal || isParcial;
+
+  chatLockMode = isFinished ? 'finalizado' : isTotal ? 'total' : isParcial ? 'parcial' : 'none';
 
   if (overlay) {
     overlay.style.display = isLocked ? 'flex' : 'none';
@@ -534,11 +842,20 @@ function aplicarEstadoDoChat(status) {
   }
   if (area) area.style.display = isFinished ? 'none' : '';
   if (input) {
-    input.disabled = isLocked;
-    input.placeholder = isFinished ? 'Atendimento encerrado.' : 'Digite sua mensagem...';
+    // Nos dois bloqueios o campo continua digitável: o que a pessoa manda vira
+    // mensagem na Caixa Postal (ver enviarMensagem em setupChat). Só o
+    // encerrado desliga de vez — não há mais atendimento pra essa nota ir.
+    input.disabled = isFinished;
+    input.placeholder = isFinished
+      ? 'Atendimento encerrado.'
+      : (isTotal || isParcial)
+        ? 'Chat bloqueado — sua mensagem vai para a Caixa Postal...'
+        : 'Digite sua mensagem...';
   }
+
   if (!isLocked) {
     if (action) action.hidden = true;
+    if (schedule) schedule.hidden = true;
     return;
   }
 
@@ -546,51 +863,114 @@ function aplicarEstadoDoChat(status) {
     if (icon) icon.className = 'fa-solid fa-circle-check';
     if (title) title.textContent = 'Atendimento concluído';
     if (text) text.textContent = 'Seu chat foi encerrado. O relatório será liberado na área de documentos assim que estiver pronto.';
+    if (schedule) schedule.hidden = true;
     if (action) {
       action.hidden = false;
       action.innerHTML = '<i class="fa-solid fa-file-arrow-down"></i> Ver relatório';
       action.onclick = () => abrirSecaoCliente('section-documentos');
     }
+  } else if (isTotal) {
+    if (icon) icon.className = 'fa-solid fa-calendar-days';
+    if (title) title.textContent = 'Seu atendimento ainda não começou';
+    if (text) text.textContent = 'O chat abre no horário marcado. Se precisar avisar algo antes, sua mensagem vai direto para a Caixa Postal — resposta em até 1 dia útil.';
+    if (schedule) {
+      schedule.hidden = false;
+      if (scheduleValue) {
+        const dataFmt = agendamentoPendente.quando.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+        scheduleValue.innerHTML = `<i class="fa-solid fa-calendar"></i> ${dataFmt} às ${agendamentoPendente.time}`;
+      }
+    }
+    if (action) {
+      action.hidden = false;
+      action.innerHTML = '<i class="fa-solid fa-calendar-check"></i> Ver agendamento';
+      action.onclick = () => abrirSecaoCliente('section-agendamento');
+    }
   } else {
     if (icon) icon.className = 'fa-solid fa-lock';
-    if (title) title.textContent = 'Atendimento bloqueado';
-    if (text) text.textContent = 'Seu chat será liberado no momento da sua reunião.';
+    if (title) title.textContent = 'Chat bloqueado temporariamente';
+    if (text) text.textContent = 'Seu chat está bloqueado temporariamente até a resolução do seu atendimento. Se quiser avisar algo agora, sua mensagem vai para a Caixa Postal — resposta em até 1 dia útil.';
+    if (schedule) schedule.hidden = true;
     if (action) action.hidden = true;
   }
 }
 
-async function buscarStatusAtual() {
+// Acha o próximo agendamento deste cliente que ainda não foi concluído e cujo
+// horário ainda não chegou. Reusa a mesma API que já alimenta a Agenda do
+// cliente — nenhuma tabela nova, nenhum campo novo.
+async function buscarAgendamentoBloqueio() {
   try {
-    const res = await fetch('/api/clients');
-    const clients = res.ok ? await res.json() : {};
-    if (clients && clients[CLIENT_ID]) aplicarEstadoDoChat(clients[CLIENT_ID].status);
-  } catch (e) {}
+    const res = await fetch('/api/appointments');
+    const appts = res.ok ? await res.json() : [];
+    return (appts || [])
+      .filter(a => a.clientRef === CLIENT_ID && a.status !== 'done' && a.date && a.time)
+      .map(a => ({ ...a, quando: new Date(`${a.date}T${a.time}:00`) }))
+      .filter(a => !isNaN(a.quando.getTime()) && a.quando.getTime() > Date.now())
+      .sort((a, b) => a.quando - b.quando)[0] || null;
+  } catch (e) {
+    return null;
+  }
+}
+
+async function atualizarAgendamentoPendente() {
+  agendamentoPendenteCache = await buscarAgendamentoBloqueio();
+  return agendamentoPendenteCache;
+}
+
+// Lê o status direto da própria linha do cliente. Antes isso passava por
+// /api/clients, que carrega TODOS os clientes, TODAS as mensagens e as triagens
+// só para descobrir uma palavra — se qualquer uma dessas consultas falhasse, o
+// bloqueio simplesmente não aparecia e não havia sinal nenhum do erro.
+async function buscarStatusAtual() {
+  if (!window.sb || !CLIENT_ID) return;
+  try {
+    const [statusRes] = await Promise.all([
+      window.sb.from('clientes').select('status').eq('id', CLIENT_ID).single(),
+      atualizarAgendamentoPendente()
+    ]);
+    if (statusRes.error) throw statusRes.error;
+    if (statusRes.data) aplicarEstadoDoChat(statusRes.data.status, agendamentoPendenteCache);
+  } catch (e) {
+    console.warn('Não consegui conferir o status do atendimento:', e);
+  }
 }
 
 async function setupChatLockListener() {
-  // Busca o status inicial pela mesma API usada pelos dois portais. Assim, se o
-  // cliente abrir a tela depois que o contador bloqueou/encerrou, ele já vê o
-  // estado certo sem depender de ter recebido o broadcast em tempo real.
+  // Estado inicial: se o contador bloqueou ou encerrou antes de a tela abrir, o
+  // cliente já entra vendo o aviso certo, sem depender de nenhum evento ao vivo.
   await buscarStatusAtual();
 
   if (!window.sb) return;
   if (window.OC_CONFIG?.TESTE_CLIENTE_SEM_LOGIN?.enabled && window.OC_ROLE === 'cliente') return;
 
-  // Escuta as mudanças em tempo real via broadcast
-  const ch = window.sb.channel('oc-lock-' + CLIENT_ID);
-  ch.on('broadcast', { event: 'lock_change' }, ({ payload }) => {
-    aplicarEstadoDoChat(payload.status || (payload.locked ? 'locked' : 'active'));
-  });
-  ch.subscribe();
+  // Fonte da verdade: a alteração da própria linha no banco. O aviso antigo vinha
+  // de um broadcast disparado pelo painel do contador — um único envio, sem
+  // reenvio nem confirmação, que se perdia se a aba do cliente não estivesse com
+  // o canal conectado naquele exato instante. Ouvindo o UPDATE da tabela, quem
+  // avisa é o próprio banco, depois que a mudança já está gravada.
+  window.sb
+    .channel('oc-status-' + CLIENT_ID)
+    .on('postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'clientes', filter: 'id=eq.' + CLIENT_ID },
+        ({ new: linha }) => { if (linha && linha.status) aplicarEstadoDoChat(linha.status, agendamentoPendenteCache); })
+    .subscribe();
 
-  // Rede de segurança: o broadcast só chega se a aba estiver com o canal
-  // conectado no instante exato do bloqueio — se a conexão cair ou reconectar
-  // no meio do caminho, o evento se perde e o cliente nunca fica sabendo. Uma
-  // conferência periódica garante que o estado converge sozinho em poucos
-  // segundos, mesmo sem o cliente recarregar a página.
+  // Mantido o canal antigo: o painel do contador continua emitindo esse evento e
+  // ele chega alguns instantes antes da replicação do banco.
+  window.sb.channel('oc-lock-' + CLIENT_ID)
+    .on('broadcast', { event: 'lock_change' }, ({ payload }) => {
+      aplicarEstadoDoChat(payload.status || (payload.locked ? 'locked' : 'active'), agendamentoPendenteCache);
+    })
+    .subscribe();
+
+  // Rede de segurança para queda de conexão E o jeito do bloqueio total se
+  // levantar sozinho quando o horário marcado chega — nada escreve no banco
+  // nesse instante, então só uma conferência periódica pega essa virada.
   setInterval(() => {
     if (document.visibilityState === 'visible') buscarStatusAtual();
   }, 10000);
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') buscarStatusAtual();
+  });
 }
 
 // ============================================================================
@@ -851,8 +1231,22 @@ function setupPerfilSenha() {
 
 // Carrega os próximos vencimentos fiscais do cliente.
 async function loadAgendaFiscal() {
+  const card = document.getElementById('card-vencimentos-fiscais');
   const box = document.getElementById('client-agenda-fiscal');
   if (!box) return;
+
+  // Vencimento fiscal só existe pra quem tem um serviço recorrente ativo
+  // (Radar Fiscal, Assessoria MEI...) — um atendimento avulso não gera essas
+  // obrigações, então o card nem aparece.
+  // O card tem "display: flex" fixo no próprio HTML (pra virar coluna), que
+  // tem mais especificidade que a regra padrão de [hidden] — por isso o
+  // toggle aqui precisa mexer em style.display, não só no atributo.
+  if (!clienteLogado || !clienteLogado.recorrente) {
+    if (card) { card.hidden = true; card.style.display = 'none'; }
+    return;
+  }
+  if (card) { card.hidden = false; card.style.display = 'flex'; }
+
   try {
     const res = await fetch('/api/agenda-fiscal?clientId=' + encodeURIComponent(CLIENT_ID));
     const itens = await res.json();
@@ -893,6 +1287,12 @@ const HORARIOS_ATENDIMENTO_PADRAO = ['09:00', '10:00', '11:00', '14:00', '15:00'
 let HORARIOS_ATENDIMENTO = [...HORARIOS_ATENDIMENTO_PADRAO];
 let agendaSemanaOffset = 0;
 let agendaAgendamentos = [];
+let agendaDiaSelecionadoIdx = 0;
+// true assim que o cliente clica numa pill de dia — enquanto for true, o
+// dia escolhido não deve ser sobrescrito pela lógica de "auto-selecionar"
+// (senão o clique era desfeito no re-render seguinte, porque o
+// checkout-date ainda apontava pro dia antigo até o próprio render atualizá-lo).
+let agendaDiaEscolhidoManualmente = false;
 
 async function setupCheckout() {
   // data padrão = hoje
@@ -904,6 +1304,13 @@ async function setupCheckout() {
 
   const btn = document.getElementById('btn-gerar-pix');
   if (btn) btn.addEventListener('click', gerarPagamentoPix);
+
+  // Texto do botão acompanha o método escolhido (Pix vs. cartão) — mesma
+  // lógica do checkout público.
+  document.querySelectorAll('input[name="metodo-agendamento"]').forEach(radio => {
+    radio.addEventListener('change', atualizarBotaoMetodoPagamento);
+  });
+  atualizarBotaoMetodoPagamento();
 
   const btnCopy = document.getElementById('btn-copiar-pix');
   if (btnCopy) btnCopy.addEventListener('click', () => {
@@ -971,10 +1378,14 @@ async function setupAgendaCliente() {
   if (prev) prev.addEventListener('click', () => {
     if (agendaSemanaOffset <= 0) return;
     agendaSemanaOffset--;
+    agendaDiaSelecionadoIdx = 0;
+    agendaDiaEscolhidoManualmente = false;
     renderAgendaCliente();
   });
   if (next) next.addEventListener('click', () => {
     agendaSemanaOffset++;
+    agendaDiaSelecionadoIdx = 0;
+    agendaDiaEscolhidoManualmente = false;
     renderAgendaCliente();
   });
 
@@ -1084,45 +1495,83 @@ function renderAgendaCliente() {
   }
   if (prev) prev.disabled = agendaSemanaOffset === 0;
 
-  grid.innerHTML = '';
-  let primeiroLivre = null;
-  dias.forEach(dia => {
-    const iso = isoLocal(dia);
-    const coluna = document.createElement('div');
-    coluna.className = 'agenda-dia';
-    coluna.innerHTML =
-      `<div class="agenda-dia-head"><strong>${dia.toLocaleDateString('pt-BR', { weekday: 'short' })}</strong><span>${dataLabelCurta(dia)}</span></div>` +
-      '<div class="agenda-slots"></div>';
-    const slots = coluna.querySelector('.agenda-slots');
-
-    HORARIOS_ATENDIMENTO.forEach(hora => {
-      const ocupado = ocupados.has(`${iso}|${hora}`);
-      const passado = iso === hojeIso && hora <= horaAgora;
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.className = 'agenda-slot' + (ocupado ? ' ocupado' : '') + (passado ? ' passado' : '');
-      btn.dataset.date = iso;
-      btn.dataset.time = hora;
-      btn.textContent = hora;
-      btn.disabled = ocupado || passado;
-      btn.title = ocupado ? 'Horário ocupado' : (passado ? 'Horário já passou' : 'Selecionar horário');
-      btn.addEventListener('click', () => selecionarHorarioCliente(iso, hora, btn));
-      slots.appendChild(btn);
-      if (!primeiroLivre && !btn.disabled) primeiroLivre = { iso, hora, btn };
-    });
-
-    grid.appendChild(coluna);
-  });
-
   const atualDate = document.getElementById('checkout-date')?.value;
   const atualTime = document.getElementById('checkout-time')?.value;
-  const escolhido = atualDate && atualTime
-    ? grid.querySelector(`[data-date="${CSS.escape(atualDate)}"][data-time="${CSS.escape(atualTime)}"]`)
+
+  // Primeiro horário livre de cada dia — usado tanto pra marcar o dia como
+  // "lotado" na pill quanto pra escolher qual dia mostrar por padrão.
+  const livrePorDia = dias.map(dia => {
+    const iso = isoLocal(dia);
+    return HORARIOS_ATENDIMENTO.find(hora => {
+      const ocupado = ocupados.has(`${iso}|${hora}`);
+      const passado = iso === hojeIso && hora <= horaAgora;
+      return !ocupado && !passado;
+    }) || null;
+  });
+
+  // Mostra o dia que já tem horário escolhido; se não houver, cai no
+  // primeiro dia com vaga livre. Pulado quando o próprio clique numa pill
+  // foi o que disparou este render — aí o dia já está decidido.
+  if (!agendaDiaEscolhidoManualmente) {
+    if (atualDate) {
+      const idxEscolhido = dias.findIndex(d => isoLocal(d) === atualDate);
+      if (idxEscolhido >= 0) agendaDiaSelecionadoIdx = idxEscolhido;
+    } else {
+      const idxLivre = livrePorDia.findIndex(h => h);
+      agendaDiaSelecionadoIdx = idxLivre >= 0 ? idxLivre : 0;
+    }
+  }
+  if (agendaDiaSelecionadoIdx >= dias.length) agendaDiaSelecionadoIdx = 0;
+
+  // Mostra um dia por vez — uma fileira de "pills" pra escolher o dia, e
+  // embaixo só os horários daquele dia (antes eram 5 dias lado a lado, que
+  // não cabiam num card mais estreito e cortavam ao meio).
+  grid.innerHTML =
+    '<div class="agenda-dia-pills"></div>' +
+    '<div class="agenda-dia-painel"><div class="agenda-slots"></div></div>';
+  const pillsWrap = grid.querySelector('.agenda-dia-pills');
+  dias.forEach((dia, idx) => {
+    const pill = document.createElement('button');
+    pill.type = 'button';
+    pill.className = 'agenda-dia-pill' +
+      (idx === agendaDiaSelecionadoIdx ? ' selecionado' : '') +
+      (!livrePorDia[idx] ? ' lotado' : '');
+    pill.innerHTML = `<strong>${dia.toLocaleDateString('pt-BR', { weekday: 'short' })}</strong><span>${dataLabelCurta(dia)}</span>`;
+    pill.addEventListener('click', () => {
+      agendaDiaSelecionadoIdx = idx;
+      agendaDiaEscolhidoManualmente = true;
+      renderAgendaCliente();
+    });
+    pillsWrap.appendChild(pill);
+  });
+
+  const diaSelecionado = dias[agendaDiaSelecionadoIdx];
+  const isoSelecionado = isoLocal(diaSelecionado);
+  const slots = grid.querySelector('.agenda-slots');
+  let primeiroLivre = null;
+  HORARIOS_ATENDIMENTO.forEach(hora => {
+    const ocupado = ocupados.has(`${isoSelecionado}|${hora}`);
+    const passado = isoSelecionado === hojeIso && hora <= horaAgora;
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'agenda-slot' + (ocupado ? ' ocupado' : '') + (passado ? ' passado' : '');
+    btn.dataset.date = isoSelecionado;
+    btn.dataset.time = hora;
+    btn.textContent = hora;
+    btn.disabled = ocupado || passado;
+    btn.title = ocupado ? 'Horário ocupado' : (passado ? 'Horário já passou' : 'Selecionar horário');
+    btn.addEventListener('click', () => selecionarHorarioCliente(isoSelecionado, hora, btn));
+    slots.appendChild(btn);
+    if (!primeiroLivre && !btn.disabled) primeiroLivre = { iso: isoSelecionado, hora, btn };
+  });
+
+  const escolhido = atualDate === isoSelecionado && atualTime
+    ? slots.querySelector(`[data-time="${CSS.escape(atualTime)}"]`)
     : null;
   if (escolhido && !escolhido.disabled) escolherBotaoAgenda(escolhido, atualDate, atualTime);
   else if (primeiroLivre) escolherBotaoAgenda(primeiroLivre.btn, primeiroLivre.iso, primeiroLivre.hora);
   else if (dica) {
-    dica.textContent = 'Não há horários livres nesta semana. Avance para a próxima semana.';
+    dica.textContent = 'Não há horários livres neste dia. Escolha outro dia acima ou avance a semana.';
     document.getElementById('checkout-date').value = '';
     document.getElementById('checkout-time').value = '';
   }
@@ -1185,6 +1634,16 @@ function selectServico(id) {
   });
 }
 
+// Texto do botão de confirmar acompanha o método escolhido (Pix vs. cartão).
+function atualizarBotaoMetodoPagamento() {
+  const btn = document.getElementById('btn-gerar-pix');
+  if (!btn) return;
+  const cartao = document.querySelector('input[name="metodo-agendamento"]:checked')?.value === 'cartao';
+  btn.innerHTML = cartao
+    ? '<i class="fa-solid fa-credit-card"></i> Ir para pagamento com cartão'
+    : '<i class="fa-solid fa-qrcode"></i> Gerar pagamento Pix';
+}
+
 async function gerarPagamentoPix() {
   const msg = document.getElementById('checkout-msg');
   msg.style.display = 'none';
@@ -1200,15 +1659,18 @@ async function gerarPagamentoPix() {
     msg.style.display = 'block';
     return;
   }
+  const metodo = document.querySelector('input[name="metodo-agendamento"]:checked')?.value || 'pix';
   const btn = document.getElementById('btn-gerar-pix');
   btn.disabled = true;
-  btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Gerando Pix...';
+  btn.innerHTML = metodo === 'cartao'
+    ? '<i class="fa-solid fa-spinner fa-spin"></i> Preparando pagamento...'
+    : '<i class="fa-solid fa-spinner fa-spin"></i> Gerando Pix...';
 
   try {
     const res = await fetch('/api/checkout', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ clientId: CLIENT_ID, servicoId: selectedServicoId, date, time })
+      body: JSON.stringify({ clientId: CLIENT_ID, servicoId: selectedServicoId, date, time, metodoPagamento: metodo })
     });
 
     if (res.status === 503) {
@@ -1233,9 +1695,20 @@ async function gerarPagamentoPix() {
       : '';
     document.getElementById('pix-resumo').textContent =
       `${data.servico.name} — ${precoFmt}${descontoFmt} · ${date} às ${time}`;
-    document.getElementById('pix-qr').src = 'data:image/png;base64,' + data.pixImage;
-    document.getElementById('pix-copia-cola').value = data.pixPayload;
-    document.getElementById('pix-invoice').href = data.invoiceUrl || '#';
+
+    const ehCartao = data.metodoPagamento === 'cartao';
+    document.getElementById('pag-titulo').textContent = ehCartao ? 'Pague com cartão para confirmar' : 'Pague com Pix para confirmar';
+    document.getElementById('pag-pix-bloco').hidden = ehCartao;
+    document.getElementById('pag-cartao-bloco').hidden = !ehCartao;
+    const invoiceLink = document.getElementById('pix-invoice');
+    invoiceLink.style.display = ehCartao ? 'none' : 'inline';
+    invoiceLink.href = data.invoiceUrl || '#';
+    if (ehCartao) {
+      document.getElementById('link-cartao').href = data.invoiceUrl || '#';
+    } else {
+      document.getElementById('pix-qr').src = 'data:image/png;base64,' + data.pixImage;
+      document.getElementById('pix-copia-cola').value = data.pixPayload;
+    }
 
     startPolling(data.cobrancaId, date, time, data.servico.name);
   } catch (e) {
@@ -1243,107 +1716,224 @@ async function gerarPagamentoPix() {
     msg.style.display = 'block';
   } finally {
     btn.disabled = false;
-    btn.innerHTML = '<i class="fa-solid fa-qrcode"></i> Gerar pagamento Pix';
+    atualizarBotaoMetodoPagamento();
   }
 }
 
-// ==== RADAR FISCAL (Serpro Mock) ====
+// ==== RADAR FISCAL (Integra Contador) ====
+let radarClienteEstado = null;
+
+function aplicarVisibilidadeRadarFiscal(habilitado) {
+  document.querySelectorAll('[data-target="section-radar"]').forEach(el => { el.hidden = !habilitado; });
+
+  const secao = document.getElementById('section-radar');
+  if (secao) {
+    // Se a pessoa estava justamente nessa aba (link antigo, aba reaberta),
+    // devolve pro início em vez de deixar um painel vazio na tela.
+    if (!habilitado && secao.classList.contains('active')) {
+      secao.classList.remove('active');
+      const inicio = document.getElementById('section-dashboard');
+      if (inicio) inicio.classList.add('active');
+      const navInicio = document.querySelector('[data-target="section-dashboard"]');
+      if (navInicio) {
+        document.querySelectorAll('.app-sidebar-nav .nav-item').forEach(n => n.classList.remove('active'));
+        navInicio.classList.add('active');
+      }
+    }
+    secao.hidden = !habilitado;
+  }
+}
+
+async function chamarRadarCliente(acao, extra) {
+  const { data } = await sb.auth.getSession();
+  const token = data && data.session ? data.session.access_token : '';
+  const res = await fetch('/api/radar-fiscal', {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ acao, ...(extra || {}) })
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    const erro = new Error(json.detail || json.error || 'Não foi possível concluir a consulta.');
+    erro.code = json.error;
+    throw erro;
+  }
+  return json;
+}
+
 async function carregarRadarFiscal() {
   if (!clienteLogado) return;
-  const section = document.getElementById('section-radar');
-  if (!section) return;
+  const oferta = document.getElementById('radar-oferta');
+  const ativo = document.getElementById('radar-ativo');
+  if (!oferta || !ativo) return;
 
-  // Se o cliente não tem A ASSINATURA DO RADAR (especificamente — `recorrente`
-  // é um único booleano por cliente, compartilhado com qualquer outro
-  // acompanhamento mensal, como a Assessoria MEI), mostra a tela de venda.
-  if (!clienteLogado.recorrente || clienteLogado.recorrenteTipo !== 'Radar Fiscal') {
-    // A tela original já é a de venda, não precisamos mexer no HTML base.
-    return;
-  }
-
-  // Se tiver assinatura, busca os dados da API simulando o Serpro
   try {
-    // 'sb_session_token' nunca foi gravado em lugar nenhum — sempre saía
-    // "Bearer null". O token de verdade vem da sessão do Supabase já aberta.
-    const { data: sessData } = await sb.auth.getSession();
-    const token = sessData && sessData.session ? sessData.session.access_token : '';
-    const res = await fetch('/api/radar-fiscal', {
-      headers: { 'Authorization': `Bearer ${token}` }
-    });
-    if (!res.ok) throw new Error('Falha ao carregar Radar Fiscal');
-    
-    const radar = await res.json();
-    renderRadarAtivo(radar);
+    radarClienteEstado = await chamarRadarCliente('estado-cliente');
+    aplicarVisibilidadeRadarFiscal(!!radarClienteEstado.habilitado);
+    oferta.hidden = true;
+    ativo.hidden = !radarClienteEstado.habilitado;
+    if (radarClienteEstado.habilitado) renderRadarAtivo(radarClienteEstado.resultados || []);
   } catch (e) {
     console.error('Radar Fiscal erro:', e);
+    aplicarVisibilidadeRadarFiscal(false);
   }
 }
 
-function renderRadarAtivo(radar) {
-  const container = document.getElementById('section-radar');
-  const isAlert = radar.status === 'alert';
-  
-  let caixasHtml = '';
-  if (radar.caixaPostal && radar.caixaPostal.mensagens.length > 0) {
-    caixasHtml = radar.caixaPostal.mensagens.map(m => `
-      <div style="padding: 16px; border-bottom: 1px solid var(--color-border); display: flex; gap: 16px; align-items: center; background: #fff;">
-        <div style="width: 40px; height: 40px; border-radius: 50%; background: var(--color-coral); color: white; display: flex; align-items: center; justify-content: center;"><i class="fa-solid fa-envelope-open-text"></i></div>
+function dataCurtaRadar(iso) {
+  if (!iso) return '—';
+  try { return new Date(iso).toLocaleDateString('pt-BR'); } catch { return '—'; }
+}
+
+// Recebe as linhas de serpro_resultados (o que já foi consultado e pago).
+// Toda informação vem carimbada com a data da consulta: situação fiscal de
+// duas semanas atrás não é a situação fiscal de hoje, e o cliente precisa
+// enxergar essa diferença.
+function renderRadarAtivo(linhas) {
+  const container = document.getElementById('radar-ativo');
+  if (!container) return;
+
+  const porServico = {};
+  (linhas || []).forEach(l => { porServico[l.servico] = l; });
+
+  const temNovas = !!clienteLogado.caixaPostalNovas;
+  const caixa = porServico['caixa-postal'];
+  const mensagens = (caixa && caixa.resultado && caixa.resultado.mensagens) || [];
+
+  let caixaHtml;
+  if (temNovas) {
+    caixaHtml = `
+      <div style="padding:18px;display:flex;gap:14px;align-items:flex-start;background:#FFF7ED;">
+        <i class="fa-solid fa-envelope" style="color:var(--color-coral);font-size:18px;margin-top:2px;"></i>
         <div>
-           <h4 style="font-size: 14px; margin: 0; color: var(--color-pine);">${m.assunto}</h4>
-           <span style="font-size: 11px; color: var(--color-text-secondary);">${new Date(m.data).toLocaleDateString('pt-BR')}</span>
+          <h4 style="font-size:14px;margin:0 0 4px 0;color:var(--color-pine);">Chegou mensagem nova da Receita</h4>
+          <p style="font-size:13px;margin:0;color:var(--color-text-secondary);line-height:1.5;">
+            Seu contador foi avisado e vai verificar o conteúdo. Se for preciso agir, entramos em contato.
+          </p>
         </div>
-      </div>
-    `).join('');
+      </div>`;
+  } else if (mensagens.length > 0) {
+    caixaHtml = mensagens.map(m => `
+      <div style="padding:14px 18px;border-bottom:1px solid var(--color-border);display:flex;gap:14px;align-items:center;">
+        <div style="width:36px;height:36px;border-radius:50%;background:var(--color-pine-ultra-light);color:var(--color-pine);display:flex;align-items:center;justify-content:center;">
+          <i class="fa-solid fa-envelope-open-text"></i>
+        </div>
+        <div>
+          <h4 style="font-size:14px;margin:0;color:var(--color-pine);">${m.assunto}</h4>
+          <span style="font-size:11px;color:var(--color-text-secondary);">${dataCurtaRadar(m.data)}</span>
+        </div>
+      </div>`).join('');
   } else {
-    caixasHtml = `<div style="padding: 16px; font-size: 13px; color: var(--color-text-secondary); text-align: center;">Nenhuma nova mensagem na caixa postal.</div>`;
+    caixaHtml = `<div style="padding:18px;font-size:13px;color:var(--color-text-secondary);">
+      Nenhuma mensagem nova desde a última verificação${caixa ? ` (${dataCurtaRadar(caixa.obtido_em)})` : ''}.
+    </div>`;
+  }
+
+  const sitfis = porServico['sitfis'];
+  const sitfisHtml = sitfis
+    ? `<p style="font-size:13px;color:var(--color-text-secondary);margin:0;line-height:1.6;">
+         Seu relatório de situação fiscal foi emitido em <strong>${dataCurtaRadar(sitfis.obtido_em)}</strong> e
+         está em <strong>Meus Documentos</strong>.
+       </p>`
+    : `<p style="font-size:13px;color:var(--color-text-secondary);margin:0;line-height:1.6;">
+         Nenhum relatório de situação fiscal emitido ainda. Peça ao seu contador pelas
+         <strong>Mensagens</strong> quando precisar de um.
+       </p>`;
+
+  const parcelamentos = porServico['parcelamentos'];
+  let parcelamentosHtml = '';
+  if (parcelamentos && parcelamentos.resultado) {
+    const blocos = parcelamentos.resultado.sistemas || [];
+    parcelamentosHtml = `
+      <p style="font-size:12px;color:var(--color-text-secondary);margin:0 0 12px;">Dados consultados em <strong>${dataCurtaRadar(parcelamentos.obtido_em)}</strong>.</p>
+      ${blocos.map(s => {
+        const pedidos = s.pedidos || [];
+        const parcelas = s.parcelas || [];
+        return `<div style="padding:12px 0;border-top:1px solid var(--color-border);">
+          <strong style="font-size:13.5px;color:var(--color-pine);">${escapeHtml(s.sistema || '')}</strong>
+          <span style="font-size:12px;color:var(--color-text-secondary);"> · ${pedidos.length} parcelamento(s)</span>
+          ${parcelas.map(p => `<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding-top:10px;font-size:13px;">
+            <span>Parcela ${escapeHtml(String(p.parcela || ''))} · vence ${escapeHtml(String(p.vencimento || '—'))}</span>
+            ${radarClienteEstado?.configuracao?.clientePodeEmitirDas !== false ? `<button type="button" class="btn-utility" data-radar-cliente-das data-sistema="${escapeHtml(s.sistema || '')}" data-parcela="${escapeHtml(String(p.parcela || ''))}"><i class="fa-solid fa-file-invoice-dollar"></i> Emitir guia</button>` : ''}
+          </div>`).join('') || '<p style="font-size:12.5px;color:var(--color-text-secondary);margin:8px 0 0;">Nenhuma parcela disponível para emissão.</p>'}
+        </div>`;
+      }).join('') || '<p style="font-size:13px;color:var(--color-text-secondary);margin:0;">Nenhum parcelamento encontrado.</p>'}`;
+  } else {
+    parcelamentosHtml = radarClienteEstado?.regime
+      ? `<p style="font-size:13px;color:var(--color-text-secondary);margin:0 0 14px;">Ainda não há dados salvos. A primeira consulta será guardada e reutilizada nas próximas vezes.</p><button type="button" class="btn-utility primary" data-radar-cliente-consultar><i class="fa-solid fa-magnifying-glass"></i> Consultar parcelamentos</button>`
+      : '<p style="font-size:13px;color:var(--color-text-secondary);margin:0;">Peça ao seu contador para definir se a empresa é MEI ou Simples Nacional antes da primeira consulta.</p>';
   }
 
   container.innerHTML = `
-    <div class="panel-header-desc" style="display: flex; justify-content: space-between; align-items: flex-start;">
+    <div style="display:flex;flex-direction:column;gap:24px;max-width:780px;">
+
+      <div style="display:flex;align-items:center;gap:10px;">
+        <span class="status-badge" style="background:rgba(46,204,113,0.1);color:#27AE60;border:1px solid rgba(46,204,113,0.3);padding:6px 12px;font-size:13px;font-weight:600;">
+          <i class="fa-solid fa-satellite-dish"></i> Radar habilitado
+        </span>
+        <span style="font-size:12.5px;color:var(--color-text-secondary);">Caixa Postal verificada a cada ${escapeHtml(String(radarClienteEstado?.configuracao?.caixaPostalIntervaloDias || 7))} dias.</span>
+      </div>
+
       <div>
-        <h2><i class="fa-solid fa-shield-halved" style="color: var(--color-coral); margin-right: 8px;"></i> Radar Fiscal</h2>
-        <p>Monitoramento 24h da saúde do seu <strong>${radar.documento}</strong> (Sincronizado com Serpro/e-CAC).</p>
+        <h3 style="font-size:16px;color:var(--color-pine);margin-bottom:12px;">Caixa Postal (e-CAC)</h3>
+        <div style="background:#fff;border-radius:20px;border:1px solid var(--color-border);box-shadow:0 4px 20px rgba(10,49,33,0.06);overflow:hidden;">
+          ${caixaHtml}
+        </div>
       </div>
-      <span class="status-badge" style="background: rgba(46,204,113,0.1); color: #27AE60; border: 1px solid rgba(46,204,113,0.3); padding: 6px 12px; font-size: 13px; font-weight: 600;">
-        <i class="fa-solid fa-satellite-dish fa-beat"></i> Monitoramento Ativo
-      </span>
-    </div>
 
-    ${isAlert ? `
-      <div style="background: #FDEDEC; padding: 16px; border-radius: var(--radius-md); border: 1px solid #E74C3C; margin-bottom: 24px; display: flex; gap: 16px; align-items: center;">
-         <div style="font-size: 32px; color: #E74C3C;"><i class="fa-solid fa-circle-exclamation"></i></div>
-         <div>
-           <h3 style="color: #C0392B; font-size: 16px; margin: 0 0 4px 0;">Alerta: Pendências Encontradas</h3>
-           <p style="color: #E74C3C; font-size: 13px; margin: 0;">Foi detectada uma pendência nos sistemas do Governo. Consulte seu contador no chat para resolver.</p>
-         </div>
+      <div>
+        <h3 style="font-size:16px;color:var(--color-pine);margin-bottom:12px;">Situação fiscal</h3>
+        <div style="background:#fff;border-radius:20px;border:1px solid var(--color-border);box-shadow:0 4px 20px rgba(10,49,33,0.06);padding:18px;">
+          ${sitfisHtml}
+        </div>
       </div>
-    ` : `
-      <div style="background: #E8F8F5; padding: 16px; border-radius: var(--radius-md); border: 1px solid #2ECC71; margin-bottom: 24px; display: flex; gap: 16px; align-items: center;">
-         <div style="font-size: 32px; color: #2ECC71;"><i class="fa-solid fa-circle-check"></i></div>
-         <div>
-           <h3 style="color: #27AE60; font-size: 16px; margin: 0 0 4px 0;">Tudo Certo!</h3>
-           <p style="color: #2ECC71; font-size: 13px; margin: 0;">Seu CPF/CNPJ está regular e sem pendências ativas.</p>
-         </div>
-      </div>
-    `}
 
-    <h3 style="font-size: 16px; color: var(--color-pine); margin-bottom: 16px;">Situação das Certidões (CNDs)</h3>
-    <div class="responsive-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px; margin-bottom: 32px;">
-      <div style="background: white; padding: 16px; border-radius: var(--radius-sm); border: 1px solid var(--color-border); border-left: 4px solid ${isAlert ? '#E74C3C' : '#2ECC71'};">
-         <h4 style="font-size: 14px; color: var(--color-text-primary); margin-bottom: 12px;"><i class="fa-solid fa-building-columns" style="color: ${isAlert ? '#E74C3C' : '#2ECC71'}; margin-right: 6px;"></i> Receita Federal e PGFN</h4>
-         <div style="display: flex; justify-content: space-between; align-items: center;">
-            <span style="font-size: 12px; color: var(--color-text-secondary);">Status:</span>
-            <span style="font-size: 12px; font-weight: 600; color: ${isAlert ? '#C0392B' : '#27AE60'}; background: ${isAlert ? 'rgba(231,76,60,0.1)' : 'rgba(46,204,113,0.1)'}; padding: 4px 8px; border-radius: 8px;">${radar.cnd.status === 'negativa' ? 'Regular (Negativa)' : 'Com Pendências'}</span>
-         </div>
-         <p style="font-size: 11px; margin-top: 8px; color: var(--color-text-secondary);">${radar.cnd.mensagem}</p>
+      <div>
+        <h3 style="font-size:16px;color:var(--color-pine);margin-bottom:12px;">Parcelamentos</h3>
+        <div style="background:#fff;border-radius:20px;border:1px solid var(--color-border);box-shadow:0 4px 20px rgba(10,49,33,0.06);padding:18px;">
+          ${parcelamentosHtml}
+        </div>
       </div>
-    </div>
 
-    <h3 style="font-size: 16px; color: var(--color-pine); margin-bottom: 16px;">Caixa Postal (e-CAC)</h3>
-    <div style="background: white; border-radius: var(--radius-md); border: 1px solid var(--color-border); overflow: hidden;">
-      ${caixasHtml}
-    </div>
-  `;
+    </div>`;
+
+  const consultar = container.querySelector('[data-radar-cliente-consultar]');
+  if (consultar) consultar.addEventListener('click', () => consultarParcelamentosCliente(consultar));
+  container.querySelectorAll('[data-radar-cliente-das]').forEach(btn => btn.addEventListener('click', () => emitirDasRadarCliente(btn)));
+}
+
+async function consultarParcelamentosCliente(botao) {
+  const original = botao.innerHTML;
+  botao.disabled = true;
+  botao.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Consultando…';
+  try {
+    const resultado = await chamarRadarCliente('parcelamentos');
+    radarClienteEstado.resultados = (radarClienteEstado.resultados || []).filter(r => r.servico !== 'parcelamentos');
+    radarClienteEstado.resultados.push({ servico: 'parcelamentos', resultado, obtido_em: resultado.obtidoEm || new Date().toISOString() });
+    renderRadarAtivo(radarClienteEstado.resultados);
+  } catch (e) {
+    botao.disabled = false;
+    botao.innerHTML = original;
+    alert(e.message);
+  }
+}
+
+async function emitirDasRadarCliente(botao) {
+  const original = botao.innerHTML;
+  botao.disabled = true;
+  botao.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Emitindo…';
+  try {
+    const r = await chamarRadarCliente('emitir-das', { sistema: botao.dataset.sistema, parcela: botao.dataset.parcela });
+    if (!r.pdfBase64) throw new Error('A Receita não devolveu o PDF da guia.');
+    const link = document.createElement('a');
+    link.href = `data:application/pdf;base64,${r.pdfBase64}`;
+    link.download = `das-${botao.dataset.parcela}.pdf`;
+    link.click();
+    botao.innerHTML = '<i class="fa-solid fa-circle-check"></i> Guia emitida';
+  } catch (e) {
+    botao.disabled = false;
+    botao.innerHTML = original;
+    alert(e.message);
+  }
 }
 
 function startPolling(cobrancaId, date, time, servicoName) {
@@ -1367,27 +1957,120 @@ function showCheckoutSuccess(date, time, servicoName) {
   ok.style.display = 'block';
   document.getElementById('success-msg').textContent =
     `${servicoName} · ${date} às ${time}. Seu atendimento começará no horário agendado.`;
-    
-  // Bloquear o chat automaticamente na mesma API usada pelo painel do contador.
-  fetch('/api/clients/status', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ clientId: CLIENT_ID, status: 'locked' })
-  }).then(() => {
-      // Atualizar a mensagem do overlay
-      const overlay = document.getElementById('chat-locked-overlay');
-      if (overlay) {
-        overlay.querySelector('strong').innerHTML = `<i class="fa-solid fa-calendar"></i> ${date} às ${time}`;
-        overlay.style.display = 'flex';
-      }
 
-      // Emitir broadcast para o contador saber (opcional, ele vai ver quando carregar)
-      if (window.sb && !(window.OC_CONFIG?.TESTE_CLIENTE_SEM_LOGIN?.enabled && window.OC_ROLE === 'cliente')) {
-        const ch = window.sb.channel('oc-lock-' + CLIENT_ID);
-        ch.send({ type: 'broadcast', event: 'lock_change', payload: { locked: true, status: 'locked' } });
-      }
-    }).catch(() => {});
+  // O bloqueio total (chat fechado até o horário marcado) agora é calculado
+  // sozinho a partir da própria agenda — ver buscarAgendamentoBloqueio(). Não
+  // precisa mais gravar status='locked' aqui: aquele campo é reservado pro
+  // contador travar na mão DURANTE o atendimento, e reutilizá-lo no agendamento
+  // fazia o botão de bloqueio do contador acender antes mesmo da consulta
+  // começar. Só refresca o estado agora pra não esperar o próximo polling.
+  atualizarAgendamentoPendente().then(() => aplicarEstadoDoChat(ultimoStatusCliente, agendamentoPendenteCache));
+
+  // Reduz a fricção entre pagar e começar de fato: em vez de soltar o cliente
+  // no dashboard, ele é guiado por um agradecimento -> "vamos começar" ->
+  // triagem obrigatória, e só é liberado pro resto do portal depois de enviá-la.
+  localStorage.setItem(onboardingStorageKey(), '1');
+  personalizarOnboarding();
+  preencherAgendamentoOnboarding({ servico: servicoName, date, time });
+  mostrarOnboarding('obrigado');
 }
+
+// Mostra o agendamento em destaque no card de "obrigado" do onboarding — é a
+// prova concreta, pro cliente, de que o pagamento virou um horário marcado.
+// Recebe os dados direto quando quem chamou já sabe (showCheckoutSuccess);
+// sem eles, busca o próximo agendamento pendente (caminho do checkout público
+// + login automático, onde ninguém passou esses dados pra cá).
+async function preencherAgendamentoOnboarding(dados) {
+  const bloco = document.getElementById('onboarding-agendamento');
+  if (!bloco) return;
+  let servico, data, hora;
+  if (dados) {
+    servico = dados.servico; data = dados.date; hora = dados.time;
+  } else {
+    const ag = agendamentoPendenteCache || await atualizarAgendamentoPendente();
+    if (!ag) { bloco.hidden = true; return; }
+    servico = ag.taxType; data = ag.date; hora = ag.time;
+  }
+  if (!servico && !data) { bloco.hidden = true; return; }
+  const servicoEl = document.getElementById('onboarding-agendamento-servico');
+  const quandoEl = document.getElementById('onboarding-agendamento-quando');
+  if (servicoEl) servicoEl.textContent = servico || 'Atendimento agendado';
+  if (quandoEl) quandoEl.textContent = data ? (window.OCTempo.rotuloDia(data) + (hora ? ' às ' + hora : '')) : '';
+  bloco.hidden = false;
+}
+
+function onboardingStorageKey() {
+  return 'oc-onboarding-pendente-' + CLIENT_ID;
+}
+
+// Primeiro nome do cliente logado — usado para chamar a pessoa pelo nome
+// durante o onboarding pós-pagamento e a triagem, em vez de um "você" genérico.
+function primeiroNomeCliente() {
+  const nome = (clienteLogado && clienteLogado.name) || '';
+  return nome.trim().split(/\s+/)[0] || '';
+}
+window.primeiroNomeCliente = primeiroNomeCliente;
+
+function personalizarOnboarding() {
+  const primeiroNome = primeiroNomeCliente();
+  ['onboarding-nome-1', 'onboarding-nome-3', 'onboarding-nome-4'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = primeiroNome;
+  });
+}
+
+function mostrarOnboarding(passo) {
+  onboardingAtivo = true;
+  const overlay = document.getElementById('onboarding-overlay');
+  if (overlay) overlay.classList.add('ativo');
+  ['obrigado', 'depois', 'final'].forEach(p => {
+    const el = document.getElementById('onboarding-step-' + p);
+    if (el) el.hidden = (p !== passo);
+  });
+}
+window.avancarOnboarding = mostrarOnboarding;
+
+function entrarNaTriagemObrigatoria() {
+  const overlay = document.getElementById('onboarding-overlay');
+  if (overlay) overlay.classList.remove('ativo');
+  document.body.classList.add('onboarding-bloqueio');
+  abrirSecaoCliente('section-triagem');
+}
+window.entrarNaTriagemObrigatoria = entrarNaTriagemObrigatoria;
+
+// Cliente escolheu "Agora não" no card de obrigado: em vez de forçar a
+// triagem na hora, encerra a sessão — ela volta pelo link de acesso (que já
+// chega por e-mail, ver enviarLinkDeAcesso) quando estiver pronta. Mantém
+// onboarding_pendente=true (só a triagem enviada libera isso de verdade),
+// então da próxima vez que ela entrar cai direto na triagem obrigatória.
+async function sairSemTriagemAgora() {
+  const overlay = document.getElementById('onboarding-overlay');
+  if (overlay) overlay.classList.remove('ativo');
+  try { await OCAuth.signOut(); } catch (_) { location.href = 'index.html'; }
+}
+window.sairSemTriagemAgora = sairSemTriagemAgora;
+
+// Chamado pela triagem.js (enviar()) assim que o cliente conclui a triagem
+// obrigatória — libera a navegação e mostra a confirmação de que o caso já
+// está com os especialistas.
+function finalizarOnboardingAposTriagem() {
+  if (!onboardingAtivo) return;
+  localStorage.removeItem(onboardingStorageKey());
+  document.body.classList.remove('onboarding-bloqueio');
+  // Garante o nome preenchido mesmo se o onboarding foi retomado depois de um
+  // reload (nesse caso as telas 1 e 2 nunca chegaram a rodar personalizarOnboarding).
+  personalizarOnboarding();
+  mostrarOnboarding('final');
+}
+window.finalizarOnboardingAposTriagem = finalizarOnboardingAposTriagem;
+
+function concluirOnboarding() {
+  onboardingAtivo = false;
+  const overlay = document.getElementById('onboarding-overlay');
+  if (overlay) overlay.classList.remove('ativo');
+  abrirSecaoCliente('section-dashboard');
+}
+window.concluirOnboarding = concluirOnboarding;
 
 // Busca as mensagens já salvas e popula o chat na primeira carga.
 async function loadClientHistory() {
@@ -1408,6 +2091,14 @@ async function loadClientHistory() {
     if (nameEl) nameEl.textContent = client.name || '';
     if (docEl) docEl.textContent = formatarCPF(client.cpf);
     if (avatarEl) avatarEl.textContent = client.avatar || iniciaisDoNome(client.name);
+    // "Bem-vindo" concorda em gênero com quem é recebido — e não dá pra saber
+    // se o cliente é "bem-vindo" ou "bem-vinda" só pelo primeiro nome. Um
+    // simples "Olá, {nome}" evita o problema (e ainda fica mais pessoal).
+    const dashBoasVindasEl = document.getElementById('dash-boas-vindas');
+    if (dashBoasVindasEl) {
+      const primeiroNome = primeiroNomeCliente();
+      dashBoasVindasEl.textContent = primeiroNome ? `Olá, ${primeiroNome}!` : 'Bem-vindo(a) ao Olá, Contador';
+    }
 
     populaPerfilCliente(client);
 
@@ -1431,14 +2122,15 @@ function setupNavigation() {
   document.querySelectorAll(".nav-item").forEach(button => {
     button.addEventListener("click", () => {
       const targetSectionId = button.getAttribute("data-target");
-      
+
       // Remove active class from all nav items
       document.querySelectorAll(".app-sidebar-nav .nav-item").forEach(el => el.classList.remove("active"));
       button.classList.add("active");
-      
+      moverIndicadorLiquido(button);
+
       // Hide all panels
       document.querySelectorAll(".content-panel").forEach(panel => panel.classList.remove("active"));
-      
+
       // Show target panel
       const targetPanel = document.getElementById(targetSectionId);
       if (targetPanel) {
@@ -1455,6 +2147,31 @@ function setupNavigation() {
       }
     });
   });
+  moverIndicadorLiquido(document.querySelector('.app-sidebar-nav .nav-item.active'));
+  window.addEventListener('resize', () => {
+    moverIndicadorLiquido(document.querySelector('.app-sidebar-nav .nav-item.active'));
+  });
+}
+
+// Desliza o indicador "líquido" (pílula translúcida) até embaixo do ícone
+// ativo — só existe visualmente na barra do celular (ver cliente.css). Some
+// (opacity:0) quando o item ativo é um dos que moraram no menu de perfil
+// (Pré-atendimento, Mensagens, Agendamento, Histórico): eles ficam ocultos
+// na barra de baixo, então getBoundingClientRect() voltaria um retângulo
+// vazio (0×0) e o indicador "sumiria" no canto — melhor escondê-lo de vez.
+function moverIndicadorLiquido(navItem) {
+  const indicador = document.getElementById('nav-liquid-indicator');
+  const barra = document.querySelector('.app-sidebar-nav');
+  if (!indicador || !barra) return;
+  if (window.innerWidth > 768 || !navItem) { indicador.style.opacity = '0'; return; }
+
+  const itemRect = navItem.getBoundingClientRect();
+  if (!itemRect.width) { indicador.style.opacity = '0'; return; }
+
+  const barraRect = barra.getBoundingClientRect();
+  indicador.style.left = (itemRect.left - barraRect.left) + 'px';
+  indicador.style.width = itemRect.width + 'px';
+  indicador.style.opacity = '1';
 }
 
 // Rolar sozinho só faz sentido se a pessoa já está no fim. Se ela subiu para
@@ -1704,17 +2421,59 @@ async function enviarMensagem(msgObj, bubbleExistente) {
   if (bubble) pintarBolha(bubble, msgObj);
 }
 
+// Some sozinho depois de alguns segundos — não é erro nem precisa de clique
+// pra fechar, só confirma pra onde a mensagem foi.
+function avisarEnvioParaCaixaPostal() {
+  let aviso = document.getElementById('aviso-envio-caixa-postal');
+  if (!aviso) {
+    aviso = document.createElement('div');
+    aviso.id = 'aviso-envio-caixa-postal';
+    aviso.className = 'aviso-envio-caixa-postal';
+    const area = document.querySelector('#section-chat .chat-input-area');
+    if (area) area.appendChild(aviso);
+  }
+  aviso.innerHTML = '<i class="fa-solid fa-envelope"></i> Sua mensagem foi para a Caixa Postal — resposta em até 1 dia útil. '
+    + '<a href="#" id="link-ver-caixa-postal">Ver mensagem</a>';
+  aviso.classList.add('visivel');
+  clearTimeout(aviso._timer);
+  aviso._timer = setTimeout(() => aviso.classList.remove('visivel'), 8000);
+  const link = document.getElementById('link-ver-caixa-postal');
+  if (link) link.onclick = (e) => { e.preventDefault(); abrirSecaoCliente('section-caixa-postal'); };
+}
+
 function setupChat() {
   const form = document.getElementById('client-chat-form');
   const input = document.getElementById('client-chat-input');
 
   if (!form) return;
 
-  form.addEventListener('submit', (e) => {
+  form.addEventListener('submit', async (e) => {
     e.preventDefault();
 
     const texto = input.value.trim();
     if (!texto) return;
+
+    // Chat bloqueado (total ou parcial): a conversa ao vivo está fechada, então
+    // o que a pessoa digitar aqui vira mensagem na Caixa Postal em vez de se
+    // perder ou ficar preso num campo desabilitado.
+    if (chatLockMode === 'total' || chatLockMode === 'parcial') {
+      input.value = '';
+      input.disabled = true;
+      try {
+        await fetch('/api/caixa-postal', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ clienteId: CLIENT_ID, remetente: 'cliente', mensagem: texto })
+        });
+        avisarEnvioParaCaixaPostal();
+        await carregarBadgeCaixaPostalCliente();
+      } catch (err) {
+        alert('Não consegui enviar sua mensagem agora. Tente de novo em instantes.');
+      } finally {
+        input.disabled = false;
+        input.focus();
+      }
+      return;
+    }
 
     const agora = new Date();
     enviarMensagem({
@@ -1999,3 +2758,80 @@ function clearClienteBadge() {
   }
   document.title = originalClienteTitle;
 }
+
+// ============================================================
+// FAQ / AJUDA — busca simples nas perguntas e respostas
+// ============================================================
+// Filtra por texto (pergunta + resposta), esconde grupos que ficaram
+// vazios e avisa quando nada bate. Sem termo, tudo volta e os itens
+// fecham — assim a seção sempre reabre no estado limpo.
+(function initFaqBusca() {
+  function normalizar(txt) {
+    // Sem acento e em minúscula: quem digita "nivel" acha "nível".
+    return String(txt || '')
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '');
+  }
+
+  function ligar() {
+    const input = document.getElementById('faq-busca-input');
+    if (!input) return;
+
+    const avisoVazio = document.getElementById('faq-sem-resultado');
+    const grupos = Array.from(document.querySelectorAll('[data-faq-grupo]'));
+    const itens = Array.from(document.querySelectorAll('#section-faq .faq-item'));
+
+    // O texto de cada item é lido uma vez só, no carregamento — o conteúdo
+    // do FAQ é estático, não precisa reprocessar a cada tecla.
+    const indice = itens.map(el => ({ el, texto: normalizar(el.textContent) }));
+
+    input.addEventListener('input', () => {
+      const termo = normalizar(input.value.trim());
+
+      if (!termo) {
+        indice.forEach(({ el }) => { el.hidden = false; el.open = false; });
+        grupos.forEach(g => { g.hidden = false; });
+        if (avisoVazio) avisoVazio.hidden = true;
+        return;
+      }
+
+      let achou = 0;
+      indice.forEach(({ el, texto }) => {
+        const bate = texto.includes(termo);
+        el.hidden = !bate;
+        // Abre o que bateu: com poucos resultados, a resposta já aparece
+        // sem exigir mais um clique.
+        el.open = bate;
+        if (bate) achou++;
+      });
+
+      grupos.forEach(g => {
+        const visiveis = g.querySelectorAll('.faq-item:not([hidden])').length;
+        g.hidden = visiveis === 0;
+      });
+
+      if (avisoVazio) avisoVazio.hidden = achou > 0;
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', ligar);
+  } else {
+    ligar();
+  }
+})();
+
+// A aba do Radar precisa sumir já no carregamento da página, antes de qualquer
+// dado do cliente chegar do banco — senão ela pisca na barra lateral e alguém
+// consegue clicar nela nesse intervalo.
+(function esconderRadarCedo() {
+  function aplicar() {
+    try { aplicarVisibilidadeRadarFiscal(); } catch (_) {}
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', aplicar);
+  } else {
+    aplicar();
+  }
+})();

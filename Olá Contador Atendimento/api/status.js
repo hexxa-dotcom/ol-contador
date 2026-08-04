@@ -7,8 +7,9 @@
 //   ?codigo=OC-XXXXXXXX      -> validação de crédito de atendimento
 //   ?acao=servicos-municipais -> serviços municipais cadastrados no Asaas
 const asaas = require('./_lib/asaas');
+const notify = require('./_lib/notify');
 const { adminClient, requireUser } = require('./_lib/auth');
-const { confirmCobranca } = require('./_lib/pagamento');
+const { confirmCobranca, gerarAutoLogin } = require('./_lib/pagamento');
 
 async function statusCobranca(req, res, admin) {
   if (!asaas.isConfigured()) return res.status(503).json({ error: 'asaas_not_configured' });
@@ -17,8 +18,21 @@ async function statusCobranca(req, res, admin) {
   const { data: cob } = await admin.from('cobrancas').select('*').eq('id', id).single();
   if (!cob) return res.status(404).json({ error: 'cobranca_not_found' });
 
+  // O id da cobrança é sequencial (adivinhável) — sem exigir de volta o
+  // poll_token que só foi entregue ao navegador que abriu este checkout,
+  // qualquer um poderia consultar (e, pior, herdar o login automático de)
+  // o pagamento de outra pessoa. Ver scripts/checkout-login-automatico.sql.
+  const pollToken = String(req.query.pollToken || '');
+  if (!cob.poll_token || pollToken !== cob.poll_token) {
+    return res.status(403).json({ error: 'forbidden' });
+  }
+
   try {
-    res.json(await confirmCobranca(admin, cob));
+    const resultado = await confirmCobranca(admin, cob);
+    if (resultado.status === 'paid') {
+      resultado.autoLogin = await gerarAutoLogin(admin, cob.cliente_ref);
+    }
+    res.json(resultado);
   } catch (e) {
     console.error('status (cobranca) error:', e.message);
     res.status(502).json({ error: 'asaas_error', detail: e.message });
@@ -123,6 +137,61 @@ async function atualizarStatusAtendimento(req, res) {
   res.json({ id: data.id, status: data.status, ultimoFinalizadoEm: data.ultimo_atendimento_finalizado_em || null });
 }
 
+// Textos "estilo rastreio de encomenda" — cada etapa do Kanban de
+// Acompanhamento vira um e-mail curto avisando o cliente que o caso avançou.
+// "recorrencia" fica de fora: é a ativação de uma assinatura, não um passo do
+// atendimento, e já tem seu próprio aviso (moverParaRecorrencia, em app.js).
+const KANBAN_EMAIL_POR_ETAPA = {
+  pending: {
+    titulo: 'Seu caso entrou em acompanhamento',
+    corpo: 'Seu atendimento não termina por aqui — o contador vai continuar acompanhando a resolução do seu caso, e você recebe um aviso a cada etapa.'
+  },
+  active: {
+    titulo: 'Seu caso está em análise',
+    corpo: 'O contador começou a analisar o seu caso. Assim que houver novidade, você é avisado por aqui.'
+  },
+  docs: {
+    titulo: 'Precisamos de mais alguns documentos seus',
+    corpo: 'Estamos com o seu caso, mas para continuar precisamos de documentos adicionais. Acesse sua área de cliente e confira o que falta em "Documentos".'
+  },
+  ready: {
+    titulo: 'Seu caso está pronto',
+    corpo: 'Está tudo encaminhado — a entrega final do seu atendimento está sendo preparada.'
+  },
+  done: {
+    titulo: 'Seu atendimento foi concluído!',
+    corpo: 'Seu caso foi concluído. Acesse sua área de cliente para conferir o relatório e os detalhes.'
+  }
+};
+
+// Move um cliente entre as etapas do Kanban de Acompanhamento. Diferente do
+// drag-and-drop antigo (que gravava direto no Supabase pelo navegador via
+// oc-data.js, sem passar por nenhuma função serverless), esta rota existe
+// justamente para poder mandar o e-mail de "seu caso avançou" — que depende
+// da RESEND_API_KEY, uma chave que nunca pode chegar ao navegador.
+async function moverEtapaKanban(req, res) {
+  if (req.method !== 'POST') return res.status(405).json({ error: 'method_not_allowed' });
+  const admin = await exigirEquipe(req, res);
+  if (!admin) return;
+  const { clientId, status } = req.body || {};
+  if (!clientId || !['pending', 'active', 'docs', 'ready', 'done', 'recorrencia'].includes(status)) {
+    return res.status(400).json({ error: 'invalid_params' });
+  }
+
+  const { data: linha } = await admin.from('configuracoes').select('valor').eq('chave', 'kanban_etapas').maybeSingle();
+  const etapas = (linha && linha.valor) || {};
+  etapas[clientId] = status;
+  const { error } = await admin.from('configuracoes').upsert({ chave: 'kanban_etapas', valor: etapas }, { onConflict: 'chave' });
+  if (error) return res.status(500).json({ error: 'kanban_update_failed' });
+
+  const copy = KANBAN_EMAIL_POR_ETAPA[status];
+  if (copy) {
+    const { data: cli } = await admin.from('clientes').select('*').eq('id', clientId).single();
+    if (cli) await notify.notifyCliente(cli, copy.titulo, copy.corpo);
+  }
+  res.json({ ok: true, status });
+}
+
 async function salvarConfiguracoesPainel(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'method_not_allowed' });
   const admin = await exigirEquipe(req, res);
@@ -138,6 +207,7 @@ async function salvarConfiguracoesPainel(req, res) {
 module.exports = async (req, res) => {
   if (req.query.acao === 'marcar-lidas') return marcarMensagensLidas(req, res);
   if (req.query.acao === 'atualizar-status') return atualizarStatusAtendimento(req, res);
+  if (req.query.acao === 'mover-etapa-kanban') return moverEtapaKanban(req, res);
   if (req.query.acao === 'salvar-config') return salvarConfiguracoesPainel(req, res);
   if (req.query.acao === 'servicos-municipais') return statusServicosMunicipais(req, res);
 
