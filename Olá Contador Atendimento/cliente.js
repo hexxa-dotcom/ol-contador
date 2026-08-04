@@ -2041,7 +2041,7 @@ function personalizarOnboarding() {
     ? 'Vamos mandar o link de acesso por e-mail. Para seu caso entrar na fila sem demora, conclua a triagem e envie os documentos assim que puder.'
     : 'Vamos te mandar o link de acesso por e-mail. Mas é indispensável fazer o pré-atendimento e contar o que aconteceu <strong>antes do horário marcado</strong> do seu atendimento — isso deixa tudo muito mais efetivo.';
   if (final) final.textContent = sem
-    ? 'Seu caso já entrou na fila de análise. Não precisa marcar horário nem ficar esperando uma conversa: acompanhe o andamento por aqui e receba o aviso do resultado pelo canal escolhido.'
+    ? 'Seu caso já entrou na fila de análise. Não precisa marcar horário nem ficar esperando uma conversa: acompanhe o andamento por aqui e receba o aviso do resultado por e-mail.'
     : 'Nosso time já está cuidando do seu caso. Você pode acessar o sistema quando quiser para acrescentar informações ou aguardar o horário agendado.';
   aplicarModalidadeCliente();
 }

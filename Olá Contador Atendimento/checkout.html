@@ -43,7 +43,7 @@
         <ul>
           <li><span>✓</span> Sem esperar dia e horário disponíveis.</li>
           <li><span>✓</span> A fila começa depois da triagem e dos documentos.</li>
-          <li><span>✓</span> Resultado avisado pelo canal que você escolher.</li>
+          <li><span>✓</span> Acompanhe pela área do cliente e receba o resultado por e-mail.</li>
         </ul>
       </div>
       <div class="alerta" id="alerta"></div>
@@ -113,21 +113,6 @@
               <input id="uf" autocomplete="address-level1" maxlength="2" placeholder="RS" style="text-transform:uppercase" />
               <span class="erro" id="erro-uf" hidden>Digite a UF.</span>
             </div>
-          </div>
-        </section>
-
-        <section class="bloco" id="bloco-canal-resultado" hidden>
-          <h2>Como você quer receber o resultado?</h2>
-          <p class="ajuda">O documento completo fica protegido na sua área. O canal escolhido recebe o aviso e o link de acesso.</p>
-          <div class="metodo-pagamento">
-            <label class="metodo-opcao">
-              <input type="radio" name="canal-resultado" value="email" checked>
-              <span><strong>E-mail</strong><small>Receba as atualizações no e-mail informado acima.</small></span>
-            </label>
-            <label class="metodo-opcao" id="opcao-canal-whatsapp">
-              <input id="canal-whatsapp" type="radio" name="canal-resultado" value="whatsapp">
-              <span><strong>WhatsApp</strong><small id="canal-whatsapp-ajuda">Receba os avisos no número informado acima.</small></span>
-            </label>
           </div>
         </section>
 
@@ -473,7 +458,6 @@
       date: pedido.dia,
       time: pedido.hora,
       modalidade: pedido.modalidade === 'sem_agendamento' ? 'sem_agendamento' : 'agendado',
-      canalResultado: document.querySelector('input[name="canal-resultado"]:checked')?.value || 'email',
       metodoPagamento: document.querySelector('input[name="metodo"]:checked')?.value || 'pix'
     };
   }
@@ -600,28 +584,13 @@
     $('tela-pagamento').hidden = true;
     $('tela-pronto').hidden = false;
     $('pronto-titulo').textContent = pago ? 'Pagamento confirmado!' : 'Atendimento confirmado!';
-    const canal = document.querySelector('input[name="canal-resultado"]:checked')?.value || 'email';
     $('pronto-desc').innerHTML = pedido.modalidade === 'sem_agendamento'
-      ? `Seu <b>Atendimento sem agendamento</b> foi recebido. Entre na sua área agora para concluir a triagem e enviar os documentos. Você receberá o aviso do resultado por <b>${canal === 'whatsapp' ? 'WhatsApp' : 'e-mail'}</b>.`
+      ? `Seu <b>Atendimento sem agendamento</b> foi recebido. Entre na sua área agora para concluir a triagem e enviar os documentos. Acompanhe o andamento pela sua área e receba o aviso do resultado por <b>e-mail</b>.`
       : `Seu atendimento está marcado para <b>${esc(labelDia(pedido.dia))} às ${esc(pedido.hora)}</b>. Mandamos um e-mail para <b>${esc(email)}</b> com o link de acesso — é só abrir e clicar que você entra na sua área, sem precisar de senha.`;
     window.scrollTo({top:0,behavior:'smooth'});
   }
 
   // ---------- início ----------
-  async function carregarCanaisResultado(){
-    try {
-      const res = await fetch('/api/status?acao=canais-notificacao');
-      const canais = await res.json();
-      if(!res.ok || canais.whatsapp) return;
-      $('canal-whatsapp').disabled = true;
-      $('opcao-canal-whatsapp').style.opacity = '.58';
-      $('canal-whatsapp-ajuda').textContent = 'Em ativação. Por enquanto, escolha e-mail.';
-    } catch(_) {
-      // Falha de consulta não bloqueia o checkout; o backend ainda usa e-mail
-      // como contingência caso o WhatsApp não esteja configurado.
-    }
-  }
-
   function iniciar(){
     try { pedido = JSON.parse(sessionStorage.getItem(CHAVE) || 'null'); } catch(_){ pedido = null; }
     // Chegou aqui sem passar pela etapa 1 (link direto, aba reaberta): manda
@@ -632,8 +601,6 @@
     }
     renderResumo();
     const semAgendamento = pedido.modalidade === 'sem_agendamento';
-    $('bloco-canal-resultado').hidden = !semAgendamento;
-    if(semAgendamento) carregarCanaisResultado();
     $('checkout-vantagem-sem-agendamento').hidden = !semAgendamento;
     $('checkout-intro').textContent = semAgendamento
       ? 'Com esses dados criamos seu acesso. Depois do pagamento você segue direto para a triagem e o envio dos documentos.'

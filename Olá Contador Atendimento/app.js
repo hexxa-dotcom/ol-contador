@@ -4255,7 +4255,7 @@ function renderKanban() {
       return `<button type="button" class="kanban-card ${status === 'done' ? 'done' : ''}" draggable="true" data-client-id="${safe(c.id)}">
         <div class="kanban-card-title">${safe(c.name)}</div>
         <div class="kanban-card-tags"><span>${safe(c.taxType || 'Atendimento')}</span>${c.atendimentoModalidade === 'sem_agendamento' ? '<span style="background:#E8F5EF;color:#0A5C42">Sem agendamento</span>' : ''}${slaHtml}</div>
-        <div class="kanban-card-meta"><i class="fa-solid ${c.atendimentoModalidade === 'sem_agendamento' ? 'fa-bolt' : 'fa-folder-open'}"></i> ${c.atendimentoModalidade === 'sem_agendamento' ? 'Resultado por ' + (c.canalResultado === 'whatsapp' ? 'WhatsApp' : 'e-mail') : safe(c.diagnosis || 'Sem diagnóstico')}</div>
+        <div class="kanban-card-meta"><i class="fa-solid ${c.atendimentoModalidade === 'sem_agendamento' ? 'fa-bolt' : 'fa-folder-open'}"></i> ${c.atendimentoModalidade === 'sem_agendamento' ? 'Acompanhamento na área do cliente e por e-mail' : safe(c.diagnosis || 'Sem diagnóstico')}</div>
       </button>`;
     }).join('') || '<p style="font-size:12px;color:var(--color-text-secondary);padding:8px">Sem casos</p>'}</div></div>`;
   }).join('');

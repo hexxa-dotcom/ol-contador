@@ -15,7 +15,7 @@ module.exports = async (req, res) => {
   const auth = await requireUser(req, res);
   if (!auth) return;
 
-  const { clientId, servicoId, date, time, modalidade, canalResultado, metodoPagamento } = req.body || {};
+  const { clientId, servicoId, date, time, modalidade, metodoPagamento } = req.body || {};
   if (!clientId || !servicoId) return res.status(400).json({ error: 'invalid_params' });
   if (!asaas.isConfigured()) return res.status(503).json({ error: 'asaas_not_configured' });
   const admin = adminClient();
@@ -29,7 +29,7 @@ module.exports = async (req, res) => {
 
   const cartao = metodoPagamento === 'cartao';
   const modo = modalidade === 'sem_agendamento' ? 'sem_agendamento' : 'agendado';
-  const canal = canalResultado === 'whatsapp' ? 'whatsapp' : 'email';
+  const canal = 'email';
   if (modo === 'agendado' && (!date || !time)) return res.status(400).json({ error: 'invalid_params' });
 
   try {

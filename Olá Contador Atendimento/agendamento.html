@@ -57,7 +57,7 @@
         <div class="metodo-pagamento" id="opcoes-modalidade">
           <label class="metodo-opcao">
             <input type="radio" name="modalidade" value="sem_agendamento" checked>
-            <span><strong>Atendimento sem agendamento</strong><small>Envie a triagem e os documentos. Receba o resultado sem reunião.</small></span>
+            <span><strong>Atendimento sem agendamento</strong><small>Mais ágil para quem precisa resolver com urgência.</small></span>
           </label>
           <label class="metodo-opcao">
             <input type="radio" name="modalidade" value="agendado">
@@ -65,13 +65,14 @@
           </label>
         </div>
         <div class="vantagens-sem-agendamento" id="vantagens-sem-agendamento">
-          <strong>Por que essa opção é mais ágil?</strong>
+          <div class="vantagens-eyebrow">A opção mais ágil</div>
+          <strong>Seu caso tem urgência?</strong>
+          <p>Opte pelo Atendimento sem agendamento. Depois do pagamento, faça a triagem e envie os documentos pela área do cliente. Assim que estiver completo, o caso entra na fila de análise.</p>
           <ul>
-            <li><span>✓</span> Seu caso entra na fila assim que você envia a triagem e os documentos.</li>
             <li><span>✓</span> Não precisa esperar uma vaga na agenda para a análise começar.</li>
             <li><span>✓</span> Envie tudo a qualquer hora, inclusive à noite ou no fim de semana.</li>
             <li><span>✓</span> Sem reunião, chamada ou conversa: acompanhe o andamento pelo portal.</li>
-            <li><span>✓</span> Receba o aviso do resultado por e-mail ou WhatsApp, como preferir.</li>
+            <li><span>✓</span> Acompanhe pela área do cliente e receba o aviso do resultado por e-mail.</li>
           </ul>
         </div>
       </section>
@@ -89,7 +90,7 @@
         </div>
       </section>
 
-      <section class="bloco">
+      <section class="bloco" id="bloco-assunto">
         <h2>O que está acontecendo?</h2>
         <p class="ajuda">Escolha o que mais se parece com o seu caso. Não precisa saber os termos técnicos.</p>
 
@@ -256,10 +257,11 @@
   function renderModalidade(){
     const sem = modalidade === 'sem_agendamento';
     $('bloco-horario').hidden = sem;
+    $('bloco-assunto').hidden = sem;
     $('vantagens-sem-agendamento').hidden = !sem;
     $('titulo-etapa').textContent = sem ? 'Atendimento sem agendamento.' : 'Escolha o melhor horário.';
     $('texto-etapa').textContent = sem
-      ? 'Conte o que aconteceu e envie os documentos depois do pagamento. O contador analisa e avisa quando o resultado estiver pronto.'
+      ? 'Se você tem urgência, escolha esta opção. A descrição do caso e os documentos serão pedidos somente na triagem, depois do pagamento.'
       : 'Na próxima etapa você preenche seus dados e paga. O horário só fica reservado depois do pagamento confirmado.';
     $('btn-continuar').textContent = sem ? 'Continuar sem agendamento' : 'Continuar para seus dados';
   }
@@ -305,17 +307,18 @@
     $('erro-assunto').hidden = true;
 
     if(modalidade === 'agendado' && (!dia || !hora)){ avisar('Escolha um dia e um horário para continuar.'); return; }
-    if(assuntos.length && !assuntoId){
+    if(modalidade === 'agendado' && assuntos.length && !assuntoId){
       $('erro-assunto').hidden = false;
       $('assunto').scrollIntoView({ behavior:'smooth', block:'center' });
       $('assunto').focus();
       return;
     }
     const s = servicos.find(x => x.id === servicoId);
-    const a = assuntos.find(x => x.id === assuntoId);
+    const assuntoSelecionado = modalidade === 'agendado' ? assuntoId : null;
+    const a = assuntos.find(x => x.id === assuntoSelecionado);
     sessionStorage.setItem(CHAVE, JSON.stringify({
       servicoId, servicoNome: s.name, precoCents: s.price_cents,
-      assuntoId, assuntoTitulo: a ? a.titulo : '', modalidade,
+      assuntoId: assuntoSelecionado, assuntoTitulo: a ? a.titulo : '', modalidade,
       dia: modalidade === 'agendado' ? dia : null,
       hora: modalidade === 'agendado' ? hora : null
     }));

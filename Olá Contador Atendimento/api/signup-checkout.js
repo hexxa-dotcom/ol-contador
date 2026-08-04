@@ -6,7 +6,7 @@
 // cliente era gravado na hora: quem gerava o Pix e desistia (ou o Pix
 // expirava) ficava para sempre como um cliente "pending" órfão, sem nenhuma
 // cobrança paga atrás dele.
-// body: { name, cpfCnpj, email, phone, sexo, cep, endereco, numero, bairro, cidade, estado, servicoId, date, time, summary, assunto, modalidade, canalResultado, metodoPagamento }
+// body: { name, cpfCnpj, email, phone, sexo, cep, endereco, numero, bairro, cidade, estado, servicoId, date, time, summary, assunto, modalidade, metodoPagamento }
 const crypto = require('crypto');
 const asaas = require('./_lib/asaas');
 const { adminClient } = require('./_lib/auth');
@@ -19,7 +19,7 @@ const DESCONTO_PIX = 0.05;
 
 module.exports = async (req, res) => {
   if (req.method !== 'POST') return res.status(405).json({ error: 'method_not_allowed' });
-  const { name, cpfCnpj, email, phone, sexo, cep, endereco, numero, bairro, cidade, estado, servicoId, date, time, summary, assunto, modalidade, canalResultado, metodoPagamento } = req.body || {};
+  const { name, cpfCnpj, email, phone, sexo, cep, endereco, numero, bairro, cidade, estado, servicoId, date, time, summary, assunto, modalidade, metodoPagamento } = req.body || {};
   if (!name || !email || !phone || !servicoId) return res.status(400).json({ error: 'invalid_params' });
   const { valido, digitos } = validarCpfCnpj(cpfCnpj);
   if (!valido) return res.status(400).json({ error: 'cpf_cnpj_invalido' });
@@ -35,7 +35,7 @@ module.exports = async (req, res) => {
 
   const cartao = metodoPagamento === 'cartao';
   const modo = modalidade === 'sem_agendamento' ? 'sem_agendamento' : 'agendado';
-  const canal = canalResultado === 'whatsapp' ? 'whatsapp' : 'email';
+  const canal = 'email';
   if (modo === 'agendado' && (!date || !time)) return res.status(400).json({ error: 'invalid_params' });
   const precoCents = cartao ? servico.price_cents : Math.round(servico.price_cents * (1 - DESCONTO_PIX));
 

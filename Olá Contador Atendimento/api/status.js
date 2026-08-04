@@ -205,13 +205,6 @@ async function salvarConfiguracoesPainel(req, res) {
 }
 
 module.exports = async (req, res) => {
-  if (req.query.acao === 'canais-notificacao') {
-    if (req.method !== 'GET') return res.status(405).json({ error: 'method_not_allowed' });
-    return res.json({
-      email: notify.emailConfigured(),
-      whatsapp: notify.whatsappOutboundConfigured()
-    });
-  }
   if (req.query.acao === 'marcar-lidas') return marcarMensagensLidas(req, res);
   if (req.query.acao === 'atualizar-status') return atualizarStatusAtendimento(req, res);
   if (req.query.acao === 'mover-etapa-kanban') return moverEtapaKanban(req, res);

@@ -18,7 +18,7 @@ function nowTime() {
 
 module.exports = async (req, res) => {
   if (req.method !== 'POST') return res.status(405).json({ error: 'method_not_allowed' });
-  const { codigo, name, cpfCnpj, email, phone, sexo, cidade, estado, servicoId, date, time, summary, assunto, modalidade, canalResultado } = req.body || {};
+  const { codigo, name, cpfCnpj, email, phone, sexo, cidade, estado, servicoId, date, time, summary, assunto, modalidade } = req.body || {};
   if (!codigo || !name || !email || !phone || !servicoId) return res.status(400).json({ error: 'invalid_params' });
   const { valido, digitos } = validarCpfCnpj(cpfCnpj);
   if (!valido) return res.status(400).json({ error: 'cpf_cnpj_invalido' });
@@ -38,7 +38,7 @@ module.exports = async (req, res) => {
   if (!servico) return res.status(404).json({ error: 'servico_not_found' });
   if (servico.price_cents > credito.valor_cents) return res.status(400).json({ error: 'credito_insuficiente' });
   const modo = modalidade === 'sem_agendamento' ? 'sem_agendamento' : 'agendado';
-  const canal = canalResultado === 'whatsapp' ? 'whatsapp' : 'email';
+  const canal = 'email';
   if (modo === 'agendado' && (!date || !time)) return res.status(400).json({ error: 'invalid_params' });
 
   try {
