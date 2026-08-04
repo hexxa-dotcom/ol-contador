@@ -185,6 +185,29 @@ function parseDados(resp) {
   return resp.dados || null;
 }
 
+// As respostas dos serviços não têm um envelope uniforme: dependendo da
+// versão, a lista pode vir diretamente ou dentro de `dados`, `resultado` etc.
+// Centralizar essa procura evita mostrar "nenhum resultado" quando a Receita
+// apenas mudou o nível em que colocou a coleção.
+function encontrarLista(valor, chaves, profundidade = 0) {
+  if (Array.isArray(valor)) return valor;
+  if (!valor || typeof valor !== 'object' || profundidade > 5) return [];
+  for (const chave of chaves) {
+    if (Array.isArray(valor[chave])) return valor[chave];
+  }
+  for (const filho of Object.values(valor)) {
+    const achada = encontrarLista(filho, chaves, profundidade + 1);
+    if (achada.length) return achada;
+  }
+  return [];
+}
+
+function flagVerdadeira(valor) {
+  if (typeof valor === 'boolean') return valor;
+  if (typeof valor === 'number') return valor === 1;
+  return ['1', 'S', 'SIM', 'TRUE', 'LIDA'].includes(String(valor || '').trim().toUpperCase());
+}
+
 function tipoDoDocumento(digitos) {
   return digitos.length > 11 ? 2 : 1; // 1 = CPF, 2 = CNPJ
 }
@@ -210,23 +233,33 @@ async function indicadorNovasMensagens(documento) {
   };
 }
 
-async function consultarCaixaPostal(documento) {
+async function consultarCaixaPostal(documento, pagina = 1) {
   const digitos = String(documento).replace(/\D/g, '');
+  const paginaSegura = Math.max(1, Math.min(999, parseInt(pagina, 10) || 1));
   const resp = await chamarIntegraContador({
     acao: 'Consultar', idSistema: 'CAIXAPOSTAL', idServico: 'MSGCONTRIBUINTE61',
-    // indicadorPagina "1" = primeira página; statusLeitura "0" = todas.
-    dados: JSON.stringify({ indicadorPagina: '1', statusLeitura: '0' }),
+    // statusLeitura "0" = todas. Cada página é uma requisição paga, portanto
+    // páginas adicionais só são buscadas quando a equipe pede explicitamente.
+    dados: JSON.stringify({ indicadorPagina: String(paginaSegura), statusLeitura: '0' }),
     documento: digitos, tipoDocumento: tipoDoDocumento(digitos)
   });
   const d = parseDados(resp);
-  const lista = Array.isArray(d) ? d : ((d && (d.listaMensagens || d.mensagens)) || []);
+  const lista = encontrarLista(d, ['listaMensagens', 'mensagens', 'mensagem', 'itens']);
+  const totalPaginas = Number(d && (d.quantidadePaginas || d.totalPaginas || d.numeroPaginas)) || null;
+  const temProxima = typeof (d && d.indicadorProximaPagina) !== 'undefined'
+    ? flagVerdadeira(d.indicadorProximaPagina)
+    : (totalPaginas ? paginaSegura < totalPaginas : lista.length >= 20);
   return {
-    naoLidas: lista.filter(m => !m.lida && !m.indicadorLeitura).length,
-    mensagens: lista.slice(0, 20).map(m => ({
-      isn: m.isn || m.isnMensagem || null,
-      data: m.dataRecepcao || m.data || null,
-      assunto: m.assunto || m.titulo || 'Mensagem da Receita Federal',
-      lida: !!(m.lida || m.indicadorLeitura)
+    pagina: paginaSegura,
+    totalPaginas,
+    temProxima,
+    naoLidas: lista.filter(m => !flagVerdadeira(m.lida ?? m.indicadorLeitura ?? m.statusLeitura)).length,
+    mensagens: lista.map(m => ({
+      isn: m.isn || m.isnMensagem || m.identificadorMensagem || null,
+      data: m.dataRecepcao || m.dataDisponibilizacao || m.data || null,
+      assunto: m.assunto || m.titulo || m.nomeMensagem || 'Mensagem da Receita Federal',
+      remetente: m.remetente || m.nomeRemetente || null,
+      lida: flagVerdadeira(m.lida ?? m.indicadorLeitura ?? m.statusLeitura)
     }))
   };
 }
@@ -343,11 +376,13 @@ async function consultarPedidosParcelamento(documento, sistema) {
     documento: digitos, tipoDocumento: tipoDoDocumento(digitos)
   });
   const d = parseDados(resp);
-  const lista = Array.isArray(d) ? d : ((d && (d.parcelamentos || d.pedidos)) || []);
+  const lista = encontrarLista(d, ['parcelamentos', 'pedidos', 'listaParcelamentos', 'listaPedidos', 'itens']);
   return lista.map(p => ({
-    numero: p.numero || p.numeroParcelamento || null,
-    situacao: p.situacao || null,
+    numero: p.numero || p.numeroParcelamento || p.numeroPedido || null,
+    situacao: p.situacao || p.descricaoSituacao || p.situacaoParcelamento || null,
     dataPedido: p.dataDoPedido || p.dataPedido || null,
+    quantidadeParcelas: p.quantidadeParcelas || p.numeroParcelas || null,
+    valorConsolidado: p.valorConsolidado || p.valorTotal || null,
     sistema
   }));
 }
@@ -364,13 +399,25 @@ async function consultarParcelasParaGerar(documento, sistema) {
     documento: digitos, tipoDocumento: tipoDoDocumento(digitos)
   });
   const d = parseDados(resp);
-  const lista = Array.isArray(d) ? d : ((d && (d.listaParcelas || d.parcelas)) || []);
+  const lista = encontrarLista(d, ['listaParcelas', 'parcelas', 'parcelasParaGerar', 'itens']);
   return lista.map(p => ({
-    parcela: p.parcela || p.parcelaParaEmitir || null,
+    parcela: p.parcela || p.parcelaParaEmitir || p.numeroParcela || null,
     vencimento: p.dataVencimento || p.vencimento || null,
-    valor: p.valor || null,
+    valor: p.valor || p.valorParcela || p.valorAtualizado || null,
     sistema
   }));
+}
+
+async function obterDetalheParcelamento(documento, sistema, numeroParcelamento) {
+  const cfg = PARCELAMENTO[sistema];
+  if (!cfg) throw new Error(`Sistema de parcelamento desconhecido: ${sistema}`);
+  const digitos = String(documento).replace(/\D/g, '');
+  const resp = await chamarIntegraContador({
+    acao: 'Consultar', idSistema: sistema, idServico: cfg.detalhe,
+    dados: JSON.stringify({ numeroParcelamento: String(numeroParcelamento) }),
+    documento: digitos, tipoDocumento: tipoDoDocumento(digitos)
+  });
+  return parseDados(resp) || {};
 }
 
 async function emitirDasParcelamento(documento, sistema, parcela) {
@@ -402,5 +449,6 @@ module.exports = {
   sistemasParcelamentoPara,
   consultarPedidosParcelamento,
   consultarParcelasParaGerar,
+  obterDetalheParcelamento,
   emitirDasParcelamento
 };

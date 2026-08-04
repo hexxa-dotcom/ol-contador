@@ -42,3 +42,20 @@ O projeto foi construído em **HTML5, CSS3 e JavaScript puro (Vanilla JS)**. Nã
 ### 5. 🔔 Central de Notificações (Reatividade Integrada)
 * Sino com contagem dinâmica no cabeçalho + painel suspenso de notificações.
 * Tela de Log de Notificações completo para acompanhar uploads de arquivos de clientes em tempo real (ex: ao usar o "Simulador de Cliente" para enviar arquivo no chat, o sistema gera instantaneamente um alerta global de notificação).
+
+### 6. Radar Fiscal
+
+O painel do contador integra Caixa Postal, SITFIS e parcelamentos do Simples
+Nacional/MEI pelo Integra Contador. Antes da primeira publicação, execute
+`scripts/radar-fiscal-completo.sql` no SQL Editor do Supabase.
+
+A Consulta Dívida Ativa da União é um contrato separado. Para ativá-la,
+configure na Vercel:
+
+- `SERPRO_DIVIDA_ATIVA_CONSUMER_KEY`
+- `SERPRO_DIVIDA_ATIVA_CONSUMER_SECRET`
+- `SERPRO_DIVIDA_ATIVA_BASE_URL` (opcional)
+- `SERPRO_DIVIDA_ATIVA_TOKEN_URL` (opcional)
+
+Essa API consulta inscrições da PGFN/SIDA. Negociação, parcelas de acordos e
+emissão de DARF da dívida ativa permanecem no REGULARIZE/SISPAR.

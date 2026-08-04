@@ -9,6 +9,7 @@
 // vira custo aberto, e a decisão foi manter o gasto previsível.
 const { requireUser, adminClient } = require('./_lib/auth');
 const serpro = require('./_lib/serpro');
+const dividaAtiva = require('./_lib/divida-ativa');
 
 const DEFAULT_RADAR_CONFIG = {
   portalAtivo: true,
@@ -45,7 +46,11 @@ function clienteLiberadoNoRadar(cliente, liberacoes) {
 
 async function buscarResultadoSalvo(admin, clienteRef, servico, validadeHoras) {
   if (!clienteRef) return null;
-  const { data } = await admin.from('serpro_resultados').select('*').eq('cliente_ref', clienteRef).eq('servico', servico).maybeSingle();
+  const { data, error } = await admin.from('serpro_resultados').select('*').eq('cliente_ref', clienteRef).eq('servico', servico).maybeSingle();
+  if (error) {
+    console.error('[radar-fiscal] falha ao ler cache:', error.message);
+    return null;
+  }
   if (!data) return null;
   // 0 significa validade indefinida (caso dos parcelamentos por padrão).
   if (validadeHoras > 0) {
@@ -57,7 +62,7 @@ async function buscarResultadoSalvo(admin, clienteRef, servico, validadeHoras) {
 
 async function registrarConsumo(admin, { clienteRef, documento, idSistema, idServico, acao, sucesso, erro, userId, origem }) {
   try {
-    await admin.from('serpro_consultas').insert({
+    const { error } = await admin.from('serpro_consultas').insert({
       cliente_ref: clienteRef || null,
       documento,
       id_sistema: idSistema,
@@ -69,6 +74,7 @@ async function registrarConsumo(admin, { clienteRef, documento, idSistema, idSer
       disparado_por: userId || null,
       origem: origem || 'painel'
     });
+    if (error) throw error;
   } catch (e) {
     // Falha ao registrar não pode derrubar a consulta que o usuário pediu —
     // mas precisa aparecer no log, senão o controle de custo silenciosamente
@@ -81,13 +87,14 @@ async function guardarResultado(admin, clienteRef, servico, resultado, validadeH
   if (!clienteRef) return;
   const horas = Number.isFinite(validadeHoras) ? validadeHoras : 24;
   try {
-    await admin.from('serpro_resultados').upsert({
+    const { error } = await admin.from('serpro_resultados').upsert({
       cliente_ref: clienteRef,
       servico,
       resultado,
       obtido_em: new Date().toISOString(),
       expira_em: horas > 0 ? new Date(Date.now() + horas * 3600 * 1000).toISOString() : null
     }, { onConflict: 'cliente_ref,servico' });
+    if (error) throw error;
   } catch (e) {
     console.error('[radar-fiscal] falha ao guardar resultado:', e.message);
   }
@@ -144,7 +151,28 @@ module.exports = async (req, res) => {
         clientePodeEmitirDas: radarCfg.clientePodeEmitirDas
       },
       regime: cliente.regime_tributario || null,
-      resultados: data || []
+      resultados: data || [],
+      capacidades: {
+        integraContador: serpro.isSerproConfigured(),
+        dividaAtiva: dividaAtiva.isConfigured()
+      }
+    });
+  }
+
+  // Diagnóstico sem consumo: mostra exatamente quais contratos estão prontos.
+  if (acao === 'capacidades') {
+    if (!souStaff) return res.status(403).json({ error: 'forbidden' });
+    return res.json({
+      integraContador: serpro.isSerproConfigured(),
+      dividaAtiva: dividaAtiva.isConfigured(),
+      servicos: {
+        caixaPostal: true,
+        situacaoFiscal: true,
+        parcelamentosSimplesMei: true,
+        dividaAtivaUniao: dividaAtiva.isConfigured(),
+        parcelamentosPgfnRegularize: false,
+        cnd: false
+      }
     });
   }
 
@@ -173,7 +201,7 @@ module.exports = async (req, res) => {
   // Antes de conferir credenciais, tenta reutilizar o que já foi pago. Assim
   // até uma indisponibilidade do Serpro não impede abrir dados salvos.
   const forcarAtualizacao = !!(souStaff && body.forcar);
-  if (acao === 'caixa-postal' && clienteRef && !forcarAtualizacao) {
+  if (acao === 'caixa-postal' && clienteRef && !forcarAtualizacao && (parseInt(body.pagina, 10) || 1) === 1) {
     const salvo = await buscarResultadoSalvo(admin, clienteRef, 'caixa-postal', radarCfg.caixaPostalIntervaloDias * 24);
     if (salvo) return res.json({ ...salvo.resultado, cacheado: true, obtidoEm: salvo.obtido_em });
   }
@@ -182,8 +210,13 @@ module.exports = async (req, res) => {
     const salvo = await buscarResultadoSalvo(admin, clienteRef, 'parcelamentos', horas);
     if (salvo) return res.json({ ...salvo.resultado, cacheado: true, obtidoEm: salvo.obtido_em });
   }
+  if (acao === 'divida-ativa' && clienteRef && !forcarAtualizacao) {
+    const salvo = await buscarResultadoSalvo(admin, clienteRef, 'divida-ativa', 24);
+    if (salvo) return res.json({ ...salvo.resultado, cacheado: true, obtidoEm: salvo.obtido_em });
+  }
 
-  if (!serpro.isSerproConfigured()) {
+  const acaoDividaAtiva = ['divida-ativa', 'divida-ativa-detalhe'].includes(acao);
+  if (!acaoDividaAtiva && !serpro.isSerproConfigured()) {
     return res.status(503).json({ error: 'serpro_not_configured' });
   }
 
@@ -205,9 +238,12 @@ module.exports = async (req, res) => {
       // ---- Caixa Postal -------------------------------------------------
       case 'caixa-postal': {
         try {
-          const r = await serpro.consultarCaixaPostal(documento);
+          const pagina = Math.max(1, parseInt(body.pagina, 10) || 1);
+          const r = await serpro.consultarCaixaPostal(documento, pagina);
           await log('CAIXAPOSTAL', 'MSGCONTRIBUINTE61', 'Consultar', true);
-          await guardarResultado(admin, clienteRef, 'caixa-postal', r, radarCfg.caixaPostalIntervaloDias * 24);
+          // O cache principal representa a primeira página. Páginas seguintes
+          // são complementos sob demanda e não substituem esse resumo.
+          if (pagina === 1) await guardarResultado(admin, clienteRef, 'caixa-postal', r, radarCfg.caixaPostalIntervaloDias * 24);
           // A lista foi lida agora: zera o sinalizador que a varredura semanal
           // levantou, senão o aviso de "tem mensagem nova" nunca sumiria.
           if (clienteRef) {
@@ -343,6 +379,52 @@ module.exports = async (req, res) => {
         return res.json({ ...saida, cacheado: false });
       }
 
+      case 'parcelamento-detalhe': {
+        if (!souStaff) return res.status(403).json({ error: 'forbidden' });
+        const { sistema, numeroParcelamento } = body;
+        const permitidos = serpro.sistemasParcelamentoPara(body.regime || (cliente && cliente.regime_tributario));
+        if (!sistema || !numeroParcelamento || !permitidos.includes(sistema)) {
+          return res.status(400).json({ error: 'parcelamento_invalido' });
+        }
+        try {
+          const r = await serpro.obterDetalheParcelamento(documento, sistema, numeroParcelamento);
+          await log(sistema, 'OBTERPARC', 'Consultar', true);
+          return res.json({ detalhe: r });
+        } catch (e) {
+          await log(sistema, 'OBTERPARC', 'Consultar', false, e);
+          throw e;
+        }
+      }
+
+      // ---- Dívida Ativa da União (produto SERPRO separado) --------------
+      // Retorna inscrições e seus estados. A gestão de acordos/parcelas da
+      // PGFN e emissão de DARF continuam no REGULARIZE/SISPAR.
+      case 'divida-ativa': {
+        try {
+          const r = await dividaAtiva.consultarDevedor(documento);
+          await log('PGFN-SIDA', 'CONSULTAR-DEVEDOR', 'Consultar', true);
+          const saida = { ...r, consultadoEm: new Date().toISOString() };
+          await guardarResultado(admin, clienteRef, 'divida-ativa', saida, 24);
+          return res.json({ ...saida, cacheado: false });
+        } catch (e) {
+          await log('PGFN-SIDA', 'CONSULTAR-DEVEDOR', 'Consultar', false, e);
+          throw e;
+        }
+      }
+
+      case 'divida-ativa-detalhe': {
+        const numero = String(body.numeroInscricao || '').replace(/\D/g, '');
+        if (!numero) return res.status(400).json({ error: 'inscricao_required' });
+        try {
+          const r = await dividaAtiva.consultarInscricao(numero);
+          await log('PGFN-SIDA', 'CONSULTAR-INSCRICAO', 'Consultar', true);
+          return res.json(r);
+        } catch (e) {
+          await log('PGFN-SIDA', 'CONSULTAR-INSCRICAO', 'Consultar', false, e);
+          throw e;
+        }
+      }
+
       case 'emitir-das': {
         const { sistema, parcela } = body;
         if (!sistema || !parcela) return res.status(400).json({ error: 'sistema_e_parcela_required' });
@@ -375,6 +457,15 @@ module.exports = async (req, res) => {
       });
     }
     if (e.code === 'serpro_not_configured') return res.status(503).json({ error: 'serpro_not_configured' });
+    if (e.code === 'divida_ativa_not_configured') {
+      return res.status(503).json({
+        error: e.code,
+        detail: 'A Consulta Dívida Ativa é um contrato separado do Integra Contador. Configure as credenciais próprias do produto SERPRO.'
+      });
+    }
+    if (e.code === 'divida_ativa_not_contracted') {
+      return res.status(403).json({ error: e.code, detail: 'As credenciais informadas não têm acesso contratado à Consulta Dívida Ativa.' });
+    }
     return res.status(502).json({ error: 'serpro_error', detail: e.message });
   }
 };

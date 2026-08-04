@@ -1704,12 +1704,13 @@
           <button type="button" class="settings-tab active" data-radar-secao-tab="caixa"><i class="fa-solid fa-envelope-open-text"></i> Caixa Postal</button>
           <button type="button" class="settings-tab" data-radar-secao-tab="sitfis"><i class="fa-solid fa-file-lines"></i> Situação Fiscal</button>
           <button type="button" class="settings-tab" data-radar-secao-tab="parcelamentos"><i class="fa-solid fa-file-invoice-dollar"></i> Parcelamentos</button>
+          <button type="button" class="settings-tab" data-radar-secao-tab="divida-ativa"><i class="fa-solid fa-landmark"></i> Dívida Ativa</button>
           <button type="button" class="settings-tab" data-radar-secao-tab="cnd"><i class="fa-solid fa-certificate"></i> CND</button>
         </div>
 
         <div class="settings-pane active radar-servico-pane" id="radar-pane-caixa">
           <h3><i class="fa-solid fa-envelope-open-text"></i> Caixa Postal do e-CAC</h3>
-          <p>Mostra as mensagens do cliente. Dentro do intervalo configurado, o resultado salvo é reutilizado sem uma nova cobrança.</p>
+          <p>A automação apenas avisa quando chega uma mensagem nova. Este botão consulta as mensagens armazenadas, inclusive já lidas; páginas e conteúdo são abertos separadamente para controlar as cobranças.</p>
           <button type="button" class="btn-utility primary" onclick="radarInternoCaixaPostal(this)">Consultar Caixa Postal</button>
           <div id="radar-interno-caixa-resultado" class="radar-resultado"></div>
         </div>
@@ -1723,7 +1724,7 @@
 
         <div class="settings-pane radar-servico-pane" id="radar-pane-parcelamentos">
           <h3><i class="fa-solid fa-file-invoice-dollar"></i> Parcelamentos</h3>
-          <p>A primeira consulta fica salva. As próximas aberturas usam esse resultado até você atualizar a regra ou forçar uma nova consulta.</p>
+          <p>Consulta parcelamentos convencionais e especiais do Simples Nacional ou MEI, mostra situação, parcelas disponíveis e permite emitir o DAS. A primeira consulta fica salva até uma atualização manual.</p>
           <div class="radar-parcelamento-acoes">
             <select id="radar-interno-regime" class="form-select">
               <option value="">Selecione o regime</option>
@@ -1736,9 +1737,24 @@
           <div id="radar-interno-parcelamentos-resultado" class="radar-resultado"></div>
         </div>
 
+        <div class="settings-pane radar-servico-pane" id="radar-pane-divida-ativa">
+          <h3><i class="fa-solid fa-landmark"></i> Dívida Ativa da União — PGFN</h3>
+          <p>Consulta inscrições, situação, valor consolidado e detalhes no SIDA/PGFN. É um produto separado do Integra Contador e precisa de credenciais próprias do SERPRO.</p>
+          <div class="radar-aviso">
+            <i class="fa-solid fa-circle-info"></i>
+            <div><strong>O que esta API não faz</strong><br>Negociação, acompanhamento de acordos ativos e emissão de DARF de parcelamento continuam no REGULARIZE/SISPAR. O Radar não apresentará esses dados como se viessem desta API.</div>
+          </div>
+          <div class="radar-parcelamento-acoes">
+            <button type="button" class="btn-utility primary" onclick="radarInternoDividaAtiva(this)">Consultar Dívida Ativa</button>
+            <label class="radar-forcar"><input type="checkbox" id="radar-interno-divida-forcar"> Atualizar mesmo se houver dados das últimas 24h</label>
+            <a class="btn-utility" href="https://www.regularize.pgfn.gov.br/" target="_blank" rel="noopener">Abrir REGULARIZE</a>
+          </div>
+          <div id="radar-interno-divida-ativa-resultado" class="radar-resultado"></div>
+        </div>
+
         <div class="settings-pane radar-servico-pane" id="radar-pane-cnd">
           <h3><i class="fa-solid fa-certificate"></i> CND</h3>
-          <p>A CND usa uma API separada do Integra Contador e exige contratação e credenciais próprias. Ela permanece indisponível para não confundir o relatório SITFIS com uma certidão.</p>
+          <p>A CND usa uma API separada e exige contratação e credenciais próprias. Ela permanece indisponível para não confundir o relatório SITFIS com uma certidão oficial.</p>
           <button type="button" class="btn-utility" disabled>Credenciais não configuradas</button>
         </div>
       </section>

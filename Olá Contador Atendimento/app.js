@@ -2456,7 +2456,7 @@ function setupRelatorioSecaoTabs() {
 function setupRadarSecaoTabs() {
   const barra = document.getElementById('radar-secao-tabs');
   if (!barra) return;
-  const ids = ['caixa', 'sitfis', 'parcelamentos', 'cnd'];
+  const ids = ['caixa', 'sitfis', 'parcelamentos', 'divida-ativa', 'cnd'];
   barra.querySelectorAll('[data-radar-secao-tab]').forEach(btn => btn.addEventListener('click', () => {
     const alvo = btn.dataset.radarSecaoTab;
     barra.querySelectorAll('[data-radar-secao-tab]').forEach(item => item.classList.toggle('active', item === btn));
@@ -6137,8 +6137,10 @@ async function radarInternoTestarConexao(botao) {
   botao.disabled = true;
   radarInternoStatus(id, '<i class="fa-solid fa-circle-notch fa-spin"></i> Validando certificado e OAuth...');
   try {
+    const capacidades = await chamarRadarInterno('capacidades');
     await chamarRadarInterno('testar-autenticacao', null, { documento: '00000000000' });
-    radarInternoStatus(id, '<span style="color:#1F8A5B;"><i class="fa-solid fa-circle-check"></i> Conexão autenticada.</span>');
+    radarInternoStatus(id, `<span style="color:#1F8A5B;"><i class="fa-solid fa-circle-check"></i> Integra Contador autenticado.</span>
+      <span class="radar-capacidade ${capacidades.dividaAtiva ? 'ok' : 'pendente'}">Dívida Ativa: ${capacidades.dividaAtiva ? 'configurada' : 'aguardando contrato próprio'}</span>`);
   } catch (e) {
     radarInternoStatus(id, `<span style="color:#C0392B;"><i class="fa-solid fa-triangle-exclamation"></i> ${safe(e.message)}</span>`);
   } finally {
@@ -6146,24 +6148,40 @@ async function radarInternoTestarConexao(botao) {
   }
 }
 
-async function radarInternoCaixaPostal(botao) {
+async function radarInternoCaixaPostal(botao, pagina = 1) {
   const clienteRef = clienteRadarInternoSelecionado();
   if (!clienteRef) return;
   const id = 'radar-interno-caixa-resultado';
   botao.disabled = true;
   radarInternoCarregando(id, 'Consultando somente a Caixa Postal...');
   try {
-    const r = await chamarRadarInterno('caixa-postal', clienteRef);
+    const r = await chamarRadarInterno('caixa-postal', clienteRef, { pagina, forcar: pagina > 1 });
     const mensagens = r.mensagens || [];
     radarInternoStatus(id, `<div style="font-size:12.5px;line-height:1.5;">
-      <p style="margin:0 0 8px;color:var(--color-pine);font-weight:700;">${mensagens.length} mensagem(ns) · ${r.naoLidas || 0} não lida(s)${r.cacheado ? ' · resultado salvo' : ''}</p>
-      ${mensagens.length ? mensagens.map(m => `<div style="padding:7px 0;border-top:1px solid var(--color-border);"><strong>${safe(m.assunto)}</strong>${m.data ? `<br><span style="color:var(--color-text-secondary)">${safe(new Date(m.data).toLocaleString('pt-BR'))}</span>` : ''}</div>`).join('') : '<span style="color:var(--color-text-secondary)">Nenhuma mensagem encontrada.</span>'}
+      <p style="margin:0 0 8px;color:var(--color-pine);font-weight:700;">Página ${safe(r.pagina || pagina)} · ${mensagens.length} mensagem(ns) · ${r.naoLidas || 0} não lida(s) nesta página${r.cacheado ? ' · resultado salvo' : ''}</p>
+      ${mensagens.length ? mensagens.map(m => `<div class="radar-item"><div><strong>${m.lida ? '' : '<i class="fa-solid fa-circle radar-nao-lida"></i> '}${safe(m.assunto)}</strong>${m.remetente ? `<br><span>${safe(m.remetente)}</span>` : ''}${m.data ? `<br><span>${safe(new Date(m.data).toLocaleString('pt-BR'))}</span>` : ''}</div>${m.isn ? `<button type="button" class="btn-utility" onclick="radarInternoDetalharMensagem(this,'${safe(m.isn)}')">Abrir</button>` : ''}</div>`).join('') : '<span style="color:var(--color-text-secondary)">Nenhuma mensagem encontrada nesta página.</span>'}
+      <div class="radar-paginacao">${pagina > 1 ? `<button class="btn-utility" onclick="radarInternoCaixaPostal(this,${pagina - 1})">Página anterior</button>` : ''}${r.temProxima ? `<button class="btn-utility" onclick="radarInternoCaixaPostal(this,${pagina + 1})">Próxima página</button>` : ''}</div>
     </div>`);
   } catch (e) {
     radarInternoErro(id, e);
   } finally {
     botao.disabled = false;
   }
+}
+
+async function radarInternoDetalharMensagem(botao, isn) {
+  const clienteRef = clienteRadarInternoSelecionado();
+  if (!clienteRef) return;
+  botao.disabled = true;
+  try {
+    const r = await chamarRadarInterno('mensagem-detalhe', clienteRef, { isn });
+    const d = r.detalhe || {};
+    const texto = d.conteudo || d.corpoMensagem || d.mensagem || d.texto || JSON.stringify(d, null, 2);
+    const janela = window.open('', '_blank');
+    if (janela) janela.document.write(`<meta charset="utf-8"><title>Mensagem da Caixa Postal</title><body style="font:14px/1.6 Arial;padding:28px;max-width:850px;margin:auto;white-space:pre-wrap">${safe(texto)}</body>`);
+  } catch (e) {
+    radarInternoErro('radar-interno-caixa-resultado', e);
+  } finally { botao.disabled = false; }
 }
 
 async function radarInternoSituacaoFiscal(botao) {
@@ -6214,8 +6232,8 @@ async function radarInternoParcelamentos(botao) {
       const parcelas = s.parcelas || [];
       return `<div style="padding:8px 0;border-top:1px solid var(--color-border);">
         <strong>${safe(s.sistema)}</strong>: ${pedidos.length} parcelamento(s)
-        ${pedidos.map(p => `<div style="color:var(--color-text-secondary);margin-top:4px;">${safe(p.numero || 'Sem número')} · ${safe(p.situacao || 'Situação não informada')}</div>`).join('')}
-        ${parcelas.length ? `<div style="margin-top:5px;color:var(--color-text-secondary);">${parcelas.length} parcela(s) disponível(is) para emissão.</div>` : ''}
+        ${pedidos.map(p => `<div class="radar-item"><span>${safe(p.numero || 'Sem número')} · ${safe(p.situacao || 'Situação não informada')}${p.quantidadeParcelas ? ` · ${safe(p.quantidadeParcelas)} parcelas` : ''}${p.valorConsolidado ? ` · ${safe(String(p.valorConsolidado))}` : ''}</span>${p.numero ? `<button class="btn-utility" onclick="radarInternoDetalharParcelamento(this,'${safe(s.sistema)}','${safe(p.numero)}','${safe(r.regime)}')">Ver extrato</button>` : ''}</div>`).join('')}
+        ${parcelas.length ? `<div style="margin-top:8px;">${parcelas.map(p => `<div class="radar-item"><span>Parcela ${safe(p.parcela || '—')} · ${safe(p.vencimento || 'vencimento não informado')}${p.valor ? ` · ${safe(String(p.valor))}` : ''}</span><button class="btn-utility" onclick="radarInternoEmitirDas(this,'${safe(s.sistema)}','${safe(p.parcela)}')"><i class="fa-solid fa-file-pdf"></i> Emitir DAS</button></div>`).join('')}</div>` : '<div style="margin-top:5px;color:var(--color-text-secondary);">Nenhuma parcela disponível para emissão agora.</div>'}
       </div>`;
     }).join('');
     radarInternoStatus(id, `<div style="font-size:12.5px;line-height:1.5;"><p style="margin:0 0 7px;color:var(--color-pine);font-weight:700;">Regime: ${safe(r.regime)}${r.cacheado ? ' · dados salvos reutilizados (sem nova consulta)' : ' · consulta atualizada agora'}</p>${blocos || '<span style="color:var(--color-text-secondary)">Nenhum resultado.</span>'}</div>`);
@@ -6224,6 +6242,70 @@ async function radarInternoParcelamentos(botao) {
   } finally {
     botao.disabled = false;
   }
+}
+
+async function radarInternoEmitirDas(botao, sistema, parcela) {
+  const clienteRef = clienteRadarInternoSelecionado();
+  if (!clienteRef) return;
+  botao.disabled = true;
+  const original = botao.innerHTML;
+  botao.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Emitindo';
+  try {
+    const r = await chamarRadarInterno('emitir-das', clienteRef, { sistema, parcela });
+    if (!r.pdfBase64) throw new Error('A Receita não devolveu o PDF da guia.');
+    const link = document.createElement('a');
+    link.href = `data:application/pdf;base64,${r.pdfBase64}`;
+    link.download = `das-${parcela}.pdf`;
+    link.click();
+  } catch (e) { radarInternoErro('radar-interno-parcelamentos-resultado', e); }
+  finally { botao.disabled = false; botao.innerHTML = original; }
+}
+
+async function radarInternoDetalharParcelamento(botao, sistema, numeroParcelamento, regime) {
+  const clienteRef = clienteRadarInternoSelecionado();
+  if (!clienteRef) return;
+  botao.disabled = true;
+  try {
+    const r = await chamarRadarInterno('parcelamento-detalhe', clienteRef, { sistema, numeroParcelamento, regime });
+    const texto = JSON.stringify(r.detalhe || {}, null, 2);
+    const janela = window.open('', '_blank');
+    if (janela) janela.document.write(`<meta charset="utf-8"><title>Extrato do parcelamento</title><body style="font:14px/1.6 Arial;padding:28px;max-width:900px;margin:auto"><h2>Parcelamento ${safe(numeroParcelamento)}</h2><pre style="white-space:pre-wrap">${safe(texto)}</pre></body>`);
+  } catch (e) { radarInternoErro('radar-interno-parcelamentos-resultado', e); }
+  finally { botao.disabled = false; }
+}
+
+function radarValor(valor) {
+  if (valor === null || typeof valor === 'undefined' || valor === '') return 'Valor não informado';
+  if (typeof valor === 'number') return valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  return String(valor).includes('R$') ? String(valor) : `R$ ${String(valor)}`;
+}
+
+async function radarInternoDividaAtiva(botao) {
+  const clienteRef = clienteRadarInternoSelecionado();
+  if (!clienteRef) return;
+  const id = 'radar-interno-divida-ativa-resultado';
+  botao.disabled = true;
+  radarInternoCarregando(id, 'Consultando inscrições na Dívida Ativa da União...');
+  try {
+    const forcar = !!document.getElementById('radar-interno-divida-forcar')?.checked;
+    const r = await chamarRadarInterno('divida-ativa', clienteRef, { forcar });
+    const itens = r.inscricoes || [];
+    radarInternoStatus(id, `<div class="radar-resumo"><strong>${itens.length} inscrição(ões) encontrada(s)</strong>${r.cacheado ? '<span>Dados salvos nas últimas 24 horas.</span>' : '<span>Consulta atualizada agora.</span>'}</div>
+      ${itens.length ? itens.map(item => `<div class="radar-item"><div><strong>${safe(item.numeroInscricao || 'Inscrição sem número')}</strong><br><span>${safe(item.situacao || 'Situação não informada')} · ${safe(radarValor(item.valorConsolidado))}${item.numeroProcesso ? ` · Processo ${safe(item.numeroProcesso)}` : ''}</span></div>${item.numeroInscricao ? `<button class="btn-utility" onclick="radarInternoDetalharDivida(this,'${safe(item.numeroInscricao)}')">Ver detalhes</button>` : ''}</div>`).join('') : '<p class="radar-vazio">Nenhuma inscrição retornada para este CPF/CNPJ.</p>'}`);
+  } catch (e) { radarInternoErro(id, e); }
+  finally { botao.disabled = false; }
+}
+
+async function radarInternoDetalharDivida(botao, numeroInscricao) {
+  const clienteRef = clienteRadarInternoSelecionado();
+  if (!clienteRef) return;
+  botao.disabled = true;
+  try {
+    const r = await chamarRadarInterno('divida-ativa-detalhe', clienteRef, { numeroInscricao });
+    const d = r.inscricao || {};
+    alert(`Inscrição: ${d.numeroInscricao || numeroInscricao}\nSituação: ${d.situacao || 'Não informada'}\nValor: ${radarValor(d.valorConsolidado)}\nReceita: ${d.receita || 'Não informada'}\nÓrgão de origem: ${d.orgaoOrigem || 'Não informado'}\nProcesso judicial: ${d.processoJudicial || 'Não informado'}`);
+  } catch (e) { radarInternoErro('radar-interno-divida-ativa-resultado', e); }
+  finally { botao.disabled = false; }
 }
 
 function radarCarregando(msg) {
@@ -6383,8 +6465,13 @@ window.radarSituacaoFiscal = radarSituacaoFiscal;
 window.radarParcelamentos = radarParcelamentos;
 window.radarEmitirDas = radarEmitirDas;
 window.radarInternoCaixaPostal = radarInternoCaixaPostal;
+window.radarInternoDetalharMensagem = radarInternoDetalharMensagem;
 window.radarInternoSituacaoFiscal = radarInternoSituacaoFiscal;
 window.radarInternoParcelamentos = radarInternoParcelamentos;
+window.radarInternoEmitirDas = radarInternoEmitirDas;
+window.radarInternoDetalharParcelamento = radarInternoDetalharParcelamento;
+window.radarInternoDividaAtiva = radarInternoDividaAtiva;
+window.radarInternoDetalharDivida = radarInternoDetalharDivida;
 window.radarInternoTestarConexao = radarInternoTestarConexao;
 
 
