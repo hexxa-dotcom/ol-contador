@@ -432,7 +432,7 @@
           <p>Feche o atendimento com um relatório completo: selecione o cliente, descreva o caso e a solução, gere o PDF e entregue.</p>
         </div>
 
-        <div class="settings-tabs" id="relatorio-secao-tabs">
+        <div class="settings-tabs oc-segmented" id="relatorio-secao-tabs">
           <button type="button" class="settings-tab active" data-relatorio-secao-tab="fila"><i class="fa-solid fa-hourglass-half"></i> Aguardando Relatório</button>
           <button type="button" class="settings-tab" data-relatorio-secao-tab="novo"><i class="fa-solid fa-file-circle-plus"></i> Novo Relatório</button>
           <button type="button" class="settings-tab" data-relatorio-secao-tab="finalizados"><i class="fa-solid fa-check-double"></i> Relatórios Finalizados</button>
@@ -613,7 +613,7 @@
                 <h2 class="calendar-title" id="calendar-title">Agenda</h2>
               </div>
               
-              <div class="calendar-view-toggles">
+              <div class="calendar-view-toggles oc-segmented">
                 <button class="calendar-view-btn active" type="button" data-calendar-view="mes">Mês</button>
                 <button class="calendar-view-btn" type="button" data-calendar-view="lista">Lista</button>
                 <button class="calendar-view-btn" type="button" disabled title="Visão semanal entra na próxima etapa">Semana</button>
@@ -622,7 +622,7 @@
             </div>
 
             <!-- Filtros da visão em Lista (escondidos na visão Mês) -->
-            <div id="agenda-lista-filtros" hidden style="display:flex; align-items:center; gap:6px; flex-wrap:wrap; padding: 0 0 14px;">
+            <div id="agenda-lista-filtros" class="oc-segmented oc-segmented-filter" hidden style="display:flex; align-items:center; gap:6px; flex-wrap:wrap; padding: 0 0 14px;">
               <button type="button" class="btn-shortcut-tag active" data-agenda-lista-filtro="proximos">Próximos</button>
               <button type="button" class="btn-shortcut-tag" data-agenda-lista-filtro="hoje">Hoje</button>
               <button type="button" class="btn-shortcut-tag" data-agenda-lista-filtro="concluidos">Concluídos</button>
@@ -749,7 +749,7 @@
           <button class="btn-utility" id="btn-clear-notifications"><i class="fa-solid fa-trash-can"></i> Limpar Histórico</button>
         </div>
 
-        <div class="settings-tabs" style="margin-bottom: 20px;">
+        <div class="settings-tabs oc-segmented" style="margin-bottom: 20px;">
           <button class="settings-tab active" data-tab="cp-avisos">Avisos do Sistema</button>
           <button class="settings-tab" data-tab="cp-mensagens">Mensagens <span class="chat-count-badge" id="caixa-postal-badge-tab" style="background: var(--color-coral); display:none;">0</span></button>
         </div>
@@ -1419,7 +1419,7 @@
             </div>
             <button type="button" class="btn-utility primary" id="btn-crm-novo-cliente" style="white-space:nowrap;font-size:12px;padding:8px 12px;"><i class="fa-solid fa-user-plus"></i> Novo Cliente</button>
           </div>
-          <div class="settings-tabs" id="clientes-secao-tabs" style="border-bottom:none;">
+          <div class="settings-tabs oc-segmented" id="clientes-secao-tabs" style="border-bottom:none;">
             <button type="button" class="settings-tab active" data-clientes-secao-tab="geral"><i class="fa-solid fa-users"></i> Visão Geral</button>
             <button type="button" class="settings-tab" data-clientes-secao-tab="recorrentes"><i class="fa-solid fa-arrows-rotate"></i> Clientes Recorrentes</button>
           </div>
@@ -1434,11 +1434,11 @@
                   <i class="fa-solid fa-search"></i>
                   <input type="text" id="crm-search" placeholder="Buscar CPF, CNPJ ou Nome...">
                 </div>
-                <div style="display:flex;gap:6px;flex-wrap:wrap;" id="crm-filtro-finalizados">
+                <div class="oc-segmented oc-segmented-filter" style="display:flex;gap:6px;flex-wrap:wrap;" id="crm-filtro-finalizados">
                   <button type="button" class="btn-shortcut-tag active" data-crm-filtro="todos">Todos</button>
-                  <button type="button" class="btn-shortcut-tag" data-crm-filtro="hoje">Finalizados hoje</button>
-                  <button type="button" class="btn-shortcut-tag" data-crm-filtro="semana">Esta semana</button>
-                  <button type="button" class="btn-shortcut-tag" data-crm-filtro="mes">Este mês</button>
+                  <button type="button" class="btn-shortcut-tag" data-crm-filtro="hoje" title="Finalizados hoje">Hoje</button>
+                  <button type="button" class="btn-shortcut-tag" data-crm-filtro="semana" title="Finalizados esta semana">Semana</button>
+                  <button type="button" class="btn-shortcut-tag" data-crm-filtro="mes" title="Finalizados este mês">Mês</button>
                 </div>
               </div>
               <div style="flex: 1; overflow-y: auto;" id="crm-client-list">
@@ -1570,7 +1570,7 @@
           <p>Faturamento, cobranças em aberto, planos/links de pagamento e créditos.</p>
         </div>
 
-        <div class="settings-tabs" style="margin-bottom: 20px;">
+        <div class="settings-tabs oc-segmented" style="margin-bottom: 20px;">
           <button class="settings-tab active" data-tab="fin-faturamento">Faturamento</button>
           <button class="settings-tab" data-tab="fin-abertas">Cobranças em Aberto <span class="chat-count-badge" id="financeiro-abertas-badge" style="background: var(--color-coral);">0</span></button>
           <button class="settings-tab" data-tab="fin-planos">Planos & Links de Pagamento</button>
@@ -1610,7 +1610,7 @@
           <div class="financeiro-card full-width">
             <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 16px;">
               <h3 style="font-size: 16px; margin: 0;">Cobranças geradas e não pagas</h3>
-              <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;" id="financeiro-abertas-filtro">
+              <div class="oc-segmented oc-segmented-filter" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;" id="financeiro-abertas-filtro">
                 <button type="button" class="btn-shortcut-tag active" data-financeiro-abertas-filtro="todas">Todas</button>
                 <button type="button" class="btn-shortcut-tag" data-financeiro-abertas-filtro="0-3">0–3 dias</button>
                 <button type="button" class="btn-shortcut-tag" data-financeiro-abertas-filtro="4-7">4–7 dias</button>
@@ -1699,7 +1699,7 @@
           <span id="radar-interno-conexao-resultado" class="radar-conexao-status"></span>
         </div>
 
-        <div class="settings-tabs" id="radar-secao-tabs">
+        <div class="settings-tabs oc-segmented" id="radar-secao-tabs">
           <button type="button" class="settings-tab active" data-radar-secao-tab="caixa"><i class="fa-solid fa-envelope-open-text"></i> Caixa Postal</button>
           <button type="button" class="settings-tab" data-radar-secao-tab="sitfis"><i class="fa-solid fa-file-lines"></i> Situação Fiscal</button>
           <button type="button" class="settings-tab" data-radar-secao-tab="parcelamentos"><i class="fa-solid fa-file-invoice-dollar"></i> Parcelamentos</button>
@@ -1765,11 +1765,13 @@
             <p>Números do seu negócio: volume, tempo de atendimento, rentabilidade e perfil dos clientes.</p>
           </div>
           <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;" id="insights-filtro-periodo">
-            <button type="button" class="btn-shortcut-tag" data-insights-periodo="hoje">Hoje</button>
-            <button type="button" class="btn-shortcut-tag" data-insights-periodo="semana">Semana</button>
-            <button type="button" class="btn-shortcut-tag" data-insights-periodo="mes">Mês</button>
-            <button type="button" class="btn-shortcut-tag active" data-insights-periodo="ano">Ano</button>
-            <button type="button" class="btn-shortcut-tag" data-insights-periodo="tudo">Tudo</button>
+            <div class="oc-segmented oc-segmented-filter">
+              <button type="button" class="btn-shortcut-tag" data-insights-periodo="hoje">Hoje</button>
+              <button type="button" class="btn-shortcut-tag" data-insights-periodo="semana">Semana</button>
+              <button type="button" class="btn-shortcut-tag" data-insights-periodo="mes">Mês</button>
+              <button type="button" class="btn-shortcut-tag active" data-insights-periodo="ano">Ano</button>
+              <button type="button" class="btn-shortcut-tag" data-insights-periodo="tudo">Tudo</button>
+            </div>
             <input type="date" id="insights-data-de" class="cfg-input" style="font-size:12px;padding:6px 8px;">
             <span style="font-size:12px;color:var(--color-text-secondary)">até</span>
             <input type="date" id="insights-data-ate" class="cfg-input" style="font-size:12px;padding:6px 8px;">
@@ -1955,7 +1957,7 @@
       </div>
 
       <!-- Dossier Navigation -->
-      <div class="settings-tabs" style="padding: 0 32px;">
+      <div class="settings-tabs oc-segmented" style="padding: 0 32px;">
         <button class="settings-tab active" data-tab="dossier-processo">Processo Atual</button>
         <button class="settings-tab" data-tab="dossier-historico">Histórico & Prontuários</button>
         <button class="settings-tab" data-tab="dossier-arquivos">Arquivos (3)</button>

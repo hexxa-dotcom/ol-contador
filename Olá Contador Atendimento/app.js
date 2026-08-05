@@ -3808,7 +3808,7 @@ function renderCRM() {
         <button class="btn-utility primary" data-open-dossier="${safe(c.id)}"><i class="fa-solid fa-folder-open"></i> Abrir dossiê</button>
       </div>
     </div>
-    <div class="settings-tabs" id="crm-detail-tabs" style="padding:0 32px;margin:0;">
+    <div class="settings-tabs oc-segmented" id="crm-detail-tabs" style="padding:0 32px;margin:0;">
       ${CRM_DETAIL_TABS.map(([id, label]) => `<button class="settings-tab ${crmDetailTab === id ? 'active' : ''}" data-crm-tab="${id}">${label}</button>`).join('')}
     </div>
     <div id="crm-detail-tab-content" style="padding:24px 32px 32px;"></div>`;

@@ -5124,6 +5124,139 @@ input:checked + .slider:before {
   body.pagina-contador #panel-content-fila .painel-abas { margin: 10px 14px !important; }
 }
 
+/* --------------------------------------------------------------------------
+   SEGMENTED CONTROL UNIVERSAL
+   Mesmo padrão de Chats / Agenda do dia para menus internos e filtros.
+   -------------------------------------------------------------------------- */
+body.pagina-contador .oc-segmented {
+  display: flex !important;
+  align-items: center !important;
+  flex-wrap: nowrap !important;
+  width: fit-content !important;
+  max-width: 100% !important;
+  gap: 4px !important;
+  padding: 4px !important;
+  margin-bottom: 20px !important;
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+  scrollbar-width: none;
+  border: 1px solid var(--contador-line) !important;
+  border-radius: 14px !important;
+  background: var(--contador-surface-muted) !important;
+  box-shadow: inset 0 1px 2px rgba(20, 20, 20, 0.035) !important;
+}
+body.pagina-contador .oc-segmented[hidden] { display: none !important; }
+body.pagina-contador .oc-segmented::-webkit-scrollbar { display: none; }
+
+body.pagina-contador .oc-segmented > :is(.settings-tab, .calendar-view-btn, .btn-shortcut-tag) {
+  flex: 0 0 auto !important;
+  min-height: 38px !important;
+  margin: 0 !important;
+  padding: 8px 13px !important;
+  border: 1px solid transparent !important;
+  border-radius: 10px !important;
+  background: transparent !important;
+  color: #696969 !important;
+  box-shadow: none !important;
+  font-size: 12px !important;
+  font-weight: 650 !important;
+  line-height: 1.2 !important;
+  white-space: nowrap !important;
+  transition: color .20s var(--contador-ease), background-color .20s var(--contador-ease),
+              border-color .20s var(--contador-ease), box-shadow .20s var(--contador-ease),
+              transform .20s var(--contador-ease) !important;
+}
+
+body.pagina-contador .oc-segmented > :is(.settings-tab, .calendar-view-btn, .btn-shortcut-tag):hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.56) !important;
+  color: #242424 !important;
+  transform: none !important;
+}
+
+body.pagina-contador .oc-segmented > :is(.settings-tab, .calendar-view-btn, .btn-shortcut-tag).active {
+  background: var(--contador-surface) !important;
+  color: #242424 !important;
+  border-color: rgba(20, 20, 20, 0.06) !important;
+  box-shadow: 0 1px 2px rgba(20, 20, 20, 0.06), 0 4px 10px rgba(20, 20, 20, 0.07) !important;
+  transform: none !important;
+}
+
+body.pagina-contador .oc-segmented > :is(.settings-tab, .calendar-view-btn, .btn-shortcut-tag):focus-visible {
+  outline: 0 !important;
+  box-shadow: 0 0 0 3px var(--contador-accent-soft), 0 1px 2px rgba(20, 20, 20, 0.06) !important;
+}
+
+body.pagina-contador .oc-segmented > :is(.settings-tab, .calendar-view-btn, .btn-shortcut-tag):disabled {
+  opacity: .38 !important;
+  cursor: not-allowed !important;
+}
+
+body.pagina-contador .oc-segmented > .settings-tab i {
+  color: currentColor !important;
+  opacity: .82;
+}
+
+body.pagina-contador .oc-segmented .chat-count-badge {
+  min-width: 18px !important;
+  padding: 1px 5px !important;
+  background: rgba(20, 20, 20, 0.08) !important;
+  color: #555 !important;
+  font-size: 9px !important;
+  text-align: center;
+}
+body.pagina-contador .oc-segmented > .active .chat-count-badge {
+  background: var(--contador-accent-soft-hover) !important;
+  color: var(--contador-accent-strong) !important;
+}
+
+/* Filtros são a versão compacta do mesmo componente. */
+body.pagina-contador .oc-segmented.oc-segmented-filter {
+  gap: 3px !important;
+  padding: 3px !important;
+  margin: 0 !important;
+  flex-wrap: nowrap !important;
+}
+body.pagina-contador .oc-segmented.oc-segmented-filter > .btn-shortcut-tag {
+  min-height: 32px !important;
+  padding: 6px 10px !important;
+  font-size: 11px !important;
+}
+
+/* O cabeçalho de Clientes e as abas geradas dentro do cadastro não devem
+   herdar os antigos paddings laterais do elemento; a própria pílula os contém. */
+body.pagina-contador :is(#clientes-secao-tabs, #crm-detail-tabs) {
+  padding: 4px !important;
+}
+
+/* Insights mistura o menu segmentado com um intervalo manual. Os campos de
+   data precisam continuar compactos; .cfg-input normalmente ocupa 100%. */
+body.pagina-contador #insights-filtro-periodo {
+  width: 100%;
+  align-items: center !important;
+}
+body.pagina-contador #insights-filtro-periodo .oc-segmented {
+  margin: 0 !important;
+}
+body.pagina-contador #insights-filtro-periodo input[type="date"] {
+  width: 142px !important;
+  flex: 0 0 142px !important;
+}
+
+@media (max-width: 768px) {
+  body.pagina-contador .oc-segmented {
+    width: 100% !important;
+    margin-bottom: 14px !important;
+  }
+  body.pagina-contador .oc-segmented > :is(.settings-tab, .calendar-view-btn, .btn-shortcut-tag) {
+    min-height: 40px !important;
+    padding-inline: 12px !important;
+  }
+  body.pagina-contador .oc-segmented.oc-segmented-filter {
+    width: fit-content !important;
+    max-width: 100% !important;
+  }
+}
+
 /* ==========================================================================
    ULTRA-SOPHISTICATED APPLE & GOOGLE DESIGN OVERHAUL (ÁREA DO CONTADOR SOMENTE)
    Clean typography, crisp card shadows, no clutter, orange sidebar outline.
