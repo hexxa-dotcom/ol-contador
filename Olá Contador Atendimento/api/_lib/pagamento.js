@@ -11,6 +11,42 @@ function nowTime() {
   return new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 }
 
+// SLA comercial do Atendimento Express: quantidade de dias úteis configurada
+// em cada plano, contada da confirmação. O instante final fica salvo na
+// contratação, então mudar o plano depois não altera prazos já prometidos.
+function prazoExpressEmDiasUteis(inicio = new Date(), quantidade = 2) {
+  const prazo = new Date(inicio);
+  let restantes = Math.min(10, Math.max(1, parseInt(quantidade, 10) || 2));
+  while (restantes > 0) {
+    prazo.setDate(prazo.getDate() + 1);
+    if (prazo.getDay() !== 0 && prazo.getDay() !== 6) restantes--;
+  }
+  return prazo;
+}
+
+async function registrarAtendimentoExpress(admin, dados) {
+  const contratadoEm = dados.contratadoEm ? new Date(dados.contratadoEm) : new Date();
+  const payload = {
+    cobranca_id: dados.cobrancaId,
+    cliente_ref: dados.clienteRef,
+    servico_id: dados.servicoId || null,
+    assunto: dados.assunto || 'Atendimento Express',
+    status: 'aguardando_triagem',
+    contratado_em: contratadoEm.toISOString(),
+    prazo_conclusao_em: prazoExpressEmDiasUteis(contratadoEm, dados.prazoDiasUteis).toISOString(),
+    updated_at: new Date().toISOString()
+  };
+  const { error } = await admin.from('atendimentos_express').upsert(payload, { onConflict: 'cobranca_id', ignoreDuplicates: true });
+  if (error) {
+    // Durante a publicação, a migração pode ser aplicada alguns minutos depois
+    // do código. A cobrança já paga nunca pode ser desfeita por isso; o SQL de
+    // migração faz o backfill e este erro continua visível nos logs.
+    console.error('registro do Atendimento Express falhou:', error.message);
+    return false;
+  }
+  return true;
+}
+
 // Login mais simples possível pro cliente: em vez de mandar ele pra tela de
 // login pra pedir um link, o link de acesso já chega pronto no e-mail assim
 // que o pagamento confirma. Um único clique, sem senha, sem digitar nada.
@@ -157,10 +193,21 @@ async function confirmCobranca(admin, cob) {
       appointmentId = appt ? appt.id : null;
     }
 
-    await admin.from('cobrancas').update({ status: 'paid', paid_at: new Date().toISOString(), appointment_id: appointmentId }).eq('id', cob.id);
+    const confirmadoEm = new Date();
+    await admin.from('cobrancas').update({ status: 'paid', paid_at: confirmadoEm.toISOString(), appointment_id: appointmentId }).eq('id', cob.id);
+    if (modoCobranca === 'sem_agendamento') {
+      await registrarAtendimentoExpress(admin, {
+        cobrancaId: cob.id,
+        clienteRef: cob.cliente_ref,
+        servicoId: cob.servico_id,
+        assunto: (cob.dados_cliente && cob.dados_cliente.assunto) || (servico && servico.name),
+        prazoDiasUteis: servico && servico.prazo_express_dias_uteis,
+        contratadoEm: confirmadoEm
+      });
+    }
     await admin.from('notificacoes').insert({
       text: modoCobranca === 'sem_agendamento'
-        ? `Atendimento sem agendamento recebido: ${cliente ? cliente.name : cob.cliente_ref} contratou ${servico ? servico.name : ''}.`
+        ? `Atendimento Express recebido: ${cliente ? cliente.name : cob.cliente_ref} contratou ${servico ? servico.name : ''}.`
         : `Pagamento confirmado: ${cliente ? cliente.name : cob.cliente_ref} agendou ${servico ? servico.name : ''}.`,
       time: nowTime(), unread: true, cliente_ref: cob.cliente_ref
     });
@@ -184,7 +231,7 @@ async function confirmCobranca(admin, cob) {
     if (notify.anyConfigured() && cliente) {
       const quando = [cob.appt_date, cob.appt_time].filter(Boolean).join(' às ');
       if (modoCobranca === 'sem_agendamento') {
-        notify.notifyCliente(cliente, 'Atendimento sem agendamento recebido',
+        notify.notifyCliente(cliente, 'Atendimento Express recebido',
           `Recebemos seu pagamento de <strong>${servico ? servico.name : 'atendimento'}</strong>. ` +
           'Entre na sua área para concluir a triagem e enviar os documentos. Não é necessário marcar horário ou conversar pelo chat.',
           { channel: cob.canal_resultado || 'email' });
@@ -252,4 +299,11 @@ async function gerarAutoLogin(admin, clienteRef) {
   }
 }
 
-module.exports = { confirmCobranca, nowTime, enviarLinkDeAcesso, gerarAutoLogin };
+module.exports = {
+  confirmCobranca,
+  nowTime,
+  enviarLinkDeAcesso,
+  gerarAutoLogin,
+  prazoExpressEmDiasUteis,
+  registrarAtendimentoExpress
+};

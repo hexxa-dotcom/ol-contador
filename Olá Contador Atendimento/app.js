@@ -568,6 +568,97 @@ function dashboardContatoLinks(nome, email, phone) {
   return links.join(' ');
 }
 
+const EXPRESS_STATUS = {
+  aguardando_triagem: { label: 'Aguardando triagem', classe: 'sla-yellow' },
+  em_analise: { label: 'Pronto para análise', classe: 'sla-blue' },
+  em_execucao: { label: 'Em execução', classe: 'sla-green' },
+  concluido: { label: 'Concluído', classe: 'sla-green' },
+  cancelado: { label: 'Cancelado', classe: 'sla-red' }
+};
+
+function formatarDataHoraExpress(valor) {
+  const data = valor ? new Date(valor) : null;
+  if (!data || isNaN(data)) return 'Não informado';
+  return data.toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+}
+
+function slaAtendimentoExpress(prazo) {
+  const fim = prazo ? new Date(prazo) : null;
+  if (!fim || isNaN(fim)) return { label: 'Sem prazo', classe: 'sla-yellow', atrasado: false };
+  const horas = (fim.getTime() - Date.now()) / 3600000;
+  const atrasado = horas < 0;
+  const absolutas = Math.ceil(Math.abs(horas));
+  const dias = Math.floor(absolutas / 24);
+  const resto = absolutas % 24;
+  const duracao = dias ? `${dias}d${resto ? ` ${resto}h` : ''}` : `${absolutas}h`;
+  if (atrasado) return { label: `Atrasado ${duracao}`, classe: 'sla-red', atrasado: true };
+  if (horas <= 12) return { label: `Vence em ${duracao}`, classe: 'sla-yellow', atrasado: false };
+  return { label: `Vence em ${duracao}`, classe: 'sla-green', atrasado: false };
+}
+
+async function atualizarStatusAtendimentoExpress(id, status, botao) {
+  if (botao) botao.disabled = true;
+  try {
+    const res = await fetch(`${API_BASE}/api/atendimentos-express/${encodeURIComponent(id)}/status`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status })
+    });
+    if (!res.ok) throw new Error('status_nao_salvo');
+    showToast(status === 'concluido' ? 'Atendimento Express concluído.' : 'Atendimento Express iniciado.', 'success');
+    await renderAtendimentosExpress();
+  } catch (_) {
+    showToast('Não foi possível atualizar o Atendimento Express.');
+    if (botao) botao.disabled = false;
+  }
+}
+
+async function renderAtendimentosExpress() {
+  const lista = document.getElementById('atendimentos-express-lista');
+  const badge = document.getElementById('express-count-badge');
+  if (!lista) return;
+  try {
+    const res = await fetch(API_BASE + '/api/atendimentos-express');
+    if (!res.ok) throw new Error('fila_indisponivel');
+    const todos = await res.json();
+    const ativos = (todos || []).filter(item => !['concluido', 'cancelado'].includes(item.status));
+    if (badge) badge.textContent = `${ativos.length} pendente${ativos.length !== 1 ? 's' : ''}`;
+
+    if (!ativos.length) {
+      lista.innerHTML = `<div class="dashboard-empty-state express-empty"><i class="fa-solid fa-bolt"></i><p>Nenhum Atendimento Express pendente.</p><span>Quando o pagamento for confirmado, o serviço entra automaticamente nesta fila.</span></div>`;
+      return;
+    }
+
+    lista.innerHTML = ativos.map(item => {
+      const cliente = clientsData[item.clientRef] || {};
+      const status = EXPRESS_STATUS[item.status] || EXPRESS_STATUS.aguardando_triagem;
+      const sla = slaAtendimentoExpress(item.prazoConclusaoEm);
+      const assunto = item.assunto || cliente.triagem?.assunto || cliente.taxType || 'Serviço contábil';
+      const docs = (cliente.messages || []).filter(m => m.type === 'doc-upload').length;
+      const proximaAcao = item.status === 'em_analise'
+        ? `<button class="btn-doc-action express-action" type="button" data-express-id="${safe(item.id)}" data-express-status="em_execucao"><i class="fa-solid fa-play"></i> Iniciar</button>`
+        : item.status === 'em_execucao'
+          ? `<button class="btn-doc-action express-action" type="button" data-express-id="${safe(item.id)}" data-express-status="concluido"><i class="fa-solid fa-check"></i> Concluir</button>`
+          : '';
+      return `<div class="dashboard-alert-card express-card ${sla.atrasado ? 'express-atrasado' : ''}">
+        <div class="dashboard-alert-card-top">
+          <span>${safe(cliente.name || item.clientRef || 'Cliente')}</span>
+          <span class="sla-badge ${sla.classe}" style="margin:0">${safe(sla.label)}</span>
+        </div>
+        <div class="express-tags"><span class="express-tag"><i class="fa-solid fa-bolt"></i> EXPRESS</span><span class="sla-badge ${status.classe}">${safe(status.label)}</span></div>
+        <p class="express-assunto">${safe(assunto)}</p>
+        <div class="express-datas"><span><i class="fa-solid fa-cart-shopping"></i> Contratado: ${safe(formatarDataHoraExpress(item.contratadoEm))}</span><span><i class="fa-solid fa-flag-checkered"></i> Conclusão: ${safe(formatarDataHoraExpress(item.prazoConclusaoEm))}</span></div>
+        <div class="express-documentos"><i class="fa-solid fa-file-arrow-up"></i> ${docs} documento${docs !== 1 ? 's' : ''} enviado${docs !== 1 ? 's' : ''}${item.status === 'aguardando_triagem' ? ' · aguardando triagem' : ' · triagem recebida'}</div>
+        <div class="dashboard-card-actions"><button class="btn-doc-action express-dossie" type="button" data-client-id="${safe(item.clientRef)}"><i class="fa-solid fa-folder-open"></i> Abrir caso</button>${proximaAcao}</div>
+      </div>`;
+    }).join('');
+
+    lista.querySelectorAll('.express-dossie').forEach(btn => btn.addEventListener('click', () => openDossier(btn.dataset.clientId)));
+    lista.querySelectorAll('.express-action').forEach(btn => btn.addEventListener('click', () => atualizarStatusAtendimentoExpress(btn.dataset.expressId, btn.dataset.expressStatus, btn)));
+  } catch (_) {
+    if (badge) badge.textContent = 'indisponível';
+    lista.innerHTML = '<div class="dashboard-empty-state"><i class="fa-solid fa-triangle-exclamation"></i><p>Fila Express indisponível.</p><span>Confirme se a migração do banco foi executada.</span></div>';
+  }
+}
+
 // Checklist mensal dos clientes recorrentes (parcelamento/obrigação mensal).
 // Geração da guia ainda é manual (sem certificado do Integra Contador) — isto
 // só lembra quem vence este mês e deixa marcar como feito.
@@ -803,6 +894,7 @@ function updateDashboardData() {
   renderMensagensAbertas();
   renderGuiasMensais();
   renderAgendaSemana();
+  renderAtendimentosExpress();
 
   const todayApps = appointments.filter(a => OCTempo.ehHoje(normalizeAppointmentDate(a.date)));
   const timelineContainer = document.getElementById("dashboard-timeline");
@@ -4254,7 +4346,7 @@ function renderKanban() {
 
       return `<button type="button" class="kanban-card ${status === 'done' ? 'done' : ''}" draggable="true" data-client-id="${safe(c.id)}">
         <div class="kanban-card-title">${safe(c.name)}</div>
-        <div class="kanban-card-tags"><span>${safe(c.taxType || 'Atendimento')}</span>${c.atendimentoModalidade === 'sem_agendamento' ? '<span style="background:#E8F5EF;color:#0A5C42">Sem agendamento</span>' : ''}${slaHtml}</div>
+        <div class="kanban-card-tags"><span>${safe(c.taxType || 'Atendimento')}</span>${c.atendimentoModalidade === 'sem_agendamento' ? '<span style="background:#FFF0E6;color:#B84A00"><i class="fa-solid fa-bolt"></i> EXPRESS</span>' : ''}${slaHtml}</div>
         <div class="kanban-card-meta"><i class="fa-solid ${c.atendimentoModalidade === 'sem_agendamento' ? 'fa-bolt' : 'fa-folder-open'}"></i> ${c.atendimentoModalidade === 'sem_agendamento' ? 'Acompanhamento na área do cliente e por e-mail' : safe(c.diagnosis || 'Sem diagnóstico')}</div>
       </button>`;
     }).join('') || '<p style="font-size:12px;color:var(--color-text-secondary);padding:8px">Sem casos</p>'}</div></div>`;
@@ -4400,6 +4492,7 @@ function abrirModalServico(s) {
   document.getElementById('servico-id').value = s?.id || '';
   document.getElementById('servico-nome').value = s?.name || '';
   document.getElementById('servico-preco').value = s ? String(s.price).replace('.', ',') : '';
+  document.getElementById('servico-prazo-express').value = s?.prazoExpressDiasUteis || 2;
   document.getElementById('servico-ativo').checked = s ? s.active !== false : true;
   document.querySelector('#modal-editar-servico .modal-header h3').textContent = s ? 'Editar plano' : 'Novo plano';
   const lista = document.getElementById('servico-itens-lista');
@@ -4425,9 +4518,10 @@ function salvarServicoDoModal(e) {
   if (!name) return;
   const price = document.getElementById('servico-preco').value;
   const active = document.getElementById('servico-ativo').checked;
+  const prazoExpressDiasUteis = Math.min(10, Math.max(1, parseInt(document.getElementById('servico-prazo-express').value, 10) || 2));
   const id = document.getElementById('servico-id').value || undefined;
   const itens = lerItensDoModal();
-  salvarServico({ ...(servicoEmEdicao || {}), id, name, priceCents: Math.round(Number(price.replace(',', '.')) * 100), active, itens, recurrence: servicoEmEdicao?.recurrence || 'avulso' });
+  salvarServico({ ...(servicoEmEdicao || {}), id, name, priceCents: Math.round(Number(price.replace(',', '.')) * 100), active, prazoExpressDiasUteis, itens, recurrence: servicoEmEdicao?.recurrence || 'avulso' });
   closeModal('modal-editar-servico');
 }
 async function copiarLinkServico(id) {

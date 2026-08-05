@@ -349,7 +349,7 @@
       </div>
       <strong>${esc(pedido.servicoNome)}</strong>
       <div class="resumo-linha">
-        <span class="resumo-quando">${semAgendamento ? 'Atendimento sem agendamento' : esc(labelDia(pedido.dia)) + ' às ' + esc(pedido.hora)}</span>
+        <span class="resumo-quando">${semAgendamento ? 'Atendimento Express' : esc(labelDia(pedido.dia)) + ' às ' + esc(pedido.hora)}</span>
         <span class="resumo-preco ${coberto ? 'coberto' : ''}">${coberto ? 'Coberto pelo crédito' : money(pedido.precoCents)}</span>
       </div>`;
     $('btn-pagar').textContent = coberto ? 'Confirmar atendimento' : 'Ir para o pagamento';
@@ -521,7 +521,7 @@
     $('tela-dados').hidden = true;
     $('tela-pagamento').hidden = false;
     $('pag-desc').textContent = pedido.modalidade === 'sem_agendamento'
-      ? `${money(Math.round(data.valor * 100))} — ${pedido.servicoNome}, atendimento sem agendamento.`
+      ? `${money(Math.round(data.valor * 100))} — ${pedido.servicoNome}, Atendimento Express.`
       : `${money(Math.round(data.valor * 100))} — ${pedido.servicoNome}, ${labelDia(pedido.dia)} às ${pedido.hora}.`;
 
     const ehCartao = data.metodoPagamento === 'cartao';
@@ -585,7 +585,7 @@
     $('tela-pronto').hidden = false;
     $('pronto-titulo').textContent = pago ? 'Pagamento confirmado!' : 'Atendimento confirmado!';
     $('pronto-desc').innerHTML = pedido.modalidade === 'sem_agendamento'
-      ? `Seu <b>Atendimento sem agendamento</b> foi recebido. Entre na sua área agora para concluir a triagem e enviar os documentos. Acompanhe o andamento pela sua área e receba o aviso do resultado por <b>e-mail</b>.`
+      ? `Seu <b>Atendimento Express</b> foi recebido. Entre na sua área agora para concluir a triagem e enviar os documentos. Acompanhe o andamento pela sua área e receba o aviso do resultado por <b>e-mail</b>.`
       : `Seu atendimento está marcado para <b>${esc(labelDia(pedido.dia))} às ${esc(pedido.hora)}</b>. Mandamos um e-mail para <b>${esc(email)}</b> com o link de acesso — é só abrir e clicar que você entra na sua área, sem precisar de senha.`;
     window.scrollTo({top:0,behavior:'smooth'});
   }

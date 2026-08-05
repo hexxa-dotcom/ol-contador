@@ -57,7 +57,7 @@
         <div class="metodo-pagamento" id="opcoes-modalidade">
           <label class="metodo-opcao">
             <input type="radio" name="modalidade" value="sem_agendamento" checked>
-            <span><strong>Atendimento sem agendamento</strong><small>Mais ágil para quem precisa resolver com urgência.</small></span>
+            <span><strong>Atendimento Express</strong><small>Mais ágil para quem precisa resolver com urgência.</small></span>
           </label>
           <label class="metodo-opcao">
             <input type="radio" name="modalidade" value="agendado">
@@ -67,7 +67,7 @@
         <div class="vantagens-sem-agendamento" id="vantagens-sem-agendamento">
           <div class="vantagens-eyebrow">A opção mais ágil</div>
           <strong>Seu caso tem urgência?</strong>
-          <p>Opte pelo Atendimento sem agendamento. Depois do pagamento, faça a triagem e envie os documentos pela área do cliente. Assim que estiver completo, o caso entra na fila de análise.</p>
+          <p>Opte pelo Atendimento Express. Depois do pagamento, faça a triagem e envie os documentos pela área do cliente. Assim que estiver completo, o caso entra na fila de análise.</p>
           <ul>
             <li><span>✓</span> Não precisa esperar uma vaga na agenda para a análise começar.</li>
             <li><span>✓</span> Envie tudo a qualquer hora, inclusive à noite ou no fim de semana.</li>
@@ -259,11 +259,11 @@
     $('bloco-horario').hidden = sem;
     $('bloco-assunto').hidden = sem;
     $('vantagens-sem-agendamento').hidden = !sem;
-    $('titulo-etapa').textContent = sem ? 'Atendimento sem agendamento.' : 'Escolha o melhor horário.';
+    $('titulo-etapa').textContent = sem ? 'Atendimento Express.' : 'Escolha o melhor horário.';
     $('texto-etapa').textContent = sem
       ? 'Se você tem urgência, escolha esta opção. A descrição do caso e os documentos serão pedidos somente na triagem, depois do pagamento.'
       : 'Na próxima etapa você preenche seus dados e paga. O horário só fica reservado depois do pagamento confirmado.';
-    $('btn-continuar').textContent = sem ? 'Continuar sem agendamento' : 'Continuar para seus dados';
+    $('btn-continuar').textContent = sem ? 'Continuar com Atendimento Express' : 'Continuar para seus dados';
   }
 
   // Descobre qual serviço foi contratado: primeiro pelo link (?plano= ou

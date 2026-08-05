@@ -412,6 +412,21 @@ async function routeTesteContador(path, method, q, body) {
   if (path === '/api/servicos' && method === 'POST') return jsonResponse({ ...body, id: body.id || 'demo-serv-' + Date.now() });
   if (path === '/api/servicos' && method === 'DELETE') return jsonResponse({ ok: true });
   if (path === '/api/cobrancas' && method === 'GET') return jsonResponse([]);
+  if (path === '/api/atendimentos-express' && method === 'GET') {
+    const cliente = data['ana-silva'] || Object.values(data)[0];
+    if (!cliente) return jsonResponse([]);
+    const contratado = new Date(); contratado.setHours(contratado.getHours() - 7);
+    const prazo = new Date(); prazo.setDate(prazo.getDate() + 2);
+    return jsonResponse([{
+      id: 'demo-express-1', cobrancaId: 'demo-cob-1', clientRef: cliente.id,
+      serviceId: 'irpf', assunto: cliente.triagem?.assunto || 'Regularização fiscal',
+      status: 'em_analise', contratadoEm: contratado.toISOString(),
+      prazoConclusaoEm: prazo.toISOString(), iniciadoEm: null, concluidoEm: null
+    }]);
+  }
+  if (/^\/api\/atendimentos-express\/.+\/status$/.test(path) && method === 'POST') {
+    return jsonResponse({ ok: true, status: body.status });
+  }
   if (path === '/api/creditos' && method === 'GET') return jsonResponse(creditosTeste());
   if (path === '/api/creditos' && method === 'POST') {
     const valorCents = Math.round(Number(body.valorCents) || 0);
@@ -507,6 +522,7 @@ function mapCaixaPostal(r) {
 function mapServico(r) {
   return { id: r.id, name: r.name, description: r.description, priceCents: r.price_cents,
     price: r.price_cents / 100, recurrence: r.recurrence, active: r.active !== false,
+    prazoExpressDiasUteis: Math.max(1, Number(r.prazo_express_dias_uteis) || 2),
     // Serviços que o plano abarca — alimentam a lista do agendamento.
     itens: Array.isArray(r.itens) ? r.itens : [] };
 }
@@ -516,6 +532,21 @@ function mapCobranca(r) {
     createdAt: r.created_at, invoiceUrl: r.invoice_url, appointmentId: r.appointment_id,
     dadosCliente: r.dados_cliente || null,
     modalidade: r.modalidade || 'agendado', canalResultado: r.canal_resultado || 'email' };
+}
+function mapAtendimentoExpress(r) {
+  return {
+    id: r.id,
+    cobrancaId: r.cobranca_id,
+    clientRef: r.cliente_ref,
+    serviceId: r.servico_id,
+    assunto: r.assunto,
+    status: r.status,
+    contratadoEm: r.contratado_em,
+    prazoConclusaoEm: r.prazo_conclusao_em,
+    iniciadoEm: r.iniciado_em,
+    concluidoEm: r.concluido_em,
+    updatedAt: r.updated_at
+  };
 }
 // O bucket "documentos" é privado (RLS por pasta do cliente) — um public_url
 // fixo, salvo no upload, não abre mais depois disso. Por isso o link é
@@ -722,7 +753,7 @@ async function routeApi(u, init, _fetch) {
       const [{ data: clients, error: clientesError }, { data: msgs, error: mensagensError }, { data: triagens, error: triagensError }] = await Promise.all([
         sb.from('clientes').select('*'),
         sb.from('mensagens').select('*').order('seq', { ascending: true }),
-        sb.from('triagens').select('*').neq('status', 'arquivada')
+        sb.from('triagens').select('*').neq('status', 'arquivada').order('created_at', { ascending: true })
       ]);
       // Antes os erros de RLS eram descartados e o painel parecia apenas vazio.
       // Propagar o motivo torna um problema de permissão visível e diagnosticável.
@@ -946,6 +977,9 @@ async function routeApi(u, init, _fetch) {
         // por uma função SECURITY DEFINER restrita a apagar a própria flag
         // (scripts/onboarding-pendente.sql) — nunca um update direto na tabela.
         await sb.rpc('concluir_onboarding_cliente');
+        // O envio da triagem é a entrada formal do caso na mesa do contador.
+        // Atualiza somente as contratações ainda esperando essa etapa.
+        await sb.rpc('confirmar_triagem_atendimento_express');
       }
       return jsonResponse(mapTriagem(linha));
     }
@@ -1058,7 +1092,8 @@ async function routeApi(u, init, _fetch) {
       const payload = {
         name: String(body.name || '').trim(), description: String(body.description || '').trim() || null,
         price_cents: Math.max(0, Math.round(Number(body.priceCents) || 0)),
-        recurrence: body.recurrence || 'once', active: body.active !== false
+        recurrence: body.recurrence || 'once', active: body.active !== false,
+        prazo_express_dias_uteis: Math.min(10, Math.max(1, parseInt(body.prazoExpressDiasUteis, 10) || 2))
       };
       // Chega do painel como texto livre; vira [{id, titulo, resumo}]. O id sai
       // do título quando não vem pronto, pra continuar estável entre edições.
@@ -1176,6 +1211,27 @@ async function routeApi(u, init, _fetch) {
       const { data, error } = await query;
       if (error) throw error;
       return jsonResponse((data || []).map(mapCobranca));
+    }
+
+    // ---------- ATENDIMENTOS EXPRESS (fila sem horário marcado) ----------
+    if (path === '/api/atendimentos-express' && method === 'GET') {
+      const { data, error } = await sb.from('atendimentos_express').select('*')
+        .order('prazo_conclusao_em', { ascending: true });
+      if (error) throw error;
+      return jsonResponse((data || []).map(mapAtendimentoExpress));
+    }
+    const mExpressStatus = path.match(/^\/api\/atendimentos-express\/(\d+)\/status$/);
+    if (mExpressStatus && method === 'POST') {
+      const permitidos = ['aguardando_triagem', 'em_analise', 'em_execucao', 'concluido', 'cancelado'];
+      if (!permitidos.includes(body.status)) return jsonResponse({ error: 'status_invalido' }, 400);
+      const agora = new Date().toISOString();
+      const patch = { status: body.status, updated_at: agora };
+      if (body.status === 'em_execucao') patch.iniciado_em = agora;
+      if (body.status === 'concluido') patch.concluido_em = agora;
+      const { data, error } = await sb.from('atendimentos_express').update(patch)
+        .eq('id', Number(mExpressStatus[1])).select().single();
+      if (error) throw error;
+      return jsonResponse(mapAtendimentoExpress(data));
     }
 
     // ---------- AGENDA FISCAL ----------

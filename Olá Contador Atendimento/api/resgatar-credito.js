@@ -5,7 +5,7 @@
 // body: { codigo, name, cpfCnpj, email, phone, sexo, cidade, estado, servicoId, date, time, summary }
 const { adminClient } = require('./_lib/auth');
 const { validarCpfCnpj } = require('../documento');
-const { enviarLinkDeAcesso, gerarAutoLogin } = require('./_lib/pagamento');
+const { enviarLinkDeAcesso, gerarAutoLogin, registrarAtendimentoExpress } = require('./_lib/pagamento');
 const { checarRateLimit } = require('./_lib/rateLimit');
 const notify = require('./_lib/notify');
 
@@ -110,13 +110,24 @@ module.exports = async (req, res) => {
     }).select().single();
     if (erroCob) throw erroCob;
 
+    if (modo === 'sem_agendamento') {
+      await registrarAtendimentoExpress(admin, {
+        cobrancaId: cob.id,
+        clienteRef: clientId,
+        servicoId,
+        assunto: assunto || servico.name,
+        prazoDiasUteis: servico.prazo_express_dias_uteis,
+        contratadoEm: cob.paid_at || new Date()
+      });
+    }
+
     await admin.from('creditos').update({
       status: 'usado', usado_em: new Date().toISOString(), cliente_ref: clientId, cobranca_id: cob.id
     }).eq('id', credito.id);
 
     await admin.from('notificacoes').insert({
       text: modo === 'sem_agendamento'
-        ? `Crédito resgatado: ${name} iniciou Atendimento sem agendamento de ${servico.name}.`
+        ? `Crédito resgatado: ${name} iniciou Atendimento Express de ${servico.name}.`
         : `Crédito resgatado: ${name} agendou ${servico.name} com o código ${credito.codigo}.`,
       time: nowTime(), unread: true, cliente_ref: clientId
     });
@@ -146,7 +157,7 @@ module.exports = async (req, res) => {
     const { data: clienteParaAviso } = await admin.from('clientes').select('*').eq('id', clientId).single();
     if (clienteParaAviso) {
       notify.notifyCliente(clienteParaAviso,
-        modo === 'sem_agendamento' ? 'Atendimento sem agendamento recebido' : 'Atendimento confirmado',
+        modo === 'sem_agendamento' ? 'Atendimento Express recebido' : 'Atendimento confirmado',
         modo === 'sem_agendamento'
           ? `Seu atendimento de <strong>${servico.name}</strong> foi recebido. Entre na sua área para concluir a triagem e enviar os documentos.`
           : `Seu atendimento de <strong>${servico.name}</strong> está confirmado para ${date} às ${time}.`,

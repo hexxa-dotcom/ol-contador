@@ -383,6 +383,7 @@ function mapServico(row) {
     priceCents: row.price_cents,
     price: row.price_cents / 100,
     recurrence: row.recurrence,
+    prazoExpressDiasUteis: Math.max(1, Number(row.prazo_express_dias_uteis) || 2),
     // Serviços que o plano abarca — o painel edita, o agendamento consome.
     itens: Array.isArray(row.itens) ? row.itens : []
   };
@@ -449,7 +450,8 @@ app.post('/api/servicos', async (req, res) => {
   const payload = {
     name: String(body.name || '').trim(), description: String(body.description || '').trim() || null,
     price_cents: Math.max(0, Math.round(Number(body.priceCents) || 0)),
-    recurrence: body.recurrence || 'once', active: body.active !== false
+    recurrence: body.recurrence || 'once', active: body.active !== false,
+    prazo_express_dias_uteis: Math.min(10, Math.max(1, parseInt(body.prazoExpressDiasUteis, 10) || 2))
   };
   if (Array.isArray(body.itens)) payload.itens = normalizarItens(body.itens);
   if (!payload.name) return res.status(400).json({ error: 'name_required' });

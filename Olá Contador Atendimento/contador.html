@@ -190,18 +190,16 @@
             <div id="agenda-semana-lista" style="padding: 16px; display: flex; flex-direction: column; gap: 12px; max-height: 300px; overflow-y: auto;"></div>
           </div>
 
-          <!-- Tarefas de atendimentos em andamento -->
-          <div class="dash-card">
+          <!-- Fila própria dos serviços comprados sem horário marcado -->
+          <div class="dash-card dash-card-express">
             <div class="dash-card-header" style="justify-content: space-between; align-items: flex-start;">
               <div>
-                <h3><i class="fa-solid fa-list-check" style="color: var(--color-pine)"></i> Tarefas Pendentes</h3>
-                <p style="font-size: 11px; color: var(--color-text-secondary); margin-top: 4px;">Ações de atendimentos em andamento e compromissos internos</p>
+                <h3><i class="fa-solid fa-bolt" style="color: var(--color-coral)"></i> Atendimentos Express</h3>
+                <p style="font-size: 11px; color: var(--color-text-secondary); margin-top: 4px;">Serviços sem reunião, ordenados pelo prazo de conclusão</p>
               </div>
-              <button class="btn-utility" id="btn-nova-tarefa" style="font-size: 11px; padding: 4px 8px;"><i class="fa-solid fa-plus"></i> Nova</button>
+              <span class="chat-count-badge" id="express-count-badge">0 pendentes</span>
             </div>
-
-            <!-- Tarefas renderizadas pelo app.js (localStorage oc_tarefas) — os cards demo fixos saíram -->
-            <div id="tarefas-lista" style="padding: 16px; display: flex; flex-direction: column; gap: 12px; max-height: 300px; overflow-y: auto;"></div>
+            <div id="atendimentos-express-lista" style="padding: 16px; display: flex; flex-direction: column; gap: 12px; max-height: 360px; overflow-y: auto;"></div>
           </div>
 
         </div>
@@ -219,15 +217,16 @@
             <div id="mensagens-abertas-lista" style="padding: 16px; display: flex; flex-direction: column; gap: 12px; max-height: 300px; overflow-y: auto;"></div>
           </div>
 
-          <!-- Clientes recorrentes -->
+          <!-- Tarefas internas (movidas para baixo no lugar dos recorrentes) -->
           <div class="dash-card">
             <div class="dash-card-header" style="justify-content: space-between; align-items: flex-start;">
               <div>
-                <h3><i class="fa-solid fa-file-invoice" style="color: var(--color-pine)"></i> Clientes Recorrentes</h3>
-                <p style="font-size: 11px; color: var(--color-text-secondary); margin-top: 4px;">Guia/parcelamento a gerar este mês</p>
+                <h3><i class="fa-solid fa-list-check" style="color: var(--color-pine)"></i> Tarefas Pendentes</h3>
+                <p style="font-size: 11px; color: var(--color-text-secondary); margin-top: 4px;">Ações internas e compromissos de acompanhamento</p>
               </div>
+              <button class="btn-utility" id="btn-nova-tarefa" style="font-size: 11px; padding: 4px 8px;"><i class="fa-solid fa-plus"></i> Nova</button>
             </div>
-            <div id="guias-mensais-lista" style="padding: 16px; display: flex; flex-direction: column; gap: 12px; max-height: 300px; overflow-y: auto;"></div>
+            <div id="tarefas-lista" style="padding: 16px; display: flex; flex-direction: column; gap: 12px; max-height: 300px; overflow-y: auto;"></div>
           </div>
 
         </div>
@@ -2266,6 +2265,11 @@
           <div class="form-group">
             <label class="form-label" for="servico-preco">Valor (R$)</label>
             <input type="text" class="form-input" id="servico-preco" placeholder="Ex.: 199,00" required inputmode="decimal">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="servico-prazo-express">Prazo do Atendimento Express (dias úteis)</label>
+            <input type="number" class="form-input" id="servico-prazo-express" min="1" max="10" value="2" required>
+            <p style="font-size:11px;color:var(--color-text-secondary);margin:5px 0 0">O prazo começa na confirmação do pagamento e aparece no dashboard.</p>
           </div>
           <div class="form-group" style="display:flex;align-items:center;gap:8px">
             <input type="checkbox" id="servico-ativo" style="width:auto">
