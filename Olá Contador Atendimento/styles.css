@@ -5128,7 +5128,7 @@ input:checked + .slider:before {
    SEGMENTED CONTROL UNIVERSAL
    Mesmo padrão de Chats / Agenda do dia para menus internos e filtros.
    -------------------------------------------------------------------------- */
-body.pagina-contador .oc-segmented {
+body.pagina-contador .oc-segmented.oc-segmented {
   display: flex !important;
   align-items: center !important;
   flex-wrap: nowrap !important;
