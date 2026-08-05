@@ -469,6 +469,66 @@ function iniciarSincronizacaoDeSeguranca() {
 }
 
 // Navigation Handling (SPA routing)
+function ativarAbaConfigurada(containerSelector, alvo) {
+  const container = document.querySelector(containerSelector);
+  if (!container) return;
+  container.querySelectorAll('.settings-tab[data-tab]').forEach(tab => {
+    tab.classList.toggle('active', tab.dataset.tab === alvo);
+  });
+  container.querySelectorAll('.settings-pane').forEach(pane => {
+    pane.classList.toggle('active', pane.id === alvo);
+  });
+}
+
+// Toda entrada pelo menu lateral abre a visão principal do módulo. Além de
+// deixar a navegação previsível, isto impede que uma aba desativada por outro
+// componente resulte em uma seção inteira sem conteúdo.
+function ativarPrimeiraAbaDaSecao(sectionId) {
+  if (sectionId === 'section-atendimento') {
+    trocarListaDoPainel('fila');
+    const painel = document.getElementById('side-panel-left');
+    painel?.classList.remove('collapsed');
+    if (painel) painel.dataset.panel = 'fila';
+    document.querySelectorAll('#section-atendimento .btn-toolbar').forEach(btn => {
+      btn.classList.toggle('active', btn.id === 'btn-tool-fila');
+    });
+    document.querySelectorAll('#section-atendimento .side-panel-content').forEach(content => {
+      content.classList.toggle('active', content.id === 'panel-content-fila');
+    });
+    atualizarFila();
+    return;
+  }
+
+  if (sectionId === 'section-clientes') {
+    ativarAbaClientes('geral');
+    return;
+  }
+  if (sectionId === 'section-dossie') {
+    ativarAbaRelatorio('fila');
+    return;
+  }
+  if (sectionId === 'section-agendamentos') {
+    setCalendarViewMode('mes');
+    renderCalendarioAgendamentos();
+    return;
+  }
+  if (sectionId === 'section-financeiro') {
+    ativarAbaConfigurada('#section-financeiro', 'fin-faturamento');
+    return;
+  }
+  if (sectionId === 'section-radar-fiscal') {
+    ativarAbaRadar('caixa');
+    return;
+  }
+  if (sectionId === 'section-notificacoes') {
+    ativarAbaConfigurada('#section-notificacoes', 'cp-avisos');
+    return;
+  }
+  if (sectionId === 'section-config') {
+    ativarAbaConfigurada('#section-config', 'tab-geral');
+  }
+}
+
 function setupNavigation() {
   document.querySelectorAll(".nav-item").forEach(button => {
     button.addEventListener("click", () => {
@@ -482,6 +542,7 @@ function setupNavigation() {
       const targetPanel = document.getElementById(targetSectionId);
       if (targetPanel) {
         targetPanel.classList.add("active");
+        ativarPrimeiraAbaDaSecao(targetSectionId);
         if (targetSectionId === 'section-atendimento') {
           clearContadorBadge();
           marcarConversaLida();
@@ -489,12 +550,6 @@ function setupNavigation() {
           if (h) h.scrollTop = h.scrollHeight;
         }
         if (targetSectionId === 'section-insights') renderInsights();
-        // Ao entrar em Relatórios pelo menu (não pelo botão "Novo relatório"),
-        // atualiza a aba que estiver visível no momento — por padrão é "fila".
-        if (targetSectionId === 'section-dossie') {
-          const abaAtiva = document.querySelector('#relatorio-secao-tabs .settings-tab.active');
-          ativarAbaRelatorio(abaAtiva ? abaAtiva.dataset.relatorioSecaoTab : 'fila');
-        }
       }
       
       document.getElementById("noti-dropdown").classList.remove("active");
@@ -1112,11 +1167,13 @@ function setupEventListeners() {
     });
   }
 
-  // Settings Tabs Logic
-  document.querySelectorAll(".settings-tab").forEach(tab => {
+  // Abas de Configurações. Este listener precisa ficar restrito à própria
+  // seção; quando era global, um clique removia o estado ativo dos outros
+  // módulos e eles reapareciam em branco ao voltar pelo menu.
+  document.querySelectorAll("#section-config .settings-sidebar .settings-tab").forEach(tab => {
     tab.addEventListener("click", () => {
-      document.querySelectorAll(".settings-tab").forEach(t => t.classList.remove("active"));
-      document.querySelectorAll(".settings-pane").forEach(p => p.classList.remove("active"));
+      document.querySelectorAll("#section-config .settings-sidebar .settings-tab").forEach(t => t.classList.remove("active"));
+      document.querySelectorAll("#section-config .settings-pane").forEach(p => p.classList.remove("active"));
 
       tab.classList.add("active");
       const alvo = tab.getAttribute("data-tab");
@@ -2553,12 +2610,20 @@ function setupRelatorioSecaoTabs() {
 function setupRadarSecaoTabs() {
   const barra = document.getElementById('radar-secao-tabs');
   if (!barra) return;
-  const ids = ['caixa', 'sitfis', 'parcelamentos', 'divida-ativa', 'cnd'];
   barra.querySelectorAll('[data-radar-secao-tab]').forEach(btn => btn.addEventListener('click', () => {
-    const alvo = btn.dataset.radarSecaoTab;
-    barra.querySelectorAll('[data-radar-secao-tab]').forEach(item => item.classList.toggle('active', item === btn));
-    ids.forEach(id => document.getElementById('radar-pane-' + id)?.classList.toggle('active', id === alvo));
+    ativarAbaRadar(btn.dataset.radarSecaoTab);
   }));
+}
+
+function ativarAbaRadar(alvo = 'caixa') {
+  const barra = document.getElementById('radar-secao-tabs');
+  if (!barra) return;
+  barra.querySelectorAll('[data-radar-secao-tab]').forEach(item => {
+    item.classList.toggle('active', item.dataset.radarSecaoTab === alvo);
+  });
+  ['caixa', 'sitfis', 'parcelamentos', 'divida-ativa', 'cnd'].forEach(id => {
+    document.getElementById('radar-pane-' + id)?.classList.toggle('active', id === alvo);
+  });
 }
 
 // "Aguardando Relatório": clientes com o atendimento encerrado (done/locked)
@@ -4049,12 +4114,24 @@ function setupClientesSecaoTabs() {
   const barra = document.getElementById('clientes-secao-tabs');
   if (!barra) return;
   barra.querySelectorAll('[data-clientes-secao-tab]').forEach(btn => btn.addEventListener('click', () => {
-    barra.querySelectorAll('[data-clientes-secao-tab]').forEach(b => b.classList.toggle('active', b === btn));
-    const alvo = btn.dataset.clientesSecaoTab;
-    document.getElementById('clientes-pane-geral').classList.toggle('active', alvo === 'geral');
-    document.getElementById('clientes-pane-recorrentes').classList.toggle('active', alvo === 'recorrentes');
-    if (alvo === 'recorrentes') renderRecorrentesTab();
+    ativarAbaClientes(btn.dataset.clientesSecaoTab);
   }));
+}
+
+function ativarAbaClientes(alvo = 'geral') {
+  const barra = document.getElementById('clientes-secao-tabs');
+  if (!barra) return;
+  barra.querySelectorAll('[data-clientes-secao-tab]').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.clientesSecaoTab === alvo);
+  });
+  document.getElementById('clientes-pane-geral')?.classList.toggle('active', alvo === 'geral');
+  document.getElementById('clientes-pane-recorrentes')?.classList.toggle('active', alvo === 'recorrentes');
+  if (alvo === 'geral') {
+    crmDetailTab = 'geral';
+    renderCRM();
+  } else {
+    renderRecorrentesTab();
+  }
 }
 
 let activeRecorrenteTabClientId = null;
@@ -4728,6 +4805,7 @@ async function openDossier(clientId) {
   const hist = document.getElementById('dossier-historico-content');
   history.innerHTML = reports.length ? reports.map(r => `<div class="financeiro-card" style="margin-bottom:12px"><h3 style="font-size:14px;color:var(--color-pine)">${safe(r.titulo || 'Relatório de atendimento')}</h3><p style="font-size:12px;color:var(--color-text-secondary)">${new Date(r.createdAt).toLocaleDateString('pt-BR')} · ${safe(r.status || 'enviado')}</p><p style="font-size:13px">${safe(r.problema || r.solucao || '')}</p></div>`).join('') : '<p style="color:var(--color-text-secondary);font-size:13px">Nenhum relatório entregue ainda.</p>';
   files.innerHTML = docs.length ? `<table class="financeiro-table"><thead><tr><th>Arquivo</th><th>Enviado por</th><th>Data</th><th></th></tr></thead><tbody>${docs.map(d => `<tr><td>${safe(d.fileName)}</td><td>${d.uploadedBy === 'agent' ? 'Contador' : 'Cliente'}</td><td>${new Date(d.createdAt).toLocaleDateString('pt-BR')}</td><td>${d.url ? `<a class="btn-doc-action" href="${safe(d.url)}" target="_blank" rel="noopener">Abrir</a>` : ''}</td></tr>`).join('')}</tbody></table>` : '<p style="color:var(--color-text-secondary);font-size:13px">Nenhum arquivo enviado.</p>';
+  ativarAbaConfigurada('#dossier-overlay', 'dossier-processo');
   document.getElementById('dossier-overlay').classList.add('active');
 }
 
