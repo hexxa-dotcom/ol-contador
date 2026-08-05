@@ -1222,7 +1222,7 @@ async function routeApi(u, init, _fetch) {
     }
     const mExpressStatus = path.match(/^\/api\/atendimentos-express\/(\d+)\/status$/);
     if (mExpressStatus && method === 'POST') {
-      const permitidos = ['aguardando_triagem', 'em_analise', 'em_execucao', 'concluido', 'cancelado'];
+      const permitidos = ['aguardando_triagem', 'em_analise', 'em_execucao', 'aguardando_documentos', 'pronto_envio', 'concluido', 'cancelado'];
       if (!permitidos.includes(body.status)) return jsonResponse({ error: 'status_invalido' }, 400);
       const agora = new Date().toISOString();
       const patch = { status: body.status, updated_at: agora };

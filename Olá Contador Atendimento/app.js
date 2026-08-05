@@ -21,6 +21,7 @@ let appointments = [];
 let activeCrmClientId = null;
 let financeiro = { servicos: [], cobrancas: [] };
 let kanbanEtapas = {};
+let atendimentosExpress = [];
 
 // Audio Context for System Sounds
 let audioCtx = null;
@@ -572,6 +573,8 @@ const EXPRESS_STATUS = {
   aguardando_triagem: { label: 'Aguardando triagem', classe: 'sla-yellow' },
   em_analise: { label: 'Pronto para análise', classe: 'sla-blue' },
   em_execucao: { label: 'Em execução', classe: 'sla-green' },
+  aguardando_documentos: { label: 'Aguardando documentos', classe: 'sla-yellow' },
+  pronto_envio: { label: 'Pronto para envio', classe: 'sla-blue' },
   concluido: { label: 'Concluído', classe: 'sla-green' },
   cancelado: { label: 'Cancelado', classe: 'sla-red' }
 };
@@ -619,7 +622,9 @@ async function renderAtendimentosExpress() {
     const res = await fetch(API_BASE + '/api/atendimentos-express');
     if (!res.ok) throw new Error('fila_indisponivel');
     const todos = await res.json();
-    const ativos = (todos || []).filter(item => !['concluido', 'cancelado'].includes(item.status));
+    atendimentosExpress = Array.isArray(todos) ? todos : [];
+    renderKanban();
+    const ativos = atendimentosExpress.filter(item => !['concluido', 'cancelado'].includes(item.status));
     if (badge) badge.textContent = `${ativos.length} pendente${ativos.length !== 1 ? 's' : ''}`;
 
     if (!ativos.length) {
@@ -646,7 +651,7 @@ async function renderAtendimentosExpress() {
         <div class="express-tags"><span class="express-tag"><i class="fa-solid fa-bolt"></i> EXPRESS</span><span class="sla-badge ${status.classe}">${safe(status.label)}</span></div>
         <p class="express-assunto">${safe(assunto)}</p>
         <div class="express-datas"><span><i class="fa-solid fa-cart-shopping"></i> Contratado: ${safe(formatarDataHoraExpress(item.contratadoEm))}</span><span><i class="fa-solid fa-flag-checkered"></i> Conclusão: ${safe(formatarDataHoraExpress(item.prazoConclusaoEm))}</span></div>
-        <div class="express-documentos"><i class="fa-solid fa-file-arrow-up"></i> ${docs} documento${docs !== 1 ? 's' : ''} enviado${docs !== 1 ? 's' : ''}${item.status === 'aguardando_triagem' ? ' · aguardando triagem' : ' · triagem recebida'}</div>
+        <div class="express-documentos"><i class="fa-solid fa-file-arrow-up"></i> ${docs} documento${docs !== 1 ? 's' : ''} enviado${docs !== 1 ? 's' : ''}${item.status === 'aguardando_triagem' ? ' · aguardando triagem' : item.status === 'aguardando_documentos' ? ' · aguardando complemento' : ' · triagem recebida'}</div>
         <div class="dashboard-card-actions"><button class="btn-doc-action express-dossie" type="button" data-client-id="${safe(item.clientRef)}"><i class="fa-solid fa-folder-open"></i> Abrir caso</button>${proximaAcao}</div>
       </div>`;
     }).join('');
@@ -3718,6 +3723,22 @@ function etapaDoCliente(client) {
   const stage = kanbanEtapas[client.id] || client.status;
   return KANBAN_STAGES.some(s => s[0] === stage) ? stage : 'active';
 }
+function etapaDoExpress(status) {
+  if (status === 'aguardando_triagem') return 'pending';
+  if (status === 'aguardando_documentos') return 'docs';
+  if (status === 'pronto_envio') return 'ready';
+  if (status === 'concluido') return 'done';
+  return 'active';
+}
+function statusExpressDaEtapa(etapa) {
+  return ({
+    pending: 'aguardando_triagem',
+    active: 'em_execucao',
+    docs: 'aguardando_documentos',
+    ready: 'pronto_envio',
+    done: 'concluido'
+  })[etapa] || null;
+}
 function initials(name) {
   return String(name || '?').split(' ').filter(Boolean).map(n => n[0]).join('').slice(0, 2).toUpperCase();
 }
@@ -4326,11 +4347,29 @@ async function renderInsights() {
 function renderKanban() {
   const board = document.querySelector('#section-acompanhamento .kanban-board');
   if (!board) return;
+  const clientesComFichaExpress = new Set(
+    atendimentosExpress.filter(item => item.status !== 'cancelado').map(item => String(item.clientRef))
+  );
   board.innerHTML = KANBAN_STAGES.map(([status, label, color]) => {
-    const items = Object.values(clientsData).filter(c =>
-      (kanbanEtapas[c.id] || c.atendimentoModalidade === 'sem_agendamento') && etapaDoCliente(c) === status
-    );
-    return `<div class="kanban-col"><div class="kanban-col-header" style="border-top-color:${color}"><h4>${label}</h4><span class="kanban-badge" style="background:${color};color:#fff">${items.length}</span></div><div class="kanban-col-body" data-kanban-status="${status}">${items.map(c => {
+    const clientes = Object.values(clientsData).filter(c =>
+      (kanbanEtapas[c.id] || (c.atendimentoModalidade === 'sem_agendamento' && !clientesComFichaExpress.has(String(c.id)))) && etapaDoCliente(c) === status
+    ).map(client => ({ tipo: 'cliente', client }));
+    const express = atendimentosExpress.filter(item =>
+      item.status !== 'cancelado' && etapaDoExpress(item.status) === status
+    ).map(item => ({ tipo: 'express', item, client: clientsData[item.clientRef] || {} }));
+    const items = [...express, ...clientes];
+    return `<div class="kanban-col"><div class="kanban-col-header" style="border-top-color:${color}"><h4>${label}</h4><span class="kanban-badge" style="background:${color};color:#fff">${items.length}</span></div><div class="kanban-col-body" data-kanban-status="${status}">${items.map(registro => {
+      const c = registro.client;
+      if (registro.tipo === 'express') {
+        const item = registro.item;
+        const sla = slaAtendimentoExpress(item.prazoConclusaoEm);
+        return `<button type="button" class="kanban-card kanban-card-express ${status === 'done' ? 'done' : ''} ${sla.atrasado ? 'express-atrasado' : ''}" draggable="true" data-client-id="${safe(item.clientRef)}" data-express-id="${safe(item.id)}">
+          <div class="kanban-card-title">${safe(c.name || item.clientRef || 'Cliente')}</div>
+          <div class="kanban-card-tags"><span>${safe(item.assunto || c.taxType || 'Serviço contábil')}</span><span style="background:#FFF0E6;color:#B84A00"><i class="fa-solid fa-bolt"></i> EXPRESS</span></div>
+          <div class="kanban-card-meta"><i class="fa-solid fa-flag-checkered"></i> Conclusão: ${safe(formatarDataHoraExpress(item.prazoConclusaoEm))}</div>
+          ${status === 'done' ? '' : `<span class="sla-badge ${sla.classe}"><i class="fa-solid fa-stopwatch"></i> ${safe(sla.label)}</span>`}
+        </button>`;
+      }
       
       // SLA logic para o Kanban
       let slaHtml = '';
@@ -4354,12 +4393,41 @@ function renderKanban() {
   let dragging = null;
   board.querySelectorAll('[data-client-id]').forEach(card => {
     card.addEventListener('click', () => openDossier(card.dataset.clientId));
-    card.addEventListener('dragstart', e => { dragging = card.dataset.clientId; e.dataTransfer.effectAllowed = 'move'; });
+    card.addEventListener('dragstart', e => {
+      dragging = card.dataset.expressId
+        ? { tipo: 'express', id: card.dataset.expressId }
+        : { tipo: 'cliente', id: card.dataset.clientId };
+      e.dataTransfer.effectAllowed = 'move';
+    });
   });
   board.querySelectorAll('[data-kanban-status]').forEach(col => {
     col.addEventListener('dragover', e => e.preventDefault());
-    col.addEventListener('drop', async e => { e.preventDefault(); if (dragging) await salvarStatusCliente(dragging, col.dataset.kanbanStatus); dragging = null; });
+    col.addEventListener('drop', async e => {
+      e.preventDefault();
+      if (dragging) {
+        if (dragging.tipo === 'express') await salvarStatusExpressNoKanban(dragging.id, col.dataset.kanbanStatus);
+        else await salvarStatusCliente(dragging.id, col.dataset.kanbanStatus);
+      }
+      dragging = null;
+    });
   });
+}
+
+async function salvarStatusExpressNoKanban(id, etapa) {
+  const status = statusExpressDaEtapa(etapa);
+  if (!status) {
+    showToast('Atendimento Express não pode ser movido para Recorrência.');
+    return;
+  }
+  const res = await fetch(`${API_BASE}/api/atendimentos-express/${encodeURIComponent(id)}/status`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status })
+  });
+  if (!res.ok) {
+    showToast('Não foi possível atualizar a etapa do Atendimento Express.');
+    return;
+  }
+  await renderAtendimentosExpress();
+  showToast('Etapa do Atendimento Express atualizada.', 'success');
 }
 
 async function salvarStatusCliente(clientId, status) {

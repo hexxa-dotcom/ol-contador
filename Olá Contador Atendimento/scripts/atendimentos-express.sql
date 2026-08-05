@@ -41,9 +41,18 @@ create table if not exists public.atendimentos_express (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   constraint atendimentos_express_status_check check (
-    status in ('aguardando_triagem', 'em_analise', 'em_execucao', 'concluido', 'cancelado')
+    status in ('aguardando_triagem', 'em_analise', 'em_execucao', 'aguardando_documentos', 'pronto_envio', 'concluido', 'cancelado')
   )
 );
+
+-- Atualiza também instalações onde uma versão anterior desta migração já foi
+-- executada, sem apagar nenhum atendimento existente.
+alter table public.atendimentos_express
+  drop constraint if exists atendimentos_express_status_check;
+alter table public.atendimentos_express
+  add constraint atendimentos_express_status_check check (
+    status in ('aguardando_triagem', 'em_analise', 'em_execucao', 'aguardando_documentos', 'pronto_envio', 'concluido', 'cancelado')
+  );
 
 create index if not exists atendimentos_express_fila_idx
   on public.atendimentos_express(status, prazo_conclusao_em);

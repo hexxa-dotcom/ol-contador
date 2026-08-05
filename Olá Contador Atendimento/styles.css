@@ -3430,6 +3430,8 @@ body {
   transform: translateY(-2px);
   box-shadow: 0 4px 8px rgba(0,0,0,0.05);
 }
+.kanban-card-express { border-left: 3px solid var(--color-coral); }
+.kanban-card-express.express-atrasado { border-color: rgba(231, 76, 60, 0.48); border-left-color: #C0392B; }
 
 /* SLA Badges */
 .sla-badge {
