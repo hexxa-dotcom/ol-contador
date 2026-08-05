@@ -5112,6 +5112,18 @@ input:checked + .slider:before {
   }
 }
 
+@media (max-width: 768px) {
+  body.pagina-contador .atendimento-module-container {
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+  body.pagina-contador .atendimento-side-panel,
+  body.pagina-contador .sidebar-chats { border-right: 0 !important; }
+  body.pagina-contador .chat-area-header { min-height: 0; }
+  body.pagina-contador #panel-content-fila .painel-abas { margin: 10px 14px !important; }
+}
+
 /* ==========================================================================
    ULTRA-SOPHISTICATED APPLE & GOOGLE DESIGN OVERHAUL (ÁREA DO CONTADOR SOMENTE)
    Clean typography, crisp card shadows, no clutter, orange sidebar outline.
@@ -5525,4 +5537,398 @@ body.pagina-contador .btn-toolbar.active {
   color: var(--color-pine) !important;
   border: 2px solid var(--color-coral) !important; /* Contorno Laranja no ícone ativo da toolbar (Chat e IA) */
   box-shadow: 0 4px 14px rgba(255, 103, 0, 0.2) !important;
+}
+
+/* ==========================================================================
+   SISTEMA VISUAL DO CONTADOR — CONSOLIDAÇÃO 2026
+   Esta é a camada final do painel. Ela corrige conflitos entre os estilos
+   históricos e usa os nomes reais dos componentes renderizados no HTML/JS.
+   ========================================================================== */
+body.pagina-contador {
+  --contador-accent: #E96B42;
+  --contador-accent-strong: #C9542E;
+  --contador-accent-soft: rgba(233, 107, 66, 0.10);
+  --contador-accent-soft-hover: rgba(233, 107, 66, 0.16);
+  --contador-accent-line: rgba(201, 84, 46, 0.24);
+  --contador-surface: #FFFFFF;
+  --contador-surface-soft: #F7F6F1;
+  --contador-surface-muted: #F0EFE8;
+  --contador-line: rgba(20, 20, 20, 0.10);
+  --contador-line-strong: rgba(20, 20, 20, 0.16);
+  --contador-shadow-sm: 0 1px 2px rgba(20, 20, 20, 0.04), 0 5px 14px rgba(20, 20, 20, 0.05);
+  --contador-shadow-md: 0 2px 4px rgba(20, 20, 20, 0.04), 0 12px 28px rgba(20, 20, 20, 0.08);
+  --contador-ease: cubic-bezier(0.16, 1, 0.3, 1);
+  --color-coral: var(--contador-accent);
+  --color-coral-dark: var(--contador-accent-strong);
+  --color-coral-light: #FFF0EA;
+  --color-pine-ultra-light: var(--contador-accent-soft);
+}
+
+/* Navegação: seleção suave e translúcida, sem o bloco laranja rígido. */
+body.pagina-contador .nav-item,
+body.pagina-contador .btn-toolbar,
+body.pagina-contador .btn-utility,
+body.pagina-contador .btn-primary,
+body.pagina-contador .btn-send,
+body.pagina-contador .btn-shortcut-tag,
+body.pagina-contador .calendar-nav-btn,
+body.pagina-contador .calendar-view-btn {
+  transition: color .22s var(--contador-ease), background-color .22s var(--contador-ease),
+              border-color .22s var(--contador-ease), box-shadow .22s var(--contador-ease),
+              transform .22s var(--contador-ease) !important;
+}
+
+body.pagina-contador .nav-item:hover {
+  background: rgba(255, 255, 255, 0.68) !important;
+  color: var(--contador-accent-strong) !important;
+  box-shadow: 0 3px 12px rgba(20, 20, 20, 0.05) !important;
+  transform: translateX(2px) !important;
+}
+
+body.pagina-contador .nav-item.active,
+body.pagina-contador .app-sidebar-nav.collapsed .nav-item.active {
+  background: var(--contador-accent-soft) !important;
+  color: var(--contador-accent-strong) !important;
+  border: 1px solid var(--contador-accent-line) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.75), 0 4px 12px rgba(201, 84, 46, 0.08) !important;
+  transform: none !important;
+}
+
+body.pagina-contador .nav-item.active i {
+  color: var(--contador-accent-strong) !important;
+}
+
+body.pagina-contador .nav-item:active,
+body.pagina-contador button:active:not(:disabled) {
+  transform: scale(0.97) !important;
+}
+
+/* Superfícies compartilhadas por todas as seções. */
+body.pagina-contador :is(
+  .kpi-card, .dash-card, .financeiro-card, .tracking-card, .relatorios-card,
+  .triagem-card, .integration-card, .stat-card, .calendar-main,
+  .calendar-sidebar, .settings-sidebar, .settings-content, .dossier-panel,
+  .kanban-col, .table-container
+) {
+  border-color: var(--contador-line) !important;
+  box-shadow: var(--contador-shadow-sm) !important;
+  transition: transform .28s var(--contador-ease), box-shadow .28s var(--contador-ease), border-color .28s var(--contador-ease) !important;
+}
+
+body.pagina-contador :is(.kpi-card, .dash-card, .financeiro-card, .tracking-card, .integration-card, .stat-card):hover {
+  transform: translateY(-2px) !important;
+  border-color: var(--contador-accent-line) !important;
+  box-shadow: var(--contador-shadow-md) !important;
+}
+
+/* O KPI de destaque também passa a usar acento leve, não laranja sólido. */
+body.pagina-contador .kpi-cards-grid .kpi-card:last-child {
+  background: linear-gradient(145deg, rgba(233, 107, 66, 0.14), rgba(255, 255, 255, 0.94) 68%) !important;
+  border: 1px solid var(--contador-accent-line) !important;
+  box-shadow: var(--contador-shadow-sm) !important;
+}
+body.pagina-contador .kpi-cards-grid .kpi-card:last-child :is(.kpi-card-header span, h3, .kpi-trend) {
+  color: #141414 !important;
+}
+body.pagina-contador .kpi-cards-grid .kpi-card:last-child .kpi-trend {
+  background: rgba(255, 255, 255, 0.72) !important;
+}
+
+/* Entrada igual em todas as seções e em listas que trocam conteúdo. */
+@keyframes contador-panel-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes contador-list-in {
+  from { opacity: 0; transform: translateX(-5px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+body.pagina-contador .content-panel.active {
+  animation: contador-panel-in .30s var(--contador-ease) both !important;
+}
+body.pagina-contador .painel-lista.ativa,
+body.pagina-contador .side-panel-content.active,
+body.pagina-contador .settings-pane.active {
+  animation: contador-list-in .22s var(--contador-ease) both;
+}
+
+/* CHAT — moldura, trilha lateral e divisões. */
+body.pagina-contador .atendimento-module-container {
+  background: var(--contador-surface) !important;
+  border: 1px solid var(--contador-line-strong) !important;
+  border-radius: 22px !important;
+  box-shadow: var(--contador-shadow-md) !important;
+}
+body.pagina-contador .atendimento-toolbar-left {
+  background: var(--contador-surface-soft) !important;
+  border-right: 1px solid var(--contador-line) !important;
+}
+body.pagina-contador .atendimento-side-panel,
+body.pagina-contador .sidebar-chats {
+  background: var(--contador-surface) !important;
+  border-right: 1px solid var(--contador-line-strong) !important;
+}
+body.pagina-contador .btn-toolbar {
+  border: 1px solid transparent !important;
+  color: #555 !important;
+}
+body.pagina-contador .btn-toolbar:hover:not(.active) {
+  background: rgba(255, 255, 255, 0.9) !important;
+  border-color: var(--contador-line) !important;
+  color: var(--contador-accent-strong) !important;
+  box-shadow: var(--contador-shadow-sm) !important;
+  transform: translateY(-1px) !important;
+}
+body.pagina-contador .btn-toolbar.active {
+  background: var(--contador-accent-soft) !important;
+  color: var(--contador-accent-strong) !important;
+  border: 1px solid var(--contador-accent-line) !important;
+  box-shadow: 0 4px 12px rgba(201, 84, 46, 0.10) !important;
+}
+
+/* Fila / Agenda: segmented control verdadeiro usando a classe real .painel-aba. */
+body.pagina-contador #panel-content-fila .painel-abas {
+  display: flex !important;
+  width: auto !important;
+  margin: 14px !important;
+  padding: 4px !important;
+  gap: 4px !important;
+  border-radius: 14px !important;
+  background: var(--contador-surface-muted) !important;
+  border: 1px solid var(--contador-line) !important;
+  box-shadow: inset 0 1px 2px rgba(20, 20, 20, 0.03) !important;
+}
+body.pagina-contador #panel-content-fila .painel-aba {
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-height: 38px;
+  padding: 8px 6px !important;
+  border: 1px solid transparent !important;
+  border-radius: 10px !important;
+  background: transparent !important;
+  color: #696969 !important;
+  font-size: 12px !important;
+  overflow: visible !important;
+  text-overflow: clip !important;
+  box-shadow: none !important;
+  transition: color .20s var(--contador-ease), background-color .20s var(--contador-ease), box-shadow .20s var(--contador-ease), transform .20s var(--contador-ease) !important;
+}
+body.pagina-contador #panel-content-fila .painel-aba:hover {
+  color: #222 !important;
+  background: rgba(255, 255, 255, 0.55) !important;
+}
+body.pagina-contador #panel-content-fila .painel-aba.ativa {
+  color: #242424 !important;
+  background: var(--contador-surface) !important;
+  border-color: rgba(20, 20, 20, 0.06) !important;
+  box-shadow: 0 1px 2px rgba(20, 20, 20, 0.06), 0 4px 10px rgba(20, 20, 20, 0.07) !important;
+}
+body.pagina-contador #panel-content-fila .painel-aba .chat-count-badge {
+  background: rgba(20, 20, 20, 0.08) !important;
+  color: #555 !important;
+  font-size: 9px !important;
+  padding: 1px 5px !important;
+  transition: inherit;
+}
+body.pagina-contador #panel-content-fila .painel-aba.ativa .chat-count-badge {
+  background: var(--contador-accent-soft-hover) !important;
+  color: var(--contador-accent-strong) !important;
+}
+
+body.pagina-contador .search-chat {
+  padding: 10px 14px 12px !important;
+  border-bottom: 1px solid var(--contador-line) !important;
+}
+body.pagina-contador .search-chat input {
+  background: var(--contador-surface-soft) !important;
+  border: 1px solid var(--contador-line) !important;
+  min-height: 38px;
+  transition: border-color .2s ease, background-color .2s ease, box-shadow .2s ease;
+}
+body.pagina-contador .search-chat input:focus {
+  background: #fff !important;
+  border-color: var(--contador-accent-line) !important;
+  box-shadow: 0 0 0 3px var(--contador-accent-soft) !important;
+}
+
+/* Linhas horizontais visíveis e seleção suave na fila. */
+body.pagina-contador .chat-list .chat-item {
+  position: relative;
+  padding: 14px 16px !important;
+  border: 0 !important;
+  border-bottom: 1px solid var(--contador-line) !important;
+  background: transparent !important;
+  transition: background-color .18s ease, box-shadow .18s ease !important;
+}
+body.pagina-contador .chat-list .chat-item:last-child { border-bottom: 1px solid var(--contador-line) !important; }
+body.pagina-contador .chat-list .chat-item:hover { background: var(--contador-surface-soft) !important; }
+body.pagina-contador .chat-list .chat-item.active {
+  background: linear-gradient(90deg, var(--contador-accent-soft), rgba(233, 107, 66, 0.035)) !important;
+  box-shadow: inset 3px 0 0 var(--contador-accent) !important;
+}
+
+/* Cabeçalho do cliente com cor leve e separação clara. */
+body.pagina-contador .chat-area-header {
+  min-height: 84px;
+  background: linear-gradient(100deg, rgba(233, 107, 66, 0.09), rgba(255, 255, 255, 0.96) 42%) !important;
+  border-bottom: 1px solid var(--contador-line-strong) !important;
+  box-shadow: 0 3px 14px rgba(20, 20, 20, 0.04) !important;
+}
+body.pagina-contador .chat-area-header .chat-item-avatar {
+  background: linear-gradient(145deg, #4F8FC7, #337CB8) !important;
+  box-shadow: 0 4px 12px rgba(51, 124, 184, 0.22);
+}
+body.pagina-contador .chat-actions-top .btn-utility:not(#btn-finish-chat) {
+  background: rgba(255, 255, 255, 0.78) !important;
+  border-color: var(--contador-line) !important;
+}
+body.pagina-contador #btn-finish-chat {
+  background: var(--contador-accent) !important;
+  border-color: var(--contador-accent) !important;
+  box-shadow: 0 4px 12px rgba(201, 84, 46, 0.16) !important;
+}
+body.pagina-contador #btn-finish-chat:hover {
+  background: var(--contador-accent-strong) !important;
+  box-shadow: 0 7px 18px rgba(201, 84, 46, 0.20) !important;
+}
+
+/* Histórico e balões: fundo quente, contraste previsível nos dois lados. */
+body.pagina-contador .messages-history,
+body.pagina-contador .chat-digitando {
+  background: #F5F4EF !important;
+}
+body.pagina-contador .messages-history {
+  background-image: radial-gradient(rgba(20, 20, 20, 0.035) .7px, transparent .7px) !important;
+  background-size: 12px 12px !important;
+}
+body.pagina-contador .message-bubble {
+  border-radius: 14px !important;
+  box-shadow: 0 1px 2px rgba(20, 20, 20, 0.07) !important;
+  animation: chat-entra .20s var(--contador-ease) both !important;
+}
+body.pagina-contador .message-bubble.received {
+  background: #FFFFFF !important;
+  color: #222 !important;
+  border: 1px solid rgba(20, 20, 20, 0.09) !important;
+  border-bottom-left-radius: 4px !important;
+}
+body.pagina-contador .message-bubble.sent {
+  background: #276B5B !important;
+  color: #FFFFFF !important;
+  border: 1px solid rgba(17, 82, 67, 0.32) !important;
+  border-bottom-right-radius: 4px !important;
+}
+body.pagina-contador .message-bubble.system {
+  background: rgba(255, 255, 255, 0.82) !important;
+  color: var(--contador-accent-strong) !important;
+  border: 1px dashed var(--contador-accent-line) !important;
+  box-shadow: none !important;
+}
+
+/* Rodapé, atalhos, campo e botões de IA/enviar. */
+body.pagina-contador .chat-area-footer {
+  padding: 14px 18px !important;
+  background: var(--contador-surface) !important;
+  border-top: 1px solid var(--contador-line-strong) !important;
+  box-shadow: 0 -4px 18px rgba(20, 20, 20, 0.035) !important;
+}
+body.pagina-contador .shortcuts-bar {
+  padding: 0 0 10px !important;
+  margin-bottom: 10px !important;
+  border-bottom: 1px solid var(--contador-line) !important;
+}
+body.pagina-contador .btn-shortcut-tag {
+  background: var(--contador-surface-soft) !important;
+  border-color: var(--contador-line) !important;
+  color: #555 !important;
+}
+body.pagina-contador .btn-shortcut-tag:hover,
+body.pagina-contador .btn-shortcut-tag.active {
+  background: var(--contador-accent-soft) !important;
+  border-color: var(--contador-accent-line) !important;
+  color: var(--contador-accent-strong) !important;
+  transform: translateY(-1px);
+}
+body.pagina-contador .input-container {
+  min-height: 52px;
+  padding: 5px 6px !important;
+  gap: 6px !important;
+  border: 1px solid var(--contador-line-strong) !important;
+  background: var(--contador-surface-soft) !important;
+  box-shadow: inset 0 1px 2px rgba(20, 20, 20, 0.03) !important;
+  transition: border-color .2s ease, background-color .2s ease, box-shadow .2s ease !important;
+}
+body.pagina-contador .input-container:focus-within {
+  background: #fff !important;
+  border-color: var(--contador-accent-line) !important;
+  box-shadow: 0 0 0 3px var(--contador-accent-soft) !important;
+}
+body.pagina-contador .input-container .input-message {
+  background: transparent !important;
+  border: 0 !important;
+  outline: 0 !important;
+  color: #222 !important;
+}
+body.pagina-contador #btn-inline-ai {
+  background: var(--contador-accent-soft) !important;
+  color: var(--contador-accent-strong) !important;
+  border: 1px solid var(--contador-accent-line) !important;
+  box-shadow: none !important;
+}
+body.pagina-contador #btn-inline-ai:hover {
+  background: var(--contador-accent-soft-hover) !important;
+  transform: rotate(-4deg) scale(1.04) !important;
+}
+body.pagina-contador #btn-send-message,
+body.pagina-contador .copilot-input-area button[type="submit"] {
+  background: var(--contador-accent) !important;
+  border: 1px solid rgba(201, 84, 46, 0.18) !important;
+  box-shadow: 0 4px 12px rgba(201, 84, 46, 0.18) !important;
+}
+body.pagina-contador #btn-send-message:hover,
+body.pagina-contador .copilot-input-area button[type="submit"]:hover {
+  background: var(--contador-accent-strong) !important;
+  transform: translateY(-1px) scale(1.03) !important;
+  box-shadow: 0 7px 16px rgba(201, 84, 46, 0.22) !important;
+}
+
+/* Demais abas do painel usam o mesmo acento suave. */
+body.pagina-contador :is(.painel-aba-btn.active, .settings-tab.active, .calendar-view-btn.active) {
+  background: var(--contador-accent-soft) !important;
+  color: var(--contador-accent-strong) !important;
+  border-color: var(--contador-accent-line) !important;
+  box-shadow: 0 3px 10px rgba(201, 84, 46, 0.09) !important;
+}
+body.pagina-contador :is(.painel-aba-btn, .settings-tab, .calendar-view-btn):hover {
+  background: var(--contador-accent-soft) !important;
+  color: var(--contador-accent-strong) !important;
+}
+
+/* Tabelas e esteiras ganham a mesma resposta visual, sem saltos bruscos. */
+body.pagina-contador :is(.financeiro-table, table) tbody tr {
+  transition: background-color .18s ease, box-shadow .18s ease;
+}
+body.pagina-contador :is(.financeiro-table, table) tbody tr:hover {
+  background: rgba(233, 107, 66, 0.045) !important;
+}
+body.pagina-contador .kanban-card {
+  transition: transform .22s var(--contador-ease), box-shadow .22s var(--contador-ease), border-color .22s var(--contador-ease) !important;
+}
+body.pagina-contador .kanban-card:hover {
+  transform: translateY(-2px) !important;
+  border-color: var(--contador-accent-line) !important;
+  box-shadow: var(--contador-shadow-sm) !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body.pagina-contador *,
+  body.pagina-contador *::before,
+  body.pagina-contador *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
 }
