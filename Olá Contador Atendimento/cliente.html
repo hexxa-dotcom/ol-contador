@@ -14,7 +14,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
 
   <link rel="stylesheet" href="styles.css?v=32">
-  <link rel="stylesheet" href="cliente.css?v=32">
+  <link rel="stylesheet" href="cliente.css?v=33">
 
   <!-- FontAwesome -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -199,13 +199,18 @@
       <section class="content-panel active" id="section-dashboard">
         <div class="panel-header-desc">
           <h2 id="dash-boas-vindas">Bem-vindo(a)</h2>
-          <p>Acompanhe o andamento do seu serviço e gerencie seus dados com facilidade.</p>
+          <p id="dash-subtitulo">Veja o que está acontecendo e o que você precisa fazer agora.</p>
         </div>
 
-        <!-- O card "Próximo passo" saiu daqui: seu principal motivo de existir
-             era empurrar o cliente pra triagem, e isso agora é obrigatório
-             logo após o pagamento (ver onboarding em showCheckoutSuccess) —
-             quem chega no dashboard já passou por essa etapa. -->
+        <div class="case-next-action-card" id="case-next-action-card">
+          <div class="case-next-action-icon" id="case-next-action-icon"><i class="fa-solid fa-spinner fa-spin"></i></div>
+          <div class="case-next-action-copy">
+            <span>O que você precisa fazer agora</span>
+            <h3 id="case-next-action-title">Carregando seu caso…</h3>
+            <p id="case-next-action-text">Estamos organizando as informações do seu atendimento.</p>
+          </div>
+          <button type="button" class="btn-utility primary" id="case-next-action-button" disabled>Aguarde…</button>
+        </div>
 
         <!-- Acesso: por padrão você entra pelo link no e-mail (sem senha). Criar uma
              senha aqui é opcional. Quando salva ou dispensada, o card desparece. -->
@@ -527,10 +532,9 @@
             <div class="triagem-bloco" id="triagem-bloco-docs" hidden>
               <div class="triagem-bloco-topo">
                 <span class="triagem-passo">3</span>
-                <h3>Documentos que costumam ajudar</h3>
-                <span class="triagem-opcional">opcional</span>
+                <h3>Envie o que você já tem</h3>
               </div>
-              <p class="triagem-dica">Se tiver algum em mãos, anexe agora. Se não tiver, tudo bem — dá para mandar depois, durante o atendimento.</p>
+              <p class="triagem-dica" id="triagem-docs-dica">Use a câmera do celular ou escolha um arquivo. Se algo importante estiver faltando, avisaremos exatamente o que enviar.</p>
               <div id="triagem-docs"></div>
             </div>
           </div>
@@ -545,7 +549,7 @@
               <div class="triagem-medidor-trilho"><div class="triagem-medidor-barra" id="triagem-medidor-barra"></div></div>
             </div>
             <div class="triagem-acoes">
-              <span class="triagem-salvo" id="triagem-salvo"></span>
+              <span class="triagem-salvo" id="triagem-salvo" aria-live="polite"></span>
               <button class="btn-utility primary" id="triagem-enviar">
                 <i class="fa-solid fa-paper-plane"></i> Enviar para o contador
               </button>
@@ -964,7 +968,7 @@
                 <p>
                   Por isso, quando o serviço contratado depende de um desses sistemas, a conta precisa estar
                   <strong>ativa, desbloqueada e no nível exigido</strong> pelo serviço. Deixar isso resolvido antes do
-                  horário marcado é o que evita perder o tempo do atendimento tentando entrar na conta.
+                  início da análise é o que evita atrasos tentando entrar na conta.
                 </p>
               </div>
             </details>
@@ -980,10 +984,9 @@
               <summary>Como funciona o atendimento, do começo ao fim?</summary>
               <div class="faq-resposta">
                 <ol class="faq-passos">
-                  <li><strong>Agendamento</strong> — você escolhe o serviço, a data e o horário, e faz o pagamento.</li>
-                  <li><strong>Pré-atendimento</strong> — antes da conversa, você responde algumas perguntas e envia os
-                      documentos. É isso que permite ao contador chegar no horário já sabendo do seu caso.</li>
-                  <li><strong>Atendimento</strong> — no horário marcado, o chat é liberado e vocês conversam.</li>
+                  <li><strong>Contratação</strong> — você escolhe o serviço e decide entre Atendimento Express ou conversa com horário marcado.</li>
+                  <li><strong>Triagem</strong> — responde perguntas simples e fotografa ou anexa os documentos pelo celular.</li>
+                  <li><strong>Execução</strong> — no Express, o contador analisa sem reunião; com horário, o chat abre no momento marcado.</li>
                   <li><strong>Depois</strong> — o contador registra o que foi resolvido, e o relatório e os arquivos
                       ficam guardados em <strong>Documentos</strong> e no <strong>Histórico</strong>.</li>
                 </ol>
@@ -994,12 +997,10 @@
               <summary>Preciso preencher o pré-atendimento? O que acontece se eu não preencher?</summary>
               <div class="faq-resposta">
                 <p>
-                  Preencher é o que faz o atendimento render. Sem as suas respostas e documentos, boa parte do horário
-                  vai embora só levantando informação que poderia ter sido enviada antes.
+                  Preencher é o que permite entender e começar o caso. Sem as suas respostas, não sabemos qual caminho seguir.
                 </p>
                 <p>
-                  Você encontra o formulário em <strong>Pré-atendimento</strong>, na barra lateral. Dá pra preencher a
-                  qualquer momento antes do horário marcado, e revisar depois se lembrar de algo.
+                  Você encontra o formulário em <strong>Meu caso</strong> ou <strong>Pré-atendimento</strong>. O rascunho é salvo automaticamente e você pode revisar depois.
                 </p>
               </div>
             </details>
@@ -1011,7 +1012,7 @@
                   <li><strong>Pix</strong> — com 5% de desconto;</li>
                   <li><strong>Cartão de crédito</strong> — à vista ou em até 3x.</li>
                 </ul>
-                <p>A escolha é feita na própria tela de <strong>Agendamento</strong>, junto com a data e o horário.</p>
+                <p>A escolha é feita na contratação, antes da confirmação do pagamento.</p>
               </div>
             </details>
 
@@ -1346,8 +1347,8 @@
   <script src="config.js?v=2"></script>
   <script src="oc-data.js?v=5"></script>
   <script src="triagem-catalogo.js"></script>
-  <script src="triagem.js?v=3"></script>
+  <script src="triagem.js?v=4"></script>
   <script src="relatorio-pdf.js"></script>
-  <script src="cliente.js?v=23"></script>
+  <script src="cliente.js?v=24"></script>
 </body>
 </html>

@@ -54,6 +54,10 @@ window.TriagemUI = (function () {
     atualizarBadge();
     desenharSalaDeEspera();
     atualizarModoExibicao();
+    var dicaDocs = $('triagem-docs-dica');
+    if (dicaDocs && window.atendimentoSemAgendamento && window.atendimentoSemAgendamento()) {
+      dicaDocs.textContent = 'Fotografe ou anexe o que já tiver. Seu caso entra na fila com a triagem; se faltar algo para concluir a análise, avisaremos exatamente o que enviar.';
+    }
   }
 
   // Enquanto a triagem não foi enviada, mostra o formulário normal (é a
@@ -240,34 +244,51 @@ window.TriagemUI = (function () {
           (enviado ? '<span class="triagem-doc-arquivo">' + esc(enviado.fileName) + '</span>' : '') +
         '</div>';
 
-      var botao = document.createElement('button');
-      botao.type = 'button';
-      botao.className = 'triagem-doc-btn';
-      botao.textContent = enviado ? 'Trocar' : 'Anexar';
-      botao.addEventListener('click', function () { pedirArquivo(nome, botao); });
-      item.appendChild(botao);
+      var acoes = document.createElement('div');
+      acoes.className = 'triagem-doc-acoes';
+      var camera = document.createElement('button');
+      camera.type = 'button';
+      camera.className = 'triagem-doc-btn triagem-doc-camera';
+      camera.innerHTML = '<i class="fa-solid fa-camera"></i> ' + (enviado ? 'Nova foto' : 'Tirar foto');
+      camera.setAttribute('aria-label', (enviado ? 'Tirar nova foto de ' : 'Tirar foto de ') + nome);
+      camera.addEventListener('click', function () { pedirArquivo(nome, camera, true); });
+      var arquivo = document.createElement('button');
+      arquivo.type = 'button';
+      arquivo.className = 'triagem-doc-btn';
+      arquivo.textContent = enviado ? 'Trocar arquivo' : 'Escolher arquivo';
+      arquivo.setAttribute('aria-label', (enviado ? 'Trocar arquivo de ' : 'Escolher arquivo para ') + nome);
+      arquivo.addEventListener('click', function () { pedirArquivo(nome, arquivo, false); });
+      acoes.appendChild(camera);
+      acoes.appendChild(arquivo);
+      item.appendChild(acoes);
       box.appendChild(item);
     });
   }
 
-  function pedirArquivo(nomeDoItem, botao) {
+  function pedirArquivo(nomeDoItem, botao, usarCamera) {
     var input = document.createElement('input');
     input.type = 'file';
-    input.accept = 'image/*,application/pdf';
+    input.accept = usarCamera ? 'image/*' : 'image/*,application/pdf';
+    if (usarCamera) input.setAttribute('capture', 'environment');
     input.addEventListener('change', async function () {
       if (!this.files.length) return;
       var file = this.files[0];
+      if (!String(file.type || '').startsWith('image/') && file.size > 3 * 1024 * 1024) {
+        avisar('Esse PDF é muito grande. Envie um arquivo de até 3 MB.', 'erro');
+        return;
+      }
       var textoOriginal = botao.textContent;
       botao.disabled = true;
-      botao.textContent = 'Enviando...';
+      botao.textContent = 'Preparando...';
       try {
-        var dataBase64 = await lerBase64(file);
+        var preparado = await prepararArquivo(file);
+        botao.textContent = 'Enviando...';
         var res = await fetch('/api/documentos', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            clientId: CLIENT_ID, fileName: file.name, mime: file.type,
-            dataBase64: dataBase64, uploadedBy: 'client', checklistItem: nomeDoItem
+            clientId: CLIENT_ID, fileName: preparado.fileName, mime: preparado.mime,
+            dataBase64: preparado.dataBase64, uploadedBy: 'client', checklistItem: nomeDoItem
           })
         });
         if (!res.ok) throw new Error('resposta ' + res.status);
@@ -281,6 +302,39 @@ window.TriagemUI = (function () {
       }
     });
     input.click();
+  }
+
+  // Fotos de celular costumam passar de 8 MB. Reduzimos a imagem antes do
+  // envio para funcionar bem no 4G e ficar abaixo do limite das APIs, sem
+  // alterar PDFs nem guardar uma cópia local da foto.
+  async function prepararArquivo(file) {
+    if (!String(file.type || '').startsWith('image/')) {
+      return { fileName: file.name, mime: file.type || 'application/octet-stream', dataBase64: await lerBase64(file) };
+    }
+    if (file.size <= 1400 * 1024) {
+      return { fileName: file.name, mime: file.type || 'image/jpeg', dataBase64: await lerBase64(file) };
+    }
+    var url = URL.createObjectURL(file);
+    try {
+      var img = await new Promise(function (resolve, reject) {
+        var imagem = new Image();
+        imagem.onload = function () { resolve(imagem); };
+        imagem.onerror = reject;
+        imagem.src = url;
+      });
+      var limite = 1800;
+      var escala = Math.min(1, limite / Math.max(img.naturalWidth, img.naturalHeight));
+      var canvas = document.createElement('canvas');
+      canvas.width = Math.max(1, Math.round(img.naturalWidth * escala));
+      canvas.height = Math.max(1, Math.round(img.naturalHeight * escala));
+      canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+      var blob = await new Promise(function (resolve) { canvas.toBlob(resolve, 'image/jpeg', .82); });
+      if (!blob) throw new Error('imagem_invalida');
+      var base = String(file.name || 'documento').replace(/\.[^.]+$/, '');
+      return { fileName: base + '.jpg', mime: 'image/jpeg', dataBase64: await lerBase64(blob) };
+    } finally {
+      URL.revokeObjectURL(url);
+    }
   }
 
   function lerBase64(file) {

@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Hanken+Grotesk:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="booking.css" />
+<link rel="stylesheet" href="booking.css?v=2" />
 </head>
 <body>
   <header class="nav-wrap">
@@ -42,16 +42,23 @@
         <strong>Seu caso pode começar mais rápido</strong>
         <ul>
           <li><span>✓</span> Sem esperar dia e horário disponíveis.</li>
-          <li><span>✓</span> A fila começa depois da triagem e dos documentos.</li>
+          <li><span>✓</span> A fila começa assim que você envia a triagem.</li>
           <li><span>✓</span> Acompanhe pela área do cliente e receba o resultado por e-mail.</li>
         </ul>
       </div>
       <div class="alerta" id="alerta"></div>
 
       <form id="form-checkout" novalidate>
-        <section class="bloco">
-          <h2>Seus dados</h2>
-          <p class="ajuda">Usamos o e-mail para te mandar o link de acesso à sua área assim que o pagamento confirmar.</p>
+        <div class="checkout-passos" aria-label="Progresso desta etapa">
+          <span class="ativo" id="checkout-passo-1"><b>1</b> Identificação</span>
+          <i aria-hidden="true"></i>
+          <span id="checkout-passo-2"><b>2</b> Endereço e pagamento</span>
+        </div>
+
+        <section class="bloco checkout-etapa" id="checkout-etapa-identidade">
+          <span class="checkout-eyebrow">Leva menos de um minuto</span>
+          <h2>Primeiro, quem é você?</h2>
+          <p class="ajuda">Usamos o e-mail para criar seu acesso. Seus dados ficam salvos neste aparelho enquanto você conclui.</p>
 
           <div class="field">
             <label for="nome">Nome completo</label>
@@ -74,6 +81,17 @@
             <input id="telefone" inputmode="tel" autocomplete="tel" placeholder="(51) 99999-9999" />
             <span class="erro" id="erro-telefone" hidden>Digite um telefone com DDD.</span>
           </div>
+
+          <button class="submit btnp" type="button" id="btn-continuar-checkout">Continuar</button>
+          <p class="note checkout-seguranca"><span aria-hidden="true">🔒</span> Conexão segura. Não pedimos senha do banco nem do gov.br nesta etapa.</p>
+        </section>
+
+        <div class="checkout-etapa" id="checkout-etapa-final" hidden>
+        <section class="bloco">
+          <button type="button" class="checkout-voltar-etapa" id="btn-voltar-identidade">← Voltar aos dados pessoais</button>
+          <span class="checkout-eyebrow">Dados para sua nota fiscal</span>
+          <h2>Agora, seu endereço</h2>
+          <p class="ajuda">Digite o CEP e buscamos quase tudo automaticamente. Você só confere e completa o número.</p>
           <!-- Endereço obrigatório: é o dado do tomador na nota fiscal de serviço
                (Asaas) quando o contador emite — sem ele a nota é recusada pela
                prefeitura em municípios que exigem endereço completo. -->
@@ -160,6 +178,7 @@
         <button class="submit btnp" type="submit" id="btn-pagar">Ir para o pagamento</button>
         <a class="voltar" id="link-voltar" href="agendamento.html">← Voltar e alterar o atendimento</a>
         <p class="note" id="checkout-note">O horário escolhido só fica reservado depois que o pagamento é confirmado. Se você não concluir, ele continua disponível para outras pessoas.</p>
+        </div>
       </form>
     </div>
 
@@ -203,6 +222,8 @@
 (function(){
   const CHAVE = 'oc_agendamento';
   const CHAVE_CREDITO = 'oc_credito_codigo';
+  const CHAVE_RASCUNHO = 'oc_checkout_rascunho';
+  const CAMPOS_RASCUNHO = ['nome','cpf','email','telefone','cep','endereco','numero','bairro','cidade','uf'];
 
   const $ = id => document.getElementById(id);
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -212,6 +233,56 @@
   let credito = null;     // { codigo, valorCents }
   let poll = null;
   let pollToken = null;   // segredo da cobrança atual — obrigatório pro /api/status aceitar a consulta
+
+  function salvarRascunhoCheckout(){
+    const dados = {};
+    CAMPOS_RASCUNHO.forEach(id => { dados[id] = $(id)?.value || ''; });
+    try { localStorage.setItem(CHAVE_RASCUNHO, JSON.stringify({ salvoEm: Date.now(), dados })); } catch(_) {}
+  }
+
+  function restaurarRascunhoCheckout(){
+    let salvo = null;
+    try { salvo = JSON.parse(localStorage.getItem(CHAVE_RASCUNHO) || 'null'); } catch(_) {}
+    if(!salvo || !salvo.salvoEm || Date.now() - salvo.salvoEm > 2 * 60 * 60 * 1000){
+      try { localStorage.removeItem(CHAVE_RASCUNHO); } catch(_) {}
+      return;
+    }
+    const dados = salvo.dados;
+    if(!dados) return;
+    CAMPOS_RASCUNHO.forEach(id => { if($(id) && dados[id]) $(id).value = dados[id]; });
+  }
+
+  function mostrarEtapaCheckout(numero, rolar){
+    const primeira = numero === 1;
+    $('checkout-etapa-identidade').hidden = !primeira;
+    $('checkout-etapa-final').hidden = primeira;
+    $('checkout-passo-1').className = primeira ? 'ativo' : 'feito';
+    $('checkout-passo-1').querySelector('b').textContent = primeira ? '1' : '✓';
+    $('checkout-passo-2').className = primeira ? '' : 'ativo';
+    if(!primeira) $('cep').focus({ preventScroll: true });
+    if(rolar !== false) (primeira ? $('checkout-etapa-identidade') : $('checkout-etapa-final'))
+      .scrollIntoView({ behavior:'smooth', block:'start' });
+  }
+
+  function validarIdentidade(){
+    let ok = true;
+    ['nome','cpf','email','telefone'].forEach(id => {
+      $('erro-'+id).hidden = true;
+      $(id).setAttribute('aria-invalid','false');
+    });
+    const nome = $('nome').value.trim();
+    if(nome.length < 3 || !nome.includes(' ')){ $('erro-nome').hidden = false; $('nome').setAttribute('aria-invalid','true'); ok = false; }
+    const doc = window.OCDocumento.validarCpfCnpj($('cpf').value);
+    if(!doc.valido){ $('erro-cpf').hidden = false; $('cpf').setAttribute('aria-invalid','true'); ok = false; }
+    const email = $('email').value.trim();
+    if(!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)){ $('erro-email').hidden = false; $('email').setAttribute('aria-invalid','true'); ok = false; }
+    if($('telefone').value.replace(/\D/g,'').length < 10){ $('erro-telefone').hidden = false; $('telefone').setAttribute('aria-invalid','true'); ok = false; }
+    if(!ok){
+      const primeiro = ['nome','cpf','email','telefone'].map(id => $(id)).find(el => el.getAttribute('aria-invalid') === 'true');
+      primeiro?.focus();
+    }
+    return ok;
+  }
 
   // Login automático pós-pagamento: usa a MESMA storageKey que cliente.html
   // usa pra sua própria sessão (config.js resolve isso pelo papel da página —
@@ -283,6 +354,7 @@
       if(data.bairro) $('bairro').value = data.bairro;
       if(data.localidade) $('cidade').value = data.localidade;
       if(data.uf) $('uf').value = data.uf;
+      salvarRascunhoCheckout();
       statusBusca(status, '');
       if(!$('numero').value) $('numero').focus();
     } catch(_){
@@ -322,6 +394,7 @@
       if(data.bairro) $('bairro').value = data.bairro;
       if(data.municipio) $('cidade').value = data.municipio;
       if(data.uf) $('uf').value = data.uf;
+      salvarRascunhoCheckout();
       statusBusca(status, '');
       // A Receita às vezes não tem rua/número parseados para o CNPJ (registro
       // antigo ou informal) — como esses campos agora são obrigatórios, avisa
@@ -506,6 +579,7 @@
         btn.disabled = false; btn.textContent = textoOriginal;
         return;
       }
+      try { localStorage.removeItem(CHAVE_RASCUNHO); } catch(_) {}
       sessionStorage.removeItem(CHAVE);
       sessionStorage.removeItem(CHAVE_CREDITO);
       pollToken = data.pollToken || null;
@@ -600,6 +674,8 @@
       return;
     }
     renderResumo();
+    restaurarRascunhoCheckout();
+    mostrarEtapaCheckout(1, false);
     const semAgendamento = pedido.modalidade === 'sem_agendamento';
     $('checkout-vantagem-sem-agendamento').hidden = !semAgendamento;
     $('checkout-intro').textContent = semAgendamento
@@ -620,6 +696,17 @@
       e.target.value = mascaraCep(e.target.value);
       buscarEnderecoPorCep();
     });
+    CAMPOS_RASCUNHO.forEach(id => {
+      $(id).addEventListener('input', salvarRascunhoCheckout);
+      $(id).addEventListener('change', salvarRascunhoCheckout);
+    });
+    $('btn-continuar-checkout').addEventListener('click', () => {
+      avisar('');
+      if(!validarIdentidade()) return;
+      salvarRascunhoCheckout();
+      mostrarEtapaCheckout(2);
+    });
+    $('btn-voltar-identidade').addEventListener('click', () => mostrarEtapaCheckout(1));
     $('form-checkout').addEventListener('submit', enviar);
 
     $('btn-abrir-credito').addEventListener('click', () => {

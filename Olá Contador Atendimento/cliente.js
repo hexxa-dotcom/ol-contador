@@ -15,6 +15,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   CLIENT_ID = ctx.clientId;
 
   setupNavigation();
+  // A configuração opcional de senha não pode aparecer antes do próprio
+  // caso. Quem acabou de pagar quer saber o andamento e a próxima ação;
+  // por isso ela fica abaixo da linha do tempo, em segundo plano.
+  const cardSenhaAcesso = document.getElementById('card-criar-senha');
+  const cardTrackerCaso = document.getElementById('card-tracker');
+  if (cardSenhaAcesso && cardTrackerCaso) cardTrackerCaso.after(cardSenhaAcesso);
 
   // Retomada após reload: se o cliente pagou, começou o onboarding e recarregou
   // a página no meio do caminho, não repete as telas de boas-vindas — só
@@ -747,19 +753,27 @@ window.iniciarAjudaGovBr = iniciarAjudaGovBr;
 // triagem, que agora é obrigatória antes de chegar aqui — ver onboarding em
 // showCheckoutSuccess). A função continua calculando o estado porque o chat
 // (atualizarSidebarDoChat) ainda usa esse texto na lateral do atendimento.
-function atualizarProximaAcao({ triagemEnviada, qtdDocs, temAppt, apptFeito, temRelatorio }) {
+function atualizarProximaAcao({ triagemEnviada, qtdDocs, temAppt, apptFeito, temRelatorio, atendimentoExpress }) {
   const icon = document.getElementById('case-next-action-icon');
   const title = document.getElementById('case-next-action-title');
   const text = document.getElementById('case-next-action-text');
   const button = document.getElementById('case-next-action-button');
 
   let state;
+  const semAgendamento = atendimentoSemAgendamento();
   if (temRelatorio) {
     state = { icon: 'fa-file-circle-check', title: 'Seu relatório está pronto', text: 'O atendimento foi concluído. Baixe seu relatório quando quiser.', button: 'Ver relatório', target: 'section-documentos', color: '#1F8A5F' };
   } else if (!triagemEnviada) {
-    state = { icon: 'fa-clipboard-question', title: 'Conte seu caso antes do atendimento', text: 'A triagem ajuda o contador a chegar preparado para resolver.', button: 'Preencher triagem', target: 'section-triagem', color: 'var(--color-pine)' };
+    state = { icon: 'fa-clipboard-question', title: 'Conte o que aconteceu', text: 'Responda perguntas simples, do seu jeito. O rascunho fica salvo automaticamente.', button: 'Começar triagem', target: 'section-triagem', color: 'var(--color-coral)' };
+  } else if (semAgendamento && atendimentoExpress && atendimentoExpress.status === 'aguardando_documentos') {
+    state = { icon: 'fa-file-circle-plus', title: 'Precisamos de mais um documento', text: 'Abra seu caso para ver exatamente o que falta e continuar a análise.', button: 'Ver o que falta', target: 'section-documentos', color: 'var(--color-coral)' };
   } else if (!qtdDocs) {
-    state = { icon: 'fa-folder-open', title: 'Envie os documentos que você já tiver', text: 'Eles ajudam o contador a analisar o caso antes da conversa.', button: 'Ver documentos', target: 'section-documentos', color: 'var(--color-pine)' };
+    state = { icon: 'fa-camera', title: 'Envie os documentos que você já tiver', text: semAgendamento ? 'Você pode fotografar pelo celular. Se não tiver algum agora, avisaremos caso ele seja necessário.' : 'Eles ajudam o contador a analisar o caso antes da conversa.', button: 'Tirar foto ou anexar', target: 'section-triagem', color: 'var(--color-pine)' };
+  } else if (semAgendamento) {
+    const prazo = atendimentoExpress && atendimentoExpress.prazoConclusaoEm
+      ? new Date(atendimentoExpress.prazoConclusaoEm).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long' })
+      : null;
+    state = { icon: 'fa-circle-check', title: 'Está tudo conosco agora', text: `Você não precisa fazer nada neste momento.${prazo ? ` Previsão de conclusão: ${prazo}.` : ' Avisaremos quando houver uma atualização.'}`, button: 'Ver meu caso', target: 'section-triagem', color: '#1F8A5F' };
   } else if (!temAppt) {
     state = { icon: 'fa-calendar-plus', title: 'Escolha o horário do seu atendimento', text: 'Depois da confirmação, seu chat será liberado no horário marcado.', button: 'Agendar atendimento', target: 'section-agendamento', color: 'var(--color-pine)' };
   } else if (!apptFeito) {
@@ -807,13 +821,18 @@ async function montarLinhaDoTempo() {
   if (!box) return;
 
   const pega = async (url, padrao) => {
-    try { const r = await fetch(url); return await r.json(); } catch (e) { return padrao; }
+    try {
+      const r = await fetch(url);
+      const dados = await r.json();
+      return r.ok ? dados : padrao;
+    } catch (e) { return padrao; }
   };
-  const [triagem, docs, appts, rels] = await Promise.all([
+  const [triagem, docs, appts, rels, expressos] = await Promise.all([
     pega('/api/triagem?clientId=' + encodeURIComponent(CLIENT_ID), null),
     pega('/api/documentos?clientId=' + encodeURIComponent(CLIENT_ID), []),
     pega('/api/appointments', []),
-    pega('/api/relatorios?clientId=' + encodeURIComponent(CLIENT_ID), [])
+    pega('/api/relatorios?clientId=' + encodeURIComponent(CLIENT_ID), []),
+    pega('/api/atendimentos-express', [])
   ]);
 
   const meusAppts = (appts || []).filter(a => a.clientRef === CLIENT_ID);
@@ -822,8 +841,15 @@ async function montarLinhaDoTempo() {
   const triagemEnviada = !!(triagem && triagem.status === 'enviada');
   const qtdDocs = (docs || []).length;
   const temRelatorio = (rels || []).length > 0;
+  const semAgendamento = atendimentoSemAgendamento();
+  const atendimentoExpress = (Array.isArray(expressos) ? expressos : []).find(a => String(a.clientRef) === String(CLIENT_ID)) || null;
 
-  const passos = [
+  const passos = semAgendamento ? [
+    { t: 'Serviço contratado', d: 'Seu caso foi aberto com sucesso.', feito: true },
+    { t: 'Triagem recebida', d: triagemEnviada ? 'Você contou o que aconteceu.' : 'Conte o caso para entrar na fila.', feito: triagemEnviada },
+    { t: 'Análise e execução', d: atendimentoExpress && ['em_analise','em_execucao','pronto_envio','concluido'].includes(atendimentoExpress.status) ? 'Nosso time está cuidando do caso.' : 'Começa depois da triagem.', feito: !!(atendimentoExpress && ['em_execucao','pronto_envio','concluido'].includes(atendimentoExpress.status)) },
+    { t: 'Resultado entregue', d: temRelatorio ? 'Seu relatório está em Documentos.' : 'Você receberá um aviso por e-mail.', feito: temRelatorio }
+  ] : [
     { t: 'Serviço contratado', d: 'Seu atendimento foi aberto.', feito: true },
     { t: 'Pré-atendimento',
       d: triagemEnviada ? 'Você contou seu caso — o contador já leu.' : 'Conte seu caso antes da consulta.',
@@ -860,13 +886,16 @@ async function montarLinhaDoTempo() {
     const concluidos = passos.filter(p => p.feito).length;
     const passoAtivo = iAtivo >= 0 ? passos[iAtivo] : null;
     if (passoAtivo) {
+      const prazoHtml = semAgendamento && atendimentoExpress?.prazoConclusaoEm
+        ? `<div class="case-deadline"><i class="fa-regular fa-clock"></i><span>Previsão de conclusão</span><strong>${new Date(atendimentoExpress.prazoConclusaoEm).toLocaleDateString('pt-BR', { day:'2-digit', month:'long' })}</strong></div>`
+        : '';
       detalhe.innerHTML =
         '<span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--color-coral);">Etapa atual</span>' +
         `<h4 style="color:var(--color-pine);font-size:17px;margin:6px 0 8px;">${escapeHtml(passoAtivo.t)}</h4>` +
         `<p style="font-size:13px;color:var(--color-text-secondary);line-height:1.5;margin:0 0 16px;">${escapeHtml(passoAtivo.d)}</p>` +
         `<div style="font-size:12px;color:var(--color-text-secondary);border-top:1px solid var(--color-border);padding-top:12px;">` +
           `<strong style="color:var(--color-pine);">${concluidos} de ${passos.length}</strong> etapas concluídas` +
-        '</div>';
+        '</div>' + prazoHtml;
     } else {
       detalhe.innerHTML =
         '<span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#1F8A5F;">Tudo certo</span>' +
@@ -896,10 +925,21 @@ async function montarLinhaDoTempo() {
     elHeaderCodigo.textContent = `Protocolo: #OC-${numProtocolo}`;
   }
   
-  const statusCaso = temRelatorio ? 'Concluído' : 'Em andamento';
+  const statusExpress = {
+    aguardando_triagem: 'Aguardando suas informações',
+    em_analise: 'Em análise',
+    em_execucao: 'Em execução',
+    aguardando_documentos: 'Aguardando documento',
+    pronto_envio: 'Resultado sendo preparado',
+    concluido: 'Concluído',
+    cancelado: 'Cancelado'
+  };
+  const statusCaso = temRelatorio
+    ? 'Concluído'
+    : (semAgendamento && atendimentoExpress ? (statusExpress[atendimentoExpress.status] || 'Em andamento') : 'Em andamento');
   if (status) {
     status.textContent = statusCaso;
-    status.style.background = temRelatorio ? '#1F8A5F' : 'var(--color-pine)';
+    status.style.background = temRelatorio ? '#1F8A5F' : (atendimentoExpress?.status === 'aguardando_documentos' ? 'var(--color-coral)' : 'var(--color-pine)');
   }
 
   // Atualiza também os passos visuais do "Como funciona" no Dashboard
@@ -936,7 +976,7 @@ async function montarLinhaDoTempo() {
 
   // A avaliação só faz sentido depois que existe relatório.
   configurarAvaliacao(temRelatorio, rels && rels[0] ? rels[0].id : null);
-  const proximaAcao = atualizarProximaAcao({ triagemEnviada, qtdDocs, temAppt, apptFeito, temRelatorio });
+  const proximaAcao = atualizarProximaAcao({ triagemEnviada, qtdDocs, temAppt, apptFeito, temRelatorio, atendimentoExpress });
   atualizarSidebarDoChat({
     nomeCaso,
     statusCaso,
@@ -2261,6 +2301,17 @@ function aplicarModalidadeCliente() {
   const sem = atendimentoSemAgendamento();
   const navChat = document.getElementById('nav-chat-cliente');
   if (navChat) navChat.hidden = sem;
+  const navTriagem = document.querySelector('[data-target="section-triagem"]');
+  if (navTriagem) {
+    navTriagem.classList.toggle('mobile-case-nav', sem);
+    navTriagem.title = sem ? 'Meu caso' : 'Antes do atendimento';
+    const label = navTriagem.querySelector('.nav-label');
+    if (label) label.textContent = sem ? 'Meu caso' : 'Pré-atendimento';
+    const icon = navTriagem.querySelector('i');
+    if (icon) icon.className = sem ? 'fa-solid fa-briefcase' : 'fa-solid fa-clipboard-question';
+  }
+  const navAgenda = document.querySelector('.app-sidebar-nav [data-target="section-agendamento"]');
+  if (navAgenda) navAgenda.hidden = sem;
   document.body.classList.toggle('atendimento-sem-agendamento', sem);
 }
 

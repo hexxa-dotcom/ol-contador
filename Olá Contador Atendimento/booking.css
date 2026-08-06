@@ -80,6 +80,20 @@ footer{text-align:center;padding:34px 20px 44px;font-size:13.5px;color:var(--mut
 .field .busca-status{display:block;font-size:12.5px;font-weight:600;margin-top:6px}
 .dupla{display:flex;gap:10px}
 
+/* Subetapas do checkout: no celular a pessoa resolve um bloco curto por vez,
+   sem encarar um formulário comprido antes mesmo de começar. */
+.checkout-passos{display:flex;align-items:center;justify-content:center;gap:10px;margin:2px 0 18px;color:var(--muted)}
+.checkout-passos span{display:flex;align-items:center;gap:7px;font-size:12.5px;font-weight:700;opacity:.62}
+.checkout-passos span b{display:grid;place-items:center;width:23px;height:23px;border-radius:50%;border:1px solid var(--borda);background:#fff;font-size:11px}
+.checkout-passos span.ativo{opacity:1;color:var(--pinho)}
+.checkout-passos span.ativo b{background:var(--coral);border-color:var(--coral);color:#fff}
+.checkout-passos span.feito b{background:#FDF4F2;border-color:rgba(238,95,58,.34);color:var(--verde)}
+.checkout-passos i{display:block;width:28px;height:1px;background:var(--borda)}
+.checkout-eyebrow{display:block;margin-bottom:6px;color:var(--coral);font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.1em}
+.checkout-voltar-etapa{border:0;background:none;color:var(--verde);padding:0;margin:0 0 18px;font-weight:700;font-size:13px;cursor:pointer;text-decoration:underline}
+.checkout-seguranca{text-align:center;margin-bottom:0}
+.checkout-etapa{scroll-margin-top:118px}
+
 /* ---------- resumo do pedido (etapa 2) ---------- */
 .resumo{background:#FDF4F2;border:1px solid rgba(238, 95, 58,.18);border-radius:20px;padding:18px 19px;margin-bottom:18px;color:var(--pinho)}
 .resumo-topo{display:flex;justify-content:space-between;align-items:baseline;gap:12px}
@@ -147,6 +161,10 @@ footer{text-align:center;padding:34px 20px 44px;font-size:13.5px;color:var(--mut
   .slot-grid{grid-template-columns:repeat(3,1fr)}
   .trilha li span{width:24px;height:24px}
   .trilha .tracinho{width:18px}
+  .field input,.field select,.field textarea{font-size:16px;min-height:50px}
+  .submit{min-height:52px;font-size:16px}
+  .checkout-etapa-final>.submit,.checkout-etapa>.submit{position:sticky;bottom:12px;z-index:12}
+  .checkout-passos{position:sticky;top:62px;z-index:20;background:rgba(255,255,255,.94);backdrop-filter:blur(10px);margin:0 -18px 18px;padding:10px 18px;border-bottom:1px solid rgba(52,76,75,.08)}
 }
 @media(max-width:520px){
   /* No resumo, a data por extenso quebrava em duas linhas e esbarrava no preço. */
@@ -155,4 +173,8 @@ footer{text-align:center;padding:34px 20px 44px;font-size:13.5px;color:var(--mut
 @media(max-width:420px){
   .trilha li{font-size:12.5px}
   .dupla{flex-direction:column;gap:0}
+  .checkout-passos span{font-size:11.5px}
+  .checkout-passos i{width:14px}
+  .nav-links{display:none}
+  .brand{font-size:18px}.brand img{width:31px}
 }

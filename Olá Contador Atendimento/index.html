@@ -4,14 +4,14 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Olá, Contador — Um contador a um clique de distância</title>
-<meta name="description" content="Caiu na malha fina? Travou no imposto de renda? Agende um atendimento individual no chat e resolva sem sair de casa." />
+<meta name="description" content="Conte seu problema, envie os documentos pelo celular e deixe um contador com CRC cuidar do resto. Com ou sem horário marcado." />
 <link rel="canonical" href="https://www.olacontador.com.br/" />
 <link rel="icon" href="logo.svg" type="image/svg+xml" />
 <meta name="robots" content="index, follow" />
 <meta property="og:type" content="website" />
 <meta property="og:site_name" content="Olá, Contador" />
 <meta property="og:title" content="Olá, Contador — Um contador a um clique de distância" />
-<meta property="og:description" content="Caiu na malha fina? Travou no imposto de renda? Agende um atendimento individual no chat e resolva sem sair de casa." />
+<meta property="og:description" content="Conte seu problema, envie os documentos pelo celular e deixe um contador com CRC cuidar do resto. Com ou sem horário marcado." />
 <meta property="og:url" content="https://www.olacontador.com.br/" />
 <meta property="og:locale" content="pt_BR" />
 <meta property="og:image" content="https://www.olacontador.com.br/og-image.png" />
@@ -19,7 +19,7 @@
 <meta property="og:image:height" content="630" />
 <meta name="twitter:card" content="summary_large_image" />
 <meta name="twitter:title" content="Olá, Contador — Um contador a um clique de distância" />
-<meta name="twitter:description" content="Caiu na malha fina? Travou no imposto de renda? Agende um atendimento individual no chat e resolva sem sair de casa." />
+<meta name="twitter:description" content="Conte seu problema, envie os documentos pelo celular e deixe um contador com CRC cuidar do resto. Com ou sem horário marcado." />
 <meta name="twitter:image" content="https://www.olacontador.com.br/og-image.png" />
 <script type="application/ld+json">
 {
@@ -27,7 +27,7 @@
   "@type": "ProfessionalService",
   "name": "Olá, Contador",
   "url": "https://www.olacontador.com.br/",
-  "description": "Atendimento contábil individual por chat, com contador de registro CRC ativo. Malha fina, imposto de renda, MEI e Simples Nacional.",
+  "description": "Atendimento contábil online com contador de registro CRC ativo. Envie o caso e os documentos pelo celular, com ou sem horário marcado.",
   "areaServed": "BR",
   "priceRange": "R$ 199 - R$ 899",
   "sameAs": []
@@ -46,12 +46,12 @@
     {
       "@type": "Question",
       "name": "Como funciona o atendimento?",
-      "acceptedAnswer": { "@type": "Answer", "text": "Você agenda o horário, conta o problema com suas palavras (vale foto da carta, print, áudio) e no horário marcado fala com um contador de verdade no chat. No fim, recebe um relatório em PDF assinado com CRC dizendo o que foi feito e os próximos passos." }
+      "acceptedAnswer": { "@type": "Answer", "text": "Você escolhe entre Atendimento Express, sem horário ou conversa, e atendimento com hora marcada. Depois do pagamento, conta o problema com suas palavras, envia os documentos pelo celular e acompanha cada etapa. No fim, recebe um relatório assinado com CRC." }
     },
     {
       "@type": "Question",
       "name": "O atendimento é por WhatsApp ou vídeo?",
-      "acceptedAnswer": { "@type": "Answer", "text": "Nenhum dos dois. É um chat seguro dentro da área do cliente — sem precisar dar número pessoal, com documentos anexados no mesmo lugar e histórico guardado para acessar depois." }
+      "acceptedAnswer": { "@type": "Answer", "text": "No Atendimento Express você não precisa conversar: envia tudo e acompanha pela área do cliente. Se escolher um horário, a conversa acontece no chat seguro da plataforma, com documentos e histórico no mesmo lugar." }
     },
     {
       "@type": "Question",
@@ -180,7 +180,9 @@
       .nav-entrar { font-size: 12px !important; white-space: nowrap; }
       .btng { font-size: 12px !important; padding: 8px 12px !important; white-space: nowrap; }
       .nav-container { padding: 12px 14px !important; gap: 6px; }
-      .nav-container > a:first-child span { font-size: 17px !important; }
+      .nav-container > a:first-child { gap: 7px !important; min-width: 0; }
+      .nav-container > a:first-child img { width: 30px !important; }
+      .nav-container > a:first-child span { font-size: 15px !important; white-space: nowrap; }
       .nav-container > div:last-child { gap: 8px !important; }
       .hero-h1 { font-size: 40px !important; }
       .h2-title { font-size: 32px !important; }
@@ -188,6 +190,12 @@
       .hero-buttons { flex-direction: column; align-items: stretch !important; gap: 16px !important; }
       .hero-buttons > * { width: 100%; text-align: center; justify-content: center; }
       .hero-checks { flex-direction: column; align-items: flex-start !important; gap: 12px !important; }
+      .hero-grid { padding-top: 30px !important; gap: 30px !important; }
+      .hero-grid > div:first-child > p { font-size: 18px !important; line-height: 1.48 !important; }
+      .hero-preco { gap: 7px !important; font-size: 14px !important; }
+      .hero-img { display: none !important; }
+      .btnp,.btng { min-height: 48px; display: inline-flex; align-items: center; justify-content: center; }
+      .card { padding: 25px 22px !important; }
     }
 </style>
 </head>
@@ -216,7 +224,7 @@
         <!-- Teal, não coral: a 15px o branco sobre coral não passa no contraste
              mínimo (3,32:1 pra um exigido de 4,5:1). O teal dá 9,2:1 e ainda
              cria hierarquia — o coral fica reservado pro CTA principal. -->
-        <a data-dc-tpl="19" class="btng" href="precos.html" style="background: rgb(12, 84, 70); color: rgb(255, 255, 255); font-weight: 600; font-size: 15px; padding: 11px 22px; border-radius: 12px; box-shadow: rgba(12, 84, 70, 0.5) 0px 10px 22px -14px;">Agendar atendimento</a>
+        <a data-dc-tpl="19" class="btng" href="precos.html" style="background: rgb(12, 84, 70); color: rgb(255, 255, 255); font-weight: 600; font-size: 15px; padding: 11px 22px; border-radius: 12px; box-shadow: rgba(12, 84, 70, 0.5) 0px 10px 22px -14px;">Resolver agora</a>
       </div>
     </div>
   </div>
@@ -227,12 +235,12 @@
     <div data-dc-tpl="22" class="hero-grid" style="max-width: 1200px; margin: 0px auto; padding: 80px 32px 60px; display: grid; grid-template-columns: 1.05fr 0.95fr; gap: 48px; align-items: center; position: relative;">
       <div data-dc-tpl="23">
         <div data-dc-tpl="24" style="display: inline-flex; align-items: center; gap: 9px; background: rgb(255, 255, 255); border-radius: 999px; padding: 8px 16px; font-size: 14px; font-weight: 600; color: rgb(12, 84, 70); margin-bottom: 26px;">
-          <span data-dc-tpl="25" style="width: 8px; height: 8px; border-radius: 50%; background: rgb(255, 103, 0);"></span>Contadores online agora
+          <span data-dc-tpl="25" style="width: 8px; height: 8px; border-radius: 50%; background: rgb(255, 103, 0);"></span>Resolva pelo celular, no seu tempo
         </div>
-        <h1 data-dc-tpl="26" class="hero-h1" style="font-family: &quot;Bricolage Grotesque&quot;, sans-serif; font-weight: 800; font-size: 64px; line-height: 1.02; letter-spacing: -0.035em; color: rgb(12, 84, 70); margin: 0px;">Um contador a <span data-dc-tpl="27" style="color: rgb(255, 103, 0);">um clique</span> de distância.</h1>
-        <p data-dc-tpl="28" style="font-size: 20px; line-height: 1.5; color: rgb(12, 84, 70); margin: 24px 0px 0px; max-width: 520px;">Caiu na malha fina? Travou no imposto de renda? Conte seu problema, agende um atendimento individual no nosso chat e resolva sem sair de casa — direto do celular ou do computador.</p>
+        <h1 data-dc-tpl="26" class="hero-h1" style="font-family: &quot;Bricolage Grotesque&quot;, sans-serif; font-weight: 800; font-size: 64px; line-height: 1.02; letter-spacing: -0.035em; color: rgb(12, 84, 70); margin: 0px;">Problema complicado. <span data-dc-tpl="27" style="color: rgb(255, 103, 0);">Solução simples.</span></h1>
+        <p data-dc-tpl="28" style="font-size: 20px; line-height: 1.5; color: rgb(12, 84, 70); margin: 24px 0px 0px; max-width: 560px;">Conte o que aconteceu do seu jeito, envie os documentos pelo celular e deixe o contador cuidar do resto. Sem escritório, sem papelada e, no Atendimento Express, sem precisar marcar horário.</p>
         <div data-dc-tpl="29" class="hero-buttons" style="display: flex; align-items: center; gap: 16px; margin-top: 34px;">
-          <a data-dc-tpl="30" class="btnp" href="precos.html" style="background: rgb(255, 103, 0); color: rgb(255, 255, 255); font-weight: 700; font-size: 19px; padding: 16px 30px; border-radius: 14px; box-shadow: rgba(255, 103, 0, 0.7) 0px 14px 28px -14px;">Agendar meu atendimento</a>
+          <a data-dc-tpl="30" class="btnp" href="precos.html" style="background: rgb(255, 103, 0); color: rgb(255, 255, 255); font-weight: 700; font-size: 19px; padding: 16px 30px; border-radius: 14px; box-shadow: rgba(255, 103, 0, 0.7) 0px 14px 28px -14px;">Resolver meu problema</a>
           <a data-dc-tpl="31" class="lk" href="#como" style="font-weight: 600; font-size: 16px; color: rgb(12, 84, 70); display: flex; align-items: center; gap: 8px; transition: color 0.15s;">Ver como funciona →</a>
         </div>
         <!-- Preço no hero: quem chega quer saber "é caro?" antes de ler
@@ -253,27 +261,27 @@
         <div data-dc-tpl="42" style="width: 272px; animation: 6s ease-in-out 0s infinite normal none running floaty; background: rgb(12, 84, 70); border-radius: 48px; padding: 12px; box-shadow: rgba(12, 84, 70, 0.55) 0px 40px 70px -30px; position: relative; z-index: 1;">
           <div data-dc-tpl="43" style="background: rgb(235, 235, 223); border-radius: 38px; overflow: hidden; display: flex; flex-direction: column; min-height: 540px;">
             <div data-dc-tpl="44" style="background: rgb(12, 84, 70); padding: 20px 20px 22px; color: rgb(255, 255, 255);">
-              <div data-dc-tpl="45" style="display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: rgb(255, 255, 255); margin-bottom: 18px;"><span data-dc-tpl="46">9:41</span><span data-dc-tpl="47">Atendimento individual</span></div>
+              <div data-dc-tpl="45" style="display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: rgb(255, 255, 255); margin-bottom: 18px;"><span data-dc-tpl="46">9:41</span><span data-dc-tpl="47">Atendimento Express</span></div>
               <div data-dc-tpl="48" style="display: flex; align-items: center; gap: 12px;">
                 <div data-dc-tpl="49" style="position: relative; flex: 0 0 auto;">
                   <div data-dc-tpl="50" style="width: 48px; height: 48px; border-radius: 50%; background: rgb(255, 103, 0); display: flex; align-items: center; justify-content: center;"><img data-dc-tpl="51" src="logo.svg" alt="" style="width: 27px; display: block;"></div>
                   <div data-dc-tpl="52" style="position: absolute; right: -1px; bottom: -1px; width: 14px; height: 14px; border-radius: 50%; background: rgb(255, 255, 255); border: 2.5px solid rgb(12, 84, 70);"></div>
                 </div>
-                <div data-dc-tpl="53"><div data-dc-tpl="54" style="font-family: &quot;Bricolage Grotesque&quot;, sans-serif; font-weight: 700; font-size: 16px;">Olá<span data-dc-tpl="55" style="color: rgb(255, 103, 0);">,</span> Contador<span data-dc-tpl="56" style="color: rgb(255, 103, 0);">.</span></div><div data-dc-tpl="57" style="font-size: 12px; color: rgb(255, 255, 255);">Renata Costa · CRC-SP · online</div></div>
+                <div data-dc-tpl="53"><div data-dc-tpl="54" style="font-family: &quot;Bricolage Grotesque&quot;, sans-serif; font-weight: 700; font-size: 16px;">Olá<span data-dc-tpl="55" style="color: rgb(255, 103, 0);">,</span> Contador<span data-dc-tpl="56" style="color: rgb(255, 103, 0);">.</span></div><div data-dc-tpl="57" style="font-size: 12px; color: rgb(255, 255, 255);">Seu caso · contador com CRC</div></div>
               </div>
             </div>
             <div data-dc-tpl="58" style="padding: 18px 16px 14px; flex: 1 1 0%; display: flex; flex-direction: column; gap: 10px;">
               <div data-dc-tpl="59" style="align-self: center; background: rgb(234, 227, 214); color: rgb(138, 148, 143); font-size: 11px; padding: 4px 12px; border-radius: 999px;">Hoje, 9:32</div>
               <div data-dc-tpl="60" style="background: rgb(255, 103, 0); color: rgb(255, 255, 255); border-radius: 16px 16px 5px; padding: 11px 14px; font-size: 13px; line-height: 1.4; max-width: 84%; margin-left: auto;">Recebi uma carta da Receita e não sei o que fazer 😰</div>
-              <div data-dc-tpl="61" style="background: rgb(255, 255, 255); border-radius: 16px 16px 16px 5px; padding: 11px 14px; font-size: 13px; color: rgb(12, 84, 70); line-height: 1.4; max-width: 84%;">Calma, isso tem solução! Vi seu caso: é malha fina, dá pra regularizar. Vamos marcar?</div>
+              <div data-dc-tpl="61" style="background: rgb(255, 255, 255); border-radius: 16px 16px 16px 5px; padding: 11px 14px; font-size: 13px; color: rgb(12, 84, 70); line-height: 1.4; max-width: 84%;">Calma, isso tem solução. Fotografe a carta e responda algumas perguntas. A gente cuida do resto.</div>
               <div data-dc-tpl="62" style="background: rgb(234, 227, 214); border: 1px solid rgba(12, 84, 70, 0.15); border-radius: 14px; padding: 12px 14px; display: flex; justify-content: space-between; align-items: center;">
-                <div data-dc-tpl="63"><div data-dc-tpl="64" style="font-size: 11px; color: rgb(12, 84, 70);">Atendimento · qui, 10h</div><div data-dc-tpl="65" style="font-family: &quot;Bricolage Grotesque&quot;, sans-serif; font-weight: 700; color: rgb(12, 84, 70); font-size: 17px; font-variant-numeric: tabular-nums;">R$ 199,00</div></div>
-                <div data-dc-tpl="66" style="background: rgb(12, 84, 70); color: rgb(255, 255, 255); font-size: 12px; font-weight: 600; padding: 8px 13px; border-radius: 9px;">Confirmar</div>
+                <div data-dc-tpl="63"><div data-dc-tpl="64" style="font-size: 11px; color: rgb(12, 84, 70);">Triagem recebida</div><div data-dc-tpl="65" style="font-family: &quot;Bricolage Grotesque&quot;, sans-serif; font-weight: 700; color: rgb(12, 84, 70); font-size: 17px; font-variant-numeric: tabular-nums;">Em análise</div></div>
+                <div data-dc-tpl="66" style="background: rgb(12, 84, 70); color: rgb(255, 255, 255); font-size: 12px; font-weight: 600; padding: 8px 13px; border-radius: 9px;">Acompanhar</div>
               </div>
-              <div data-dc-tpl="67" style="background: rgb(255, 103, 0); color: rgb(255, 255, 255); border-radius: 16px 16px 5px; padding: 11px 14px; font-size: 13px; line-height: 1.4; max-width: 60%; margin-left: auto;">Confirmado! 🙌</div>
+              <div data-dc-tpl="67" style="background: rgb(255, 103, 0); color: rgb(255, 255, 255); border-radius: 16px 16px 5px; padding: 11px 14px; font-size: 13px; line-height: 1.4; max-width: 76%; margin-left: auto;">Tudo conosco agora ✓</div>
             </div>
             <div data-dc-tpl="68" style="padding: 0px 16px 20px; display: flex; gap: 8px; align-items: center;">
-              <div data-dc-tpl="69" style="flex: 1 1 0%; background: rgb(234, 227, 214); border-radius: 999px; height: 40px; display: flex; align-items: center; padding: 0px 16px; font-size: 13px; color: rgb(138, 148, 143);">Escreva sua mensagem…</div>
+              <div data-dc-tpl="69" style="flex: 1 1 0%; background: rgb(234, 227, 214); border-radius: 999px; height: 40px; display: flex; align-items: center; padding: 0px 16px; font-size: 13px; color: rgb(138, 148, 143);">Adicionar informação…</div>
               <div data-dc-tpl="70" style="width: 40px; height: 40px; border-radius: 50%; background: rgb(255, 103, 0); flex: 0 0 auto; display: flex; align-items: center; justify-content: center; color: rgb(255, 255, 255); font-size: 17px;">➔</div>
             </div>
           </div>
@@ -293,23 +301,23 @@
   <div data-dc-tpl="97" id="como" style="max-width: 1200px; margin: 0px auto; padding: 96px 32px 40px; text-align: center;">
     <div data-dc-tpl="98" style="font-size: 13px; letter-spacing: 0.24em; text-transform: uppercase; color: rgb(255, 103, 0); font-weight: 700; margin-bottom: 14px;">Como funciona</div>
     <h2 data-dc-tpl="99" class="h2-title" style="font-family: &quot;Bricolage Grotesque&quot;, sans-serif; font-weight: 800; font-size: 46px; letter-spacing: -0.03em; color: rgb(12, 84, 70); margin: 0px; line-height: 1.05;">Três passos entre você e o problema resolvido</h2>
-    <p data-dc-tpl="100" style="font-size: 19px; color: rgb(12, 84, 70); max-width: 600px; margin: 18px auto 0px;">Nada de procurar escritório, pegar fila ou levar pasta de documentos. Você resolve do sofá.</p>
+    <p data-dc-tpl="100" style="font-size: 19px; color: rgb(12, 84, 70); max-width: 650px; margin: 18px auto 0px;">A plataforma mostra uma coisa de cada vez. Você não precisa entender de contabilidade para começar.</p>
 
     <div data-dc-tpl="101" class="grid-3" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; margin-top: 56px; text-align: left;">
       <div data-dc-tpl="102" class="card" style="background: rgb(255, 255, 255); border: 1px solid rgba(12, 84, 70, 0.2); border-radius: 24px; padding: 34px; box-shadow: rgba(12, 84, 70, 0.5) 0px 18px 40px -34px;">
         <div data-dc-tpl="103" style="width: 56px; height: 56px; border-radius: 16px; background: rgb(255, 239, 229); display: flex; align-items: center; justify-content: center; font-family: &quot;Bricolage Grotesque&quot;, sans-serif; font-weight: 800; color: rgb(255, 103, 0); font-size: 24px;">1</div>
-        <h3 data-dc-tpl="104" style="font-family: &quot;Bricolage Grotesque&quot;, sans-serif; font-weight: 700; font-size: 23px; color: rgb(12, 84, 70); margin: 22px 0px 10px;">Agende seu horário</h3>
-        <p data-dc-tpl="105" style="font-size: 16px; color: rgb(12, 84, 70); line-height: 1.5; margin: 0px;">Escolha o horário que cabe no seu dia — tem vaga pra hoje. Leva menos de um minuto.</p>
+        <h3 data-dc-tpl="104" style="font-family: &quot;Bricolage Grotesque&quot;, sans-serif; font-weight: 700; font-size: 23px; color: rgb(12, 84, 70); margin: 22px 0px 10px;">Escolha o que precisa</h3>
+        <p data-dc-tpl="105" style="font-size: 16px; color: rgb(12, 84, 70); line-height: 1.5; margin: 0px;">Diga se o problema é pessoal ou da empresa. Depois escolha resolver sem horário ou conversar com o contador.</p>
       </div>
       <div data-dc-tpl="106" class="card" style="background: rgb(255, 255, 255); border: 1px solid rgba(12, 84, 70, 0.2); border-radius: 24px; padding: 34px; box-shadow: rgba(12, 84, 70, 0.5) 0px 18px 40px -34px;">
         <div data-dc-tpl="107" style="width: 56px; height: 56px; border-radius: 16px; background: rgb(255, 239, 229); display: flex; align-items: center; justify-content: center; font-family: &quot;Bricolage Grotesque&quot;, sans-serif; font-weight: 800; color: rgb(255, 103, 0); font-size: 24px;">2</div>
-        <h3 data-dc-tpl="108" style="font-family: &quot;Bricolage Grotesque&quot;, sans-serif; font-weight: 700; font-size: 23px; color: rgb(12, 84, 70); margin: 22px 0px 10px;">Conte o problema</h3>
-        <p data-dc-tpl="109" style="font-size: 16px; color: rgb(12, 84, 70); line-height: 1.5; margin: 0px;">Com seu horário garantido, descreva o problema — vale foto da carta, print, áudio. O contador chega sabendo do seu caso.</p>
+        <h3 data-dc-tpl="108" style="font-family: &quot;Bricolage Grotesque&quot;, sans-serif; font-weight: 700; font-size: 23px; color: rgb(12, 84, 70); margin: 22px 0px 10px;">Conte do seu jeito</h3>
+        <p data-dc-tpl="109" style="font-size: 16px; color: rgb(12, 84, 70); line-height: 1.5; margin: 0px;">Responda perguntas simples e fotografe a carta ou o documento pelo celular. A gente organiza o caso para você.</p>
       </div>
       <div data-dc-tpl="110" class="card" style="background: rgb(255, 255, 255); border: 1px solid rgba(12, 84, 70, 0.2); border-radius: 24px; padding: 34px; box-shadow: rgba(12, 84, 70, 0.5) 0px 18px 40px -34px;">
         <div data-dc-tpl="111" style="width: 56px; height: 56px; border-radius: 16px; background: rgb(255, 239, 229); display: flex; align-items: center; justify-content: center; font-family: &quot;Bricolage Grotesque&quot;, sans-serif; font-weight: 800; color: rgb(255, 103, 0); font-size: 24px;">3</div>
-        <h3 data-dc-tpl="112" style="font-family: &quot;Bricolage Grotesque&quot;, sans-serif; font-weight: 700; font-size: 23px; color: rgb(12, 84, 70); margin: 22px 0px 10px;">Fale com o contador</h3>
-        <p data-dc-tpl="113" style="font-size: 16px; color: rgb(12, 84, 70); line-height: 1.5; margin: 0px;">Atendimento individual no nosso chat, com um profissional, focado só no seu caso — tudo resolvido pelo celular, rápido e fácil. Você sai sabendo exatamente o que fazer.</p>
+        <h3 data-dc-tpl="112" style="font-family: &quot;Bricolage Grotesque&quot;, sans-serif; font-weight: 700; font-size: 23px; color: rgb(12, 84, 70); margin: 22px 0px 10px;">Acompanhe sem adivinhar</h3>
+        <p data-dc-tpl="113" style="font-size: 16px; color: rgb(12, 84, 70); line-height: 1.5; margin: 0px;">Veja o que recebemos, o que falta, o que estamos fazendo e o prazo. No fim, receba tudo por escrito e assinado.</p>
       </div>
     </div>
   </div>
@@ -493,11 +501,11 @@
       </details>
       <details>
         <summary>Como funciona o atendimento?</summary>
-        <p>Você agenda o horário, conta o problema com suas palavras (vale foto da carta, print, áudio) e no horário marcado fala com um contador de verdade no nosso chat. No fim, recebe um relatório em PDF assinado com CRC dizendo o que foi feito e os próximos passos.</p>
+        <p>Você escolhe entre Atendimento Express, sem horário nem conversa, e atendimento com hora marcada. Depois conta o problema com suas palavras, envia os documentos pelo celular e acompanha cada etapa. No fim, recebe um relatório em PDF assinado com CRC.</p>
       </details>
       <details>
         <summary>O atendimento é por WhatsApp ou vídeo?</summary>
-        <p>Nenhum dos dois. É um chat seguro dentro da sua área do cliente — sem precisar dar seu número pessoal, com documentos anexados no mesmo lugar e histórico guardado pra você acessar depois, sempre que precisar.</p>
+        <p>No Atendimento Express você não precisa conversar: envia tudo e acompanha pela área do cliente. Se escolher um horário, a conversa acontece no chat seguro da plataforma, com documentos e histórico no mesmo lugar.</p>
       </details>
       <details>
         <summary>E se um atendimento não resolver meu caso?</summary>
@@ -529,7 +537,7 @@
         <h2 data-dc-tpl="215" style="font-family: &quot;Bricolage Grotesque&quot;, sans-serif; font-weight: 800; font-size: 52px; letter-spacing: -0.03em; color: rgb(255, 255, 255); margin: 0px; line-height: 1.05;">Seu problema com a Receita<br data-dc-tpl="216">acaba hoje.</h2>
         <p data-dc-tpl="217" style="font-size: 19px; color: rgb(255, 255, 255); margin: 20px auto 0px; max-width: 520px;">Um contador com CRC ativo assume seu caso e te devolve o caminho por escrito. O primeiro passo leva dois minutos — a parte de perder o sono, deixa com a gente.</p>
         <div data-dc-tpl="218" style="display: flex; gap: 14px; justify-content: center; margin-top: 36px;">
-          <a data-dc-tpl="219" class="btnp" href="precos.html" style="background: rgb(255, 103, 0); color: rgb(255, 255, 255); font-weight: 700; font-size: 19px; padding: 16px 32px; border-radius: 14px;">Agendar meu atendimento</a>
+          <a data-dc-tpl="219" class="btnp" href="precos.html" style="background: rgb(255, 103, 0); color: rgb(255, 255, 255); font-weight: 700; font-size: 19px; padding: 16px 32px; border-radius: 14px;">Resolver meu problema</a>
           <a data-dc-tpl="220" href="#como" style="background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2); color: rgb(255, 255, 255); font-weight: 700; font-size: 19px; padding: 16px 32px; border-radius: 14px;">Como funciona</a>
         </div>
         <div style="font-size: 15px; color: rgb(255, 255, 255); opacity: .85; margin-top: 20px;">Não resolveu, não paga — 100% de volta.</div>

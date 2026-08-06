@@ -1580,6 +1580,39 @@ body.pagina-cliente .app-sidebar-nav .nav-item i {
   color: #1E8F53;
 }
 
+/* A home responde primeiro à pergunta que importa: "o que eu faço agora?".
+   O restante do painel vira contexto, não uma lista de lugares para procurar. */
+.case-next-action-card {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 18px;
+  align-items: center;
+  padding: 22px;
+  margin-bottom: 22px;
+  border-radius: 22px;
+  color: white;
+  background: linear-gradient(135deg, #344C4B 0%, #41615F 100%);
+  box-shadow: 0 20px 42px -30px rgba(52,76,75,.8);
+}
+.case-next-action-icon {
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  border-radius: 15px;
+  background: rgba(255,255,255,.12);
+  font-size: 19px;
+}
+.case-next-action-copy span { display:block;font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#F5A78D;margin-bottom:4px; }
+.case-next-action-copy h3 { color:white;font-size:18px;margin:0 0 4px; }
+.case-next-action-copy p { color:rgba(255,255,255,.82);font-size:13px;line-height:1.45;margin:0; }
+.case-next-action-card .btn-utility { background:white;color:var(--color-pine);border-color:white;white-space:nowrap; }
+.case-deadline { display:grid;grid-template-columns:auto 1fr;gap:2px 8px;align-items:center;margin-top:14px;padding:12px;border-radius:12px;background:rgba(255,255,255,.62);color:var(--color-pine); }
+.case-deadline i { grid-row:1/3;color:var(--color-coral); }
+.case-deadline span { font-size:11px;color:var(--color-text-secondary); }
+.case-deadline strong { font-size:13px; }
+.atendimento-sem-agendamento #card-agendamento-ativo { display:none !important; }
+
 /* ==========================================================================
    TRIAGEM / PRÉ-ATENDIMENTO
    O tom aqui é diferente do resto do portal de propósito: quem preenche isto
@@ -1602,6 +1635,7 @@ body.pagina-cliente .app-sidebar-nav .nav-item i {
   padding: 4px 0 22px;
   margin-bottom: 16px;
   border-bottom: 1px solid var(--color-border);
+  scroll-margin-top: 78px;
 }
 
 .triagem-bloco:last-child {
@@ -1774,6 +1808,14 @@ body.pagina-cliente .app-sidebar-nav .nav-item i {
   margin-top: 2px;
 }
 
+.triagem-doc-acoes {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
 .triagem-doc-btn {
   border: 1px solid var(--color-border);
   background: white;
@@ -1788,6 +1830,8 @@ body.pagina-cliente .app-sidebar-nav .nav-item i {
 }
 .triagem-doc-btn:hover:not(:disabled) { border-color: var(--color-pine); background: var(--color-bg); }
 .triagem-doc-btn:disabled { opacity: .5; cursor: default; }
+.triagem-doc-camera { background: var(--color-pine); border-color: var(--color-pine); color: white; }
+.triagem-doc-camera:hover:not(:disabled) { background: var(--color-pine-light); color: white; }
 
 /* ---- resumo: some no lugar do formulário quando já foi enviada ---- */
 .triagem-resumo {
@@ -2171,6 +2215,11 @@ body.pagina-cliente .app-sidebar-nav .nav-item i {
     display: none !important;
   }
 
+  .atendimento-sem-agendamento .app-sidebar-nav .nav-item.mobile-case-nav {
+    display: flex !important;
+    order: 2;
+  }
+
   .app-sidebar-nav .nav-item i {
     font-size: 26px;
     width: auto;
@@ -2396,6 +2445,16 @@ body.pagina-cliente .app-sidebar-nav .nav-item i {
      ======================== */
   .tracking-card { padding: 18px 16px; max-width: none; }
 
+  .case-next-action-card {
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 13px;
+    padding: 18px 16px;
+    border-radius: 18px;
+  }
+  .case-next-action-icon { width:42px;height:42px;border-radius:13px; }
+  .case-next-action-copy h3 { font-size:16px; }
+  .case-next-action-card .btn-utility { grid-column:1/-1;width:100%;justify-content:center;min-height:48px; }
+
   .agendamento-card {
     width: 100%;
     padding: 18px 14px;
@@ -2424,8 +2483,16 @@ body.pagina-cliente .app-sidebar-nav .nav-item i {
   .history-actions .btn-utility { width: 100%; justify-content: center; }
 
   .triagem-wrap { max-width: none; }
-  .triagem-bloco { padding: 16px 14px; }
+  .triagem-bloco { padding: 16px 0 22px; }
+  .triagem-assuntos { grid-template-columns: 1fr; }
+  .triagem-assunto { min-height: 76px; border-radius: 16px; padding: 16px; }
+  .triagem-opcoes { display: grid; grid-template-columns: 1fr; }
+  .triagem-opcao { min-height: 48px; border-radius: 14px; text-align: left; padding: 12px 15px; }
   .triagem-textarea { font-size: 16px; }
+  .triagem-doc { align-items: flex-start; flex-wrap: wrap; padding: 15px; border-radius: 14px; }
+  .triagem-doc-nome { min-width: calc(100% - 32px); }
+  .triagem-doc-acoes { width: 100%; display: grid; grid-template-columns: 1fr 1fr; }
+  .triagem-doc-btn { min-height: 46px; padding: 9px 10px; }
   .triagem-barra {
     align-items: stretch;
     flex-direction: column;
