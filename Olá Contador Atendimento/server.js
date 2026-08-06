@@ -30,8 +30,11 @@ const supabaseAdmin = process.env.SUPABASE_SERVICE_ROLE_KEY
 app.use(express.json({ limit: '15mb' })); // base64 de documentos
 app.use(express.static(root));
 
-// Mesma função serverless usada em produção, montada aqui para testes locais.
-app.post('/api/govbr-vault', require('./api/govbr-vault'));
+// Mesma função protegida usada em produção, montada aqui para testes locais.
+app.post('/api/status', (req, res, next) => {
+  if (req.query.acao !== 'govbr-vault') return next();
+  return require('./api/_lib/govbr-vault')(req, res);
+});
 
 app.get('/', (req, res) => res.redirect('/contador.html'));
 

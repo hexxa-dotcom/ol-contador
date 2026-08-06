@@ -10,6 +10,7 @@ const asaas = require('./_lib/asaas');
 const notify = require('./_lib/notify');
 const { adminClient, requireUser } = require('./_lib/auth');
 const { confirmCobranca, gerarAutoLogin } = require('./_lib/pagamento');
+const govbrVault = require('./_lib/govbr-vault');
 
 async function statusCobranca(req, res, admin) {
   if (!asaas.isConfigured()) return res.status(503).json({ error: 'asaas_not_configured' });
@@ -205,6 +206,7 @@ async function salvarConfiguracoesPainel(req, res) {
 }
 
 module.exports = async (req, res) => {
+  if (req.query.acao === 'govbr-vault') return govbrVault(req, res);
   if (req.query.acao === 'marcar-lidas') return marcarMensagensLidas(req, res);
   if (req.query.acao === 'atualizar-status') return atualizarStatusAtendimento(req, res);
   if (req.query.acao === 'mover-etapa-kanban') return moverEtapaKanban(req, res);

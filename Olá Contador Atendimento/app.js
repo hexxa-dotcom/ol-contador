@@ -3996,7 +3996,7 @@ function renderCrmTabCadastro(c, box) {
 }
 
 async function chamarCofreGovCrm(action, clientId) {
-  const res = await fetch(API_BASE + '/api/govbr-vault', {
+  const res = await fetch(API_BASE + '/api/status?acao=govbr-vault', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${await tokenSessaoAtual()}` },
     body: JSON.stringify({ action, clientId })

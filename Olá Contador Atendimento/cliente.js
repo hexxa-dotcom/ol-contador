@@ -605,7 +605,7 @@ function setupPerfilOperacional() {
 async function chamarCofreGovbr(action, extra = {}) {
   const { data } = await sb.auth.getSession();
   const token = data?.session?.access_token || '';
-  const res = await fetch('/api/govbr-vault', {
+  const res = await fetch('/api/status?acao=govbr-vault', {
     method: 'POST',
     headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({ action, clientId: CLIENT_ID, ...extra })

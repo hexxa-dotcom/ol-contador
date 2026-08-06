@@ -3,7 +3,7 @@
 // recebe somente AES-256-GCM; a equipe pode revelar uma única vez e o conteúdo
 // cifrado é apagado logo depois. Toda resposta é marcada como no-store.
 const crypto = require('crypto');
-const { requireUser, adminClient } = require('./_lib/auth');
+const { requireUser, adminClient } = require('./auth');
 
 function chaveDoCofre() {
   const segredo = process.env.GOVBR_VAULT_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -163,4 +163,3 @@ module.exports = async (req, res) => {
     return res.status(500).json({ error: error.message === 'vault_key_not_configured' ? 'vault_unavailable' : 'vault_failed' });
   }
 };
-
