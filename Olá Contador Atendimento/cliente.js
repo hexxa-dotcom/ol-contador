@@ -32,6 +32,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   setupRecolherCentralAtendimento();
   setupCriarSenha();
   setupPerfilSenha();
+  setupPerfilOperacional();
 
   // Chat em tempo real via Supabase Realtime (o RLS só entrega as mensagens deste cliente).
   OCRealtime.subscribe({
@@ -501,7 +502,246 @@ function populaPerfilCliente(client) {
   if (endEl) endEl.textContent = endStr.join(' • ') || 'Endereço não informado';
 
   if (servEl) servEl.textContent = client.taxType || 'Atendimento Olá, Contador';
+  popularPerfilOperacional(client);
 }
+
+function valorPermitido(valor, permitidos, fallback) {
+  return permitidos.includes(valor) ? valor : fallback;
+}
+
+function popularPerfilOperacional(client) {
+  if (!client) return;
+  const perfil = client.perfilOperacional || {};
+  const gov = perfil.govbr || {};
+  const comunicacao = perfil.comunicacao || {};
+  const preencher = (id, valor) => {
+    const campo = document.getElementById(id);
+    if (campo) campo.value = valor;
+  };
+  preencher('perfil-gov-nivel', valorPermitido(gov.nivel, ['nao_sei', 'bronze', 'prata', 'ouro'], 'nao_sei'));
+  preencher('perfil-gov-2fa', valorPermitido(gov.doisFatores, ['nao_sei', 'ativa', 'inativa', 'sem_acesso'], 'nao_sei'));
+  preencher('perfil-gov-dificuldade', valorPermitido(gov.dificuldade, ['nenhuma', 'esqueci_senha', 'problema_2fa', 'conta_bloqueada', 'nivel_insuficiente', 'nao_sei'], 'nenhuma'));
+  preencher('perfil-gov-forma-acesso', valorPermitido(gov.formaAcesso, ['procuracao', 'cofre_temporario', 'assistido', 'eu_executo', 'nao_sei'], 'procuracao'));
+  preencher('perfil-canal-preferido', valorPermitido(comunicacao.canalPreferido, ['area_cliente', 'email', 'whatsapp'], 'area_cliente'));
+  preencher('perfil-periodo-contato', valorPermitido(comunicacao.melhorPeriodo, ['comercial', 'manha', 'tarde', 'noite'], 'comercial'));
+  preencher('perfil-necessidade-comunicacao', String(comunicacao.necessidade || '').slice(0, 500));
+  const ciencia = document.getElementById('perfil-gov-ciencia');
+  if (ciencia) ciencia.checked = !!perfil.lgpd?.cienciaCredenciaisEm;
+  const servico = document.getElementById('perfil-gov-servico-atual');
+  if (servico) servico.textContent = client.taxType || 'Atendimento Olá, Contador';
+}
+
+function setupPerfilOperacional() {
+  const form = document.getElementById('form-perfil-operacional');
+  if (!form) return;
+  document.getElementById('btn-alternar-senha-gov')?.addEventListener('click', alternarVisibilidadeSenhaGov);
+  document.getElementById('btn-enviar-senha-gov')?.addEventListener('click', enviarSenhaGovAoCofre);
+  document.getElementById('btn-apagar-senha-gov')?.addEventListener('click', apagarSenhaGovDoCofre);
+  document.getElementById('perfil-gov-senha')?.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter') return;
+    e.preventDefault();
+    enviarSenhaGovAoCofre();
+  });
+  carregarStatusCofreGovbr();
+  form.addEventListener('submit', async () => {
+    const ciencia = document.getElementById('perfil-gov-ciencia');
+    const status = document.getElementById('perfil-operacional-status');
+    const btn = document.getElementById('btn-salvar-perfil-operacional');
+    const mostrarStatus = (texto, erro = false) => {
+      if (!status) return;
+      status.textContent = texto;
+      status.classList.toggle('erro', erro);
+    };
+    if (!ciencia?.checked) {
+      mostrarStatus('Confirme que entendeu a orientação de segurança antes de salvar.', true);
+      ciencia?.focus();
+      return;
+    }
+
+    const atual = clienteLogado?.perfilOperacional || {};
+    const cienciaAnterior = atual.lgpd?.cienciaCredenciaisEm || null;
+    const perfilOperacional = {
+      ...atual,
+      govbr: {
+        nivel: document.getElementById('perfil-gov-nivel').value,
+        doisFatores: document.getElementById('perfil-gov-2fa').value,
+        dificuldade: document.getElementById('perfil-gov-dificuldade').value,
+        formaAcesso: document.getElementById('perfil-gov-forma-acesso').value,
+        atualizadoEm: new Date().toISOString()
+      },
+      comunicacao: {
+        canalPreferido: document.getElementById('perfil-canal-preferido').value,
+        melhorPeriodo: document.getElementById('perfil-periodo-contato').value,
+        necessidade: document.getElementById('perfil-necessidade-comunicacao').value.trim().slice(0, 500)
+      },
+      lgpd: {
+        ...(atual.lgpd || {}),
+        cienciaCredenciaisEm: cienciaAnterior || new Date().toISOString(),
+        versaoAviso: '2026-08-06'
+      }
+    };
+
+    btn.disabled = true;
+    mostrarStatus('Salvando…');
+    try {
+      const res = await fetch('/api/prontuario', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clientId: CLIENT_ID, perfilOperacional })
+      });
+      if (!res.ok) throw new Error('falha_ao_salvar');
+      const atualizado = await res.json();
+      clienteLogado = atualizado;
+      popularPerfilOperacional(atualizado);
+      mostrarStatus('Informações salvas. O contador já consegue consultar sua preparação para o atendimento.');
+    } catch (erro) {
+      console.error('[perfil operacional] falha ao salvar:', erro);
+      mostrarStatus('Não foi possível salvar agora. Tente novamente em instantes.', true);
+    } finally {
+      btn.disabled = false;
+    }
+  });
+}
+
+async function chamarCofreGovbr(action, extra = {}) {
+  const { data } = await sb.auth.getSession();
+  const token = data?.session?.access_token || '';
+  const res = await fetch('/api/govbr-vault', {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action, clientId: CLIENT_ID, ...extra })
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    const erro = new Error(json.error || 'vault_failed');
+    erro.code = json.error;
+    throw erro;
+  }
+  return json;
+}
+
+function rotuloStatusCofre(status) {
+  return {
+    empty: 'Nenhuma senha enviada', pending: 'Protegida no cofre',
+    viewed: 'Aberta e apagada', deleted: 'Revogada e apagada', expired: 'Expirada e apagada'
+  }[status] || 'Nenhuma senha enviada';
+}
+
+function renderStatusCofreGovbr(dados = { status: 'empty' }) {
+  const badge = document.getElementById('perfil-cofre-badge');
+  const status = document.getElementById('perfil-cofre-status');
+  const btnApagar = document.getElementById('btn-apagar-senha-gov');
+  const btnEnviar = document.getElementById('btn-enviar-senha-gov');
+  const pendente = dados.status === 'pending';
+  if (badge) {
+    badge.textContent = rotuloStatusCofre(dados.status);
+    badge.dataset.status = dados.status || 'empty';
+  }
+  if (btnApagar) btnApagar.hidden = !pendente;
+  if (btnEnviar) btnEnviar.innerHTML = pendente
+    ? '<i class="fa-solid fa-rotate"></i> Substituir senha do cofre'
+    : '<i class="fa-solid fa-lock"></i> Enviar ao cofre seguro';
+  if (status) {
+    if (pendente && dados.expiresAt) {
+      status.textContent = `Disponível para uma única abertura até ${new Date(dados.expiresAt).toLocaleString('pt-BR')}.`;
+    } else if (['viewed', 'deleted', 'expired'].includes(dados.status)) {
+      status.textContent = 'O conteúdo da senha não está mais armazenado.';
+    } else {
+      status.textContent = '';
+    }
+    status.classList.remove('erro');
+  }
+}
+
+async function carregarStatusCofreGovbr() {
+  if (!CLIENT_ID) return;
+  if (window.OC_CONFIG?.TESTE_CLIENTE_SEM_LOGIN?.enabled) {
+    renderStatusCofreGovbr({ status: 'empty' });
+    return;
+  }
+  try {
+    renderStatusCofreGovbr(await chamarCofreGovbr('status'));
+  } catch (_) {
+    const badge = document.getElementById('perfil-cofre-badge');
+    if (badge) badge.textContent = 'Cofre indisponível';
+  }
+}
+
+function alternarVisibilidadeSenhaGov() {
+  const input = document.getElementById('perfil-gov-senha');
+  const icon = document.querySelector('#btn-alternar-senha-gov i');
+  if (!input) return;
+  const mostrar = input.type === 'password';
+  input.type = mostrar ? 'text' : 'password';
+  icon?.classList.toggle('fa-eye', !mostrar);
+  icon?.classList.toggle('fa-eye-slash', mostrar);
+}
+
+async function enviarSenhaGovAoCofre() {
+  const input = document.getElementById('perfil-gov-senha');
+  const autoriza = document.getElementById('perfil-gov-autoriza-cofre');
+  const expiracao = document.getElementById('perfil-gov-expiracao');
+  const btn = document.getElementById('btn-enviar-senha-gov');
+  const status = document.getElementById('perfil-cofre-status');
+  const senha = input?.value || '';
+  const avisar = (texto, erro = false) => {
+    if (!status) return;
+    status.textContent = texto;
+    status.classList.toggle('erro', erro);
+  };
+  if (senha.length < 8) return avisar('Digite a senha completa do gov.br no campo do cofre.', true);
+  if (!autoriza?.checked) return avisar('Confirme a autorização específica para o uso temporário da credencial.', true);
+  if (window.OC_CONFIG?.TESTE_CLIENTE_SEM_LOGIN?.enabled) return avisar('O cofre não recebe credenciais no ambiente de demonstração.', true);
+
+  btn.disabled = true;
+  avisar('Criptografando e enviando…');
+  try {
+    const dados = await chamarCofreGovbr('store', {
+      password: senha,
+      ttlHours: Number(expiracao?.value || 48),
+      authorized: true
+    });
+    input.value = '';
+    input.type = 'password';
+    autoriza.checked = false;
+    const formaAcesso = document.getElementById('perfil-gov-forma-acesso');
+    if (formaAcesso) formaAcesso.value = 'cofre_temporario';
+    renderStatusCofreGovbr(dados);
+  } catch (_) {
+    avisar('Não foi possível proteger a senha agora. Não a envie por outro canal; tente novamente.', true);
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function apagarSenhaGovDoCofre() {
+  if (!confirm('Revogar o acesso e apagar agora a senha protegida?')) return;
+  const btn = document.getElementById('btn-apagar-senha-gov');
+  const status = document.getElementById('perfil-cofre-status');
+  btn.disabled = true;
+  try {
+    const dados = await chamarCofreGovbr('delete');
+    renderStatusCofreGovbr(dados);
+  } catch (_) {
+    if (status) { status.textContent = 'Não foi possível apagar agora. Tente novamente.'; status.classList.add('erro'); }
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function iniciarAjudaGovBr() {
+  abrirSecaoCliente('section-caixa-postal');
+  await abrirCaixaPostalCliente();
+  abrirComposeCaixaPostalCliente();
+  const assunto = document.getElementById('caixa-postal-cliente-assunto');
+  const mensagem = document.getElementById('caixa-postal-cliente-mensagem');
+  if (assunto) assunto.value = 'Ajuda com acesso gov.br';
+  if (mensagem) {
+    const dificuldade = document.getElementById('perfil-gov-dificuldade')?.selectedOptions?.[0]?.textContent || 'acesso à conta';
+    mensagem.value = `Preciso de orientação com o gov.br. Situação informada: ${dificuldade}. Não enviarei senha nem código de autenticação.`;
+    mensagem.focus();
+  }
+}
+window.iniciarAjudaGovBr = iniciarAjudaGovBr;
 
 // O card "Próximo passo" saiu do dashboard (era sobretudo um empurrão pra
 // triagem, que agora é obrigatória antes de chegar aqui — ver onboarding em

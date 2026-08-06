@@ -47,6 +47,7 @@ function mapClient(r, msgs) {
     status: r.status, scheduledTime: r.scheduled_time, diagnosis: r.diagnosis,
     honorarios: r.honorarios, treatment: r.treatment, evidences: r.evidences || [],
     checklist: r.checklist || {}, email: r.email || null, phone: r.phone || null,
+    perfilOperacional: r.perfil_operacional || {},
     messages: (msgs || []).map(mapMessage) };
 }
 

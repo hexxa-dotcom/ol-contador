@@ -168,6 +168,14 @@ async function routeTesteCliente(path, method, q, body) {
     salvarDemo(TEST_KEYS.clients, data);
     return jsonResponse(client);
   }
+  if (path === '/api/prontuario' && method === 'POST' && client) {
+    ['phone', 'email', 'cep', 'cidade', 'endereco', 'numero', 'bairro', 'estado'].forEach(campo => {
+      if (body[campo] !== undefined) client[campo] = body[campo] || null;
+    });
+    if (body.perfilOperacional !== undefined) client.perfilOperacional = body.perfilOperacional || {};
+    salvarDemo(TEST_KEYS.clients, data);
+    return jsonResponse(client);
+  }
   if (path === '/api/triagem' && method === 'GET') return jsonResponse(client && client.triagem || null);
   if (path === '/api/triagem' && method === 'POST' && client) {
     client.triagem = { id: 'triagem-demo', clientRef: clientId, assunto: body.assunto || null,
@@ -276,6 +284,7 @@ async function routeTesteContador(path, method, q, body) {
     ['phone', 'email', 'cep', 'cidade', 'endereco', 'numero', 'bairro', 'estado'].forEach(campo => {
       if (body[campo] !== undefined) c[campo] = body[campo] || null;
     });
+    if (body.perfilOperacional !== undefined) c.perfilOperacional = body.perfilOperacional || {};
     salvarDemo(TEST_KEYS.clients, data);
     return jsonResponse(c);
   }
@@ -487,6 +496,7 @@ function mapClient(r, messages, triagem) {
     sexo: r.sexo || null, cidade: r.cidade || null, estado: r.estado || null,
     cep: r.cep || null, endereco: r.endereco || null, numero: r.numero || null,
     bairro: r.bairro || null, notas: r.notas || null,
+    perfilOperacional: r.perfil_operacional || {},
     atendimentoModalidade: r.atendimento_modalidade || 'agendado',
     canalResultado: r.canal_resultado || 'email',
     semAgendamentoRecebidoEm: r.sem_agendamento_recebido_em || null,
@@ -833,6 +843,7 @@ async function routeApi(u, init, _fetch) {
       ['phone', 'email', 'cep', 'cidade', 'endereco', 'numero', 'bairro', 'estado'].forEach(campo => {
         if (body[campo] !== undefined) patch[campo] = body[campo] || null;
       });
+      if (body.perfilOperacional !== undefined) patch.perfil_operacional = body.perfilOperacional || {};
       await sb.from('clientes').update(patch).eq('id', body.clientId);
       return jsonResponse(await fetchClient(body.clientId));
     }

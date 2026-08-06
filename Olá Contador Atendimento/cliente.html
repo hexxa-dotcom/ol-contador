@@ -14,7 +14,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
 
   <link rel="stylesheet" href="styles.css?v=32">
-  <link rel="stylesheet" href="cliente.css?v=31">
+  <link rel="stylesheet" href="cliente.css?v=32">
 
   <!-- FontAwesome -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -450,6 +450,7 @@
           <form id="form-caixa-postal-cliente" style="display:flex; flex-direction: column; gap: 10px;">
             <select id="caixa-postal-cliente-assunto" class="form-select" style="width: 100%;">
               <option value="Dúvida sobre meu atendimento">Dúvida sobre meu atendimento</option>
+              <option value="Ajuda com acesso gov.br">Ajuda com acesso gov.br</option>
               <option value="Preciso enviar um documento">Preciso enviar um documento</option>
               <option value="Suporte com o portal">Suporte com o portal</option>
               <option value="Outro assunto">Outro assunto</option>
@@ -1087,13 +1088,13 @@
       <section class="content-panel" id="section-perfil">
         <div class="panel-header-desc">
           <h2>Meu Perfil</h2>
-          <p>Confira seus dados cadastrais e gerencie sua senha de acesso à conta.</p>
+          <p>Dados cadastrais, preferências de contato e preparação segura para serviços no gov.br.</p>
         </div>
 
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(340px, 100%), 1fr)); gap: 24px; align-items: start;">
 
           <!-- Card: Dados Cadastrais -->
-          <div class="tracking-card" style="border-radius: 24px;">
+          <div class="tracking-card" style="border-radius: 24px; order: 1;">
             <div class="tracking-header">
               <h3><i class="fa-solid fa-id-card" style="color: var(--color-coral); margin-right: 8px;"></i>Dados Cadastrais</h3>
             </div>
@@ -1127,8 +1128,172 @@
             </div>
           </div>
 
+          <!-- Acesso gov.br: registra somente a prontidão operacional. Senha,
+               código de duas etapas e respostas de recuperação nunca entram
+               na plataforma; o acesso acontece por procuração ou com o próprio
+               cliente autenticando a sessão. -->
+          <div class="tracking-card perfil-gov-card" style="grid-column: 1 / -1; border-radius: 24px; order: 3;">
+            <div class="tracking-header perfil-card-header-compacto">
+              <div>
+                <h3><i class="fa-solid fa-building-columns" style="color: var(--color-coral); margin-right: 8px;"></i>Acesso seguro ao gov.br</h3>
+                <p>Deixe a conta preparada antes do atendimento sem compartilhar sua senha.</p>
+              </div>
+              <span class="perfil-seguranca-selo"><i class="fa-solid fa-lock"></i> Cofre temporário · 1 visualização</span>
+            </div>
+
+            <div class="perfil-gov-alerta">
+              <i class="fa-solid fa-shield-halved"></i>
+              <div><strong>Nunca envie sua senha pelo chat, e-mail ou WhatsApp.</strong><br>
+                Se a credencial for indispensável, use somente o cofre abaixo. Códigos temporários, QR Codes e respostas de recuperação nunca devem ser enviados. Mantenha as duas etapas ativas sempre que possível; se uma confirmação for exigida, a equipe combinará o momento para você aprovar.</div>
+            </div>
+
+            <form id="form-perfil-operacional" onsubmit="event.preventDefault();">
+              <div class="perfil-operacional-grid">
+                <div class="form-group perfil-form-group">
+                  <label class="form-label" for="perfil-gov-nivel">Nível da conta gov.br</label>
+                  <select id="perfil-gov-nivel" class="form-select">
+                    <option value="nao_sei">Não sei informar</option>
+                    <option value="bronze">Bronze</option>
+                    <option value="prata">Prata</option>
+                    <option value="ouro">Ouro</option>
+                  </select>
+                </div>
+                <div class="form-group perfil-form-group">
+                  <label class="form-label" for="perfil-gov-2fa">Verificação em duas etapas</label>
+                  <select id="perfil-gov-2fa" class="form-select">
+                    <option value="nao_sei">Não sei informar</option>
+                    <option value="ativa">Ativa</option>
+                    <option value="inativa">Inativa</option>
+                    <option value="sem_acesso">Não consigo acessar</option>
+                  </select>
+                </div>
+                <div class="form-group perfil-form-group">
+                  <label class="form-label" for="perfil-gov-dificuldade">Situação de acesso</label>
+                  <select id="perfil-gov-dificuldade" class="form-select">
+                    <option value="nenhuma">Consigo entrar normalmente</option>
+                    <option value="esqueci_senha">Esqueci a senha</option>
+                    <option value="problema_2fa">Problema com o código em duas etapas</option>
+                    <option value="conta_bloqueada">Conta bloqueada</option>
+                    <option value="nivel_insuficiente">Preciso aumentar o nível</option>
+                    <option value="nao_sei">Não sei qual é o problema</option>
+                  </select>
+                </div>
+                <div class="form-group perfil-form-group">
+                  <label class="form-label" for="perfil-gov-forma-acesso">Forma preferida para o serviço</label>
+                  <select id="perfil-gov-forma-acesso" class="form-select">
+                    <option value="procuracao">Procuração eletrônica, quando disponível</option>
+                    <option value="cofre_temporario">Cofre temporário de senha</option>
+                    <option value="assistido">Acesso assistido: eu faço o login</option>
+                    <option value="eu_executo">Recebo a orientação e faço os passos</option>
+                    <option value="nao_sei">Quero orientação do contador</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="perfil-gov-metodos">
+                <article><i class="fa-solid fa-file-signature"></i><div><strong>Procuração eletrônica</strong><span>Opção recomendada quando o portal permitir. Pode ser revogada pelo cliente.</span></div></article>
+                <article><i class="fa-solid fa-display"></i><div><strong>Acesso assistido</strong><span>Você entra na própria conta e confirma a autenticação; a senha não é informada ao contador.</span></div></article>
+                <article><i class="fa-solid fa-list-check"></i><div><strong>Orientação passo a passo</strong><span>Você executa e nos envia apenas o documento ou resultado necessário.</span></div></article>
+              </div>
+
+              <section class="perfil-cofre" aria-labelledby="perfil-cofre-titulo">
+                <div class="perfil-cofre-cabecalho">
+                  <div>
+                    <h4 id="perfil-cofre-titulo"><i class="fa-solid fa-vault"></i> Cofre temporário da senha gov.br</h4>
+                    <p>A senha é criptografada, expira automaticamente e só pode ser revelada uma vez pela equipe. Depois da abertura, o conteúdo cifrado é apagado.</p>
+                  </div>
+                  <span id="perfil-cofre-badge" class="perfil-cofre-badge">Consultando…</span>
+                </div>
+                <div id="perfil-cofre-formulario">
+                  <div class="perfil-cofre-grid">
+                    <div class="form-group perfil-form-group">
+                      <label class="form-label" for="perfil-gov-senha">Senha do gov.br</label>
+                      <div class="perfil-senha-wrap">
+                        <input type="password" id="perfil-gov-senha" class="form-input" autocomplete="new-password" maxlength="256" placeholder="Digite somente aqui">
+                        <button type="button" id="btn-alternar-senha-gov" aria-label="Mostrar ou ocultar senha" title="Mostrar ou ocultar senha"><i class="fa-solid fa-eye"></i></button>
+                      </div>
+                    </div>
+                    <div class="form-group perfil-form-group">
+                      <label class="form-label" for="perfil-gov-expiracao">Apagar automaticamente em</label>
+                      <select id="perfil-gov-expiracao" class="form-select">
+                        <option value="24">24 horas</option>
+                        <option value="48" selected>48 horas</option>
+                        <option value="72">72 horas</option>
+                      </select>
+                    </div>
+                  </div>
+                  <label class="perfil-lgpd-ciencia perfil-cofre-autorizacao" for="perfil-gov-autoriza-cofre">
+                    <input type="checkbox" id="perfil-gov-autoriza-cofre">
+                    <span>Autorizo especificamente o uso temporário desta credencial pela equipe para executar o serviço contratado. Sei que posso apagar antes do uso.</span>
+                  </label>
+                  <div class="perfil-form-actions">
+                    <button type="button" class="btn-utility primary" id="btn-enviar-senha-gov"><i class="fa-solid fa-lock"></i> Enviar ao cofre seguro</button>
+                    <button type="button" class="btn-utility" id="btn-apagar-senha-gov" hidden><i class="fa-solid fa-trash-can"></i> Revogar e apagar</button>
+                  </div>
+                </div>
+                <p class="perfil-save-status" id="perfil-cofre-status" aria-live="polite"></p>
+              </section>
+
+              <div class="perfil-servicos-gov">
+                <strong>Serviços que normalmente podem exigir gov.br ou procuração</strong>
+                <div class="perfil-servicos-chips">
+                  <span>Situação fiscal e e-CAC</span><span>IRPF e regularização de CPF</span><span>Certidões</span>
+                  <span>Parcelamentos</span><span>MEI e Simples Nacional</span><span>INSS e serviços previdenciários</span>
+                </div>
+                <small>Serviço atual: <b id="perfil-gov-servico-atual">Atendimento Olá, Contador</b>. A necessidade de acesso será confirmada na triagem.</small>
+              </div>
+
+              <label class="perfil-lgpd-ciencia" for="perfil-gov-ciencia">
+                <input type="checkbox" id="perfil-gov-ciencia" required>
+                <span>Entendi que credenciais só devem ser enviadas pelo cofre temporário, nunca pelas mensagens. Autorizo o uso destas informações operacionais somente para preparar e executar meu atendimento, conforme a <a href="/privacidade" target="_blank" rel="noopener">Política de Privacidade</a>.</span>
+              </label>
+
+              <div class="perfil-form-actions">
+                <button type="submit" class="btn-utility primary" id="btn-salvar-perfil-operacional"><i class="fa-solid fa-floppy-disk"></i> Salvar preparação e preferências</button>
+                <button type="button" class="btn-utility" onclick="iniciarAjudaGovBr()"><i class="fa-solid fa-life-ring"></i> Preciso de ajuda com o gov.br</button>
+                <button type="button" class="btn-utility" onclick="abrirSecaoCliente('section-faq')"><i class="fa-solid fa-book-open"></i> Ver orientações</button>
+                <a class="btn-utility" href="https://www.gov.br/governodigital/pt-br/acessibilidade-e-usuario/atendimento-gov.br/duvidas-na-conta-gov.br/desativar-a-verificacao-em-duas-etapas" target="_blank" rel="noopener noreferrer"><i class="fa-solid fa-mobile-screen-button"></i> Gerenciar duas etapas</a>
+              </div>
+              <p class="perfil-save-status" id="perfil-operacional-status" aria-live="polite"></p>
+            </form>
+          </div>
+
+          <!-- Preferências essenciais para reduzir ruído antes, durante e
+               depois do atendimento, sem coletar dados além do necessário. -->
+          <div class="tracking-card" style="border-radius: 24px; order: 2;">
+            <div class="tracking-header perfil-card-header-compacto">
+              <div>
+                <h3><i class="fa-solid fa-comments" style="color: var(--color-coral); margin-right: 8px;"></i>Como falar comigo</h3>
+                <p>Usaremos estas preferências para avisos e orientações do seu atendimento.</p>
+              </div>
+            </div>
+            <div class="perfil-comunicacao-grid">
+              <div class="form-group perfil-form-group">
+                <label class="form-label" for="perfil-canal-preferido">Canal preferido</label>
+                <select id="perfil-canal-preferido" class="form-select" form="form-perfil-operacional">
+                  <option value="area_cliente">Área do cliente</option>
+                  <option value="email">E-mail</option>
+                  <option value="whatsapp">WhatsApp</option>
+                </select>
+              </div>
+              <div class="form-group perfil-form-group">
+                <label class="form-label" for="perfil-periodo-contato">Melhor período</label>
+                <select id="perfil-periodo-contato" class="form-select" form="form-perfil-operacional">
+                  <option value="comercial">Horário comercial</option>
+                  <option value="manha">Manhã</option>
+                  <option value="tarde">Tarde</option>
+                  <option value="noite">Noite</option>
+                </select>
+              </div>
+              <div class="form-group perfil-form-group perfil-comunicacao-observacao">
+                <label class="form-label" for="perfil-necessidade-comunicacao">Necessidade de comunicação ou acessibilidade <span>(opcional)</span></label>
+                <textarea id="perfil-necessidade-comunicacao" class="form-textarea" rows="3" maxlength="500" form="form-perfil-operacional" placeholder="Ex.: prefiro instruções por escrito, preciso de letras maiores ou outra adaptação."></textarea>
+              </div>
+            </div>
+          </div>
+
           <!-- Card: Segurança e Senha -->
-          <div class="tracking-card" style="border-radius: 24px;">
+          <div class="tracking-card" style="border-radius: 24px; order: 4;">
             <div class="tracking-header">
               <h3><i class="fa-solid fa-shield-halved" style="color: var(--color-coral); margin-right: 8px;"></i>Segurança e Senha</h3>
             </div>
@@ -1151,6 +1316,24 @@
             </form>
           </div>
 
+          <div class="tracking-card" style="border-radius: 24px; order: 5;">
+            <div class="tracking-header perfil-card-header-compacto">
+              <div>
+                <h3><i class="fa-solid fa-user-shield" style="color: var(--color-coral); margin-right: 8px;"></i>Privacidade e seus direitos</h3>
+                <p>Você mantém o controle sobre os dados usados no atendimento.</p>
+              </div>
+            </div>
+            <ul class="perfil-privacidade-lista">
+              <li><i class="fa-solid fa-circle-check"></i><span>Coletamos apenas o necessário para preparar e executar o serviço contratado.</span></li>
+              <li><i class="fa-solid fa-circle-check"></i><span>Você pode corrigir seus dados e pedir acesso, bloqueio ou eliminação quando a legislação permitir.</span></li>
+              <li><i class="fa-solid fa-circle-check"></i><span>A senha do gov.br, quando enviada, fica em cofre separado, temporário e de visualização única.</span></li>
+            </ul>
+            <div class="perfil-form-actions">
+              <a class="btn-utility" href="/privacidade" target="_blank" rel="noopener"><i class="fa-solid fa-file-shield"></i> Ler Política de Privacidade</a>
+              <a class="btn-utility" href="mailto:contato@olacontador.com.br"><i class="fa-solid fa-envelope"></i> Falar sobre meus dados</a>
+            </div>
+          </div>
+
         </div>
       </section>
 
@@ -1161,10 +1344,10 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.2/dist/html2pdf.bundle.min.js"></script>
   <script src="config.js?v=2"></script>
-  <script src="oc-data.js?v=4"></script>
+  <script src="oc-data.js?v=5"></script>
   <script src="triagem-catalogo.js"></script>
   <script src="triagem.js?v=3"></script>
   <script src="relatorio-pdf.js"></script>
-  <script src="cliente.js?v=22"></script>
+  <script src="cliente.js?v=23"></script>
 </body>
 </html>

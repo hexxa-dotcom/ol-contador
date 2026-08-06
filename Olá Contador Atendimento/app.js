@@ -3890,7 +3890,7 @@ function renderCRM() {
 let crmDetailTab = 'geral';
 const CRM_DETAIL_TABS = [
   ['geral', 'Visão Geral'],
-  ['cadastro', 'Cadastro'],
+  ['cadastro', 'Cadastro e acesso'],
   ['pagamentos', 'Pagamentos'],
   ['atendimentos', 'Atendimentos']
 ];
@@ -3917,7 +3917,40 @@ function renderCrmTabGeral(c, box) {
 // cliente). Os campos de endereço já existiam no banco (nota fiscal), só não
 // apareciam em lugar nenhum da UI.
 function renderCrmTabCadastro(c, box) {
+  const perfil = c.perfilOperacional || {};
+  const gov = perfil.govbr || {};
+  const comunicacao = perfil.comunicacao || {};
+  const rotulos = {
+    nao_sei: 'Não informado', bronze: 'Bronze', prata: 'Prata', ouro: 'Ouro',
+    ativa: 'Ativa', inativa: 'Inativa', sem_acesso: 'Sem acesso',
+    nenhuma: 'Acesso normal', esqueci_senha: 'Esqueceu a senha',
+    problema_2fa: 'Problema com duas etapas', conta_bloqueada: 'Conta bloqueada',
+    nivel_insuficiente: 'Nível insuficiente', procuracao: 'Procuração eletrônica', cofre_temporario: 'Cofre temporário',
+    assistido: 'Acesso assistido', eu_executo: 'Cliente executa com orientação',
+    area_cliente: 'Área do cliente', email: 'E-mail', whatsapp: 'WhatsApp',
+    comercial: 'Horário comercial', manha: 'Manhã', tarde: 'Tarde', noite: 'Noite'
+  };
+  const rotulo = (valor) => rotulos[valor] || 'Não informado';
+  const cienciaEm = perfil.lgpd?.cienciaCredenciaisEm;
   box.innerHTML = `
+    <div class="financeiro-card" style="max-width:760px;margin-bottom:20px;border-left:4px solid var(--color-coral);">
+      <div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap;">
+        <div><h3 style="font-size:15px;color:var(--color-pine);margin:0 0 4px;"><i class="fa-solid fa-building-columns" style="color:var(--color-coral);margin-right:7px;"></i>Preparação gov.br</h3><p style="font-size:12px;color:var(--color-text-secondary);margin:0;">Informações declaradas pelo cliente — nenhuma credencial é armazenada.</p></div>
+        <span class="status-badge" style="background:${cienciaEm ? 'rgba(31,138,95,.1)' : 'rgba(255,106,69,.1)'};color:${cienciaEm ? '#176B4A' : '#9C422D'};">${cienciaEm ? '<i class="fa-solid fa-circle-check"></i> Orientação confirmada' : '<i class="fa-solid fa-circle-exclamation"></i> Aguardando confirmação'}</span>
+      </div>
+      <div class="responsive-grid" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:16px;">
+        <div><span class="relatorio-label-hint">Nível gov.br</span><strong style="display:block;color:var(--color-pine);font-size:13px;">${safe(rotulo(gov.nivel))}</strong></div>
+        <div><span class="relatorio-label-hint">Duas etapas</span><strong style="display:block;color:var(--color-pine);font-size:13px;">${safe(rotulo(gov.doisFatores))}</strong></div>
+        <div><span class="relatorio-label-hint">Situação de acesso</span><strong style="display:block;color:var(--color-pine);font-size:13px;">${safe(rotulo(gov.dificuldade))}</strong></div>
+        <div><span class="relatorio-label-hint">Forma preferida</span><strong style="display:block;color:var(--color-pine);font-size:13px;">${safe(rotulo(gov.formaAcesso))}</strong></div>
+        <div><span class="relatorio-label-hint">Canal preferido</span><strong style="display:block;color:var(--color-pine);font-size:13px;">${safe(rotulo(comunicacao.canalPreferido))}</strong></div>
+        <div><span class="relatorio-label-hint">Melhor período</span><strong style="display:block;color:var(--color-pine);font-size:13px;">${safe(rotulo(comunicacao.melhorPeriodo))}</strong></div>
+      </div>
+      ${comunicacao.necessidade ? `<div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--color-border);"><span class="relatorio-label-hint">Comunicação ou acessibilidade</span><p style="font-size:13px;color:var(--color-pine);margin:4px 0 0;">${safe(comunicacao.necessidade)}</p></div>` : ''}
+      <div id="crm-gov-vault-status" style="margin-top:14px;padding-top:14px;border-top:1px solid var(--color-border);"><span style="font-size:12px;color:var(--color-text-secondary);">Consultando cofre temporário…</span></div>
+      <p style="font-size:11px;color:var(--color-text-secondary);margin:12px 0 0;"><i class="fa-solid fa-lock"></i> Credencial somente pelo cofre. Nunca solicite senha por chat, e-mail ou WhatsApp; nunca solicite código temporário, QR Code ou resposta de recuperação.</p>
+    </div>
+    <h3 style="font-size:15px;color:var(--color-pine);margin:0 0 12px;">Dados de contato e endereço</h3>
     <div class="responsive-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:16px;max-width:640px;">
       <div class="form-group" style="margin-bottom:0;"><label class="form-label">Telefone</label><input class="form-input" id="cad-phone" value="${safe(c.phone || '')}"></div>
       <div class="form-group" style="margin-bottom:0;"><label class="form-label">E-mail</label><input class="form-input" id="cad-email" value="${safe(c.email || '')}"></div>
@@ -3959,6 +3992,91 @@ function renderCrmTabCadastro(c, box) {
       btn.disabled = false;
     }
   });
+  carregarCofreGovCrm(c.id);
+}
+
+async function chamarCofreGovCrm(action, clientId) {
+  const res = await fetch(API_BASE + '/api/govbr-vault', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${await tokenSessaoAtual()}` },
+    body: JSON.stringify({ action, clientId })
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    const erro = new Error(json.error || 'vault_failed');
+    erro.code = json.error;
+    throw erro;
+  }
+  return json;
+}
+
+function renderCofreGovCrm(clientId, dados) {
+  const box = document.getElementById('crm-gov-vault-status');
+  if (!box || activeCrmClientId !== clientId) return;
+  const rotulos = {
+    empty: 'Nenhuma credencial enviada', pending: 'Credencial protegida e disponível',
+    viewed: 'Credencial já aberta e apagada', deleted: 'Credencial revogada e apagada',
+    expired: 'Credencial expirada e apagada'
+  };
+  const pendente = dados.status === 'pending';
+  box.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
+      <div><span class="relatorio-label-hint">Cofre temporário</span><strong style="display:block;color:${pendente ? '#176B4A' : 'var(--color-pine)'};font-size:13px;">${safe(rotulos[dados.status] || rotulos.empty)}</strong>${pendente && dados.expiresAt ? `<small style="color:var(--color-text-secondary);">Expira em ${new Date(dados.expiresAt).toLocaleString('pt-BR')}</small>` : ''}</div>
+      ${pendente ? `<div style="display:flex;gap:8px;flex-wrap:wrap;"><button type="button" class="btn-utility primary" id="btn-revelar-cofre-gov"><i class="fa-solid fa-eye"></i> Revelar uma única vez</button><button type="button" class="btn-utility" id="btn-apagar-cofre-gov"><i class="fa-solid fa-trash-can"></i> Apagar</button></div>` : ''}
+    </div>`;
+  document.getElementById('btn-revelar-cofre-gov')?.addEventListener('click', () => revelarCofreGovCrm(clientId));
+  document.getElementById('btn-apagar-cofre-gov')?.addEventListener('click', () => apagarCofreGovCrm(clientId));
+}
+
+async function carregarCofreGovCrm(clientId) {
+  const box = document.getElementById('crm-gov-vault-status');
+  if (!box) return;
+  if (window.OC_CONFIG?.TESTE_CONTADOR_SEM_LOGIN?.enabled) {
+    renderCofreGovCrm(clientId, { status: 'empty' });
+    return;
+  }
+  try {
+    renderCofreGovCrm(clientId, await chamarCofreGovCrm('status', clientId));
+  } catch (_) {
+    if (box) box.innerHTML = '<span style="font-size:12px;color:#A63225;">Não foi possível consultar o cofre.</span>';
+  }
+}
+
+async function revelarCofreGovCrm(clientId) {
+  if (!confirm('A senha só poderá ser aberta uma vez e será apagada do cofre imediatamente. Deseja revelar agora?')) return;
+  const box = document.getElementById('crm-gov-vault-status');
+  if (!box) return;
+  box.innerHTML = '<span style="font-size:12px;color:var(--color-text-secondary);">Abrindo com segurança…</span>';
+  try {
+    const dados = await chamarCofreGovCrm('reveal', clientId);
+    if (!box || activeCrmClientId !== clientId) return;
+    box.innerHTML = `
+      <div style="background:#FFF8F4;border:1px solid rgba(255,106,69,.25);border-radius:14px;padding:14px;">
+        <strong style="display:block;color:#9C422D;font-size:12px;margin-bottom:7px;"><i class="fa-solid fa-eye"></i> Exibição única — este conteúdo será ocultado em 60 segundos</strong>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;"><code id="crm-gov-senha-revelada" style="background:white;border:1px solid var(--color-border);border-radius:8px;color:var(--color-pine);font-size:16px;padding:8px 10px;word-break:break-all;">${safe(dados.password)}</code><button type="button" class="btn-utility" id="btn-copiar-senha-gov"><i class="fa-solid fa-copy"></i> Copiar</button><button type="button" class="btn-utility" id="btn-ocultar-senha-gov"><i class="fa-solid fa-eye-slash"></i> Ocultar agora</button></div>
+        <small style="display:block;color:var(--color-text-secondary);margin-top:8px;">A cópia cifrada já foi eliminada do servidor. Não registre esta senha em notas ou mensagens.</small>
+      </div>`;
+    const ocultar = () => renderCofreGovCrm(clientId, { status: 'viewed', viewedAt: dados.viewedAt });
+    document.getElementById('btn-ocultar-senha-gov')?.addEventListener('click', ocultar);
+    document.getElementById('btn-copiar-senha-gov')?.addEventListener('click', async () => {
+      await navigator.clipboard.writeText(dados.password);
+      showToast('Senha copiada. Apague-a da área de transferência após o uso.');
+    });
+    setTimeout(() => {
+      if (document.getElementById('crm-gov-senha-revelada')) ocultar();
+    }, 60000);
+  } catch (erro) {
+    box.innerHTML = `<span style="font-size:12px;color:#A63225;">${erro.code === 'credential_not_available' || erro.code === 'credential_already_viewed' ? 'A credencial já foi aberta, apagada ou expirou.' : 'Não foi possível abrir o cofre agora.'}</span>`;
+  }
+}
+
+async function apagarCofreGovCrm(clientId) {
+  if (!confirm('Apagar a credencial sem visualizá-la?')) return;
+  try {
+    renderCofreGovCrm(clientId, await chamarCofreGovCrm('delete', clientId));
+  } catch (_) {
+    showToast('Não foi possível apagar a credencial agora.');
+  }
 }
 
 // Histórico de pagamentos do cliente (cobranças geradas, pagas ou não).

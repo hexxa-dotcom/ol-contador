@@ -30,6 +30,9 @@ const supabaseAdmin = process.env.SUPABASE_SERVICE_ROLE_KEY
 app.use(express.json({ limit: '15mb' })); // base64 de documentos
 app.use(express.static(root));
 
+// Mesma função serverless usada em produção, montada aqui para testes locais.
+app.post('/api/govbr-vault', require('./api/govbr-vault'));
+
 app.get('/', (req, res) => res.redirect('/contador.html'));
 
 // ============ Mapeadores DB (snake_case) -> Front (camelCase) ============
@@ -78,6 +81,8 @@ function mapClient(row, messages) {
     recorrenteDiaVenc: row.recorrente_dia_venc || null,
     ultimoFinalizadoEm: row.ultimo_atendimento_finalizado_em || null,
     sexo: row.sexo || null, cidade: row.cidade || null, estado: row.estado || null,
+    cep: row.cep || null, endereco: row.endereco || null, numero: row.numero || null,
+    bairro: row.bairro || null, perfilOperacional: row.perfil_operacional || {},
     atendimentoModalidade: row.atendimento_modalidade || 'agendado',
     canalResultado: row.canal_resultado || 'email',
     semAgendamentoRecebidoEm: row.sem_agendamento_recebido_em || null,
@@ -259,7 +264,7 @@ app.post('/api/messages', async (req, res) => {
 });
 
 app.post('/api/prontuario', async (req, res) => {
-  const { clientId, diagnosis, honorarios, treatment, evidences } = req.body;
+  const { clientId, diagnosis, honorarios, treatment, evidences, perfilOperacional } = req.body;
   if (!clientId) return res.status(400).send('Invalid params');
 
   const patch = {};
@@ -267,6 +272,10 @@ app.post('/api/prontuario', async (req, res) => {
   if (honorarios !== undefined) patch.honorarios = parseInt(honorarios);
   if (treatment !== undefined) patch.treatment = treatment;
   if (evidences !== undefined) patch.evidences = evidences;
+  if (perfilOperacional !== undefined) patch.perfil_operacional = perfilOperacional || {};
+  ['phone', 'email', 'cep', 'cidade', 'endereco', 'numero', 'bairro', 'estado'].forEach(campo => {
+    if (req.body[campo] !== undefined) patch[campo] = req.body[campo] || null;
+  });
 
   const { error } = await supabase.from('clientes').update(patch).eq('id', clientId);
   if (error) { console.error(error); return res.status(500).send('DB error'); }
