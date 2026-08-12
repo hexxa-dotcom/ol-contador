@@ -1895,6 +1895,10 @@ body {
   font-size: 11px;
   padding: 2px 8px;
   border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .search-chat {
@@ -5570,6 +5574,11 @@ body.pagina-contador {
   --contador-green-line: rgba(12, 84, 70, 0.30);
   --contador-coral: var(--color-coral);
   --contador-coral-strong: var(--color-coral-dark);
+  /* Fundo do Copiloto usava uma variável própria (--copilot-bg-color) nunca
+     remapeada pro tema novo — ficava um azul-clarinho antigo destoando do
+     resto. Agora é só um cinza um pouco mais escuro que o chat principal,
+     pra ainda sinalizar "aqui é a IA" sem sair da paleta. */
+  --copilot-bg-color: var(--contador-surface-muted);
 }
 
 body.pagina-contador .dashboard-container,
@@ -5837,7 +5846,7 @@ body.pagina-contador .atendimento-toolbar-left {
 body.pagina-contador .atendimento-side-panel,
 body.pagina-contador .sidebar-chats {
   background: var(--contador-surface) !important;
-  border-right: none !important;
+  border-right: 1px solid var(--contador-line-strong) !important;
 }
 body.pagina-contador .btn-toolbar {
   border: 1px solid transparent !important;
@@ -5953,12 +5962,13 @@ body.pagina-contador .btn-shortcut-tag.active {
   transform: none !important;
 }
 body.pagina-contador .input-container {
-  border: none !important;
+  border: 1px solid rgba(20, 20, 20, 0.14) !important;
   background: var(--contador-surface-soft) !important;
   box-shadow: none !important;
 }
 body.pagina-contador .input-container:focus-within {
   background: #fff !important;
+  border-color: rgba(20, 20, 20, 0.28) !important;
   box-shadow: none !important;
 }
 body.pagina-contador .input-container .input-message {
