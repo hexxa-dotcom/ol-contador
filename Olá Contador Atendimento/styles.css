@@ -5546,9 +5546,9 @@ body.pagina-contador {
   --contador-ease: cubic-bezier(.2, .8, .2, 1);
   /* Estilo Nubank: página branca, cards em cinza sólido — o contraste vem
      da cor de fundo, não de borda nem sombra. */
-  --contador-surface: #F1F1EF;
+  --contador-surface: #E7E7E3;
   --contador-surface-soft: #FFFFFF;
-  --contador-surface-muted: #E7E7E4;
+  --contador-surface-muted: #DBDBD6;
   --contador-line: rgba(20, 20, 20, 0.06);
   --contador-line-strong: rgba(20, 20, 20, 0.10);
   --contador-shadow-sm: 0 1px 2px rgba(20, 20, 20, 0.04), 0 4px 14px rgba(20, 20, 20, 0.05);
