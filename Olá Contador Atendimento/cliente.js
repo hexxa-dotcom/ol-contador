@@ -383,6 +383,7 @@ async function enviarMensagemCaixaPostalCliente(e) {
 // Os relatórios de atendimento entregues pelo contador. O cliente baixa o PDF
 // branded a partir do conteúdo salvo — o mesmo documento que o contador gerou.
 let RELATORIOS = [];
+let RELATORIO_ANEXOS = {};
 
 async function carregarRelatorios() {
   const lista = document.getElementById("client-relatorios-list");
@@ -391,13 +392,33 @@ async function carregarRelatorios() {
   try {
     const res = await fetch('/api/relatorios?clientId=' + encodeURIComponent(CLIENT_ID));
     RELATORIOS = await res.json();
-  } catch (e) { RELATORIOS = []; }
+    const conjuntos = await Promise.all(RELATORIOS.map(async rel => {
+      try {
+        const resposta = await fetch('/api/relatorio-anexos?relatorioId=' + encodeURIComponent(rel.id));
+        return [rel.id, resposta.ok ? await resposta.json() : []];
+      } catch (_) { return [rel.id, []]; }
+    }));
+    RELATORIO_ANEXOS = Object.fromEntries(conjuntos);
+  } catch (e) { RELATORIOS = []; RELATORIO_ANEXOS = {}; }
 
   if (!RELATORIOS.length) { bloco.hidden = true; return; }
   bloco.hidden = false;
   lista.innerHTML = "";
+  const recente = RELATORIOS[0];
+  const resumo = document.createElement('div');
+  resumo.className = 'client-result-summary';
+  const prazo = recente.prazoProximoPasso
+    ? new Date(recente.prazoProximoPasso + 'T12:00:00').toLocaleDateString('pt-BR') : null;
+  resumo.innerHTML = `
+    <span class="client-result-kicker"><i class="fa-solid fa-circle-check"></i> Resultado entregue</span>
+    <h4>${escapeHtml(recente.titulo || 'Seu atendimento foi concluído')}</h4>
+    <p>${escapeHtml(recente.solucao || 'O resultado do atendimento está disponível no relatório abaixo.')}</p>
+    ${recente.pendencias ? `<div class="client-result-next"><strong>O que acontece agora</strong><span>${escapeHtml(recente.pendencias)}${prazo ? ` · Prazo: ${prazo}` : ''}</span></div>` : '<div class="client-result-done">Você não precisa fazer mais nada neste momento.</div>'}
+    <button type="button" class="btn-attach" data-resumo-relatorio="${recente.id}"><i class="fa-solid fa-file-arrow-down"></i> Baixar resultado completo</button>`;
+  resumo.querySelector('[data-resumo-relatorio]').addEventListener('click', () => baixarRelatorioCliente(recente.id));
+  lista.appendChild(resumo);
   RELATORIOS.forEach(rel => {
-    const data = new Date(rel.createdAt).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
+    const data = new Date(rel.entregueEm || rel.createdAt).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
     const item = document.createElement("div");
     item.className = "doc-item";
     item.style.borderLeft = "3px solid var(--color-coral)";
@@ -405,11 +426,21 @@ async function carregarRelatorios() {
       '<div class="doc-info">' +
         '<i class="fa-solid fa-file-lines" style="color: var(--color-coral);"></i>' +
         '<div><div class="doc-name">' + escapeHtml(rel.titulo || 'Relatório de Atendimento') + '</div>' +
-        '<div class="doc-meta">Emitido pelo contador • ' + data + '</div></div>' +
+        '<div class="doc-meta">Entregue em ' + data + ' • versão ' + escapeHtml(rel.versao || 1) +
+        (rel.pendencias ? ' • possui próximo passo' : ' • caso concluído') + '</div></div>' +
       '</div>' +
       '<button class="btn-attach" title="Baixar PDF" data-rel="' + rel.id + '"><i class="fa-solid fa-download"></i></button>';
     item.querySelector('[data-rel]').addEventListener('click', () => baixarRelatorioCliente(rel.id));
     lista.appendChild(item);
+    const anexos = RELATORIO_ANEXOS[rel.id] || [];
+    if (anexos.length) {
+      const grupo = document.createElement('div');
+      grupo.className = 'client-report-attachments';
+      grupo.innerHTML = `<strong><i class="fa-solid fa-paperclip"></i> Arquivos e comprovantes deste caso</strong>${anexos.map(a =>
+        `<a class="btn-attach" href="${escapeHtml(a.url || '#')}" target="_blank" rel="noopener"><i class="fa-solid fa-arrow-up-right-from-square"></i> ${escapeHtml(a.title || a.fileName || 'Abrir anexo')}</a>`
+      ).join('')}`;
+      lista.appendChild(grupo);
+    }
   });
   montarLinhaDoTempo();
   carregarHistoricoAtendimentos();
@@ -753,7 +784,7 @@ window.iniciarAjudaGovBr = iniciarAjudaGovBr;
 // triagem, que agora é obrigatória antes de chegar aqui — ver onboarding em
 // showCheckoutSuccess). A função continua calculando o estado porque o chat
 // (atualizarSidebarDoChat) ainda usa esse texto na lateral do atendimento.
-function atualizarProximaAcao({ triagemEnviada, qtdDocs, temAppt, apptFeito, temRelatorio, atendimentoExpress }) {
+function atualizarProximaAcao({ triagemEnviada, qtdDocs, temAppt, apptFeito, temRelatorio, atendimentoExpress, relatorio }) {
   const icon = document.getElementById('case-next-action-icon');
   const title = document.getElementById('case-next-action-title');
   const text = document.getElementById('case-next-action-text');
@@ -761,7 +792,13 @@ function atualizarProximaAcao({ triagemEnviada, qtdDocs, temAppt, apptFeito, tem
 
   let state;
   const semAgendamento = atendimentoSemAgendamento();
-  if (temRelatorio) {
+  if (temRelatorio && relatorio?.pendencias) {
+    const prazo = relatorio.prazoProximoPasso
+      ? new Date(relatorio.prazoProximoPasso + 'T12:00:00').toLocaleDateString('pt-BR') : null;
+    state = { icon: 'fa-list-check', title: 'Seu resultado foi entregue — há um próximo passo',
+      text: `${relatorio.pendencias}${prazo ? ` Prazo: ${prazo}.` : ''}`,
+      button: 'Ver relatório e próximos passos', target: 'section-documentos', color: 'var(--color-coral)' };
+  } else if (temRelatorio) {
     state = { icon: 'fa-file-circle-check', title: 'Seu relatório está pronto', text: 'O atendimento foi concluído. Baixe seu relatório quando quiser.', button: 'Ver relatório', target: 'section-documentos', color: '#1F8A5F' };
   } else if (!triagemEnviada) {
     state = { icon: 'fa-clipboard-question', title: 'Conte o que aconteceu', text: 'Responda perguntas simples, do seu jeito. O rascunho fica salvo automaticamente.', button: 'Começar triagem', target: 'section-triagem', color: 'var(--color-coral)' };
@@ -975,8 +1012,9 @@ async function montarLinhaDoTempo() {
   }
 
   // A avaliação só faz sentido depois que existe relatório.
-  configurarAvaliacao(temRelatorio, rels && rels[0] ? rels[0].id : null);
-  const proximaAcao = atualizarProximaAcao({ triagemEnviada, qtdDocs, temAppt, apptFeito, temRelatorio, atendimentoExpress });
+  configurarAvaliacao(temRelatorio, rels && rels[0] ? rels[0] : null);
+  const proximaAcao = atualizarProximaAcao({ triagemEnviada, qtdDocs, temAppt, apptFeito, temRelatorio,
+    atendimentoExpress, relatorio: rels && rels[0] ? rels[0] : null });
   atualizarSidebarDoChat({
     nomeCaso,
     statusCaso,
@@ -1017,22 +1055,24 @@ let notaEscolhida = 0;
 // Cache da avaliação já enviada (ou null) — usado tanto pelo card da Home
 // quanto pelo card nativo dentro do chat, pra não deixar avaliar 2x.
 let minhaAvaliacaoAtual = null;
-async function buscarMinhaAvaliacao() {
+async function buscarMinhaAvaliacao(casoRef) {
   try {
     const lista = await (await fetch('/api/avaliacoes?clientId=' + encodeURIComponent(CLIENT_ID))).json();
-    minhaAvaliacaoAtual = (lista || [])[0] || null;
+    minhaAvaliacaoAtual = casoRef
+      ? (lista || []).find(item => item.casoRef === casoRef) || null
+      : (lista || [])[0] || null;
   } catch (e) { minhaAvaliacaoAtual = null; }
   return minhaAvaliacaoAtual;
 }
 
-async function configurarAvaliacao(temRelatorio, relatorioId) {
+async function configurarAvaliacao(temRelatorio, relatorio) {
   const card = document.getElementById('card-avaliacao');
   const feito = document.getElementById('card-avaliacao-feita');
   if (!card || !feito) return;
   if (!temRelatorio) { card.hidden = true; feito.hidden = true; return; }
 
   // Já avaliou? Então agradece em vez de pedir de novo.
-  const jaAvaliou = await buscarMinhaAvaliacao();
+  const jaAvaliou = await buscarMinhaAvaliacao(relatorio?.casoRef || null);
 
   if (jaAvaliou) {
     card.hidden = true;
@@ -1066,7 +1106,7 @@ async function configurarAvaliacao(temRelatorio, relatorioId) {
       const res = await fetch('/api/avaliacoes', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          clientId: CLIENT_ID, relatorioId,
+          clientId: CLIENT_ID, relatorioId: relatorio?.id || null, casoRef: relatorio?.casoRef || null,
           nota: notaEscolhida,
           comentario: document.getElementById('aval-comentario').value.trim() || null
         })
@@ -1710,7 +1750,7 @@ async function carregarHistoricoAtendimentos() {
     itens.push({
       tipo: 'Relatório',
       titulo: r.titulo || 'Relatório de atendimento',
-      data: r.createdAt ? new Date(r.createdAt).toLocaleDateString('pt-BR') : 'Disponível',
+      data: r.entregueEm ? new Date(r.entregueEm).toLocaleDateString('pt-BR') : 'Disponível',
       status: 'Disponível',
       concluido: true,
       acao: 'section-documentos',
@@ -2590,10 +2630,12 @@ async function enviarAvaliacaoChat(btn) {
   btn.disabled = true;
   btn.textContent = 'Enviando...';
   const comentario = card.querySelector('.avaliacao-card-comentario')?.value.trim() || null;
+  const relatorioAtual = RELATORIOS && RELATORIOS.length ? RELATORIOS[0] : null;
   try {
     const res = await fetch('/api/avaliacoes', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ clientId: CLIENT_ID, relatorioId: null, nota, comentario })
+      body: JSON.stringify({ clientId: CLIENT_ID, relatorioId: relatorioAtual?.id || null,
+        casoRef: relatorioAtual?.casoRef || null, nota, comentario })
     });
     if (!res.ok) throw new Error('resposta ' + res.status);
     minhaAvaliacaoAtual = { nota, comentario };

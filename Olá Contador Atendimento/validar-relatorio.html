@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <title>Validar relatório | Olá, Contador</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root { --pine:#0A3121; --coral:#FF6A45; --cream:#F4F1E9; --text:#1C2B25; --muted:#66736D; }
+    * { box-sizing:border-box; }
+    body { margin:0; min-height:100vh; font-family:Outfit,system-ui,sans-serif; color:var(--text); background:var(--cream); }
+    header { background:var(--pine); color:#fff; padding:22px 24px; }
+    .brand { max-width:780px; margin:auto; display:flex; align-items:center; gap:11px; font-size:20px; font-weight:750; }
+    .brand img { width:32px; height:32px; }
+    .brand b { color:var(--coral); }
+    main { width:min(780px,calc(100% - 28px)); margin:42px auto; }
+    .card { background:#fff; border-radius:18px; padding:clamp(22px,5vw,42px); box-shadow:0 18px 55px rgba(10,49,33,.09); border:1px solid rgba(10,49,33,.08); }
+    .status { width:58px; height:58px; border-radius:50%; display:grid; place-items:center; font-size:28px; margin-bottom:18px; }
+    .loading { background:#EEF1EF; color:var(--muted); }
+    .valid { background:#E3F4EA; color:#176B4A; }
+    .invalid { background:#FFE8E2; color:#A83E28; }
+    h1 { color:var(--pine); margin:0 0 8px; font-size:clamp(24px,5vw,34px); }
+    .lead { color:var(--muted); margin:0 0 26px; line-height:1.55; }
+    .details { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
+    .item { background:#F7F5F0; border-radius:10px; padding:12px 14px; min-width:0; }
+    .item.wide { grid-column:1/-1; }
+    .item span { display:block; font-size:10px; text-transform:uppercase; letter-spacing:.55px; color:#748079; margin-bottom:4px; }
+    .item strong { color:var(--pine); overflow-wrap:anywhere; }
+    .privacy { margin:22px 0 0; padding-top:18px; border-top:1px solid #E4E8E5; color:var(--muted); font-size:12px; line-height:1.5; }
+    .back { display:inline-block; margin-top:22px; color:var(--pine); font-weight:700; text-decoration:none; }
+    @media (max-width:560px) { main { margin:22px auto; } .details { grid-template-columns:1fr; } .item.wide { grid-column:auto; } }
+  </style>
+<link rel="stylesheet" href="acessibilidade.css">
+<script src="monitoramento.js" defer></script>
+</head>
+<body>
+  <header><div class="brand"><img src="logo.svg" alt=""><span>Olá, Contador<b>.</b></span></div></header>
+  <main>
+    <section class="card" aria-live="polite">
+      <div class="status loading" id="status-icon">…</div>
+      <h1 id="titulo">Validando relatório</h1>
+      <p class="lead" id="mensagem">Estamos conferindo o código informado com o registro original.</p>
+      <div class="details" id="detalhes" hidden></div>
+      <p class="privacy" id="privacidade" hidden>Por segurança, esta página confirma apenas os dados essenciais. O conteúdo completo permanece disponível exclusivamente na Área do Cliente.</p>
+      <a class="back" href="/">Voltar para Olá, Contador</a>
+    </section>
+  </main>
+  <script>
+    (async function () {
+      const codigo = new URLSearchParams(location.search).get('codigo') || '';
+      const icon = document.getElementById('status-icon');
+      const titulo = document.getElementById('titulo');
+      const mensagem = document.getElementById('mensagem');
+      const detalhes = document.getElementById('detalhes');
+      const privacidade = document.getElementById('privacidade');
+      const esc = value => String(value == null ? '' : value).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+      const dataBR = value => value ? new Date(value).toLocaleString('pt-BR', {day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '—';
+      try {
+        if (!codigo) throw new Error('codigo_ausente');
+        const response = await fetch('/api/status?acao=validar-relatorio&codigo=' + encodeURIComponent(codigo), { cache:'no-store' });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok || !data.valido) throw new Error(data.error || 'invalido');
+        icon.className = 'status valid'; icon.textContent = '✓';
+        titulo.textContent = 'Relatório autêntico';
+        mensagem.textContent = 'O código corresponde a um relatório entregue pelo Olá, Contador.';
+        detalhes.innerHTML =
+          '<div class="item wide"><span>Relatório</span><strong>' + esc(data.titulo) + '</strong></div>' +
+          '<div class="item"><span>Protocolo</span><strong>' + esc(data.protocolo) + '</strong></div>' +
+          '<div class="item"><span>Versão</span><strong>v' + esc(data.versao) + '</strong></div>' +
+          '<div class="item"><span>Cliente</span><strong>' + esc(data.cliente) + '</strong></div>' +
+          '<div class="item"><span>Documento</span><strong>' + esc(data.documento) + '</strong></div>' +
+          '<div class="item"><span>Contador responsável</span><strong>' + esc(data.contador) + (data.crc ? ' · CRC ' + esc(data.crc) : '') + '</strong></div>' +
+          '<div class="item"><span>Entregue em</span><strong>' + esc(dataBR(data.entregueEm)) + '</strong></div>';
+        privacidade.textContent = 'O QR Code confirma a emissão, a autoria, a versão e a integridade do registro no sistema. As informações refletem o atendimento na data de emissão; comprovantes oficiais permanecem a fonte para atos de órgãos públicos ou terceiros.';
+        detalhes.hidden = false; privacidade.hidden = false;
+      } catch (_) {
+        icon.className = 'status invalid'; icon.textContent = '×';
+        titulo.textContent = 'Relatório não localizado';
+        mensagem.textContent = 'O código é inválido, ainda não foi entregue ou não pertence a um relatório emitido pelo Olá, Contador.';
+      }
+    })();
+  </script>
+</body>
+</html>

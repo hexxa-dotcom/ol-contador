@@ -2,6 +2,7 @@
 // Usa o cliente admin (service_role) porque cria agendamento/notificação cross-cliente.
 const asaas = require('./asaas');
 const notify = require('./notify');
+const { registrarEventoFunil } = require('./metricas');
 
 const SITE_URL = process.env.SITE_URL || 'https://ola-contador.vercel.app';
 // Mesmo teto usado no formulário de agendamento.
@@ -26,6 +27,7 @@ function prazoExpressEmDiasUteis(inicio = new Date(), quantidade = 2) {
 
 async function registrarAtendimentoExpress(admin, dados) {
   const contratadoEm = dados.contratadoEm ? new Date(dados.contratadoEm) : new Date();
+  const prazoConclusao = prazoExpressEmDiasUteis(contratadoEm, dados.prazoDiasUteis).toISOString();
   const payload = {
     cobranca_id: dados.cobrancaId,
     cliente_ref: dados.clienteRef,
@@ -33,7 +35,7 @@ async function registrarAtendimentoExpress(admin, dados) {
     assunto: dados.assunto || 'Atendimento Express',
     status: 'aguardando_triagem',
     contratado_em: contratadoEm.toISOString(),
-    prazo_conclusao_em: prazoExpressEmDiasUteis(contratadoEm, dados.prazoDiasUteis).toISOString(),
+    prazo_conclusao_em: prazoConclusao,
     updated_at: new Date().toISOString()
   };
   const { error } = await admin.from('atendimentos_express').upsert(payload, { onConflict: 'cobranca_id', ignoreDuplicates: true });
@@ -43,6 +45,21 @@ async function registrarAtendimentoExpress(admin, dados) {
     // migração faz o backfill e este erro continua visível nos logs.
     console.error('registro do Atendimento Express falhou:', error.message);
     return false;
+  }
+  const { data: atendimento } = await admin.from('atendimentos_express').select('id')
+    .eq('cobranca_id', dados.cobrancaId).maybeSingle();
+  if (atendimento) {
+    const caseRef = `express:${atendimento.id}`;
+    const { data: linha } = await admin.from('configuracoes').select('valor').eq('chave', 'tarefas').maybeSingle();
+    const tarefas = Array.isArray(linha && linha.valor) ? linha.valor : [];
+    if (!tarefas.some(tarefa => tarefa.caseRef === caseRef)) {
+      tarefas.unshift({
+        id: `task_express_${atendimento.id}`, texto: `Executar e entregar ${payload.assunto}`,
+        feita: false, clientId: dados.clienteRef, caseRef, tipo: 'atendimento_express',
+        dataInicial: contratadoEm.toISOString(), dataFinal: prazoConclusao, deadline: prazoConclusao
+      });
+      await admin.from('configuracoes').upsert({ chave: 'tarefas', valor: tarefas }, { onConflict: 'chave' });
+    }
   }
   return true;
 }
@@ -66,7 +83,20 @@ async function enviarLinkDeAcesso(admin, email) {
 async function confirmCobranca(admin, cob) {
   const modoCobranca = cob.modalidade === 'sem_agendamento' || (cob.dados_cliente && cob.dados_cliente.modalidade === 'sem_agendamento')
     ? 'sem_agendamento' : 'agendado';
-  if (cob.status === 'paid' && (cob.appointment_id || modoCobranca === 'sem_agendamento')) {
+  if (cob.status === 'paid' && modoCobranca === 'sem_agendamento') {
+    // Reconciliador: se a cobrança foi marcada como paga mas a criação da fila
+    // falhou numa tentativa anterior, toda nova consulta/webhook reconstrói o
+    // Atendimento Express pelo identificador único da cobrança.
+    const { data: servicoPago } = await admin.from('servicos').select('*').eq('id', cob.servico_id).maybeSingle();
+    await registrarAtendimentoExpress(admin, {
+      cobrancaId: cob.id, clienteRef: cob.cliente_ref, servicoId: cob.servico_id,
+      assunto: (cob.dados_cliente && cob.dados_cliente.assunto) || (servicoPago && servicoPago.name),
+      prazoDiasUteis: servicoPago && servicoPago.prazo_express_dias_uteis,
+      contratadoEm: cob.paid_at || cob.created_at
+    });
+    return { status: 'paid', appointmentId: null };
+  }
+  if (cob.status === 'paid' && cob.appointment_id) {
     return { status: 'paid', appointmentId: cob.appointment_id };
   }
   const payment = await asaas.getPayment(cob.asaas_payment_id);
@@ -162,11 +192,12 @@ async function confirmCobranca(admin, cob) {
         // resumo (ver triagem.js) e a pessoa nunca passaria pelo formulário —
         // era exatamente por isso que a triagem obrigatória pós-pagamento não
         // acontecia. Só um envio de verdade pelo cliente muda esse status.
-        await admin.from('triagens').insert({
+        await admin.from('triagens').upsert({
+          cobranca_id: cob.id,
           cliente_ref: cliente.id, assunto: d.assunto || (servico ? servico.name : ''),
           descricao: d.summary ? String(d.summary).slice(0, LIMITE_RESUMO) : null,
           status: 'rascunho'
-        });
+        }, { onConflict: 'cobranca_id', ignoreDuplicates: true });
       }
     }
 
@@ -185,16 +216,26 @@ async function confirmCobranca(admin, cob) {
     }
 
     if (modoCobranca !== 'sem_agendamento') {
-      const { data: appt } = await admin.from('agendamentos').insert({
+      const { data: appt } = await admin.from('agendamentos').upsert({
+        cobranca_id: cob.id,
         cliente_ref: cob.cliente_ref, client_name: cliente ? cliente.name : cob.cliente_ref,
         date: cob.appt_date || 'A definir', time: cob.appt_time || '',
         tax_type: servico ? servico.name : '', status: 'pending'
-      }).select().single();
-      appointmentId = appt ? appt.id : null;
+      }, { onConflict: 'cobranca_id', ignoreDuplicates: true }).select().maybeSingle();
+      if (!appt) {
+        const { data: existente } = await admin.from('agendamentos').select('id').eq('cobranca_id', cob.id).maybeSingle();
+        appointmentId = existente ? existente.id : null;
+      } else {
+        appointmentId = appt.id;
+      }
     }
 
     const confirmadoEm = new Date();
     await admin.from('cobrancas').update({ status: 'paid', paid_at: confirmadoEm.toISOString(), appointment_id: appointmentId }).eq('id', cob.id);
+    await registrarEventoFunil(admin, 'pagamento_confirmado', {
+      cobrancaId: cob.id, clienteRef: cob.cliente_ref, servicoId: cob.servico_id,
+      origem: cob.origem || 'plataforma', metadata: { valorCents: cob.valor_cents, descontoCents: cob.desconto_cents || 0 }
+    });
     if (modoCobranca === 'sem_agendamento') {
       await registrarAtendimentoExpress(admin, {
         cobrancaId: cob.id,
@@ -268,6 +309,33 @@ async function confirmCobranca(admin, cob) {
   return { status: 'paid', appointmentId };
 }
 
+// Espelha também eventos negativos do Asaas. A cobrança mantém o histórico e
+// somente operações ainda abertas são canceladas; um relatório já entregue
+// nunca é apagado por causa de estorno posterior.
+async function sincronizarCobrancaAsaas(admin, cob) {
+  const payment = await asaas.getPayment(cob.asaas_payment_id);
+  if (asaas.PAID_STATUSES.includes(payment.status)) return confirmCobranca(admin, cob);
+
+  const mapa = {
+    REFUNDED: 'refunded', REFUND_REQUESTED: 'refund_requested', REFUND_IN_PROGRESS: 'refund_in_progress',
+    PARTIALLY_REFUNDED: 'partially_refunded', DELETED: 'cancelled', OVERDUE: 'overdue',
+    CHARGEBACK_REQUESTED: 'disputed', CHARGEBACK_DISPUTE: 'disputed',
+    AWAITING_CHARGEBACK_REVERSAL: 'disputed', AWAITING_RISK_ANALYSIS: 'pending'
+  };
+  const status = mapa[payment.status] || 'pending';
+  await admin.from('cobrancas').update({ status }).eq('id', cob.id);
+
+  if (['refunded', 'cancelled', 'disputed'].includes(status)) {
+    await admin.from('atendimentos_express').update({ status: 'cancelado', updated_at: new Date().toISOString() })
+      .eq('cobranca_id', cob.id).not('status', 'in', '(concluido,cancelado)');
+    if (cob.appointment_id) {
+      await admin.from('agendamentos').update({ status: 'cancelled' })
+        .eq('id', cob.appointment_id).neq('status', 'done');
+    }
+  }
+  return { status, providerStatus: payment.status, appointmentId: cob.appointment_id || null };
+}
+
 // Login automático logo após o pagamento — sem esperar o cliente abrir o
 // e-mail e clicar no link (esse link continua sendo enviado, como reserva
 // pra quando a pessoa voltar depois). `generateLink` não manda nada: só gera
@@ -305,5 +373,6 @@ module.exports = {
   enviarLinkDeAcesso,
   gerarAutoLogin,
   prazoExpressEmDiasUteis,
-  registrarAtendimentoExpress
+  registrarAtendimentoExpress,
+  sincronizarCobrancaAsaas
 };

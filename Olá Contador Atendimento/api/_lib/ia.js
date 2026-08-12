@@ -190,20 +190,28 @@ async function sugerirDiagnostico(cliente) {
 // Gera o RELATÓRIO DO CLIENTE a partir da conversa. Diferente dos outros modos,
 // o texto é escrito PARA O CLIENTE (leigo) — o contador só revisa antes de mandar.
 // Retorna JSON com as quatro seções do documento.
-async function gerarRelatorioCliente(cliente) {
+async function gerarRelatorioCliente(cliente, { tipoRelatorio = 'atendimento' } = {}) {
+  const relatorioPendencias = tipoRelatorio === 'pendencias';
+  const instrucaoTipo = relatorioPendencias
+    ? `Produza um RELATÓRIO DE PENDÊNCIAS conciso. Declare que a análise se baseia no Relatório de Pendências da Receita Federal e nas demais evidências levantadas. Liste somente pendências efetivamente identificadas, as evidências analisadas, a conclusão técnica e orientações de regularização. Não atribua responsabilidade nem invente prazos.`
+    : `Produza um RELATÓRIO DE ATENDIMENTO de uma única página, destinado a atestar o que ocorreu e como o caso foi resolvido. Limite-se à descrição objetiva do caso, às providências realizadas e à resolução. Não mencione pendências, responsáveis, prazos, próximos passos ou arquivos entregues.`;
   const raw = await chatCompletion([
     { role: 'system', content: PERSONA },
     { role: 'user', content:
       `Com base na conversa e no diagnóstico, escreva um RELATÓRIO DE ATENDIMENTO para ENTREGAR AO CLIENTE ` +
       `(pessoa leiga). Linguagem clara, acolhedora e sem jargão — quando um termo técnico for inevitável, ` +
       `explique em uma frase. Não invente valores nem prazos que não estejam na conversa. Fale do caso na ` +
-      `terceira pessoa ("o cliente", "sua declaração").\n\n` +
+      `terceira pessoa ("o cliente", "sua declaração"). ${instrucaoTipo}\n\n` +
       `Responda APENAS um JSON válido, sem markdown, no formato:\n` +
       `{"titulo":"título curto do atendimento, ex.: Regularização de Malha Fina 2024",` +
       `"problema":"qual era o problema do cliente, 1-2 frases",` +
-      `"solucao":"a solução proposta, 1-2 frases",` +
+      `"solucao":"o resultado obtido, a conclusão ou a orientação efetivamente fornecida, 1-2 frases",` +
       `"oqueFeito":"o que foi feito, em itens separados por \\n começando com '- '",` +
-      `"comoFeito":"como foi feito / próximos passos do cliente, em itens separados por \\n começando com '- '"}\n\n` +
+      `"comoFeito":"orientações para regularização, em itens por \\n, somente no relatório de pendências; vazio no relatório de atendimento",` +
+      `"entregas":"sempre vazio",` +
+      `"pendencias":"itens efetivamente identificados, separados por \\n, somente no relatório de pendências; vazio no relatório de atendimento",` +
+      `"responsavelProximoPasso":"sempre vazio",` +
+      `"prazoProximoPasso":"sempre vazio"}\n\n` +
       `Cliente: ${cliente.name} | Tipo: ${cliente.taxType || '-'}\n` +
       `Diagnóstico do contador: ${cliente.diagnosis || '(vazio)'}\n` +
       `Tratamento/prescrição: ${cliente.treatment || '(vazio)'}\n` +
@@ -215,7 +223,8 @@ async function gerarRelatorioCliente(cliente) {
     const match = raw.match(/\{[\s\S]*\}/);
     return JSON.parse(match ? match[0] : raw);
   } catch (e) {
-    return { titulo: '', problema: raw, solucao: '', oqueFeito: '', comoFeito: '' };
+    return { titulo: '', problema: raw, solucao: '', oqueFeito: '', comoFeito: '', entregas: '',
+      pendencias: '', responsavelProximoPasso: '', prazoProximoPasso: '' };
   }
 }
 

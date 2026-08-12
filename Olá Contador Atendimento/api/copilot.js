@@ -9,7 +9,7 @@ module.exports = async (req, res) => {
   const auth = await requireUser(req, res);
   if (!auth) return;
 
-  const { clientId, mode, prompt, skill, skillName, base64, action, payload } = req.body || {};
+  const { clientId, mode, prompt, skill, skillName, base64, action, payload, formato, tipoRelatorio } = req.body || {};
   if (!mode) return res.status(400).json({ error: 'invalid_params' });
 
   if (mode === 'equipe') {
@@ -168,7 +168,7 @@ module.exports = async (req, res) => {
     if (mode === 'rascunho') return res.json({ text: await ia.rascunharResposta(cliente, prompt, auth.sb) });
     if (mode === 'pergunta') return res.json({ text: await ia.perguntaLivre(cliente, prompt || '', skill, auth.sb) });
     if (mode === 'diagnostico') return res.json(await ia.sugerirDiagnostico(cliente));
-    if (mode === 'relatorio') return res.json(await ia.gerarRelatorioCliente(cliente));
+    if (mode === 'relatorio') return res.json(await ia.gerarRelatorioCliente(cliente, { formato, tipoRelatorio }));
     return res.status(400).json({ error: 'invalid_mode' });
   } catch (e) {
     if (e.code === 'ia_not_configured') return res.status(503).json({ error: 'ia_not_configured' });

@@ -44,7 +44,7 @@ let testHistoricoStore = null;
 let testCreditosStore = null;
 let testConfigStore = {
   agenda_disponibilidade: ['09:00', '10:00', '11:00', '14:00', '15:00', '16:30'],
-  perfil_contador: { nome: 'Contador Felipe', crc: 'CRC 00-000000/O-0', especialidade: 'Especialista em IRPF e MEI' }
+  perfil_contador: { name: 'Contador Felipe', crc: 'CRC 00-000000/O-0', tags: 'IRPF, MEI' }
 };
 const TEST_KEYS = {
   clients: 'oc_demo_clients',
@@ -194,13 +194,13 @@ async function routeTesteCliente(path, method, q, body) {
   }
   if (path === '/api/appointments' && method === 'GET') return jsonResponse(appsTeste());
   if (path === '/api/relatorios' && method === 'GET') {
-    return jsonResponse(relatoriosTeste().filter(r => r.clientRef === clientId));
+    return jsonResponse(relatoriosTeste().filter(r => r.clientRef === clientId && (!r.status || r.status === 'entregue')));
   }
   if (path === '/api/avaliacoes' && method === 'GET') {
     return jsonResponse(avaliacoesTeste().filter(a => a.clientRef === clientId));
   }
   if (path === '/api/avaliacoes' && method === 'POST') {
-    const a = { id: 'demo-aval-' + Date.now(), clientRef: body.clientId, relatorioId: body.relatorioId || null,
+    const a = { id: 'demo-aval-' + Date.now(), clientRef: body.clientId, relatorioId: body.relatorioId || null, casoRef: body.casoRef || null,
       nota: body.nota, comentario: body.comentario || null, createdAt: new Date().toISOString() };
     avaliacoesTeste().unshift(a);
     salvarDemo(TEST_KEYS.ratings, testAvaliacoesStore);
@@ -241,7 +241,7 @@ async function routeTesteContador(path, method, q, body) {
     if (!body.clientId || !allowed.includes(body.status)) return jsonResponse({ error: 'invalid_status' }, 400);
     if (data[body.clientId]) {
       data[body.clientId].status = body.status;
-      if (body.status === 'done' || body.status === 'locked') {
+      if (body.status === 'done') {
         const c = data[body.clientId];
         const agora = new Date();
         c.ultimoFinalizadoEm = agora.toISOString();
@@ -378,8 +378,16 @@ async function routeTesteContador(path, method, q, body) {
     return jsonResponse(filtroCliente ? relatoriosTeste().filter(r => r.clientRef === filtroCliente) : relatoriosTeste());
   }
   if (path === '/api/relatorios' && method === 'POST') {
-    const rel = { ...body, id: 'demo-rel-' + Date.now(), clientRef: body.clientId, createdAt: new Date().toISOString() };
-    relatoriosTeste().unshift(rel);
+    let rel = body.reportId ? relatoriosTeste().find(r => String(r.id) === String(body.reportId)) : null;
+    if (rel) Object.assign(rel, body, { updatedAt: new Date().toISOString() });
+    else {
+      rel = { ...body, id: 'demo-rel-' + Date.now(), clientRef: body.clientId,
+        tipoRelatorio: body.tipoRelatorio === 'pendencias' ? 'pendencias' : 'atendimento',
+        formato: body.formato === 'essencial' ? 'essencial' : 'completo',
+        codigoValidacao: 'demo-' + Date.now().toString(36),
+        status: body.status || 'entrega_pendente', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
+      relatoriosTeste().unshift(rel);
+    }
     salvarDemo(TEST_KEYS.reports, testRelatoriosStore);
     return jsonResponse(rel);
   }
@@ -387,7 +395,7 @@ async function routeTesteContador(path, method, q, body) {
     return jsonResponse(avaliacoesTeste().filter(a => !q.get('clientId') || a.clientRef === q.get('clientId')));
   }
   if (path === '/api/avaliacoes' && method === 'POST') {
-    const a = { id: 'demo-aval-' + Date.now(), clientRef: body.clientId, relatorioId: body.relatorioId || null,
+    const a = { id: 'demo-aval-' + Date.now(), clientRef: body.clientId, relatorioId: body.relatorioId || null, casoRef: body.casoRef || null,
       nota: body.nota, comentario: body.comentario || null, createdAt: new Date().toISOString() };
     avaliacoesTeste().unshift(a);
     salvarDemo(TEST_KEYS.ratings, testAvaliacoesStore);
@@ -413,6 +421,66 @@ async function routeTesteContador(path, method, q, body) {
     cfg.kanban_etapas = { ...(cfg.kanban_etapas || {}), [body.clientId]: body.status };
     salvarDemo(TEST_KEYS.config, testConfigStore);
     return jsonResponse({ ok: true, status: body.status });
+  }
+  if (path === '/api/status' && q.get('acao') === 'finalizar-pos-atendimento' && method === 'POST') {
+    const rel = relatoriosTeste().find(r => String(r.id) === String(body.reportId));
+    if (!rel) return jsonResponse({ error: 'relatorio_not_found' }, 404);
+    if (rel.status === 'arquivado_interno') return jsonResponse({ error: 'relatorio_arquivado' }, 409);
+    const somentePendencias = rel.tipoRelatorio === 'pendencias';
+    const obrigatorios = somentePendencias
+      ? ['titulo', 'problema', 'solucao', 'oqueFeito', 'comoFeito', 'pendencias']
+      : ['titulo', 'problema', 'solucao', 'oqueFeito'];
+    if (obrigatorios.some(campo => !String(rel[campo] || '').trim())) {
+      return jsonResponse({ error: 'relatorio_incompleto' }, 422);
+    }
+    if (rel.status === 'entregue' && !body.retryNotice) {
+      return jsonResponse({ ok: true, alreadyDelivered: true, reportId: rel.id,
+        caseRef: rel.casoRef, channels: rel.canaisEntrega || ['area_cliente'], warnings: [] });
+    }
+
+    const agora = new Date().toISOString();
+    const canais = Array.from(new Set(['area_cliente', ...((body.channels || []).filter(c => ['email', 'caixa_postal'].includes(c)))]));
+    rel.status = 'entregue';
+    rel.entregueEm = rel.entregueEm || agora;
+    rel.entreguePor = 'contador@demo';
+    rel.canaisEntrega = canais;
+    rel.falhaEntrega = null;
+    rel.updatedAt = agora;
+
+    const casoRef = rel.casoRef || `relatorio:${rel.id}`;
+    if (somentePendencias) {
+      salvarDemo(TEST_KEYS.reports, testRelatoriosStore);
+      return jsonResponse({ ok: true, reportId: rel.id, caseRef, caseKeptOpen: true, channels: canais, warnings: [] });
+    }
+
+    const cliente = data[rel.clientRef];
+    if (cliente) {
+      cliente.status = 'done';
+      cliente.ultimoFinalizadoEm = agora;
+      if (cliente.triagem) cliente.triagem.status = 'arquivada';
+    }
+    const existente = historicoTeste().find(h => h.casoRef === casoRef);
+    if (!existente && cliente) {
+      historicoTeste().unshift({
+        id: 'demo-hist-' + Date.now(), casoRef, relatorioId: rel.id,
+        clienteId: cliente.id, clienteNome: cliente.name, taxType: cliente.taxType,
+        modalidade: rel.atendimentoExpressId ? 'sem_agendamento' : 'agendado',
+        assunto: rel.titulo, iniciadoEm: agora, finalizadoEm: agora,
+        duracaoSegundos: 0, honorarios: cliente.honorarios || 0
+      });
+    }
+    const cfg = configTeste();
+    cfg.tarefas = (cfg.tarefas || []).map(tarefa => {
+      if (tarefa.caseRef === casoRef || (!tarefa.caseRef && tarefa.clientId === rel.clientRef && /concluir serviço|relatório/i.test(tarefa.texto || ''))) {
+        return { ...tarefa, feita: true, concluidaEm: agora, caseRef: casoRef };
+      }
+      return tarefa;
+    });
+    salvarDemo(TEST_KEYS.reports, testRelatoriosStore);
+    salvarDemo(TEST_KEYS.clients, data);
+    salvarDemo(TEST_KEYS.historico, testHistoricoStore);
+    salvarDemo(TEST_KEYS.config, testConfigStore);
+    return jsonResponse({ ok: true, reportId: rel.id, caseRef, channels: canais, warnings: [] });
   }
   if (path === '/api/servicos' && method === 'GET') return jsonResponse([
     { id: 'irpf', name: 'Consulta IRPF', description: 'Atendimento para declaração, malha fina e pendências de CPF.', price: 197, priceCents: 19700, recurrence: 'once', active: true },
@@ -515,8 +583,18 @@ function mapRelatorio(r) {
     solucao: r.solucao, oqueFeito: r.oque_feito, comoFeito: r.como_feito,
     contadorNome: r.contador_nome, contadorCrc: r.contador_crc,
     contadorLogo: r.contador_logo, contadorAssinatura: r.contador_assinatura,
-    clienteNome: r.cliente_nome, clienteCpf: r.cliente_cpf, status: r.status,
-    createdAt: r.created_at };
+    clienteNome: r.cliente_nome, clienteCpf: r.cliente_cpf, status: r.status || 'entregue',
+    tipoRelatorio: r.tipo_relatorio || 'atendimento',
+    formato: r.formato || 'completo', codigoValidacao: r.codigo_validacao || null,
+    casoRef: r.caso_ref || null, atendimentoExpressId: r.atendimento_express_id || null,
+    agendamentoId: r.agendamento_id || null, versao: r.versao || 1,
+    revisaoDe: r.revisao_de || null, pendencias: r.pendencias || null,
+    proximosPassos: r.proximos_passos || [],
+    responsavelProximoPasso: r.responsavel_proximo_passo || null,
+    prazoProximoPasso: r.prazo_proximo_passo || null, entregas: r.entregas || null,
+    entregueEm: r.entregue_em || null, entreguePor: r.entregue_por || null,
+    canaisEntrega: r.canais_entrega || [], entregaTentativas: r.entrega_tentativas || [],
+    falhaEntrega: r.falha_entrega || null, createdAt: r.created_at, updatedAt: r.updated_at || r.created_at };
 }
 function mapAppointment(r) {
   return { id: r.id, clientName: r.client_name, date: r.date, time: r.time,
@@ -539,6 +617,9 @@ function mapServico(r) {
 function mapCobranca(r) {
   return { id: r.id, clientRef: r.cliente_ref, serviceId: r.servico_id,
     valueCents: r.valor_cents, status: r.status, paidAt: r.paid_at,
+    originalValueCents: r.valor_original_cents || r.valor_cents,
+    discountCents: r.desconto_cents || 0, discountType: r.desconto_tipo || null,
+    origin: r.origem || 'plataforma',
     createdAt: r.created_at, invoiceUrl: r.invoice_url, appointmentId: r.appointment_id,
     dadosCliente: r.dados_cliente || null,
     modalidade: r.modalidade || 'agendado', canalResultado: r.canal_resultado || 'email' };
@@ -555,6 +636,9 @@ function mapAtendimentoExpress(r) {
     prazoConclusaoEm: r.prazo_conclusao_em,
     iniciadoEm: r.iniciado_em,
     concluidoEm: r.concluido_em,
+    responsavelId: r.responsavel_id || null,
+    responsavelNome: r.responsavel_nome || null,
+    alertaSlaEm: r.alerta_sla_em || null,
     updatedAt: r.updated_at
   };
 }
@@ -573,11 +657,26 @@ async function mapDocumento(r) {
     ai: r.ai_extracted || null,
     checklistItem: r.checklist_item || null, createdAt: r.created_at };
 }
+async function mapRelatorioAnexo(r) {
+  const documento = r.documentos || null;
+  return {
+    id: r.id, reportId: r.relatorio_id, clientRef: r.cliente_ref,
+    caseRef: r.caso_ref || null, documentId: r.documento_id || null,
+    type: r.tipo || 'arquivo', title: r.titulo, description: r.descricao || null,
+    reference: r.referencia || null,
+    url: documento?.storage_path ? await signedDocUrl(documento.storage_path) : (r.url || null),
+    fileName: documento?.file_name || null, mime: documento?.mime || null,
+    size: documento?.size_bytes || null, visibleToClient: r.visivel_cliente !== false,
+    createdAt: r.created_at
+  };
+}
 function mapCredito(r) {
   return { id: r.id, codigo: r.codigo, valorCents: r.valor_cents, valor: r.valor_cents / 100,
     status: r.status, observacao: r.observacao, clienteRef: r.cliente_ref,
     clienteNome: r.clientes ? r.clientes.name : null,
-    usadoEm: r.usado_em, criadoPor: r.criado_por, createdAt: r.created_at };
+    usadoEm: r.usado_em, expiraEm: r.expira_em || null,
+    canceladoEm: r.cancelado_em || null, canceladoPor: r.cancelado_por || null,
+    criadoPor: r.criado_por, createdAt: r.created_at };
 }
 // Código legível, sem 0/O/1/I (se confundem ao digitar).
 function gerarCodigoCredito() {
@@ -820,7 +919,8 @@ async function routeApi(u, init, _fetch) {
       return jsonResponse((data || []).map(r => ({
         id: r.id, clienteId: r.cliente_id, clienteNome: r.cliente_nome, taxType: r.tax_type,
         finalizadoEm: r.finalizado_em, iniciadoEm: r.iniciado_em, duracaoSegundos: r.duracao_segundos,
-        honorarios: r.honorarios, notas: r.notas || null
+        honorarios: r.honorarios, notas: r.notas || null, casoRef: r.caso_ref || null,
+        relatorioId: r.relatorio_id || null, modalidade: r.modalidade || null, assunto: r.assunto || null
       })));
     }
 
@@ -1028,20 +1128,94 @@ async function routeApi(u, init, _fetch) {
       return jsonResponse((data || []).map(mapRelatorio));
     }
 
-    // Grava o relatório final. Só o contador chega aqui (RLS: insert = is_staff).
-    // Não sobrescreve os anteriores: cada atendimento gera um documento próprio,
-    // que fica no histórico do cliente.
+    // Grava o documento como pendente de entrega. Enquanto não houver confirmação
+    // da rota segura de finalização, o RLS não deixa o cliente enxergá-lo.
+    // Um documento pendente pode ser atualizado pelo próprio wizard, evitando
+    // versões duplicadas a cada tentativa de envio.
     if (path === '/api/relatorios' && method === 'POST') {
-      const { data, error } = await sb.from('relatorios').insert({
+      // Nome e documento são uma fotografia do cadastro no momento da emissão.
+      // Não aceitamos esses dois dados do navegador, evitando abreviações ou
+      // um CPF/CNPJ diferente do titular selecionado.
+      const { data: titular, error: titularError } = await sb.from('clientes')
+        .select('name,cpf').eq('id', body.clientId).maybeSingle();
+      if (titularError) throw titularError;
+      if (!titular) return jsonResponse({ error: 'cliente_not_found' }, 404);
+      const patch = {
         cliente_ref: body.clientId, titulo: body.titulo || null,
         problema: body.problema || null, solucao: body.solucao || null,
         oque_feito: body.oqueFeito || null, como_feito: body.comoFeito || null,
         contador_nome: body.contadorNome || null, contador_crc: body.contadorCrc || null,
         contador_logo: body.contadorLogo || null, contador_assinatura: body.contadorAssinatura || null,
-        cliente_nome: body.clienteNome || null, cliente_cpf: body.clienteCpf || null
-      }).select().single();
+        cliente_nome: titular.name || null, cliente_cpf: titular.cpf || null,
+        tipo_relatorio: body.tipoRelatorio === 'pendencias' ? 'pendencias' : 'atendimento',
+        formato: body.formato === 'essencial' ? 'essencial' : 'completo',
+        caso_ref: body.casoRef || null, atendimento_express_id: body.atendimentoExpressId || null,
+        agendamento_id: body.agendamentoId || null, status: body.status || 'entrega_pendente',
+        versao: Math.max(1, Number(body.versao) || 1), revisao_de: body.revisaoDe || null,
+        pendencias: body.pendencias || null,
+        proximos_passos: Array.isArray(body.proximosPassos) ? body.proximosPassos : [],
+        responsavel_proximo_passo: body.responsavelProximoPasso || null,
+        prazo_proximo_passo: body.prazoProximoPasso || null, entregas: body.entregas || null,
+        updated_at: new Date().toISOString()
+      };
+      const query = body.reportId
+        ? sb.from('relatorios').update(patch).eq('id', body.reportId).neq('status', 'entregue')
+        : sb.from('relatorios').insert(patch);
+      const { data, error } = await query.select().single();
       if (error) throw error;
       return jsonResponse(mapRelatorio(data));
+    }
+
+    // Arquivos, guias e protocolos ficam fora do PDF de uma página. Eles são
+    // entregues como um conjunto separado, com links curtos para o bucket privado.
+    if (path === '/api/relatorio-anexos' && method === 'GET') {
+      const reportId = q.get('relatorioId');
+      if (!reportId) return jsonResponse({ error: 'relatorio_id_obrigatorio' }, 400);
+      const { data, error } = await sb.from('relatorio_anexos')
+        .select('*,documentos(id,file_name,storage_path,mime,size_bytes)')
+        .eq('relatorio_id', reportId).order('created_at');
+      if (error) throw error;
+      return jsonResponse(await Promise.all((data || []).map(mapRelatorioAnexo)));
+    }
+    if (path === '/api/relatorio-anexos' && method === 'POST') {
+      const reportId = Number(body.relatorioId);
+      if (!reportId || !Array.isArray(body.anexos)) return jsonResponse({ error: 'invalid_params' }, 400);
+      const { data: relatorio, error: relatorioError } = await sb.from('relatorios')
+        .select('id,cliente_ref,caso_ref,status').eq('id', reportId).maybeSingle();
+      if (relatorioError) throw relatorioError;
+      if (!relatorio) return jsonResponse({ error: 'relatorio_not_found' }, 404);
+      if (relatorio.status === 'entregue') return jsonResponse({ error: 'relatorio_ja_entregue' }, 409);
+
+      const idsDocumentos = [...new Set(body.anexos.map(a => Number(a.documentId)).filter(Boolean))];
+      let documentosValidos = new Set();
+      if (idsDocumentos.length) {
+        const { data: docs, error: docsError } = await sb.from('documentos').select('id')
+          .eq('cliente_ref', relatorio.cliente_ref).in('id', idsDocumentos);
+        if (docsError) throw docsError;
+        documentosValidos = new Set((docs || []).map(d => Number(d.id)));
+        if (documentosValidos.size !== idsDocumentos.length) return jsonResponse({ error: 'documento_invalido' }, 400);
+      }
+      const linhas = body.anexos.slice(0, 30).map(a => {
+        const documentId = Number(a.documentId) || null;
+        const url = String(a.url || '').trim() || null;
+        const title = String(a.title || a.fileName || '').trim().slice(0, 160);
+        if (!title || (url && !/^https?:\/\//i.test(url))) throw new Error('anexo_invalido');
+        return {
+          relatorio_id: reportId, cliente_ref: relatorio.cliente_ref,
+          caso_ref: relatorio.caso_ref || null, documento_id: documentId,
+          tipo: ['arquivo','guia','protocolo','comprovante','link','outro'].includes(a.type) ? a.type : 'arquivo',
+          titulo: title, descricao: String(a.description || '').trim().slice(0, 500) || null,
+          referencia: String(a.reference || '').trim().slice(0, 160) || null,
+          url, visivel_cliente: a.visibleToClient !== false
+        };
+      });
+      const { error: deleteError } = await sb.from('relatorio_anexos').delete().eq('relatorio_id', reportId);
+      if (deleteError) throw deleteError;
+      if (linhas.length) {
+        const { error: insertError } = await sb.from('relatorio_anexos').insert(linhas);
+        if (insertError) throw insertError;
+      }
+      return jsonResponse({ ok: true, total: linhas.length });
     }
 
     // ---------- AVALIAÇÃO PÓS-ATENDIMENTO ----------
@@ -1050,13 +1224,29 @@ async function routeApi(u, init, _fetch) {
       const { data } = await sb.from('avaliacoes').select('*')
         .eq('cliente_ref', q.get('clientId')).order('created_at', { ascending: false });
       return jsonResponse((data || []).map(a => ({ id: a.id, clientRef: a.cliente_ref,
-        relatorioId: a.relatorio_id, nota: a.nota, comentario: a.comentario, createdAt: a.created_at })));
+        relatorioId: a.relatorio_id, casoRef: a.caso_ref || null,
+        nota: a.nota, comentario: a.comentario, createdAt: a.created_at })));
     }
 
     if (path === '/api/avaliacoes' && method === 'POST') {
+      let casoRefAvaliacao = body.casoRef || null;
+      if (body.relatorioId) {
+        const { data: relatorioAvaliacao, error: relatorioAvaliacaoError } = await sb.from('relatorios')
+          .select('cliente_ref,caso_ref,status').eq('id', body.relatorioId).maybeSingle();
+        if (relatorioAvaliacaoError || !relatorioAvaliacao || relatorioAvaliacao.status !== 'entregue' ||
+          String(relatorioAvaliacao.cliente_ref) !== String(body.clientId)) {
+          return jsonResponse({ error: 'relatorio_invalido_para_avaliacao' }, 403);
+        }
+        casoRefAvaliacao = relatorioAvaliacao.caso_ref || casoRefAvaliacao;
+      }
+      if (casoRefAvaliacao) {
+        const { data: existente } = await sb.from('avaliacoes').select('id,nota')
+          .eq('caso_ref', casoRefAvaliacao).maybeSingle();
+        if (existente) return jsonResponse({ id: existente.id, nota: existente.nota, alreadyExists: true });
+      }
       const { data, error } = await sb.from('avaliacoes').insert({
         cliente_ref: body.clientId, relatorio_id: body.relatorioId || null,
-        nota: body.nota, comentario: body.comentario || null
+        caso_ref: casoRefAvaliacao, nota: body.nota, comentario: body.comentario || null
       }).select().single();
       if (error) throw error;
       return jsonResponse({ id: data.id, nota: data.nota });
@@ -1169,7 +1359,8 @@ async function routeApi(u, init, _fetch) {
       } while (tentativas < 5 && (await sb.from('creditos').select('id').eq('codigo', codigo).maybeSingle()).data);
       const { data: sessao } = await sb.auth.getUser();
       const { data, error } = await sb.from('creditos').insert({
-        codigo, valor_cents: valorCents, observacao, criado_por: sessao?.user?.email || null
+        codigo, valor_cents: valorCents, observacao, criado_por: sessao?.user?.email || null,
+        expira_em: body.expiraEm || new Date(Date.now() + 90 * 86400000).toISOString()
       }).select().single();
       if (error) throw error;
       return jsonResponse(mapCredito(data));
@@ -1180,7 +1371,10 @@ async function routeApi(u, init, _fetch) {
       const { data: credito } = await sb.from('creditos').select('status').eq('id', id).single();
       if (!credito) return jsonResponse({ error: 'credito_not_found' }, 404);
       if (credito.status !== 'ativo') return jsonResponse({ error: 'credito_nao_esta_ativo' }, 400);
-      const { error } = await sb.from('creditos').update({ status: 'cancelado' }).eq('id', id);
+      const { data: sessao } = await sb.auth.getUser();
+      const { error } = await sb.from('creditos').update({
+        status: 'cancelado', cancelado_em: new Date().toISOString(), cancelado_por: sessao?.user?.email || null
+      }).eq('id', id);
       if (error) throw error;
       return jsonResponse({ ok: true });
     }
@@ -1235,12 +1429,23 @@ async function routeApi(u, init, _fetch) {
     if (mExpressStatus && method === 'POST') {
       const permitidos = ['aguardando_triagem', 'em_analise', 'em_execucao', 'aguardando_documentos', 'pronto_envio', 'concluido', 'cancelado'];
       if (!permitidos.includes(body.status)) return jsonResponse({ error: 'status_invalido' }, 400);
+      const expressId = Number(mExpressStatus[1]);
+      // A conclusão normal acontece na RPC de entrega. Esta proteção também
+      // impede uma chamada manual à rota de retirar o caso da fila antes de
+      // existir um relatório efetivamente visível na Área do Cliente.
+      if (body.status === 'concluido') {
+        const { data: entrega, error: entregaError } = await sb.from('relatorios')
+          .select('id').eq('atendimento_express_id', expressId).eq('status', 'entregue')
+          .order('entregue_em', { ascending: false }).limit(1).maybeSingle();
+        if (entregaError) throw entregaError;
+        if (!entrega) return jsonResponse({ error: 'resultado_ainda_nao_entregue' }, 409);
+      }
       const agora = new Date().toISOString();
       const patch = { status: body.status, updated_at: agora };
       if (body.status === 'em_execucao') patch.iniciado_em = agora;
       if (body.status === 'concluido') patch.concluido_em = agora;
       const { data, error } = await sb.from('atendimentos_express').update(patch)
-        .eq('id', Number(mExpressStatus[1])).select().single();
+        .eq('id', expressId).select().single();
       if (error) throw error;
       return jsonResponse(mapAtendimentoExpress(data));
     }

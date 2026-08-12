@@ -12,6 +12,8 @@ const asaas = require('./_lib/asaas');
 const { adminClient } = require('./_lib/auth');
 const { validarCpfCnpj } = require('../documento');
 const { checarRateLimit } = require('./_lib/rateLimit');
+const { registrarEventoFunil } = require('./_lib/metricas');
+const { registrarErro } = require('./_lib/monitoramento');
 
 // Pix sai mais barato pro cliente (e pra gente: sem taxa de parcelamento do
 // cartão) — mesmo desconto usado em toda a base.
@@ -66,12 +68,15 @@ module.exports = async (req, res) => {
       const payment = await asaas.createCardPayment({ customerId, value: precoCents / 100, description: descricao });
       const { data: cob, error } = await admin.from('cobrancas').insert({
         cliente_ref: clientId, servico_id: servicoId, asaas_customer_id: customerId,
-        asaas_payment_id: payment.id, valor_cents: precoCents, status: 'pending',
+        asaas_payment_id: payment.id, valor_cents: precoCents,
+        valor_original_cents: servico.price_cents, desconto_cents: servico.price_cents - precoCents,
+        desconto_tipo: cartao ? null : 'pix_5', origem: 'checkout_publico', status: 'pending',
         billing_type: 'CREDIT_CARD', invoice_url: payment.invoiceUrl,
         appt_date: modo === 'agendado' ? date : null, appt_time: modo === 'agendado' ? time : null,
         dados_cliente: dadosCliente, poll_token: pollToken, modalidade: modo, canal_resultado: canal
       }).select().single();
       if (error) throw error;
+      await registrarEventoFunil(admin, 'cobranca_criada', { cobrancaId: cob.id, clienteRef: clientId, servicoId, origem: 'checkout_publico', metadata: { metodo: 'cartao' } });
       return res.json({
         clientId, cobrancaId: cob.id, pollToken, servico: { id: servico.id, name: servico.name },
         valor: precoCents / 100, metodoPagamento: 'cartao', invoiceUrl: payment.invoiceUrl, status: 'pending'
@@ -82,12 +87,15 @@ module.exports = async (req, res) => {
     const qr = await asaas.getPixQrCode(payment.id);
     const { data: cob, error } = await admin.from('cobrancas').insert({
       cliente_ref: clientId, servico_id: servicoId, asaas_customer_id: customerId,
-      asaas_payment_id: payment.id, valor_cents: precoCents, status: 'pending',
+      asaas_payment_id: payment.id, valor_cents: precoCents,
+      valor_original_cents: servico.price_cents, desconto_cents: servico.price_cents - precoCents,
+      desconto_tipo: 'pix_5', origem: 'checkout_publico', status: 'pending',
       billing_type: 'PIX', pix_payload: qr.payload, pix_image: qr.encodedImage, invoice_url: payment.invoiceUrl,
       appt_date: modo === 'agendado' ? date : null, appt_time: modo === 'agendado' ? time : null,
       dados_cliente: dadosCliente, poll_token: pollToken, modalidade: modo, canal_resultado: canal
     }).select().single();
     if (error) throw error;
+    await registrarEventoFunil(admin, 'cobranca_criada', { cobrancaId: cob.id, clienteRef: clientId, servicoId, origem: 'checkout_publico', metadata: { metodo: 'pix' } });
 
     res.json({
       clientId, cobrancaId: cob.id, pollToken, servico: { id: servico.id, name: servico.name },
@@ -97,6 +105,8 @@ module.exports = async (req, res) => {
   } catch (e) {
     if (e.code === 'asaas_not_configured') return res.status(503).json({ error: 'asaas_not_configured' });
     console.error('signup-checkout error:', e.message);
+    await registrarErro(admin, { origem: 'signup_checkout', codigo: e.code || 'checkout_error', mensagem: e.message,
+      rota: '/api/signup-checkout', severidade: 'critico', contexto: { servicoId, modalidade: modo, metodoPagamento } });
     res.status(502).json({ error: 'asaas_error', detail: e.message });
   }
 };

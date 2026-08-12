@@ -10,6 +10,8 @@
 const { requireUser, adminClient } = require('./_lib/auth');
 const serpro = require('./_lib/serpro');
 const dividaAtiva = require('./_lib/divida-ativa');
+const cnd = require('./_lib/cnd');
+const { registrarErro } = require('./_lib/monitoramento');
 
 const DEFAULT_RADAR_CONFIG = {
   portalAtivo: true,
@@ -64,7 +66,7 @@ async function registrarConsumo(admin, { clienteRef, documento, idSistema, idSer
   try {
     const { error } = await admin.from('serpro_consultas').insert({
       cliente_ref: clienteRef || null,
-      documento,
+      documento: `${String(documento).length === 14 ? 'CNPJ' : 'CPF'}-***${String(documento).slice(-4)}`,
       id_sistema: idSistema,
       id_servico: idServico,
       acao,
@@ -154,7 +156,7 @@ module.exports = async (req, res) => {
       resultados: data || [],
       capacidades: {
         integraContador: serpro.isSerproConfigured(),
-        dividaAtiva: dividaAtiva.isConfigured()
+        dividaAtiva: dividaAtiva.isConfigured(), cnd: cnd.isConfigured()
       }
     });
   }
@@ -164,14 +166,14 @@ module.exports = async (req, res) => {
     if (!souStaff) return res.status(403).json({ error: 'forbidden' });
     return res.json({
       integraContador: serpro.isSerproConfigured(),
-      dividaAtiva: dividaAtiva.isConfigured(),
+      dividaAtiva: dividaAtiva.isConfigured(), cnd: cnd.isConfigured(),
       servicos: {
         caixaPostal: true,
         situacaoFiscal: true,
         parcelamentosSimplesMei: true,
         dividaAtivaUniao: dividaAtiva.isConfigured(),
         parcelamentosPgfnRegularize: false,
-        cnd: false
+        cnd: cnd.isConfigured()
       }
     });
   }
@@ -215,8 +217,8 @@ module.exports = async (req, res) => {
     if (salvo) return res.json({ ...salvo.resultado, cacheado: true, obtidoEm: salvo.obtido_em });
   }
 
-  const acaoDividaAtiva = ['divida-ativa', 'divida-ativa-detalhe'].includes(acao);
-  if (!acaoDividaAtiva && !serpro.isSerproConfigured()) {
+  const acaoExterna = ['divida-ativa', 'divida-ativa-detalhe', 'cnd'].includes(acao);
+  if (!acaoExterna && !serpro.isSerproConfigured()) {
     return res.status(503).json({ error: 'serpro_not_configured' });
   }
 
@@ -425,6 +427,19 @@ module.exports = async (req, res) => {
         }
       }
 
+      // ---- Certidão oficial (produto contratado separadamente) ----------
+      case 'cnd': {
+        try {
+          const r = await cnd.emitir(documento);
+          await log('CND', 'EMITIR-CERTIDAO', 'Emitir', true);
+          if (r.pdfBase64) await guardarResultado(admin, clienteRef, 'cnd', { emitidoEm:new Date().toISOString(), temPdf:true, protocolo:r.protocolo || null }, 24);
+          return res.json(r);
+        } catch (e) {
+          await log('CND', 'EMITIR-CERTIDAO', 'Emitir', false, e);
+          throw e;
+        }
+      }
+
       case 'emitir-das': {
         const { sistema, parcela } = body;
         if (!sistema || !parcela) return res.status(400).json({ error: 'sistema_e_parcela_required' });
@@ -450,6 +465,11 @@ module.exports = async (req, res) => {
     }
   } catch (e) {
     console.error('[radar-fiscal]', acao, e.message);
+    await registrarErro(admin, {
+      origem: 'radar_fiscal', codigo: e.code || 'radar_error', mensagem: e.message,
+      rota: '/api/radar-fiscal', severidade: e.code === 'sem_procuracao' ? 'aviso' : 'erro',
+      contexto: { acao, clienteRef, status: e.status || null }
+    });
     if (e.code === 'sem_procuracao') {
       return res.status(422).json({
         error: 'sem_procuracao',
@@ -466,6 +486,7 @@ module.exports = async (req, res) => {
     if (e.code === 'divida_ativa_not_contracted') {
       return res.status(403).json({ error: e.code, detail: 'As credenciais informadas não têm acesso contratado à Consulta Dívida Ativa.' });
     }
+    if (e.code === 'cnd_not_configured') return res.status(503).json({ error:e.code, detail:'A CND exige contratação e credenciais próprias. Configure a URL e as chaves do produto SERPRO na Vercel.' });
     return res.status(502).json({ error: 'serpro_error', detail: e.message });
   }
 };

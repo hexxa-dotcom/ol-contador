@@ -8,6 +8,7 @@ const { validarCpfCnpj } = require('../documento');
 const { enviarLinkDeAcesso, gerarAutoLogin, registrarAtendimentoExpress } = require('./_lib/pagamento');
 const { checarRateLimit } = require('./_lib/rateLimit');
 const notify = require('./_lib/notify');
+const { registrarEventoFunil } = require('./_lib/metricas');
 
 // Mesmo teto do campo no site — ver comentário em signup-checkout.js.
 const LIMITE_RESUMO = 150;
@@ -33,6 +34,7 @@ module.exports = async (req, res) => {
   const { data: credito } = await admin.from('creditos').select('*').eq('codigo', String(codigo).trim().toUpperCase()).maybeSingle();
   if (!credito) return res.status(404).json({ error: 'credito_not_found' });
   if (credito.status !== 'ativo') return res.status(410).json({ error: 'credito_indisponivel' });
+  if (credito.expira_em && new Date(credito.expira_em) <= new Date()) return res.status(410).json({ error: 'credito_expirado' });
 
   const { data: servico } = await admin.from('servicos').select('*').eq('id', servicoId).single();
   if (!servico) return res.status(404).json({ error: 'servico_not_found' });
@@ -104,6 +106,8 @@ module.exports = async (req, res) => {
 
     const { data: cob, error: erroCob } = await admin.from('cobrancas').insert({
       cliente_ref: clientId, servico_id: servicoId, valor_cents: servico.price_cents,
+      valor_original_cents: servico.price_cents, desconto_cents: 0,
+      desconto_tipo: 'credito_atendimento', origem: 'credito',
       status: 'paid', billing_type: 'CREDITO', paid_at: new Date().toISOString(),
       appt_date: modo === 'agendado' ? date : null, appt_time: modo === 'agendado' ? time : null,
       appointment_id: appt ? appt.id : null, modalidade: modo, canal_resultado: canal
@@ -121,9 +125,20 @@ module.exports = async (req, res) => {
       });
     }
 
-    await admin.from('creditos').update({
+    const { data: creditoConsumido, error: erroConsumo } = await admin.from('creditos').update({
       status: 'usado', usado_em: new Date().toISOString(), cliente_ref: clientId, cobranca_id: cob.id
-    }).eq('id', credito.id);
+    }).eq('id', credito.id).eq('status', 'ativo').select('id').maybeSingle();
+    if (erroConsumo || !creditoConsumido) {
+      await admin.from('cobrancas').delete().eq('id', cob.id);
+      if (appt) await admin.from('agendamentos').delete().eq('id', appt.id);
+      throw new Error('credito_ja_utilizado');
+    }
+    await registrarEventoFunil(admin, 'credito_resgatado', {
+      cobrancaId: cob.id, clienteRef: clientId, servicoId, origem: 'credito', metadata: { codigo: credito.codigo }
+    });
+    await registrarEventoFunil(admin, 'pagamento_confirmado', {
+      cobrancaId: cob.id, clienteRef: clientId, servicoId, origem: 'credito', metadata: { valorCents: servico.price_cents }
+    });
 
     await admin.from('notificacoes').insert({
       text: modo === 'sem_agendamento'

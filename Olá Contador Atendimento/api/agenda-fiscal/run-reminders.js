@@ -14,6 +14,7 @@ const notify = require('../_lib/notify');
 const serpro = require('../_lib/serpro');
 const { adminClient, requireUser } = require('../_lib/auth');
 const { nowTime } = require('../_lib/pagamento');
+const { registrarErro } = require('../_lib/monitoramento');
 
 const SITE_URL = process.env.SITE_URL || 'https://ola-contador.vercel.app';
 
@@ -222,7 +223,7 @@ async function rodarVarreduraCaixaPostal(admin) {
     // Registra o consumo mesmo quando falha: requisição recusada também foi
     // requisição cobrada, e erro que se repete toda semana é custo recorrente.
     await admin.from('serpro_consultas').insert({
-      cliente_ref: cli.id, documento,
+      cliente_ref: cli.id, documento: `${documento.length === 14 ? 'CNPJ' : 'CPF'}-***${documento.slice(-4)}`,
       id_sistema: 'CAIXAPOSTAL', id_servico: 'INNOVAMSG63', acao: 'Monitorar',
       sucesso: !erro,
       erro_codigo: erro ? (erro.code || 'erro') : null,
@@ -254,6 +255,61 @@ async function rodarVarreduraCaixaPostal(admin) {
   return { caixaPostalChecados: checados, caixaPostalComNovidade: comNovidade };
 }
 
+async function rodarAlertasAtendimentoExpress(admin) {
+  const limite = new Date(Date.now() + 12 * 60 * 60 * 1000).toISOString();
+  const { data: casos, error } = await admin.from('atendimentos_express').select('*')
+    .not('status', 'in', '(concluido,cancelado)')
+    .is('alerta_sla_em', null).lte('prazo_conclusao_em', limite).limit(50);
+  if (error) throw error;
+  let alertasExpress = 0;
+  for (const caso of (casos || [])) {
+    const atrasado = new Date(caso.prazo_conclusao_em) < new Date();
+    const { error: claimError } = await admin.from('atendimentos_express')
+      .update({ alerta_sla_em: new Date().toISOString() }).eq('id', caso.id).is('alerta_sla_em', null);
+    if (claimError) continue;
+    await admin.from('notificacoes').insert({
+      text: `${atrasado ? 'SLA vencido' : 'SLA vence em até 12h'}: Atendimento Express #${caso.id}${caso.responsavel_nome ? ` · ${caso.responsavel_nome}` : ' · sem responsável'}.`,
+      time: nowTime(), unread: true, cliente_ref: caso.cliente_ref
+    });
+    alertasExpress++;
+  }
+  return { alertasExpress };
+}
+
+async function expirarCofreGovbr(admin) {
+  const agora = new Date().toISOString();
+  const { data: expirados, error } = await admin.from('govbr_credenciais_cofre')
+    .update({ status: 'expired', ciphertext: null, iv: null, auth_tag: null, deleted_at: agora })
+    .eq('status', 'pending').lt('expires_at', agora).select('cliente_id');
+  if (error) throw error;
+  if ((expirados || []).length) {
+    await admin.from('govbr_credenciais_auditoria').insert(expirados.map(item => ({
+      cliente_id: item.cliente_id, ator_id: null, evento: 'expired', detalhes: { origem: 'cron' }
+    })));
+  }
+  return { cofresExpirados: (expirados || []).length };
+}
+
+async function aplicarRetencaoDados(admin) {
+  const { data: linha } = await admin.from('configuracoes').select('valor').eq('chave', 'retencao_dados').maybeSingle();
+  const cfg = linha?.valor || {};
+  const antesDe = dias => new Date(Date.now() - dias * 86400000).toISOString();
+  const resultados = {};
+  const operacoes = [
+    ['erros', admin.from('app_erros').delete().lt('ultimo_em', antesDe(Number(cfg.errosDias) || 90)).select('id')],
+    ['rateLimits', admin.from('rate_limits').delete().lt('criado_em', antesDe(Number(cfg.rateLimitsDias) || 2)).select('id')],
+    ['webhooks', admin.from('webhook_eventos').delete().lt('recebido_em', antesDe(Number(cfg.webhooksDias) || 180)).select('id')],
+    ['serproAuditoria', admin.from('serpro_consultas').delete().lt('criado_em', antesDe(Number(cfg.serproAuditoriaDias) || 365)).select('id')],
+    ['serproCache', admin.from('serpro_resultados').delete().not('expira_em','is',null).lt('expira_em', antesDe(Number(cfg.serproCacheExpiradoDias) || 30)).select('id')]
+  ];
+  for (const [nome, operacao] of operacoes) {
+    const { data, error } = await operacao;
+    if (error && !/column|schema cache/i.test(error.message || '')) throw error;
+    resultados[nome] = (data || []).length;
+  }
+  return { retencaoRemovidos: resultados };
+}
+
 module.exports = async (req, res) => {
   const admin = adminClient();
   if (!admin) return res.status(503).json({ error: 'service_role_not_configured' });
@@ -279,6 +335,9 @@ module.exports = async (req, res) => {
       .select('*').eq('status', 'pending').eq('date', hoje);
     const enviados1h = await rodarLembrete1hAntes(admin, agendamentosHoje || []);
     const enviadosLink = await rodarLembreteLinkAcesso(admin, agendamentosHoje || []);
+    const express = await rodarAlertasAtendimentoExpress(admin);
+    const cofre = await expirarCofreGovbr(admin);
+    const retencao = await aplicarRetencaoDados(admin);
 
     // Uma falha na varredura do Serpro (fora do nosso controle: gateway,
     // certificado, procuração) não pode derrubar os lembretes, que são a
@@ -291,9 +350,10 @@ module.exports = async (req, res) => {
       radar = { caixaPostalChecados: 0, caixaPostalErro: e.message };
     }
 
-    res.json({ ...r, ...r2, enviados1h, enviadosLink, ...radar });
+    res.json({ ...r, ...r2, enviados1h, enviadosLink, ...express, ...cofre, ...retencao, ...radar });
   } catch (e) {
     console.error('lembretes error:', e.message);
+    await registrarErro(admin, { origem: 'cron', codigo: e.code || 'reminders_failed', mensagem: e.message, rota: '/api/agenda-fiscal/run-reminders', severidade: 'critico' });
     res.status(500).json({ error: 'reminders_failed', detail: e.message });
   }
 };

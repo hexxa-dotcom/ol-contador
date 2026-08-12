@@ -657,12 +657,20 @@ function slaAtendimentoExpress(prazo) {
 async function atualizarStatusAtendimentoExpress(id, status, botao) {
   if (botao) botao.disabled = true;
   try {
-    const res = await fetch(`${API_BASE}/api/atendimentos-express/${encodeURIComponent(id)}/status`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status })
+    const res = await fetch(`${API_BASE}/api/status?acao=atualizar-atendimento-express`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${await tokenSessaoAtual()}` },
+      body: JSON.stringify({ id, status })
     });
     if (!res.ok) throw new Error('status_nao_salvo');
-    showToast(status === 'concluido' ? 'Atendimento Express concluído.' : 'Atendimento Express iniciado.', 'success');
+    showToast(status === 'pronto_envio' ? 'Execução concluída. Prepare a entrega do resultado.' : 'Atendimento Express iniciado.', 'success');
     await renderAtendimentosExpress();
+    if (status === 'pronto_envio') {
+      const item = atendimentosExpress.find(atendimento => String(atendimento.id) === String(id));
+      if (item) abrirRelatorio(item.clientRef, {
+        caseRef: `express:${item.id}`, expressId: item.id, appointmentId: null,
+        modalidade: 'sem_agendamento', assunto: item.assunto || clientsData[item.clientRef]?.taxType || 'Atendimento Express'
+      });
+    }
   } catch (_) {
     showToast('Não foi possível atualizar o Atendimento Express.');
     if (botao) botao.disabled = false;
@@ -696,8 +704,10 @@ async function renderAtendimentosExpress() {
       const proximaAcao = item.status === 'em_analise'
         ? `<button class="btn-doc-action express-action" type="button" data-express-id="${safe(item.id)}" data-express-status="em_execucao"><i class="fa-solid fa-play"></i> Iniciar</button>`
         : item.status === 'em_execucao'
-          ? `<button class="btn-doc-action express-action" type="button" data-express-id="${safe(item.id)}" data-express-status="concluido"><i class="fa-solid fa-check"></i> Concluir</button>`
-          : '';
+          ? `<button class="btn-doc-action express-action" type="button" data-express-id="${safe(item.id)}" data-express-status="pronto_envio"><i class="fa-solid fa-file-circle-check"></i> Preparar entrega</button>`
+          : item.status === 'pronto_envio'
+            ? `<button class="btn-doc-action express-relatorio" type="button" data-express-id="${safe(item.id)}"><i class="fa-solid fa-file-circle-plus"></i> Entregar resultado</button>`
+            : '';
       return `<div class="dashboard-alert-card express-card ${sla.atrasado ? 'express-atrasado' : ''}">
         <div class="dashboard-alert-card-top">
           <span>${safe(cliente.name || item.clientRef || 'Cliente')}</span>
@@ -705,7 +715,7 @@ async function renderAtendimentosExpress() {
         </div>
         <div class="express-tags"><span class="express-tag"><i class="fa-solid fa-bolt"></i> EXPRESS</span><span class="sla-badge ${status.classe}">${safe(status.label)}</span></div>
         <p class="express-assunto">${safe(assunto)}</p>
-        <div class="express-datas"><span><i class="fa-solid fa-cart-shopping"></i> Contratado: ${safe(formatarDataHoraExpress(item.contratadoEm))}</span><span><i class="fa-solid fa-flag-checkered"></i> Conclusão: ${safe(formatarDataHoraExpress(item.prazoConclusaoEm))}</span></div>
+        <div class="express-datas"><span><i class="fa-solid fa-cart-shopping"></i> Contratado: ${safe(formatarDataHoraExpress(item.contratadoEm))}</span><span><i class="fa-solid fa-flag-checkered"></i> Conclusão: ${safe(formatarDataHoraExpress(item.prazoConclusaoEm))}</span>${item.responsavelNome ? `<span><i class="fa-solid fa-user-check"></i> Responsável: ${safe(item.responsavelNome)}</span>` : ''}</div>
         <div class="express-documentos"><i class="fa-solid fa-file-arrow-up"></i> ${docs} documento${docs !== 1 ? 's' : ''} enviado${docs !== 1 ? 's' : ''}${item.status === 'aguardando_triagem' ? ' · aguardando triagem' : item.status === 'aguardando_documentos' ? ' · aguardando complemento' : ' · triagem recebida'}</div>
         <div class="dashboard-card-actions"><button class="btn-doc-action express-dossie" type="button" data-client-id="${safe(item.clientRef)}"><i class="fa-solid fa-folder-open"></i> Abrir caso</button>${proximaAcao}</div>
       </div>`;
@@ -713,6 +723,11 @@ async function renderAtendimentosExpress() {
 
     lista.querySelectorAll('.express-dossie').forEach(btn => btn.addEventListener('click', () => openDossier(btn.dataset.clientId)));
     lista.querySelectorAll('.express-action').forEach(btn => btn.addEventListener('click', () => atualizarStatusAtendimentoExpress(btn.dataset.expressId, btn.dataset.expressStatus, btn)));
+    lista.querySelectorAll('.express-relatorio').forEach(btn => btn.addEventListener('click', () => {
+      const item = atendimentosExpress.find(atendimento => String(atendimento.id) === String(btn.dataset.expressId));
+      if (item) abrirRelatorio(item.clientRef, { caseRef:`express:${item.id}`, expressId:item.id, appointmentId:null,
+        modalidade:'sem_agendamento', assunto:item.assunto || clientsData[item.clientRef]?.taxType || 'Atendimento Express' });
+    }));
   } catch (_) {
     if (badge) badge.textContent = 'indisponível';
     lista.innerHTML = '<div class="dashboard-empty-state"><i class="fa-solid fa-triangle-exclamation"></i><p>Fila Express indisponível.</p><span>Confirme se a migração do banco foi executada.</span></div>';
@@ -909,7 +924,7 @@ function renderFinanceiroCobrancasAbertas() {
   if (!tbody) return;
 
   const comDias = financeiro.cobrancas
-    .filter(c => c.status !== 'paid')
+    .filter(c => ['pending','overdue'].includes(c.status))
     .map(c => ({ ...c, dias: c.createdAt ? Math.max(0, Math.floor((Date.now() - new Date(c.createdAt).getTime()) / 86400000)) : null }));
 
   if (badge) badge.textContent = String(comDias.length);
@@ -2304,23 +2319,196 @@ async function carregarPerfilPainel() {
 let relWizardClientId = null;
 let relWizardStep = 'cliente';
 let relatorioGeradoId = null;
+let relWizardCaso = null;
+let relWizardDirty = false;
+let relWizardRevisaoDe = null;
+let relWizardVersao = 1;
+let relDraftTimer = null;
+let relatorioCodigoValidacao = null;
+let relWizardAnexos = [];
+let relWizardDocumentos = [];
+
+const RELATORIO_CAMPOS = [
+  'rel-tipo', 'rel-formato', 'rel-titulo', 'rel-problema', 'rel-solucao', 'rel-oquefeito', 'rel-comofeito',
+  'rel-entregas', 'rel-pendencias', 'rel-responsavel', 'rel-prazo'
+];
+
+const MODELOS_RELATORIO = {
+  geral: {
+    problema: 'Descreva de forma objetiva a situação apresentada pelo cliente.',
+    solucao: 'Informe o resultado obtido e deixe claro o que foi concluído.',
+    oqueFeito: '• Análise das informações e documentos recebidos\n• Execução do serviço contratado',
+    comoFeito: '• Confira o resultado e guarde este relatório\n• Acompanhe abaixo somente os passos que ainda estiverem pendentes'
+  },
+  pf: {
+    problema: 'Descreva a demanda da pessoa física, os períodos envolvidos e eventual dificuldade de acesso ao gov.br.',
+    solucao: 'Informe o que foi regularizado, consultado, transmitido ou orientado e o resultado atual.',
+    oqueFeito: '• Conferência cadastral e fiscal\n• Consulta dos serviços necessários\n• Execução e conferência do resultado',
+    comoFeito: '• Guarde protocolos e comprovantes\n• Reative a autenticação em duas etapas do gov.br, caso ela tenha sido desativada\n• Exclua o acesso compartilhado quando o serviço terminar'
+  },
+  pj: {
+    problema: 'Descreva a demanda da empresa, CNPJ, competências e obrigações envolvidas.',
+    solucao: 'Informe a situação final da empresa e o que foi efetivamente entregue.',
+    oqueFeito: '• Conferência cadastral e tributária\n• Análise das obrigações e pendências\n• Execução do serviço e validação dos comprovantes',
+    comoFeito: '• Arquive guias, recibos e protocolos\n• Observe os próximos vencimentos informados neste relatório'
+  },
+  regularizacao: {
+    problema: 'Descreva as pendências, débitos, inscrições e competências localizadas.',
+    solucao: 'Informe o que foi regularizado e a situação de cada débito ou parcelamento.',
+    oqueFeito: '• Levantamento da situação fiscal\n• Conferência de dívida ativa e parcelamentos\n• Emissão de guias, protocolos e comprovantes aplicáveis',
+    comoFeito: '• Pague as parcelas até o vencimento\n• Acompanhe a consolidação e eventual baixa nos órgãos responsáveis'
+  }
+};
+
+function aplicarModeloRelatorio() {
+  const tipoModelo = document.getElementById('rel-modelo')?.value || 'geral';
+  const modelo = MODELOS_RELATORIO[tipoModelo];
+  if (!modelo) return;
+  const mapa = { problema:'rel-problema', solucao:'rel-solucao', oqueFeito:'rel-oquefeito', comoFeito:'rel-comofeito' };
+  const possuiTexto = Object.values(mapa).some(id => valorRelatorio(id));
+  if (possuiTexto && !window.confirm('Aplicar o modelo vai substituir os textos desses campos. Continuar?')) return;
+  Object.entries(modelo).forEach(([campo, texto]) => { const el = document.getElementById(mapa[campo]); if (el) el.value = texto; });
+  const tipo = document.getElementById('rel-tipo');
+  if (tipo) tipo.value = tipoModelo === 'regularizacao' ? 'pendencias' : 'atendimento';
+  atualizarCamposTipoRelatorio();
+  relWizardDirty = true;
+  salvarRascunhoRelatorio();
+  atualizarPreviaRelatorio();
+  showToast('Modelo aplicado. Personalize o texto antes de entregar.');
+}
+
+function atualizarCamposTipoRelatorio() {
+  const pendencias = valorRelatorio('rel-tipo') === 'pendencias';
+  const formato = document.getElementById('rel-formato');
+  if (formato) formato.value = pendencias ? 'completo' : 'essencial';
+  const blocoPendencias = document.getElementById('rel-bloco-pendencias');
+  const blocoComoFeito = document.getElementById('rel-bloco-comofeito');
+  if (blocoPendencias) blocoPendencias.hidden = !pendencias;
+  if (blocoComoFeito) blocoComoFeito.hidden = !pendencias;
+  const titulo = document.getElementById('rel-label-titulo');
+  const problema = document.getElementById('rel-label-problema');
+  const solucao = document.getElementById('rel-label-solucao');
+  const feito = document.getElementById('rel-label-oquefeito');
+  if (titulo) titulo.textContent = pendencias ? 'Título do relatório de pendências' : 'Título do atendimento';
+  if (problema) problema.textContent = pendencias ? 'Contexto e origem da análise' : 'Descrição objetiva do caso';
+  if (solucao) solucao.textContent = pendencias ? 'Conclusão técnica' : 'Resolução do caso';
+  if (feito) feito.innerHTML = pendencias
+    ? 'Evidências e documentos analisados <span class="relatorio-label-hint">(um item por linha)</span>'
+    : 'Providências realizadas <span class="relatorio-label-hint">(um item por linha)</span>';
+  const campoTitulo = document.getElementById('rel-titulo');
+  if (campoTitulo) campoTitulo.placeholder = pendencias ? 'Ex.: Relatório de Pendências Fiscais' : 'Ex.: Regularização de Malha Fina 2024';
+  const consequencia = document.getElementById('rel-consequencia');
+  if (consequencia) consequencia.innerHTML = pendencias
+    ? '<i class="fa-solid fa-circle-info"></i> O relatório será entregue ao cliente sem encerrar o caso, arquivar a triagem ou baixar tarefas.'
+    : '<i class="fa-solid fa-circle-info"></i> Ao confirmar, o relatório ficará disponível para o cliente e o caso correspondente será concluído.';
+}
+
+function valorRelatorio(id) {
+  const el = document.getElementById(id);
+  return el ? String(el.value || '').trim() : '';
+}
+
+function chaveRascunhoRelatorio() {
+  const ref = relWizardCaso?.caseRef || (relWizardClientId ? `cliente:${relWizardClientId}` : 'novo');
+  return 'oc_relatorio_rascunho_' + ref.replace(/[^a-zA-Z0-9_-]/g, '_');
+}
+
+function salvarRascunhoRelatorio() {
+  if (!relWizardClientId) return;
+  const dados = {};
+  RELATORIO_CAMPOS.forEach(id => { const el = document.getElementById(id); if (el) dados[id] = el.value; });
+  try {
+    localStorage.setItem(chaveRascunhoRelatorio(), JSON.stringify({
+      clientId: relWizardClientId, caso: relWizardCaso, dados, updatedAt: new Date().toISOString()
+    }));
+    const status = document.getElementById('rel-draft-status');
+    if (status) status.textContent = 'Rascunho salvo automaticamente';
+  } catch (_) { /* armazenamento indisponível */ }
+}
+
+function restaurarRascunhoRelatorio() {
+  try {
+    const raw = localStorage.getItem(chaveRascunhoRelatorio());
+    if (!raw) return false;
+    const draft = JSON.parse(raw);
+    if (!draft.updatedAt || Date.now() - new Date(draft.updatedAt).getTime() > 24 * 60 * 60 * 1000) {
+      localStorage.removeItem(chaveRascunhoRelatorio());
+      return false;
+    }
+    Object.entries(draft.dados || {}).forEach(([id, value]) => {
+      const el = document.getElementById(id); if (el) el.value = value || '';
+    });
+    return true;
+  } catch (_) { return false; }
+}
+
+function limparRascunhoRelatorio() {
+  try { localStorage.removeItem(chaveRascunhoRelatorio()); } catch (_) {}
+  relWizardDirty = false;
+}
+
+function resolverCasoRelatorio(clientId, casoInformado) {
+  if (casoInformado?.caseRef) return casoInformado;
+  const cliente = clientsData[clientId] || {};
+  // Uma contratação Express antiga não pode capturar por engano o relatório
+  // de um atendimento agendado mais recente do mesmo cliente. Quando o fluxo
+  // parte do card Express, o caso vem informado; aqui só inferimos Express se
+  // o próprio cadastro ainda aponta essa modalidade.
+  const expressos = cliente.atendimentoModalidade === 'sem_agendamento' ? atendimentosExpress
+    .filter(item => String(item.clientRef) === String(clientId) && item.status !== 'cancelado')
+    .sort((a, b) => new Date(b.contratadoEm || 0) - new Date(a.contratadoEm || 0)) : [];
+  if (expressos.length) {
+    const item = expressos[0];
+    return { caseRef: `express:${item.id}`, expressId: item.id, appointmentId: null,
+      modalidade: 'sem_agendamento', assunto: item.assunto || clientsData[clientId]?.taxType || 'Atendimento Express' };
+  }
+  const agendamentos = appointments
+    .filter(item => String(item.clientRef) === String(clientId))
+    .sort((a, b) => String(`${b.date || ''} ${b.time || ''}`).localeCompare(String(`${a.date || ''} ${a.time || ''}`)));
+  if (agendamentos.length) {
+    const item = agendamentos[0];
+    return { caseRef: `agendamento:${item.id}`, expressId: null, appointmentId: item.id,
+      modalidade: 'agendado', assunto: item.taxType || clientsData[clientId]?.taxType || 'Atendimento' };
+  }
+  const finalizado = clientsData[clientId]?.ultimoFinalizadoEm || new Date().toISOString();
+  return { caseRef: `cliente:${clientId}:${new Date(finalizado).getTime()}`, expressId: null,
+    appointmentId: null, modalidade: clientsData[clientId]?.atendimentoModalidade || 'agendado',
+    assunto: clientsData[clientId]?.taxType || 'Atendimento' };
+}
 
 function relatorioObjAtual() {
   const client = clientsData[relWizardClientId] || {};
+  const tipoRelatorio = valorRelatorio('rel-tipo') === 'pendencias' ? 'pendencias' : 'atendimento';
+  const pendencias = tipoRelatorio === 'pendencias' ? valorRelatorio('rel-pendencias') : '';
+  const comoFeito = tipoRelatorio === 'pendencias' ? valorRelatorio('rel-comofeito') : valorRelatorio('rel-solucao');
   return {
-    id: 'previa',
+    id: relatorioGeradoId || 'previa',
     clientRef: relWizardClientId,
     clienteNome: client.name || '',
     clienteCpf: client.cpf || '',
-    titulo: document.getElementById("rel-titulo").value.trim(),
-    problema: document.getElementById("rel-problema").value.trim(),
-    solucao: document.getElementById("rel-solucao").value.trim(),
-    oqueFeito: document.getElementById("rel-oquefeito").value,
-    comoFeito: document.getElementById("rel-comofeito").value,
+    tipoRelatorio,
+    formato: tipoRelatorio === 'pendencias' ? 'completo' : 'essencial',
+    codigoValidacao: relatorioCodigoValidacao,
+    titulo: valorRelatorio('rel-titulo'),
+    problema: valorRelatorio('rel-problema'),
+    solucao: valorRelatorio('rel-solucao'),
+    oqueFeito: valorRelatorio('rel-oquefeito'),
+    comoFeito,
+    entregas: '',
+    pendencias,
+    proximosPassos: [],
+    responsavelProximoPasso: null,
+    prazoProximoPasso: null,
+    casoRef: relWizardCaso?.caseRef || null,
+    atendimentoExpressId: relWizardCaso?.expressId || null,
+    agendamentoId: relWizardCaso?.appointmentId || null,
+    versao: relWizardVersao,
+    revisaoDe: relWizardRevisaoDe,
     contadorNome: (PERFIL_PAINEL && PERFIL_PAINEL.name) || 'Contador',
     contadorCrc: (PERFIL_PAINEL && PERFIL_PAINEL.crc) || '',
     contadorLogo: (PERFIL_PAINEL && PERFIL_PAINEL.logoDataUrl) || '',
     contadorAssinatura: (PERFIL_PAINEL && PERFIL_PAINEL.assinaturaDataUrl) || '',
+    status: 'entrega_pendente',
     createdAt: new Date().toISOString()
   };
 }
@@ -2352,9 +2540,76 @@ function renderRelatorioClienteLista(query) {
       ${c.id === relWizardClientId ? '<i class="fa-solid fa-circle-check" style="color:var(--color-pine)"></i>' : ''}
     </button>`).join('') : '<p style="padding:16px;font-size:12px;color:var(--color-text-secondary)">Nenhum cliente encontrado.</p>';
   box.querySelectorAll('[data-rel-cliente]').forEach(btn => btn.addEventListener('click', () => {
+    if (relWizardDirty && relWizardClientId !== btn.dataset.relCliente && !window.confirm('Trocar de cliente? O rascunho atual continuará salvo neste dispositivo.')) return;
     relWizardClientId = btn.dataset.relCliente;
+    relWizardCaso = resolverCasoRelatorio(relWizardClientId);
     renderRelatorioClienteLista(document.getElementById('rel-cliente-busca').value);
   }));
+}
+
+function atualizarRevisaoEntrega() {
+  const rel = relatorioObjAtual();
+  const cliente = clientsData[relWizardClientId] || {};
+  const set = (id, texto) => { const el = document.getElementById(id); if (el) el.textContent = texto || '—'; };
+  set('rel-review-cliente', cliente.name || relWizardClientId);
+  set('rel-review-formato', rel.tipoRelatorio === 'pendencias' ? 'Relatório de Pendências' : 'Relatório de Atendimento');
+  set('rel-review-caso', relWizardCaso?.assunto || rel.titulo);
+  set('rel-review-resultado', rel.solucao);
+  set('rel-review-anexos', relWizardAnexos.length ? `${relWizardAnexos.length} arquivo${relWizardAnexos.length !== 1 ? 's' : ''} / comprovante${relWizardAnexos.length !== 1 ? 's' : ''}` : 'Nenhum');
+}
+
+function renderRelatorioAnexos() {
+  const box = document.getElementById('rel-anexos-documentos');
+  const manuais = document.getElementById('rel-anexos-manuais');
+  const contador = document.getElementById('rel-anexos-contador');
+  if (contador) contador.textContent = `${relWizardAnexos.length} selecionado${relWizardAnexos.length !== 1 ? 's' : ''}`;
+  if (box) {
+    box.innerHTML = relWizardDocumentos.length ? relWizardDocumentos.map(doc => {
+      const marcado = relWizardAnexos.some(a => String(a.documentId) === String(doc.id));
+      return `<label class="relatorio-anexo-item"><input type="checkbox" data-rel-doc="${safe(doc.id)}" ${marcado ? 'checked' : ''}><i class="fa-solid fa-paperclip"></i><span>${safe(doc.fileName || 'Documento')}</span></label>`;
+    }).join('') : '<small>Nenhum documento enviado por este cliente.</small>';
+    box.querySelectorAll('[data-rel-doc]').forEach(input => input.addEventListener('change', () => {
+      const doc = relWizardDocumentos.find(d => String(d.id) === String(input.dataset.relDoc));
+      if (!doc) return;
+      relWizardAnexos = input.checked
+        ? [...relWizardAnexos.filter(a => String(a.documentId) !== String(doc.id)), { documentId: doc.id, type: 'arquivo', title: doc.fileName, fileName: doc.fileName, visibleToClient: true }]
+        : relWizardAnexos.filter(a => String(a.documentId) !== String(doc.id));
+      relWizardDirty = true; renderRelatorioAnexos();
+    }));
+  }
+  if (manuais) {
+    const itens = relWizardAnexos.filter(a => !a.documentId);
+    manuais.innerHTML = itens.map((a, i) => `<div class="relatorio-anexo-item"><i class="fa-solid fa-link"></i><span><strong>${safe(a.title)}</strong>${a.url ? `<br><small>${safe(a.url)}</small>` : ''}</span><button type="button" class="btn-doc-action" data-remover-anexo="${i}" aria-label="Remover"><i class="fa-solid fa-xmark"></i></button></div>`).join('');
+    manuais.querySelectorAll('[data-remover-anexo]').forEach(btn => btn.addEventListener('click', () => {
+      const manuaisAtuais = relWizardAnexos.filter(a => !a.documentId);
+      const alvo = manuaisAtuais[Number(btn.dataset.removerAnexo)];
+      relWizardAnexos = relWizardAnexos.filter(a => a !== alvo); relWizardDirty = true; renderRelatorioAnexos();
+    }));
+  }
+}
+
+async function carregarRelatorioAnexos() {
+  relWizardDocumentos = [];
+  relWizardAnexos = [];
+  if (!relWizardClientId) { renderRelatorioAnexos(); return; }
+  try {
+    const [docsRes, anexosRes] = await Promise.all([
+      fetch(API_BASE + '/api/documentos?clientId=' + encodeURIComponent(relWizardClientId)),
+      relatorioGeradoId ? fetch(API_BASE + '/api/relatorio-anexos?relatorioId=' + encodeURIComponent(relatorioGeradoId)) : Promise.resolve(null)
+    ]);
+    if (docsRes.ok) relWizardDocumentos = await docsRes.json();
+    if (anexosRes && anexosRes.ok) relWizardAnexos = await anexosRes.json();
+  } catch (_) { /* o relatório continua disponível mesmo sem anexos */ }
+  renderRelatorioAnexos();
+}
+
+async function salvarRelatorioAnexos() {
+  if (!relatorioGeradoId) return;
+  const res = await fetch(API_BASE + '/api/relatorio-anexos', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ relatorioId: relatorioGeradoId, anexos: relWizardAnexos })
+  });
+  if (!res.ok) throw new Error('falha_ao_salvar_anexos');
 }
 
 function irParaPassoRelatorio(passo) {
@@ -2379,6 +2634,7 @@ function irParaPassoRelatorio(passo) {
     requestAnimationFrame(() => requestAnimationFrame(atualizarPreviaRelatorio));
     setTimeout(atualizarPreviaRelatorio, 150);
   }
+  if (passo === 'enviar') atualizarRevisaoEntrega();
 }
 
 // Abre o wizard, dentro da aba "Relatórios" -> "Novo Relatório" (página
@@ -2387,24 +2643,63 @@ function irParaPassoRelatorio(passo) {
 // passo de descrever o caso — o passo "Cliente" continua acessível pelo
 // "Voltar", pra quem quiser trocar. Sem cliente nenhum, abre no passo 1 pra
 // a pessoa escolher.
-async function abrirRelatorio(clientId) {
+async function abrirRelatorio(clientId, casoInformado = null, revisao = null) {
   relWizardClientId = clientId || activeClientId || null;
   await carregarPerfilPainel();
   relatorioGeradoId = null;
+  relatorioCodigoValidacao = revisao?.codigoValidacao || null;
+  relWizardRevisaoDe = revisao?.id || null;
+  relWizardVersao = revisao ? Math.max(2, Number(revisao.versao || 1) + 1) : 1;
+  relWizardCaso = relWizardClientId ? resolverCasoRelatorio(relWizardClientId, casoInformado || (revisao ? {
+    caseRef: revisao.casoRef, expressId: revisao.atendimentoExpressId,
+    appointmentId: revisao.agendamentoId,
+    modalidade: revisao.atendimentoExpressId ? 'sem_agendamento' : 'agendado', assunto: revisao.titulo
+  } : null)) : null;
   const client = clientsData[relWizardClientId] || {};
-  ['rel-titulo', 'rel-problema', 'rel-solucao', 'rel-oquefeito', 'rel-comofeito'].forEach(id => { document.getElementById(id).value = ''; });
-  document.getElementById('rel-titulo').value = client.diagnosis || '';
-  document.getElementById('rel-envio-chat').checked = true;
+  RELATORIO_CAMPOS.forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+  document.getElementById('rel-tipo').value = revisao?.tipoRelatorio || 'atendimento';
+  atualizarCamposTipoRelatorio();
+  document.getElementById('rel-titulo').value = revisao?.titulo || client.diagnosis || relWizardCaso?.assunto || '';
+  ['problema', 'solucao', 'oqueFeito', 'comoFeito', 'entregas', 'pendencias'].forEach(campo => {
+    const ids = { problema:'rel-problema', solucao:'rel-solucao', oqueFeito:'rel-oquefeito', comoFeito:'rel-comofeito', entregas:'rel-entregas', pendencias:'rel-pendencias' };
+    if (revisao?.[campo] && document.getElementById(ids[campo])) document.getElementById(ids[campo]).value = revisao[campo];
+  });
+  if (revisao?.responsavelProximoPasso) document.getElementById('rel-responsavel').value = revisao.responsavelProximoPasso;
+  if (revisao?.prazoProximoPasso) document.getElementById('rel-prazo').value = revisao.prazoProximoPasso;
   document.getElementById('rel-envio-caixa-postal').checked = false;
-  document.getElementById('rel-envio-email').checked = false;
+  document.getElementById('rel-envio-email').checked = !!client.email;
   document.getElementById('rel-envio-status').innerHTML = '&nbsp;';
   document.getElementById('rel-cliente-busca').value = '';
+  const casoEl = document.getElementById('rel-caso-contexto');
+  if (casoEl) casoEl.textContent = relWizardCaso ? `${relWizardCaso.modalidade === 'sem_agendamento' ? 'Atendimento Express' : 'Atendimento agendado'} · ${relWizardCaso.assunto || relWizardCaso.caseRef}` : 'Caso ainda não identificado';
+
+  // Se já existe uma entrega pendente deste caso, continua no mesmo registro.
+  if (!revisao && relWizardCaso?.caseRef) {
+    try {
+      const todos = await (await fetch(API_BASE + '/api/relatorios')).json();
+      const pendente = (todos || []).find(r => r.casoRef === relWizardCaso.caseRef && ['rascunho','gerado','entrega_pendente','falha_na_entrega'].includes(r.status));
+      if (pendente) {
+        relatorioGeradoId = pendente.id;
+        relatorioCodigoValidacao = pendente.codigoValidacao || null;
+        relWizardVersao = pendente.versao || 1;
+        const mapa = { titulo:'rel-titulo', problema:'rel-problema', solucao:'rel-solucao', oqueFeito:'rel-oquefeito', comoFeito:'rel-comofeito', entregas:'rel-entregas', pendencias:'rel-pendencias', responsavelProximoPasso:'rel-responsavel', prazoProximoPasso:'rel-prazo' };
+        Object.entries(mapa).forEach(([campo, id]) => { const el = document.getElementById(id); if (el && pendente[campo]) el.value = pendente[campo]; });
+        document.getElementById('rel-tipo').value = pendente.tipoRelatorio || 'atendimento';
+        atualizarCamposTipoRelatorio();
+      }
+    } catch (_) { /* abre um novo rascunho */ }
+  }
+  await carregarRelatorioAnexos();
+  const restaurado = !revisao && restaurarRascunhoRelatorio();
+  atualizarCamposTipoRelatorio();
+  relWizardDirty = false;
   renderRelatorioClienteLista('');
   closeDossier();
   const navBtn = document.querySelector('[data-target="section-dossie"]');
   if (navBtn) navBtn.click();
   ativarAbaRelatorio('novo');
   irParaPassoRelatorio(relWizardClientId ? 'descrever' : 'cliente');
+  if (restaurado) showToast('Seu rascunho foi restaurado.');
 }
 
 async function preencherRelatorioComIA() {
@@ -2416,7 +2711,11 @@ async function preencherRelatorioComIA() {
     const res = await fetch(API_BASE + '/api/copilot', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ clientId: relWizardClientId, mode: 'relatorio' })
+      body: JSON.stringify({
+        clientId: relWizardClientId,
+        mode: 'relatorio',
+        tipoRelatorio: valorRelatorio('rel-tipo') === 'pendencias' ? 'pendencias' : 'atendimento'
+      })
     });
     if (res.status === 503) { showToast("IA não configurada."); return; }
     if (!res.ok) { showToast("Não consegui gerar o relatório."); return; }
@@ -2426,6 +2725,12 @@ async function preencherRelatorioComIA() {
     if (d.solucao) document.getElementById("rel-solucao").value = d.solucao;
     if (d.oqueFeito) document.getElementById("rel-oquefeito").value = d.oqueFeito;
     if (d.comoFeito) document.getElementById("rel-comofeito").value = d.comoFeito;
+    if (d.entregas) document.getElementById('rel-entregas').value = d.entregas;
+    if (d.pendencias) document.getElementById('rel-pendencias').value = d.pendencias;
+    if (d.responsavelProximoPasso) document.getElementById('rel-responsavel').value = d.responsavelProximoPasso;
+    if (d.prazoProximoPasso) document.getElementById('rel-prazo').value = d.prazoProximoPasso;
+    relWizardDirty = true;
+    salvarRascunhoRelatorio();
     atualizarPreviaRelatorio();
     showToast("Rascunho da AIA pronto. Revise antes de enviar.");
   } catch (e) {
@@ -2460,8 +2765,27 @@ async function enviarMensagemParaCliente(clientId, message) {
 
 async function gerarRelatorio() {
   const rel = relatorioObjAtual();
-  if (!rel.titulo || !rel.problema) {
-    showToast("Preencha ao menos o título e o que aconteceu.");
+  const camposObrigatorios = rel.tipoRelatorio === 'pendencias'
+    ? [['título', rel.titulo], ['contexto da análise', rel.problema], ['conclusão técnica', rel.solucao],
+      ['evidências analisadas', rel.oqueFeito], ['pendências identificadas', rel.pendencias], ['orientações', rel.comoFeito]]
+    : [['título', rel.titulo], ['descrição do caso', rel.problema], ['resolução', rel.solucao], ['providências realizadas', rel.oqueFeito]];
+  const faltantes = camposObrigatorios.filter(([, valor]) => !valor).map(([rotulo]) => rotulo);
+  if (faltantes.length) {
+    showToast(`Complete antes de gerar: ${faltantes.join(', ')}.`);
+    return;
+  }
+  const conteudoDocumento = [rel.titulo, rel.problema, rel.solucao, rel.oqueFeito, rel.pendencias, rel.comoFeito].join('\n');
+  const limite = rel.tipoRelatorio === 'pendencias' ? 3600 : 2100;
+  if (conteudoDocumento.length > limite || conteudoDocumento.split('\n').length > 34) {
+    showToast('Resuma o texto para manter o relatório em uma única página.');
+    return;
+  }
+  if (!rel.contadorNome || rel.contadorNome === 'Contador' || !rel.contadorCrc) {
+    showToast('Complete o nome e o CRC em Meu Perfil antes de entregar.');
+    return;
+  }
+  if (!rel.contadorAssinatura && !(typeof testeContadorSemLogin === 'function' && testeContadorSemLogin())) {
+    showToast('Adicione sua assinatura em Meu Perfil antes de entregar o relatório.');
     return;
   }
   const btn = document.getElementById("btn-rel-gerar");
@@ -2472,12 +2796,15 @@ async function gerarRelatorio() {
     const res = await fetch(API_BASE + '/api/relatorios', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ clientId: relWizardClientId, ...rel })
+      body: JSON.stringify({ clientId: relWizardClientId, reportId: relatorioGeradoId, ...rel, status: 'entrega_pendente' })
     });
     if (!res.ok) throw new Error('resposta ' + res.status);
     const salvo = await res.json();
     relatorioGeradoId = salvo.id;
-    showToast("Relatório gerado. Escolha como entregar ao cliente.");
+    relatorioCodigoValidacao = salvo.codigoValidacao || null;
+    await salvarRelatorioAnexos();
+    relWizardDirty = false;
+    showToast("Relatório validado. Revise a entrega antes de concluir.");
     irParaPassoRelatorio('enviar');
   } catch (e) {
     showToast("Não consegui gerar o relatório.");
@@ -2487,35 +2814,19 @@ async function gerarRelatorio() {
   }
 }
 
-// Comum a "enviar" e "arquivar": o relatório já fechou o caso, então o
-// atendimento é encerrado nos dois casos — a diferença é só se o cliente é
-// avisado ou não.
-// Se o cliente já veio finalizado da fila "Aguardando Relatório" (relatório
-// atrasado de um atendimento já encerrado), NÃO finaliza de novo — senão criaria
-// um 2º registro no histórico e atualizaria ultimoFinalizadoEm pra depois da
-// data do relatório, fazendo esse mesmo cliente voltar a aparecer como
-// "pendente" (a fila compara relatório × última finalização).
-async function encerrarAtendimentoPosRelatorio(clientId) {
-  const jaFinalizado = ['done', 'locked'].includes((clientsData[clientId] || {}).status);
-  await fetch(API_BASE + '/api/appointments/done', {
-    method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ clientRef: clientId })
-  }).catch(() => {});
-  if (!jaFinalizado) await atualizarStatusCliente(clientId, 'done').catch(() => {});
-  await fetch(API_BASE + '/api/triagem/arquivar', {
-    method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ clientId })
-  }).catch(() => {});
-}
-
 async function arquivarRelatorioSemEnviar() {
   const btn = document.getElementById('btn-rel-arquivar');
   btn.disabled = true;
   try {
-    await encerrarAtendimentoPosRelatorio(relWizardClientId);
-    showToast("Relatório arquivado e atendimento encerrado.");
-    await refreshAllData();
-    if (activeClientId) loadClient(activeClientId);
+    if (!relatorioGeradoId) throw new Error('relatorio_nao_gerado');
+    const rel = relatorioObjAtual();
+    const res = await fetch(API_BASE + '/api/relatorios', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ clientId: relWizardClientId, reportId: relatorioGeradoId, ...rel, status: 'arquivado_interno' })
+    });
+    if (!res.ok) throw new Error('falha_ao_arquivar');
+    limparRascunhoRelatorio();
+    showToast("Relatório arquivado apenas para uso interno. O caso continua pendente.");
     ativarAbaRelatorio('fila');
   } catch (e) {
     showToast("Não consegui arquivar. Tente novamente.");
@@ -2525,65 +2836,43 @@ async function arquivarRelatorioSemEnviar() {
 }
 
 async function confirmarEnvioRelatorio() {
-  const rel = relatorioObjAtual();
-  const clientId = relWizardClientId;
-  const viaChat = document.getElementById('rel-envio-chat').checked;
   const viaCaixaPostal = document.getElementById('rel-envio-caixa-postal').checked;
   const viaEmail = document.getElementById('rel-envio-email').checked;
-  if (!viaChat && !viaCaixaPostal && !viaEmail) { showToast("Marque ao menos um canal de envio, ou arquive sem enviar."); return; }
+  if (!relatorioGeradoId) { showToast('Gere e valide o relatório antes de entregar.'); return; }
 
   const btn = document.getElementById('btn-rel-enviar');
   const original = btn.innerHTML;
   const status = document.getElementById('rel-envio-status');
   btn.disabled = true;
   btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Enviando...';
-  const mensagem = `📄 Seu relatório de atendimento está pronto: "${rel.titulo}". Baixe em PDF na aba Meus Documentos.`;
-  const falhas = [];
-
-  if (viaChat) {
-    try {
-      const now = new Date();
-      await enviarMensagemParaCliente(clientId, {
-        sender: "agent", text: mensagem,
-        time: `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`,
-        type: "relatorio-card", relatorioId: relatorioGeradoId
-      });
-    } catch (e) { falhas.push('chat'); }
-  }
-  if (viaCaixaPostal) {
-    try {
-      const res = await fetch(API_BASE + '/api/caixa-postal', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ clienteId: clientId, remetente: 'contador', assunto: rel.titulo, mensagem })
-      });
-      if (!res.ok) throw new Error('falha');
-    } catch (e) { falhas.push('caixa postal'); }
-  }
-  if (viaEmail) {
-    try {
-      const res = await fetch(API_BASE + '/api/copilot', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mode: 'notificar_cliente', payload: { clientId, subject: rel.titulo, message: mensagem } })
-      });
-      if (!res.ok) { const d = await res.json().catch(() => ({})); throw new Error(d.error || 'falha'); }
-    } catch (e) { falhas.push('e-mail'); }
-  }
-
   try {
-    await encerrarAtendimentoPosRelatorio(clientId);
-  } catch (e) { /* o atendimento fecha mesmo se algum canal falhou */ }
-
-  btn.disabled = false;
-  btn.innerHTML = original;
-
-  if (falhas.length) {
-    status.textContent = `Atendimento encerrado, mas falhou o envio por: ${falhas.join(', ')}.`;
-    return;
+    const channels = [];
+    if (viaEmail) channels.push('email');
+    if (viaCaixaPostal) channels.push('caixa_postal');
+    const res = await fetch(API_BASE + '/api/status?acao=finalizar-pos-atendimento', {
+      method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${await tokenSessaoAtual()}` },
+      body: JSON.stringify({ reportId: relatorioGeradoId, channels })
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.detail || data.error || 'falha_na_finalizacao');
+    limparRascunhoRelatorio();
+    const avisos = Array.isArray(data.warnings) ? data.warnings : [];
+    const casoPermaneceAberto = !!data.caseKeptOpen;
+    status.textContent = avisos.length
+      ? `Entregue na Área do Cliente. Aviso adicional com falha: ${avisos.map(a => a.channel).join(', ')}. Você pode reenviar depois.`
+      : (casoPermaneceAberto ? 'Relatório de pendências entregue. O caso permanece aberto.' : 'Entrega confirmada e caso encerrado com sucesso.');
+    showToast(avisos.length ? 'Relatório entregue; há um aviso para revisar.'
+      : (casoPermaneceAberto ? 'Relatório de pendências entregue; caso mantido aberto.' : 'Relatório entregue e atendimento concluído.'));
+    await refreshAllData();
+    if (activeClientId && clientsData[activeClientId]) loadClient(activeClientId);
+    ativarAbaRelatorio(avisos.length ? 'finalizados' : 'fila');
+  } catch (e) {
+    status.textContent = `Não foi possível concluir: ${e.message}. O caso continua pendente e pode ser tentado novamente.`;
+    showToast('A entrega não foi concluída. Nenhum encerramento foi perdido.');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = original;
   }
-  showToast("Relatório enviado e atendimento encerrado.");
-  await refreshAllData();
-  if (activeClientId) loadClient(activeClientId);
-  ativarAbaRelatorio('fila');
 }
 
 // Abas de topo da seção Relatórios: Aguardando Relatório / Novo Relatório /
@@ -2603,6 +2892,7 @@ function setupRelatorioSecaoTabs() {
   const barra = document.getElementById('relatorio-secao-tabs');
   if (!barra) return;
   barra.querySelectorAll('[data-relatorio-secao-tab]').forEach(btn => btn.addEventListener('click', () => {
+    if (relWizardDirty && btn.dataset.relatorioSecaoTab !== 'novo' && !window.confirm('Sair do editor? O rascunho ficará salvo por 24 horas.')) return;
     ativarAbaRelatorio(btn.dataset.relatorioSecaoTab);
   }));
 }
@@ -2626,45 +2916,97 @@ function ativarAbaRadar(alvo = 'caixa') {
   });
 }
 
-// "Aguardando Relatório": clientes com o atendimento encerrado (done/locked)
-// cujo último relatório é mais antigo que a última finalização — ou seja,
-// finalizaram de novo depois do último relatório entregue (ou nunca tiveram um).
+let relatorioFilaCasos = [];
+
+function rotuloStatusRelatorio(status) {
+  return {
+    rascunho: 'Rascunho', gerado: 'Gerado', entrega_pendente: 'Entrega pendente',
+    entregue: 'Entregue', falha_na_entrega: 'Falha na entrega', arquivado_interno: 'Arquivo interno'
+  }[status] || 'Entregue';
+}
+
+function visualizarRelatorioSalvo(relatorio) {
+  document.getElementById('relatorio-visualizador-overlay')?.remove();
+  const overlay = document.createElement('div');
+  overlay.id = 'relatorio-visualizador-overlay';
+  overlay.className = 'relatorio-visualizador-overlay';
+  overlay.innerHTML = `<div class="relatorio-visualizador-dialog" role="dialog" aria-modal="true" aria-label="Visualização do relatório">
+    <div class="relatorio-visualizador-header"><strong>${safe(relatorio.titulo || 'Relatório de atendimento')}</strong><button type="button" aria-label="Fechar"><i class="fa-solid fa-xmark"></i></button></div>
+    <div class="relatorio-visualizador-documento">${OCRelatorio.montarHTML(relatorio, { name: relatorio.clienteNome, cpf: relatorio.clienteCpf })}</div>
+  </div>`;
+  overlay.querySelector('button').addEventListener('click', () => overlay.remove());
+  overlay.addEventListener('click', event => { if (event.target === overlay) overlay.remove(); });
+  document.body.appendChild(overlay);
+}
+
+// Fila por CASO, não apenas por cliente. Assim duas contratações da mesma pessoa
+// não disputam o mesmo relatório e o Express mantém seu próprio SLA.
 async function renderRelatorioFila() {
   const box = document.getElementById('relatorio-fila-lista');
   if (!box) return;
   box.innerHTML = '<p style="color:var(--color-text-secondary);font-size:13px;">Carregando…</p>';
   let relatorios = [];
   try {
-    const res = await fetch(API_BASE + '/api/relatorios');
-    if (res.ok) relatorios = await res.json();
+    const [resRelatorios, resExpress] = await Promise.all([
+      fetch(API_BASE + '/api/relatorios'), fetch(API_BASE + '/api/atendimentos-express')
+    ]);
+    if (resRelatorios.ok) relatorios = await resRelatorios.json();
+    if (resExpress.ok) {
+      const listaExpress = await resExpress.json();
+      atendimentosExpress = Array.isArray(listaExpress) ? listaExpress : atendimentosExpress;
+    }
   } catch (_) { /* silencioso */ }
 
-  const ultimoRelatorioEm = {};
-  relatorios.forEach(r => {
-    const atual = ultimoRelatorioEm[r.clientRef];
-    if (!atual || new Date(r.createdAt) > new Date(atual)) ultimoRelatorioEm[r.clientRef] = r.createdAt;
+  const entreguesPorCaso = new Set(relatorios.filter(r => r.status === 'entregue' && r.casoRef).map(r => r.casoRef));
+  const entreguesLegacy = relatorios.filter(r => r.status === 'entregue' && !r.casoRef);
+  const candidatos = [];
+
+  atendimentosExpress
+    .filter(item => ['pronto_envio', 'concluido'].includes(item.status))
+    .forEach(item => {
+      const caseRef = `express:${item.id}`;
+      if (entreguesPorCaso.has(caseRef)) return;
+      const client = clientsData[item.clientRef] || {};
+      candidatos.push({
+        client, clientId: item.clientRef, caseRef, expressId: item.id, appointmentId: null,
+        modalidade: 'sem_agendamento', assunto: item.assunto || client.taxType || 'Atendimento Express',
+        data: item.prazoConclusaoEm || item.contratadoEm, prazo: item.prazoConclusaoEm
+      });
+    });
+
+  Object.values(clientsData).forEach(client => {
+    if (!['done', 'locked'].includes(client.status) || !client.ultimoFinalizadoEm) return;
+    const caso = resolverCasoRelatorio(client.id);
+    if (caso.modalidade === 'sem_agendamento') return;
+    const entregue = entreguesPorCaso.has(caso.caseRef) || entreguesLegacy.some(r =>
+      r.clientRef === client.id && new Date(r.createdAt) >= new Date(client.ultimoFinalizadoEm));
+    if (!entregue) candidatos.push({ client, clientId: client.id, ...caso, data: client.ultimoFinalizadoEm, prazo: null });
   });
 
-  const pendentes = Object.values(clientsData)
-    .filter(c => {
-      if (!['done', 'locked'].includes(c.status) || !c.ultimoFinalizadoEm) return false;
-      const ultimoRel = ultimoRelatorioEm[c.id];
-      return !ultimoRel || new Date(ultimoRel) < new Date(c.ultimoFinalizadoEm);
-    })
-    .sort((a, b) => new Date(b.ultimoFinalizadoEm) - new Date(a.ultimoFinalizadoEm));
+  const unicos = new Map();
+  candidatos.forEach(caso => unicos.set(caso.caseRef, caso));
+  relatorioFilaCasos = Array.from(unicos.values()).sort((a, b) => new Date(a.prazo || a.data || 0) - new Date(b.prazo || b.data || 0));
 
-  if (!pendentes.length) {
+  if (!relatorioFilaCasos.length) {
     box.innerHTML = '<p style="color:var(--color-text-secondary);font-size:13px;">Nenhum atendimento aguardando relatório no momento.</p>';
     return;
   }
-  box.innerHTML = pendentes.map(c => `
-    <div class="relatorio-fila-card">
-      <h4>${safe(c.name)}</h4>
-      <p>${safe(c.cpf || c.taxType || 'Sem documento')}</p>
-      <p>Finalizado em ${new Date(c.ultimoFinalizadoEm).toLocaleDateString('pt-BR')}</p>
-      <button type="button" class="btn-utility primary" data-iniciar-relatorio="${safe(c.id)}"><i class="fa-solid fa-file-circle-plus"></i> Iniciar relatório</button>
-    </div>`).join('');
-  box.querySelectorAll('[data-iniciar-relatorio]').forEach(btn => btn.addEventListener('click', () => abrirRelatorio(btn.dataset.iniciarRelatorio)));
+  box.innerHTML = relatorioFilaCasos.map((caso, index) => {
+    const pendente = relatorios.find(r => r.casoRef === caso.caseRef && ['rascunho','gerado','entrega_pendente','falha_na_entrega'].includes(r.status));
+    const sla = caso.prazo ? slaAtendimentoExpress(caso.prazo) : null;
+    return `<div class="relatorio-fila-card${sla?.atrasado ? ' relatorio-atrasado' : ''}">
+      <div class="relatorio-fila-top"><span class="express-tag">${caso.modalidade === 'sem_agendamento' ? '<i class="fa-solid fa-bolt"></i> EXPRESS' : '<i class="fa-solid fa-calendar-check"></i> AGENDADO'}</span>${sla ? `<span class="sla-badge ${sla.classe}">${safe(sla.label)}</span>` : ''}</div>
+      <h4>${safe(caso.client.name || caso.clientId)}</h4>
+      <p class="relatorio-fila-assunto">${safe(caso.assunto)}</p>
+      <p>${caso.data ? `Caso pronto em ${new Date(caso.data).toLocaleString('pt-BR', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' })}` : 'Data não informada'}</p>
+      ${pendente ? `<span class="relatorio-status ${safe(pendente.status)}">${safe(rotuloStatusRelatorio(pendente.status))}</span>` : ''}
+      <button type="button" class="btn-utility primary" data-iniciar-relatorio-caso="${index}"><i class="fa-solid fa-file-circle-plus"></i> ${pendente ? 'Continuar entrega' : 'Preparar relatório'}</button>
+    </div>`;
+  }).join('');
+  box.querySelectorAll('[data-iniciar-relatorio-caso]').forEach(btn => btn.addEventListener('click', () => {
+    const caso = relatorioFilaCasos[Number(btn.dataset.iniciarRelatorioCaso)];
+    if (caso) abrirRelatorio(caso.clientId, caso);
+  }));
 }
 
 // "Relatórios Finalizados": histórico de tudo que já foi gerado, de todos os
@@ -2680,20 +3022,100 @@ async function renderRelatoriosFinalizados() {
     if (res.ok) relatorios = await res.json();
   } catch (_) { /* silencioso */ }
 
+  const metricas = document.getElementById('relatorios-metricas');
+  if (metricas) {
+    const entregues = relatorios.filter(r => r.status === 'entregue');
+    const pendentes = relatorios.filter(r => ['rascunho','gerado','entrega_pendente'].includes(r.status)).length;
+    const falhas = relatorios.filter(r => r.status === 'falha_na_entrega' || r.falhaEntrega).length;
+    const tempos = entregues.map(r => new Date(r.entregueEm) - new Date(r.createdAt)).filter(ms => Number.isFinite(ms) && ms >= 0);
+    const mediaHoras = tempos.length ? Math.round(tempos.reduce((a, b) => a + b, 0) / tempos.length / 36e5) : null;
+    metricas.innerHTML = `
+      <div><span>Entregues</span><strong>${entregues.length}</strong></div>
+      <div><span>Pendentes</span><strong>${pendentes}</strong></div>
+      <div class="${falhas ? 'tem-alerta' : ''}"><span>Com falha</span><strong>${falhas}</strong></div>
+      <div><span>Tempo médio</span><strong>${mediaHoras == null ? '—' : `${mediaHoras}h`}</strong></div>`;
+  }
+
+  const busca = String(document.getElementById('relatorios-busca')?.value || '').trim().toLowerCase();
+  const filtro = document.getElementById('relatorios-status-filtro')?.value || 'todos';
+  const modalidade = document.getElementById('relatorios-modalidade-filtro')?.value || 'todas';
+  const periodo = document.getElementById('relatorios-periodo-filtro')?.value || 'todos';
+  const limite = periodo === 'todos' ? null : Date.now() - Number(periodo) * 864e5;
+  relatorios = relatorios.filter(r => {
+    if (r.status === 'arquivado_interno' && filtro !== 'arquivado_interno') return false;
+    if (filtro !== 'todos' && r.status !== filtro) return false;
+    const modalidadeRel = r.atendimentoExpressId ? 'sem_agendamento' : 'agendado';
+    if (modalidade !== 'todas' && modalidadeRel !== modalidade) return false;
+    const dataRel = new Date(r.entregueEm || r.updatedAt || r.createdAt).getTime();
+    if (limite && (!Number.isFinite(dataRel) || dataRel < limite)) return false;
+    return !busca || [r.clienteNome, r.titulo, r.casoRef].some(v => String(v || '').toLowerCase().includes(busca));
+  });
+
   if (!relatorios.length) {
     box.innerHTML = '<p style="color:var(--color-text-secondary);font-size:13px;">Nenhum relatório gerado ainda.</p>';
     return;
   }
-  box.innerHTML = `<table class="relatorio-finalizados-table"><thead><tr><th>Cliente</th><th>Título</th><th>Data</th><th></th></tr></thead><tbody>${relatorios.map(r => `
-    <tr>
-      <td>${safe(r.clienteNome || '—')}</td>
-      <td>${safe(r.titulo || 'Relatório de atendimento')}</td>
-      <td>${new Date(r.createdAt).toLocaleDateString('pt-BR')}</td>
-      <td><button type="button" class="btn-doc-action" data-baixar-relatorio="${safe(r.id)}"><i class="fa-solid fa-download"></i> Baixar PDF</button></td>
-    </tr>`).join('')}</tbody></table>`;
+  box.innerHTML = `<div class="relatorios-finalizados-grid">${relatorios.map(r => `
+    <article class="relatorio-finalizado-card">
+      <div class="relatorio-finalizado-top"><span class="relatorio-status ${safe(r.status)}">${safe(rotuloStatusRelatorio(r.status))}</span><span>v${safe(r.versao || 1)}</span></div>
+      <h4>${safe(r.titulo || 'Relatório de atendimento')}</h4>
+      <p>${safe(r.clienteNome || '—')}</p>
+      <small>${new Date(r.entregueEm || r.updatedAt || r.createdAt).toLocaleString('pt-BR')}</small>
+      ${r.canaisEntrega?.length ? `<div class="relatorio-canais">${r.canaisEntrega.map(c => `<span>${safe(c.replace('_',' '))}</span>`).join('')}</div>` : ''}
+      ${r.falhaEntrega ? `<p class="relatorio-falha"><i class="fa-solid fa-triangle-exclamation"></i> ${safe(r.falhaEntrega)}</p>` : ''}
+      <details class="relatorio-comprovante">
+        <summary>Comprovante e tentativas</summary>
+        <p><strong>Caso:</strong> ${safe(r.casoRef || 'registro anterior')}</p>
+        <p><strong>Modalidade:</strong> ${r.atendimentoExpressId ? 'Atendimento Express' : 'Agendado'}</p>
+        <p><strong>Entregue por:</strong> ${safe(r.entreguePor || '—')}</p>
+        ${(r.entregaTentativas || []).length ? `<ul>${r.entregaTentativas.map(t => `<li>${safe(String(t.channel || '').replace('_',' '))}: ${t.ok ? 'sucesso' : `falha — ${safe(t.error || 'sem detalhe')}`} · ${t.attemptedAt ? new Date(t.attemptedAt).toLocaleString('pt-BR') : '—'}</li>`).join('')}</ul>` : '<p>A entrega principal foi registrada na Área do Cliente.</p>'}
+      </details>
+      <div class="relatorio-finalizado-acoes">
+        <button type="button" class="btn-doc-action" data-abrir-caso-relatorio="${safe(r.id)}"><i class="fa-solid fa-folder-open"></i> Abrir caso</button>
+        ${r.status === 'entregue' ? `<button type="button" class="btn-doc-action" data-visualizar-relatorio="${safe(r.id)}"><i class="fa-solid fa-eye"></i> Visualizar</button><button type="button" class="btn-doc-action" data-baixar-relatorio="${safe(r.id)}"><i class="fa-solid fa-download"></i> Baixar</button><button type="button" class="btn-doc-action" data-revisar-relatorio="${safe(r.id)}"><i class="fa-solid fa-code-branch"></i> Nova versão</button>${r.falhaEntrega ? `<button type="button" class="btn-doc-action" data-reenviar-relatorio="${safe(r.id)}"><i class="fa-solid fa-paper-plane"></i> Reenviar aviso</button>` : ''}` : `<button type="button" class="btn-doc-action" data-continuar-relatorio="${safe(r.id)}"><i class="fa-solid fa-rotate"></i> Continuar</button>`}
+      </div>
+    </article>`).join('')}</div>`;
   box.querySelectorAll('[data-baixar-relatorio]').forEach(btn => btn.addEventListener('click', () => {
     const r = relatorios.find(x => String(x.id) === String(btn.dataset.baixarRelatorio));
     if (r) OCRelatorio.baixarPDF(r, { name: r.clienteNome, cpf: r.clienteCpf });
+  }));
+  box.querySelectorAll('[data-visualizar-relatorio]').forEach(btn => btn.addEventListener('click', () => {
+    const r = relatorios.find(x => String(x.id) === String(btn.dataset.visualizarRelatorio));
+    if (r) visualizarRelatorioSalvo(r);
+  }));
+  box.querySelectorAll('[data-abrir-caso-relatorio]').forEach(btn => btn.addEventListener('click', async () => {
+    const r = relatorios.find(x => String(x.id) === String(btn.dataset.abrirCasoRelatorio));
+    if (!r?.clientRef) return;
+    await openDossier(r.clientRef);
+    ativarAbaConfigurada('#dossier-overlay', 'dossier-historico');
+  }));
+  box.querySelectorAll('[data-revisar-relatorio]').forEach(btn => btn.addEventListener('click', () => {
+    const r = relatorios.find(x => String(x.id) === String(btn.dataset.revisarRelatorio));
+    if (r) abrirRelatorio(r.clientRef, null, r);
+  }));
+  box.querySelectorAll('[data-continuar-relatorio]').forEach(btn => btn.addEventListener('click', () => {
+    const r = relatorios.find(x => String(x.id) === String(btn.dataset.continuarRelatorio));
+    if (!r) return;
+    abrirRelatorio(r.clientRef, { caseRef:r.casoRef, expressId:r.atendimentoExpressId, appointmentId:r.agendamentoId,
+      modalidade:r.atendimentoExpressId ? 'sem_agendamento' : 'agendado', assunto:r.titulo });
+  }));
+  box.querySelectorAll('[data-reenviar-relatorio]').forEach(btn => btn.addEventListener('click', async () => {
+    const r = relatorios.find(x => String(x.id) === String(btn.dataset.reenviarRelatorio));
+    if (!r) return;
+    btn.disabled = true;
+    try {
+      const falhos = (r.entregaTentativas || []).filter(t => t && !t.ok).map(t => t.channel);
+      const channels = Array.from(new Set(falhos.length ? falhos : ['email']));
+      const res = await fetch(API_BASE + '/api/status?acao=finalizar-pos-atendimento', {
+        method:'POST', headers:{'Content-Type':'application/json', 'Authorization': `Bearer ${await tokenSessaoAtual()}`},
+        body:JSON.stringify({reportId:r.id, channels, retryNotice:true})
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'falha');
+      showToast(data.warnings?.length ? 'O aviso ainda apresenta falha.' : 'Aviso reenviado com sucesso.');
+      await renderRelatoriosFinalizados();
+    } catch (_) { showToast('Não foi possível reenviar o aviso.'); }
+    finally { btn.disabled = false; }
   }));
 }
 
@@ -2703,11 +3125,34 @@ function setupRelatorioWizard() {
   document.getElementById("btn-rel-gerar").addEventListener("click", gerarRelatorio);
   document.getElementById("btn-rel-arquivar").addEventListener("click", arquivarRelatorioSemEnviar);
   document.getElementById("btn-rel-enviar").addEventListener("click", confirmarEnvioRelatorio);
-  ["rel-titulo", "rel-problema", "rel-solucao", "rel-oquefeito", "rel-comofeito"].forEach(id => {
-    document.getElementById(id).addEventListener("input", atualizarPreviaRelatorio);
+  document.getElementById('btn-rel-modelo')?.addEventListener('click', aplicarModeloRelatorio);
+  document.getElementById('btn-rel-anexo-link')?.addEventListener('click', () => {
+    const type = document.getElementById('rel-anexo-link-tipo').value;
+    const titleEl = document.getElementById('rel-anexo-link-titulo');
+    const urlEl = document.getElementById('rel-anexo-link-url');
+    const title = titleEl.value.trim();
+    const url = urlEl.value.trim();
+    if (!title || !/^https?:\/\//i.test(url)) { showToast('Informe um título e um link válido iniciado por http.'); return; }
+    relWizardAnexos.push({ type, title, url, visibleToClient: true });
+    titleEl.value = ''; urlEl.value = ''; relWizardDirty = true; renderRelatorioAnexos();
   });
-  document.getElementById("btn-rel-avancar-cliente").addEventListener("click", () => {
+  RELATORIO_CAMPOS.forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.addEventListener("input", () => {
+      relWizardDirty = true;
+      atualizarPreviaRelatorio();
+      clearTimeout(relDraftTimer);
+      relDraftTimer = setTimeout(salvarRascunhoRelatorio, 450);
+    });
+  });
+  document.getElementById('rel-tipo')?.addEventListener('change', () => {
+    atualizarCamposTipoRelatorio();
+    atualizarPreviaRelatorio();
+  });
+  document.getElementById("btn-rel-avancar-cliente").addEventListener("click", async () => {
     if (!relWizardClientId || !clientsData[relWizardClientId]) { showToast("Selecione um cliente para continuar."); return; }
+    await carregarRelatorioAnexos();
     irParaPassoRelatorio('descrever');
   });
   document.getElementById("btn-rel-voltar").addEventListener("click", () => {
@@ -2716,6 +3161,15 @@ function setupRelatorioWizard() {
   });
   const busca = document.getElementById("rel-cliente-busca");
   busca.addEventListener("input", () => renderRelatorioClienteLista(busca.value));
+  document.getElementById('relatorios-busca')?.addEventListener('input', renderRelatoriosFinalizados);
+  document.getElementById('relatorios-status-filtro')?.addEventListener('change', renderRelatoriosFinalizados);
+  document.getElementById('relatorios-modalidade-filtro')?.addEventListener('change', renderRelatoriosFinalizados);
+  document.getElementById('relatorios-periodo-filtro')?.addEventListener('change', renderRelatoriosFinalizados);
+  window.addEventListener('beforeunload', evento => {
+    if (!relWizardDirty) return;
+    evento.preventDefault();
+    evento.returnValue = '';
+  });
 }
 
 // Modal actions helpers
@@ -3463,6 +3917,45 @@ async function atualizarStatusCliente(clientId, status) {
   return clientsData[clientId];
 }
 
+function adicionarDiasUteis(dataBase, quantidade) {
+  const data = new Date(dataBase || Date.now());
+  let restantes = Math.max(0, Number(quantidade) || 0);
+  while (restantes > 0) {
+    data.setDate(data.getDate() + 1);
+    if (data.getDay() !== 0 && data.getDay() !== 6) restantes--;
+  }
+  return data;
+}
+
+async function garantirTarefaPosAtendimento(clientId, texto, caseRef, tipo = 'pos_atendimento') {
+  const agora = new Date();
+  const prazo = adicionarDiasUteis(agora, 2);
+  let encontrada = false;
+  const vistas = new Set();
+  ocTarefas = ocTarefas.filter(tarefa => {
+    const chave = tarefa.caseRef || `${tarefa.clientId || ''}:${String(tarefa.texto || '').toLowerCase()}`;
+    if (!tarefa.feita && vistas.has(chave)) return false;
+    vistas.add(chave);
+    if (!tarefa.feita && (tarefa.caseRef === caseRef || (!tarefa.caseRef && tarefa.clientId === clientId &&
+      (tarefa.tipo === tipo || /concluir serviço|relatório|acompanhamento/i.test(tarefa.texto || ''))))) {
+      tarefa.texto = texto;
+      tarefa.caseRef = caseRef;
+      tarefa.tipo = tipo;
+      tarefa.dataInicial = tarefa.dataInicial || agora.toISOString();
+      tarefa.dataFinal = prazo.toISOString();
+      tarefa.deadline = prazo.toISOString();
+      encontrada = true;
+    }
+    return true;
+  });
+  if (!encontrada) ocTarefas.unshift({
+    id: `task_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+    texto, feita: false, clientId, caseRef, tipo,
+    dataInicial: agora.toISOString(), dataFinal: prazo.toISOString(), deadline: prazo.toISOString()
+  });
+  await salvarTarefas();
+}
+
 // Gatilho explícito pro Kanban de Acompanhamento — usado quando o atendimento
 // não se resolve na hora (precisa de uma declaração, parcelamento etc.). Não
 // encerra o chat, só marca que esse caso entrou na esteira de pós-atendimento.
@@ -3481,20 +3974,10 @@ async function moverParaAcompanhamento() {
   if (!res.ok) { showToast('Não foi possível encaminhar para o Acompanhamento.'); return; }
   await postSystemMessageToChat("Caso encaminhado para o Acompanhamento — vai aparecer no quadro de pós-atendimento.");
   
-  // Cria a tarefa de acompanhamento com início e prazo definidos.
+  // Cria ou atualiza uma única tarefa com prazo real de dois dias úteis.
   const clienteNome = clientsData[clientId] ? clientsData[clientId].name : 'Cliente';
-  const dataInicial = new Date();
-  const deadline = new Date();
-  deadline.setHours(deadline.getHours() + 48); // Padrão: 48 horas úteis (SLA)
-  ocTarefas.unshift({
-    texto: `Acompanhamento: ${clienteNome}`,
-    feita: false,
-    clientId: clientId,
-    dataInicial: dataInicial.toISOString(),
-    dataFinal: deadline.toISOString(),
-    deadline: deadline.toISOString()
-  });
-  await salvarTarefas();
+  const caso = resolverCasoRelatorio(clientId);
+  await garantirTarefaPosAtendimento(clientId, `Acompanhamento: ${clienteNome}`, caso.caseRef, 'acompanhamento');
 
   renderKanban(); renderCRM();
   showToast('Cliente encaminhado para o Acompanhamento.', 'success');
@@ -3513,40 +3996,22 @@ async function finishActiveChat() {
   playSound('success');
   
   try {
-    // Apenas atualiza o status. endpoints antigos (appointments/done e triagem/arquivar) foram removidos na migração pro Supabase.
-    await atualizarStatusCliente(clientId, 'done');
+    // Encerra apenas a conversa. O caso permanece bloqueado/em preparação e
+    // só recebe status "done" na transação que comprova a entrega.
+    await atualizarStatusCliente(clientId, 'locked');
 
-    await postSystemMessageToChat("Atendimento encerrado. O chat foi bloqueado e o caso entrou no histórico do cliente.");
+    await postSystemMessageToChat("Conversa encerrada. O resultado e o relatório estão sendo preparados; o caso só será concluído depois da entrega.");
 
-    // NPS nativo: pede a nota já no encerramento, direto no chat — antes o
-    // cliente só via isso se navegasse até a Home (card-avaliacao), e muita
-    // gente nunca voltava lá depois que o caso fechava.
-    const nowNps = new Date();
-    await postMessageToBackend({
-      sender: "agent",
-      text: "Como foi o atendimento? Deixe sua nota de 1 a 5 estrelas.",
-      time: `${nowNps.getHours().toString().padStart(2, '0')}:${nowNps.getMinutes().toString().padStart(2, '0')}`,
-      type: "avaliacao-card"
-    });
-
-    // Cria a tarefa pós-atendimento com início e prazo definidos.
+    // Uma tarefa por caso, com dois dias úteis. A avaliação só será liberada
+    // pela entrega confirmada do relatório.
     const clienteNome = clientsData[clientId] ? clientsData[clientId].name : 'Cliente';
-    const dataInicial = new Date();
-    const deadline = new Date();
-    deadline.setHours(deadline.getHours() + 48); // Padrão: 48 horas úteis (SLA)
-    ocTarefas.unshift({
-      texto: `Concluir serviço de ${clienteNome}`,
-      feita: false,
-      clientId: clientId,
-      dataInicial: dataInicial.toISOString(),
-      dataFinal: deadline.toISOString(),
-      deadline: deadline.toISOString()
-    });
-    await salvarTarefas();
+    const caso = resolverCasoRelatorio(clientId);
+    await garantirTarefaPosAtendimento(clientId, `Preparar e entregar relatório de ${clienteNome}`, caso.caseRef);
 
     await refreshAllData();
     if (clientsData[clientId]) loadClient(clientId);
-    showToast("Atendimento encerrado e sincronizado com a área do cliente.", "success");
+    showToast("Conversa encerrada. Agora revise e entregue o relatório.", "success");
+    await abrirRelatorio(clientId, caso);
   } catch (e) {
     console.error('Falha ao encerrar atendimento:', e);
     showToast("Não consegui encerrar tudo. Tente novamente.");
@@ -4103,9 +4568,14 @@ async function renderCrmTabPagamentos(c, box) {
 async function renderCrmTabAtendimentos(c, box) {
   box.innerHTML = '<p style="font-size:12px;color:var(--color-text-secondary)">Carregando…</p>';
   let historico = [];
+  let relatorios = [];
   try {
-    const res = await fetch(API_BASE + '/api/atendimentos-historico?clientId=' + encodeURIComponent(c.id));
-    if (res.ok) historico = await res.json();
+    const [resHistorico, resRelatorios] = await Promise.all([
+      fetch(API_BASE + '/api/atendimentos-historico?clientId=' + encodeURIComponent(c.id)),
+      fetch(API_BASE + '/api/relatorios?clientId=' + encodeURIComponent(c.id))
+    ]);
+    if (resHistorico.ok) historico = await resHistorico.json();
+    if (resRelatorios.ok) relatorios = await resRelatorios.json();
   } catch (_) { /* silencioso */ }
   if (document.getElementById('crm-detail-tab-content') !== box) return; // painel trocou enquanto carregava
   if (!historico.length) { box.innerHTML = '<p style="font-size:12px;color:var(--color-text-secondary)">Nenhum atendimento finalizado ainda para este cliente.</p>'; return; }
@@ -4115,17 +4585,23 @@ async function renderCrmTabAtendimentos(c, box) {
     const dataLabel = fim ? fim.toLocaleDateString('pt-BR') : '—';
     const horaIni = inicio ? inicio.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '—';
     const horaFim = fim ? fim.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '—';
+    const relatorio = relatorios.find(r => String(r.id) === String(h.relatorioId) || (h.casoRef && r.casoRef === h.casoRef));
     return `
     <div class="financeiro-card" style="margin-bottom:12px;">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;">
         <div>
-          <h3 style="font-size:14px;color:var(--color-pine);margin-bottom:4px;">${safe(h.taxType || 'Atendimento')}</h3>
-          <p style="font-size:12px;color:var(--color-text-secondary);">${dataLabel} · iniciado ${horaIni} · encerrado ${horaFim} · duração ${formatDuracao(h.duracaoSegundos)}${h.honorarios ? ' · ' + formatBRL(h.honorarios) : ''}</p>
+          <h3 style="font-size:14px;color:var(--color-pine);margin-bottom:4px;">${safe(h.assunto || h.taxType || 'Atendimento')}</h3>
+          <p style="font-size:12px;color:var(--color-text-secondary);">${dataLabel} · ${h.modalidade === 'sem_agendamento' ? 'Express' : 'agendado'} · iniciado ${horaIni} · encerrado ${horaFim} · duração ${formatDuracao(h.duracaoSegundos)}${h.honorarios ? ' · ' + formatBRL(h.honorarios) : ''}</p>
         </div>
+        ${relatorio ? `<button class="btn-doc-action" data-crm-baixar-relatorio="${safe(relatorio.id)}"><i class="fa-solid fa-file-arrow-down"></i> Relatório entregue</button>` : '<span class="relatorio-status entrega_pendente">Sem relatório vinculado</span>'}
       </div>
       ${h.notas ? `<div class="notas-editor" style="margin-top:12px;min-height:0;background:var(--color-bg);" contenteditable="false">${h.notas}</div>` : ''}
     </div>`;
   }).join('');
+  box.querySelectorAll('[data-crm-baixar-relatorio]').forEach(btn => btn.addEventListener('click', () => {
+    const relatorio = relatorios.find(r => String(r.id) === String(btn.dataset.crmBaixarRelatorio));
+    if (relatorio) OCRelatorio.baixarPDF(relatorio, { name: relatorio.clienteNome, cpf: relatorio.clienteCpf });
+  }));
 }
 
 async function recarregarClientes() {
@@ -4537,6 +5013,35 @@ async function renderInsights() {
   document.getElementById('insights-barras-cidade').innerHTML = itensCidade.length
     ? barListHTML(itensCidade)
     : '<p style="font-size:12px;color:var(--color-text-secondary)">Ainda sem dados de cidade cadastrados — vem do checkout quando o cliente preenche.</p>';
+  await renderErrosOperacionais();
+}
+
+async function renderErrosOperacionais() {
+  const box = document.getElementById('insights-erros-operacionais');
+  if (!box) return;
+  const atualizar = document.getElementById('btn-atualizar-erros');
+  if (atualizar && !atualizar.dataset.bound) {
+    atualizar.dataset.bound = '1';
+    atualizar.addEventListener('click', renderErrosOperacionais);
+  }
+  try {
+    const res = await fetch(API_BASE + '/api/status?acao=erros-operacionais', { headers: { Authorization: `Bearer ${await tokenSessaoAtual()}` } });
+    const dados = await res.json();
+    if (!res.ok) throw new Error(dados.error || 'falha');
+    const erros = dados.erros || [];
+    box.innerHTML = erros.length ? erros.map(erro => `<div class="radar-item">
+      <div><strong>${safe(erro.codigo || 'Erro')} · ${safe(erro.origem || 'sistema')}</strong><br><span>${safe(erro.mensagem)}${erro.rota ? ` · ${safe(erro.rota)}` : ''} · ${erro.ocorrencias || 1} ocorrência(s) · ${new Date(erro.ultimo_em).toLocaleString('pt-BR')}</span></div>
+      <button type="button" class="btn-utility" data-resolver-erro="${safe(erro.id)}"><i class="fa-solid fa-check"></i> Resolvido</button>
+    </div>`).join('') : '<p class="radar-vazio"><i class="fa-solid fa-circle-check"></i> Nenhum erro operacional aberto nos últimos 30 dias.</p>';
+    box.querySelectorAll('[data-resolver-erro]').forEach(btn => btn.addEventListener('click', async () => {
+      btn.disabled = true;
+      const resposta = await fetch(API_BASE + '/api/status?acao=erros-operacionais', {
+        method:'POST', headers:{ 'Content-Type':'application/json', Authorization:`Bearer ${await tokenSessaoAtual()}` },
+        body:JSON.stringify({ id:Number(btn.dataset.resolverErro) })
+      });
+      if (resposta.ok) renderErrosOperacionais(); else btn.disabled = false;
+    }));
+  } catch (_) { box.innerHTML = '<p class="radar-vazio">Não foi possível carregar os erros agora.</p>'; }
 }
 
 function renderKanban() {
@@ -4614,8 +5119,9 @@ async function salvarStatusExpressNoKanban(id, etapa) {
     showToast('Atendimento Express não pode ser movido para Recorrência.');
     return;
   }
-  const res = await fetch(`${API_BASE}/api/atendimentos-express/${encodeURIComponent(id)}/status`, {
-    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status })
+  const res = await fetch(`${API_BASE}/api/status?acao=atualizar-atendimento-express`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${await tokenSessaoAtual()}` },
+    body: JSON.stringify({ id, status })
   });
   if (!res.ok) {
     showToast('Não foi possível atualizar a etapa do Atendimento Express.');
@@ -4689,12 +5195,14 @@ async function refreshFinanceiro() {
   const serviceList = document.getElementById('financeiro-servicos-lista');
   if (!serviceList) return;
   try {
-    const [servicesRes, chargesRes] = await Promise.all([
-      fetch(API_BASE + '/api/servicos?all=1'), fetch(API_BASE + '/api/cobrancas')
+    const [servicesRes, chargesRes, funilRes] = await Promise.all([
+      fetch(API_BASE + '/api/servicos?all=1'), fetch(API_BASE + '/api/cobrancas'),
+      fetch(API_BASE + '/api/status?acao=metricas-funil&dias=30', { headers: { 'Authorization': `Bearer ${await tokenSessaoAtual()}` } })
     ]);
     if (!servicesRes.ok || !chargesRes.ok) throw new Error('financeiro_indisponivel');
     financeiro.servicos = await servicesRes.json();
     financeiro.cobrancas = await chargesRes.json();
+    const funil = funilRes.ok ? await funilRes.json() : null;
     refreshCreditos();
     serviceList.innerHTML = financeiro.servicos.length ? financeiro.servicos.map(s => `<tr>
       <td><strong>${safe(s.name)}</strong>${s.description ? `<br><small>${safe(s.description)}</small>` : ''}${(s.itens || []).length ? `<br><small>Abarca ${s.itens.length} serviço(s)</small>` : ''}</td>
@@ -4707,11 +5215,12 @@ async function refreshFinanceiro() {
     serviceList.querySelectorAll('[data-delete-service]').forEach(b => b.addEventListener('click', () => excluirServico(b.dataset.deleteService)));
     const cobrancasPagas = financeiro.cobrancas.filter(c => c.status === 'paid');
     const paid = cobrancasPagas.reduce((total, c) => total + (c.valueCents || 0), 0) / 100;
-    const open = financeiro.cobrancas.filter(c => c.status !== 'paid').reduce((total, c) => total + (c.valueCents || 0), 0) / 100;
+    const abertas = financeiro.cobrancas.filter(c => ['pending','overdue'].includes(c.status));
+    const open = abertas.reduce((total, c) => total + (c.valueCents || 0), 0) / 100;
     document.getElementById('financeiro-recebido').textContent = formatBRL(paid);
     document.getElementById('financeiro-recebido-info').textContent = `${cobrancasPagas.length} cobrança(s) paga(s)`;
     document.getElementById('financeiro-aberto').textContent = formatBRL(open);
-    document.getElementById('financeiro-aberto-info').textContent = `${financeiro.cobrancas.filter(c => c.status !== 'paid').length} cobrança(s) em aberto`;
+    document.getElementById('financeiro-aberto-info').textContent = `${abertas.length} cobrança(s) em aberto`;
     const ticketMedio = cobrancasPagas.length ? paid / cobrancasPagas.length : 0;
     document.getElementById('financeiro-ticket-medio').textContent = formatBRL(ticketMedio);
     document.getElementById('financeiro-ticket-medio-info').textContent = cobrancasPagas.length
@@ -4719,6 +5228,16 @@ async function refreshFinanceiro() {
       : 'Nenhuma cobrança paga ainda';
     const clientsById = clientsData;
     document.getElementById('financeiro-cobrancas-lista').innerHTML = financeiro.cobrancas.length ? `<table class="financeiro-table"><thead><tr><th>Cliente</th><th>Valor</th><th>Status</th><th>Data</th></tr></thead><tbody>${financeiro.cobrancas.slice(0, 12).map(c => `<tr><td>${safe(clientsById[c.clientRef]?.name || c.clientRef)}</td><td>${formatBRL((c.valueCents || 0) / 100)}</td><td>${safe(c.status)}</td><td>${c.createdAt ? new Date(c.createdAt).toLocaleDateString('pt-BR') : '—'}</td></tr>`).join('')}</tbody></table>` : 'Nenhuma cobrança criada ainda.';
+    const funilEl = document.getElementById('financeiro-funil');
+    if (funilEl) {
+      const c = funil?.contagens || {};
+      const etapas = [['Visitas em preços', c.precos_visualizados || 0], ['Agendamentos iniciados', c.agendamento_iniciado || 0], ['Checkouts', c.checkout_iniciado || 0], ['Cobranças criadas', c.cobranca_criada || 0], ['Pagamentos', c.pagamento_confirmado || 0], ['Resultados entregues', c.relatorio_entregue || 0]];
+      const percentual = valor => `${Math.round((Number(valor) || 0) * 100)}%`;
+      funilEl.innerHTML = funil ? etapas.map(([rotulo, total]) => `<div class="relatorios-metrica"><strong>${total}</strong><span>${rotulo}</span></div>`).join('') +
+        `<div class="relatorios-metrica"><strong>${percentual(funil.conversoes?.checkoutParaPagamento)}</strong><span>Checkout → pagamento</span></div>` +
+        `<div class="relatorios-metrica"><strong>${funil.abandonos?.antesPagamento || 0}</strong><span>Abandonos antes do pagamento</span></div>` +
+        `<div class="relatorios-metrica"><strong>${formatBRL((funil.totalDescontosCents || 0) / 100)}</strong><span>Descontos concedidos</span></div>` : 'Métricas ainda indisponíveis.';
+    }
     updateDashboardFinanceiroKpis();
     renderFinanceiroCobrancasAbertas();
   } catch (e) {
@@ -4921,7 +5440,18 @@ async function openDossier(clientId) {
 
   // Preenche histórico
   const hist = document.getElementById('dossier-historico-content');
-  history.innerHTML = reports.length ? reports.map(r => `<div class="financeiro-card" style="margin-bottom:12px"><h3 style="font-size:14px;color:var(--color-pine)">${safe(r.titulo || 'Relatório de atendimento')}</h3><p style="font-size:12px;color:var(--color-text-secondary)">${new Date(r.createdAt).toLocaleDateString('pt-BR')} · ${safe(r.status || 'enviado')}</p><p style="font-size:13px">${safe(r.problema || r.solucao || '')}</p></div>`).join('') : '<p style="color:var(--color-text-secondary);font-size:13px">Nenhum relatório entregue ainda.</p>';
+  history.innerHTML = reports.length ? reports.map(r => `<div class="financeiro-card dossier-relatorio-card" style="margin-bottom:12px">
+    <div class="relatorio-finalizado-top"><h3 style="font-size:14px;color:var(--color-pine)">${safe(r.titulo || 'Relatório de atendimento')}</h3><span class="relatorio-status ${safe(r.status)}">${safe(rotuloStatusRelatorio(r.status))}</span></div>
+    <p style="font-size:12px;color:var(--color-text-secondary)">${new Date(r.entregueEm || r.updatedAt || r.createdAt).toLocaleString('pt-BR')} · versão ${safe(r.versao || 1)}</p>
+    <p style="font-size:13px">${safe(r.solucao || r.problema || '')}</p>
+    ${r.pendencias ? `<p class="relatorio-falha"><i class="fa-solid fa-list-check"></i> Próximo passo: ${safe(r.pendencias)}${r.prazoProximoPasso ? ` · ${new Date(r.prazoProximoPasso + 'T12:00:00').toLocaleDateString('pt-BR')}` : ''}</p>` : ''}
+    <details class="relatorio-comprovante"><summary>Comprovante de entrega</summary><p><strong>Caso:</strong> ${safe(r.casoRef || 'registro anterior')}</p><p><strong>Canais:</strong> ${safe((r.canaisEntrega || []).join(', ') || '—')}</p><p><strong>Responsável:</strong> ${safe(r.entreguePor || '—')}</p></details>
+    ${r.status === 'entregue' ? `<button type="button" class="btn-doc-action" data-dossier-relatorio="${safe(r.id)}"><i class="fa-solid fa-download"></i> Baixar relatório</button>` : ''}
+  </div>`).join('') : '<p style="color:var(--color-text-secondary);font-size:13px">Nenhum relatório entregue ainda.</p>';
+  history.querySelectorAll('[data-dossier-relatorio]').forEach(btn => btn.addEventListener('click', () => {
+    const rel = reports.find(r => String(r.id) === String(btn.dataset.dossierRelatorio));
+    if (rel) OCRelatorio.baixarPDF(rel, { name: rel.clienteNome || c.name, cpf: rel.clienteCpf || c.cpf });
+  }));
   files.innerHTML = docs.length ? `<table class="financeiro-table"><thead><tr><th>Arquivo</th><th>Enviado por</th><th>Data</th><th></th></tr></thead><tbody>${docs.map(d => `<tr><td>${safe(d.fileName)}</td><td>${d.uploadedBy === 'agent' ? 'Contador' : 'Cliente'}</td><td>${new Date(d.createdAt).toLocaleDateString('pt-BR')}</td><td>${d.url ? `<a class="btn-doc-action" href="${safe(d.url)}" target="_blank" rel="noopener">Abrir</a>` : ''}</td></tr>`).join('')}</tbody></table>` : '<p style="color:var(--color-text-secondary);font-size:13px">Nenhum arquivo enviado.</p>';
   ativarAbaConfigurada('#dossier-overlay', 'dossier-processo');
   document.getElementById('dossier-overlay').classList.add('active');
@@ -6498,7 +7028,8 @@ async function radarInternoTestarConexao(botao) {
     const capacidades = await chamarRadarInterno('capacidades');
     await chamarRadarInterno('testar-autenticacao', null, { documento: '00000000000' });
     radarInternoStatus(id, `<span style="color:#1F8A5B;"><i class="fa-solid fa-circle-check"></i> Integra Contador autenticado.</span>
-      <span class="radar-capacidade ${capacidades.dividaAtiva ? 'ok' : 'pendente'}">Dívida Ativa: ${capacidades.dividaAtiva ? 'configurada' : 'aguardando contrato próprio'}</span>`);
+      <span class="radar-capacidade ${capacidades.dividaAtiva ? 'ok' : 'pendente'}">Dívida Ativa: ${capacidades.dividaAtiva ? 'configurada' : 'aguardando contrato próprio'}</span>
+      <span class="radar-capacidade ${capacidades.cnd ? 'ok' : 'pendente'}">CND: ${capacidades.cnd ? 'configurada' : 'aguardando contrato próprio'}</span>`);
   } catch (e) {
     radarInternoStatus(id, `<span style="color:#C0392B;"><i class="fa-solid fa-triangle-exclamation"></i> ${safe(e.message)}</span>`);
   } finally {
@@ -6666,6 +7197,27 @@ async function radarInternoDetalharDivida(botao, numeroInscricao) {
   finally { botao.disabled = false; }
 }
 
+async function radarInternoCnd(botao) {
+  const clienteRef = clienteRadarInternoSelecionado();
+  if (!clienteRef) return;
+  const id = 'radar-interno-cnd-resultado';
+  botao.disabled = true;
+  radarInternoCarregando(id, 'Solicitando a certidão oficial...');
+  try {
+    const r = await chamarRadarInterno('cnd', clienteRef);
+    if (!r.pdfBase64) {
+      radarInternoStatus(id, `<p style="font-size:12.5px;color:var(--color-text-secondary);margin:0;">A fonte oficial respondeu sem um PDF${r.situacao ? ` (situação: ${safe(r.situacao)})` : ''}. Consulte o protocolo ${safe(r.protocolo || 'não informado')}.</p>`);
+      return;
+    }
+    const documento = String(clientsData[clienteRef]?.cpf || '').replace(/\D/g, '');
+    radarInternoStatus(id, `<a class="btn-utility primary" download="certidao-${safe(documento)}.pdf" href="data:application/pdf;base64,${r.pdfBase64}"><i class="fa-solid fa-download"></i> Baixar certidão oficial</a>${r.protocolo ? `<span class="radar-protocolo">Protocolo: ${safe(r.protocolo)}</span>` : ''}`);
+  } catch (e) {
+    radarInternoErro(id, e);
+  } finally {
+    botao.disabled = false;
+  }
+}
+
 function radarCarregando(msg) {
   const c = document.getElementById('dossier-radar-content');
   if (c) c.innerHTML = `<div style="text-align:center;padding:24px;">
@@ -6830,6 +7382,7 @@ window.radarInternoEmitirDas = radarInternoEmitirDas;
 window.radarInternoDetalharParcelamento = radarInternoDetalharParcelamento;
 window.radarInternoDividaAtiva = radarInternoDividaAtiva;
 window.radarInternoDetalharDivida = radarInternoDetalharDivida;
+window.radarInternoCnd = radarInternoCnd;
 window.radarInternoTestarConexao = radarInternoTestarConexao;
 
 

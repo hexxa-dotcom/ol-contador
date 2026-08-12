@@ -13,11 +13,13 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
 
-  <link rel="stylesheet" href="styles.css?v=32">
+  <link rel="stylesheet" href="styles.css?v=34">
   <link rel="stylesheet" href="cliente.css?v=33">
 
   <!-- FontAwesome -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link rel="stylesheet" href="acessibilidade.css">
+<script src="monitoramento.js" defer></script>
 </head>
 <body class="pagina-cliente">
 
@@ -406,8 +408,8 @@
               <div class="chat-input-area">
                 <form class="chat-form" id="client-chat-form">
                   <button type="button" class="btn-attach" title="Anexar Arquivo" onclick="document.querySelector('[data-target=\'section-documentos\']').click()"><i class="fa-solid fa-paperclip"></i></button>
-                  <input type="text" id="client-chat-input" placeholder="Digite sua mensagem..." autocomplete="off">
-                  <button type="submit" class="btn-send"><i class="fa-solid fa-paper-plane"></i></button>
+                  <input type="text" id="client-chat-input" aria-label="Mensagem para o contador" placeholder="Digite sua mensagem..." autocomplete="off">
+                  <button type="submit" class="btn-send" aria-label="Enviar mensagem"><i class="fa-solid fa-paper-plane"></i></button>
                 </form>
               </div>
             </div>
@@ -1344,11 +1346,12 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.2/dist/html2pdf.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
   <script src="config.js?v=2"></script>
-  <script src="oc-data.js?v=5"></script>
+  <script src="oc-data.js?v=37"></script>
   <script src="triagem-catalogo.js"></script>
   <script src="triagem.js?v=4"></script>
-  <script src="relatorio-pdf.js"></script>
-  <script src="cliente.js?v=24"></script>
+  <script src="relatorio-pdf.js?v=7"></script>
+  <script src="cliente.js?v=25"></script>
 </body>
 </html>

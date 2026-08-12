@@ -60,6 +60,7 @@ create table if not exists public.serpro_consultas (
 
 create index if not exists serpro_consultas_cliente_idx on public.serpro_consultas(cliente_ref);
 create index if not exists serpro_consultas_criado_idx  on public.serpro_consultas(criado_em desc);
+create index if not exists serpro_consultas_disparado_por_idx on public.serpro_consultas(disparado_por);
 
 -- Projetos Supabase recentes não expõem automaticamente tabelas novas para a
 -- Data API. RLS e GRANT são camadas separadas: sem estes privilégios até o

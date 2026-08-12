@@ -9,6 +9,7 @@ const ia = require('./ia');
 const notify = require('./notify');
 const agenda = require('./agenda');
 const { validarCpfCnpj } = require('./documento');
+const pagamentoCompartilhado = require('./api/_lib/pagamento');
 
 const app = express();
 const server = http.createServer(app);
@@ -31,10 +32,7 @@ app.use(express.json({ limit: '15mb' })); // base64 de documentos
 app.use(express.static(root));
 
 // Mesma função protegida usada em produção, montada aqui para testes locais.
-app.post('/api/status', (req, res, next) => {
-  if (req.query.acao !== 'govbr-vault') return next();
-  return require('./api/_lib/govbr-vault')(req, res);
-});
+app.post('/api/status', (req, res) => require('./api/status')(req, res));
 
 app.get('/', (req, res) => res.redirect('/contador.html'));
 
@@ -740,141 +738,13 @@ app.post('/api/guias-mensais/:id/concluir', async (req, res) => {
   }
 });
 
-// Confirma pagamento: cria o agendamento se pago. Idempotente.
+// O servidor local usa exatamente a mesma confirmação idempotente da produção.
 async function confirmCobranca(cob) {
-  if (cob.status === 'paid' && cob.appointment_id) {
-    return { status: 'paid', appointmentId: cob.appointment_id };
-  }
-  const payment = await asaas.getPayment(cob.asaas_payment_id);
-  if (!asaas.PAID_STATUSES.includes(payment.status)) {
-    return { status: 'pending' };
-  }
-
-  // Pago: cria o agendamento (se ainda não criou)
-  let appointmentId = cob.appointment_id;
-  if (!appointmentId) {
-    const { data: servico } = await supabaseAdmin.from('servicos').select('*').eq('id', cob.servico_id).single();
-    let { data: cliente } = await supabaseAdmin.from('clientes').select('*').eq('id', cob.cliente_ref).maybeSingle();
-
-    // O cliente só nasce agora — pagamento confirmado — pra nunca sobrar
-    // registro de quem gerou o Pix e desistiu. Os dados do formulário ficaram
-    // guardados em cobrancas.dados_cliente desde o checkout.
-    if (cob.dados_cliente) {
-      const d = cob.dados_cliente;
-      if (!cliente) {
-        const { data: novoCliente, error: erroCliente } = await supabaseAdmin.from('clientes').insert({
-          id: cob.cliente_ref, name: d.name, cpf: cob.cliente_ref, email: d.email, phone: d.phone,
-          sexo: d.sexo || null, cidade: d.cidade || null, estado: d.estado || null,
-          tax_type: servico ? servico.name : null,
-          honorarios: servico ? Math.round(servico.price_cents / 100) : null,
-          status: 'pending'
-        }).select().single();
-        if (erroCliente) console.error('criação do cliente na confirmação falhou:', erroCliente.message);
-        cliente = novoCliente || null;
-      } else {
-        await supabaseAdmin.from('clientes').update({
-          email: d.email, phone: d.phone, sexo: d.sexo || null, cidade: d.cidade || null, estado: d.estado || null
-        }).eq('id', cliente.id);
-      }
-      if (cliente && (d.assunto || d.summary)) {
-        await supabaseAdmin.from('triagens').insert({
-          cliente_ref: cliente.id, assunto: d.assunto || (servico ? servico.name : ''),
-          descricao: d.summary ? String(d.summary).slice(0, LIMITE_RESUMO) : null,
-          status: 'enviada', enviada_at: new Date().toISOString()
-        });
-      }
-    }
-
-    const { data: appt } = await supabaseAdmin.from('agendamentos').insert({
-      cliente_ref: cob.cliente_ref,
-      client_name: cliente ? cliente.name : cob.cliente_ref,
-      date: cob.appt_date || 'A definir',
-      time: cob.appt_time || '',
-      tax_type: servico ? servico.name : '',
-      status: 'pending'
-    }).select().single();
-    appointmentId = appt ? appt.id : null;
-
-    await supabaseAdmin.from('cobrancas')
-      .update({ status: 'paid', paid_at: new Date().toISOString(), appointment_id: appointmentId })
-      .eq('id', cob.id);
-
-    await supabaseAdmin.from('notificacoes').insert({
-      text: `Pagamento confirmado: ${cliente ? cliente.name : cob.cliente_ref} agendou ${servico ? servico.name : ''}.`,
-      time: nowTime(), unread: true, cliente_ref: cob.cliente_ref
-    });
-
-    if (cliente) {
-      await notify.notifyCliente(
-        cliente, 
-        'Agendamento Confirmado - Olá, Contador', 
-        `Seu pagamento foi confirmado com sucesso. O seu atendimento do serviço <strong>${servico ? servico.name : 'Atendimento'}</strong> está agendado.<br><br>
-        Acesse sua área do cliente em nosso site para acompanhar sua triagem e falar diretamente com o contador.`
-      );
-    }
-
-    io.emit('appointments_updated');
-    io.emit('notifications_updated');
-    io.emit('payment_confirmed', { cobrancaId: cob.id, clientId: cob.cliente_ref, appointmentId });
-
-    // Só agora — pagamento confirmado — nasce a conta de acesso do cliente.
-    // Se der erro (e-mail já cadastrado em outra conta, etc.), não derruba a
-    // confirmação do pagamento: o essencial (agendamento) já está feito.
-    if (cliente && cliente.email && !cliente.user_id && supabaseAdmin) {
-      try {
-        const { data: novoUser, error: erroAuth } = await supabaseAdmin.auth.admin.createUser({
-          email: cliente.email, email_confirm: true
-        });
-        if (!erroAuth && novoUser && novoUser.user) {
-          await supabaseAdmin.from('clientes').update({ user_id: novoUser.user.id }).eq('id', cliente.id);
-        } else if (erroAuth) {
-          console.error('criação de conta do cliente falhou:', erroAuth.message);
-        }
-      } catch (e) {
-        console.error('criação de conta do cliente falhou:', e.message);
-      }
-    }
-    if (cliente && cliente.email) await enviarLinkDeAcesso(cliente.email);
-
-    // Aviso externo ao cliente: pagamento confirmado + agendamento.
-    if (notify.anyConfigured()) {
-      const clienteFull = await fetchClient(cob.cliente_ref);
-      const quando = [cob.appt_date, cob.appt_time].filter(Boolean).join(' às ');
-      notify.notifyCliente(clienteFull, 'Pagamento confirmado — atendimento agendado',
-        `Recebemos seu pagamento de <strong>${servico ? servico.name : 'atendimento'}</strong>. ` +
-        `Seu horário${quando ? ' (' + quando + ')' : ''} está confirmado. O contador falará com você no chat de atendimento.`);
-    }
-  }
-  return { status: 'paid', appointmentId };
+  return pagamentoCompartilhado.confirmCobranca(supabaseAdmin, cob);
 }
-
-// Polling público do checkout de agendamento (sem login) — espelha
-// api/status.js. Os dois endpoints antigos (signup-status/credito-status)
-// viraram um só em produção pra caber no teto de 12 funções do plano Hobby;
-// aqui não há esse limite, mas mantemos a mesma rota pra checkout.html chamar
-// igual nos dois ambientes.
-app.get('/api/status', async (req, res) => {
-  if (req.query.cobrancaId) {
-    const { data: cob } = await supabaseAdmin.from('cobrancas').select('*').eq('id', parseInt(req.query.cobrancaId, 10)).single();
-    if (!cob) return res.status(404).json({ error: 'cobranca_not_found' });
-    if (!asaas.isConfigured()) return res.status(503).json({ error: 'asaas_not_configured' });
-    try {
-      return res.json(await confirmCobranca(cob));
-    } catch (e) {
-      console.error('status (cobranca) error:', e.message);
-      return res.status(502).json({ error: 'asaas_error', detail: e.message });
-    }
-  }
-  if (req.query.codigo) {
-    const codigo = String(req.query.codigo).trim().toUpperCase();
-    const { data: credito } = await supabaseAdmin.from('creditos').select('*').eq('codigo', codigo).maybeSingle();
-    if (!credito) return res.status(404).json({ error: 'credito_not_found' });
-    if (credito.status !== 'ativo') return res.status(410).json({ error: 'credito_indisponivel', status: credito.status });
-    return res.json({ valido: true, valorCents: credito.valor_cents, valor: credito.valor_cents / 100 });
-  }
-  res.status(400).json({ error: 'invalid_params' });
-});
-
+// O servidor local delega ao mesmo controlador usado nas funções de produção,
+// evitando que validação, créditos e métricas evoluam em implementações diferentes.
+app.get('/api/status', (req, res) => require('./api/status')(req, res));
 // ============ Créditos de atendimento ============
 // Gerados manualmente pelo contador no painel financeiro (ex.: cortesia,
 // reembolso, parceria). O cliente resgata com o código OU com um link direto
@@ -1015,13 +885,15 @@ app.get('/api/checkout/:id/status', async (req, res) => {
 
 // Webhook do Asaas (produção): confirma pagamento vindo do gateway.
 app.post('/api/asaas/webhook', async (req, res) => {
+  const secret = process.env.ASAAS_WEBHOOK_SECRET;
+  if (secret && req.headers['asaas-access-token'] !== secret) return res.status(401).send('invalid_token');
   const event = req.body || {};
   const paymentId = event.payment && event.payment.id;
   if (!paymentId) return res.status(200).send('ignored');
 
   const { data: cob } = await supabase.from('cobrancas').select('*').eq('asaas_payment_id', paymentId).single();
   if (cob) {
-    try { await confirmCobranca(cob); } catch (e) { console.error('webhook error:', e.message); }
+    try { await pagamentoCompartilhado.sincronizarCobrancaAsaas(supabaseAdmin, cob); } catch (e) { console.error('webhook error:', e.message); }
   }
   res.status(200).send('ok'); // Asaas exige 200 para não reenviar
 });

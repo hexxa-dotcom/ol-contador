@@ -5,6 +5,8 @@
 // verdade, então só roda com login real (igual ao /api/checkout).
 const asaas = require('./_lib/asaas');
 const { requireUser, adminClient } = require('./_lib/auth');
+const { registrarEventoFunil } = require('./_lib/metricas');
+const { registrarErro } = require('./_lib/monitoramento');
 
 // Preços de autoatendimento (o cliente ativa sozinho, ex. botão "Radar Fiscal"
 // na área dele) — vêm SEMPRE daqui, nunca do valor que o navegador mandar.
@@ -31,10 +33,20 @@ module.exports = async (req, res) => {
   try {
     if (ativar === false) {
       if (cliente.asaas_subscription_id && asaas.isConfigured()) {
-        await asaas.cancelSubscription(cliente.asaas_subscription_id).catch(() => {});
+        await asaas.cancelSubscription(cliente.asaas_subscription_id);
       }
       await admin.from('clientes').update({ recorrente: false, asaas_subscription_id: null }).eq('id', clientId);
+      await admin.from('assinaturas_historico').insert({
+        cliente_ref: clientId, asaas_subscription_id: cliente.asaas_subscription_id || null,
+        tipo: cliente.recorrente_tipo || null, valor_cents: Math.round((cliente.honorarios || 0) * 100),
+        dia_vencimento: cliente.recorrente_dia_venc || null, status: 'cancelada', created_by: auth.user.id
+      });
+      await registrarEventoFunil(admin, 'assinatura_cancelada', { clienteRef: clientId, origem: 'area_cliente' });
       return res.json({ recorrente: false });
+    }
+
+    if (cliente.recorrente && cliente.asaas_subscription_id) {
+      return res.json({ recorrente: true, subscriptionId: cliente.asaas_subscription_id, alreadyActive: true });
     }
 
     if (!asaas.isConfigured()) return res.status(503).json({ error: 'asaas_not_configured' });
@@ -71,11 +83,18 @@ module.exports = async (req, res) => {
       recorrente: true, recorrente_tipo: tipo || null, recorrente_dia_venc: dia,
       asaas_subscription_id: sub.id, honorarios: valorNum
     }).eq('id', clientId);
+    await admin.from('assinaturas_historico').insert({
+      cliente_ref: clientId, asaas_subscription_id: sub.id, tipo: tipo || null,
+      valor_cents: Math.round(valorNum * 100), dia_vencimento: dia, status: 'ativa', created_by: auth.user.id
+    });
+    await registrarEventoFunil(admin, 'assinatura_ativada', { clienteRef: clientId, origem: souStaff ? 'painel_contador' : 'area_cliente', metadata: { tipo, valorCents: Math.round(valorNum * 100) } });
 
     res.json({ recorrente: true, subscriptionId: sub.id, nextDueDate });
   } catch (e) {
     if (e.code === 'asaas_not_configured') return res.status(503).json({ error: 'asaas_not_configured' });
     console.error('recorrencia error:', e.message);
+    await registrarErro(admin, { origem: 'recorrencia', codigo: e.code || 'recorrencia_error', mensagem: e.message,
+      rota: '/api/recorrencia', severidade: 'critico', contexto: { ativar: ativar !== false, tipo } });
     res.status(502).json({ error: 'asaas_error', detail: e.message });
   }
 };

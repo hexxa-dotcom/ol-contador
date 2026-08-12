@@ -10,6 +10,8 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Hanken+Grotesk:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
 <link rel="stylesheet" href="booking.css?v=2" />
+<link rel="stylesheet" href="acessibilidade.css">
+<script src="monitoramento.js" defer></script>
 </head>
 <body>
   <header class="nav-wrap">
@@ -35,7 +37,7 @@
 
     <div class="etapa-topo">
       <h1 id="titulo-etapa">Como você quer ser atendido?</h1>
-      <p id="texto-etapa">Você pode escolher um horário para conversar ou enviar tudo para o contador resolver sem reunião.</p>
+      <p id="texto-etapa">Escolha Atendimento Express ou um horário para conversar com o contador.</p>
     </div>
 
     <div class="alerta" id="alerta"></div>
@@ -65,7 +67,7 @@
           </label>
         </div>
         <div class="vantagens-sem-agendamento" id="vantagens-sem-agendamento">
-          <div class="vantagens-eyebrow">Mais simples e sem horário</div>
+          <div class="vantagens-eyebrow">Atendimento Express</div>
           <strong>Prefere deixar o caso com a gente?</strong>
           <p>Depois do pagamento, responda a triagem e fotografe os documentos pelo celular. O caso entra na fila sem depender de uma reunião.</p>
           <ul>
@@ -120,6 +122,9 @@
   // ressuscitando numa visita futura.
   const CHAVE = 'oc_agendamento';
   const CHAVE_CREDITO = 'oc_credito_codigo';
+  const FUNIL_SESSAO = localStorage.getItem('oc_funil_sessao') || crypto.randomUUID();
+  localStorage.setItem('oc_funil_sessao', FUNIL_SESSAO);
+  fetch('/api/status?acao=registrar-evento-funil', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ evento:'agendamento_iniciado', sessaoRef:FUNIL_SESSAO, origem:'agendamento' }) }).catch(() => {});
 
   // Os botões do site antigo mandam ?plano=pf|pj|sob-demanda; aceitamos também o
   // id do serviço direto. O que não casar não seleciona nada — antes caía num

@@ -35,6 +35,7 @@ create table if not exists public.serpro_resultados (
 
 create index if not exists serpro_consultas_cliente_idx on public.serpro_consultas(cliente_ref);
 create index if not exists serpro_consultas_criado_idx on public.serpro_consultas(criado_em desc);
+create index if not exists serpro_consultas_disparado_por_idx on public.serpro_consultas(disparado_por);
 create index if not exists serpro_resultados_cliente_idx on public.serpro_resultados(cliente_ref);
 
 -- O backend usa service_role. Sem estes GRANTs, a Data API devolve 42501 e

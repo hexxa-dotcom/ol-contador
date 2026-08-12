@@ -58,6 +58,8 @@ create index if not exists atendimentos_express_fila_idx
   on public.atendimentos_express(status, prazo_conclusao_em);
 create index if not exists atendimentos_express_cliente_idx
   on public.atendimentos_express(cliente_ref, contratado_em desc);
+create index if not exists atendimentos_express_servico_idx
+  on public.atendimentos_express(servico_id);
 
 comment on table public.atendimentos_express is
   'Fila de serviços sem horário marcado. Cada linha representa uma contratação paga.';
@@ -81,13 +83,15 @@ on public.atendimentos_express for update to authenticated
 using ((select public.is_staff()))
 with check ((select public.is_staff()));
 
--- O cliente não recebe permissão genérica de update na fila. Esta função só
--- avança a contratação Express mais antiga dele que ainda aguarda triagem.
-create or replace function public.confirmar_triagem_atendimento_express()
+-- O cliente não recebe permissão genérica de update na fila. A implementação
+-- privilegiada fica fora do schema exposto; o wrapper público apenas a chama.
+create schema if not exists private;
+
+create or replace function private.confirmar_triagem_atendimento_express()
 returns bigint
 language plpgsql
 security definer
-set search_path = public, pg_temp
+set search_path = ''
 as $$
 declare
   v_cliente_ref text;
@@ -115,7 +119,17 @@ begin
 end;
 $$;
 
-revoke all on function public.confirmar_triagem_atendimento_express() from public;
+revoke all on function private.confirmar_triagem_atendimento_express() from public, anon;
+grant execute on function private.confirmar_triagem_atendimento_express() to authenticated;
+
+create or replace function public.confirmar_triagem_atendimento_express()
+returns bigint
+language sql
+security invoker
+set search_path = ''
+as $$ select private.confirmar_triagem_atendimento_express(); $$;
+
+revoke all on function public.confirmar_triagem_atendimento_express() from public, anon;
 grant execute on function public.confirmar_triagem_atendimento_express() to authenticated;
 
 -- Recupera contratações Express que já existiam antes desta fila. O cálculo

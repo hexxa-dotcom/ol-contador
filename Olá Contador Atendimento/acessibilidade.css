@@ -1,0 +1,4 @@
+.oc-skip-link{position:fixed;left:12px;top:12px;z-index:100000;transform:translateY(-180%);background:#fff;color:#0a5546;border:2px solid #0a5546;border-radius:8px;padding:10px 14px;font-weight:700;text-decoration:none}.oc-skip-link:focus{transform:none}
+:focus-visible{outline:3px solid #ee5f3a!important;outline-offset:3px!important}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
+@media (forced-colors:active){button,a,input,select,textarea{forced-color-adjust:auto}.status-badge,.sla-badge{border:1px solid currentColor}}

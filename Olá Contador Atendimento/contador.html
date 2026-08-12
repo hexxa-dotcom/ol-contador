@@ -13,9 +13,11 @@
   <link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
 
   <!-- CSS Stylesheet -->
-  <link rel="stylesheet" href="styles.css?v=32">
+  <link rel="stylesheet" href="styles.css?v=35">
   <!-- FontAwesome for icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link rel="stylesheet" href="acessibilidade.css">
+<script src="monitoramento.js" defer></script>
 </head>
 <!-- A classe marca a página para o CSS. O styles.css é compartilhado com o
      portal do cliente, então o bloco mobile do PAINEL precisa ficar preso aqui —
@@ -195,7 +197,7 @@
             <div class="dash-card-header" style="justify-content: space-between; align-items: flex-start;">
               <div>
                 <h3><i class="fa-solid fa-bolt" style="color: var(--color-coral)"></i> Atendimentos Express</h3>
-                <p style="font-size: 11px; color: var(--color-text-secondary); margin-top: 4px;">Serviços sem reunião, ordenados pelo prazo de conclusão</p>
+                <p style="font-size: 11px; color: var(--color-text-secondary); margin-top: 4px;">Atendimentos Express, ordenados pelo prazo de conclusão</p>
               </div>
               <span class="chat-count-badge" id="express-count-badge">0 pendentes</span>
             </div>
@@ -329,8 +331,8 @@
 
               <div class="copilot-input-area" style="padding: 12px; background: white; border-top: 1px solid var(--color-border); display: flex; flex-direction: column; gap: 8px;">
                 <form id="form-copilot" style="display: flex; gap: 8px;" onsubmit="event.preventDefault(); submitCopilotMessage();">
-                  <input type="text" id="copilot-input" placeholder="Pergunte algo à IA sobre este atendimento..." style="flex: 1; border: 1px solid var(--color-border); border-radius: 20px; padding: 8px 16px; font-size: 12px; outline: none; font-family: inherit;">
-                  <button type="submit" style="width: 34px; height: 34px; border-radius: 50%; border: none; background: var(--color-coral); color: white; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0;"><i class="fa-solid fa-arrow-up"></i></button>
+                  <input type="text" id="copilot-input" aria-label="Pergunta para o copiloto" placeholder="Pergunte algo à IA sobre este atendimento..." style="flex: 1; border: 1px solid var(--color-border); border-radius: 20px; padding: 8px 16px; font-size: 12px; outline: none; font-family: inherit;">
+                  <button type="submit" aria-label="Enviar pergunta ao copiloto" style="width: 34px; height: 34px; border-radius: 50%; border: none; background: var(--color-coral); color: white; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0;"><i class="fa-solid fa-arrow-up"></i></button>
                 </form>
               </div>
 
@@ -379,7 +381,7 @@
                   <i class="fa-solid fa-list-check"></i>
                 </button>
                 <button class="btn-utility" id="btn-finish-chat" style="height: 32px; padding: 0 16px; border-radius: 24px; color: white; background-color: var(--color-coral); border-color: var(--color-coral); margin-right: 12px; font-size: 12px; font-weight: 500; display: flex; align-items: center; gap: 6px;">
-                  <i class="fa-solid fa-check-double"></i> Encerrar atendimento
+                  <i class="fa-solid fa-file-circle-check"></i> Encerrar conversa e preparar entrega
                 </button>
               </div>
             </div>
@@ -404,8 +406,8 @@
                   <button type="button" class="btn-send" id="btn-inline-ai" title="A IA assume e sugere a resposta — você revisa antes de enviar" onclick="triggerInlineCopilot()" style="background-color: var(--color-bg); border: 1px solid var(--color-border); margin-right: 8px;">
                     <svg viewBox="0 0 616 640" style="width: 16px; height: 16px;"><use href="#oc-logo-mark"></use></svg>
                   </button>
-                  <input type="text" class="input-message" id="message-input" placeholder="Digite uma mensagem ou '/'..." autocomplete="off">
-                  <button type="submit" class="btn-send" id="btn-send-message"><i class="fa-solid fa-paper-plane"></i></button>
+                  <input type="text" class="input-message" id="message-input" aria-label="Mensagem ao cliente" placeholder="Digite uma mensagem ou '/'..." autocomplete="off">
+                  <button type="submit" class="btn-send" id="btn-send-message" aria-label="Enviar mensagem"><i class="fa-solid fa-paper-plane"></i></button>
                 </form>
               </div>
 
@@ -429,7 +431,7 @@
       <section class="content-panel" id="section-dossie">
         <div class="panel-header-desc">
           <h2>Relatórios de Atendimento</h2>
-          <p>Feche o atendimento com um relatório completo: selecione o cliente, descreva o caso e a solução, gere o PDF e entregue.</p>
+          <p>Feche o atendimento com um relatório objetivo: selecione o cliente, descreva o caso e a resolução, anexe os comprovantes e entregue.</p>
         </div>
 
         <div class="settings-tabs oc-segmented" id="relatorio-secao-tabs">
@@ -465,20 +467,60 @@
             <div class="relatorio-page-body">
               <div class="relatorio-editor-col">
                 <div class="relatorio-cliente-chip" id="rel-cliente-chip"></div>
+                <div class="relatorio-caso-contexto" id="rel-caso-contexto">Caso ainda não identificado</div>
                 <button class="btn-utility primary relatorio-btn-ia" id="btn-rel-ia">
                   <i class="fa-solid fa-wand-magic-sparkles"></i> Preencher com a IA (AIA)
                 </button>
                 <p class="relatorio-ia-hint">A AIA lê a conversa e escreve um rascunho em linguagem do cliente. Revise e ajuste antes de enviar.</p>
-                <label class="form-label">Título do atendimento</label>
-                <input class="form-select" id="rel-titulo" placeholder="Ex.: Regularização de Malha Fina 2024">
-                <label class="form-label relatorio-label-spaced">O que aconteceu (o problema)</label>
-                <textarea class="form-textarea" id="rel-problema" rows="3"></textarea>
-                <label class="form-label relatorio-label-spaced">Solução proposta</label>
-                <textarea class="form-textarea" id="rel-solucao" rows="3"></textarea>
-                <label class="form-label relatorio-label-spaced">O que foi feito <span class="relatorio-label-hint">(um item por linha)</span></label>
-                <textarea class="form-textarea" id="rel-oquefeito" rows="4"></textarea>
-                <label class="form-label relatorio-label-spaced">Como foi feito e próximos passos <span class="relatorio-label-hint">(um item por linha)</span></label>
-                <textarea class="form-textarea" id="rel-comofeito" rows="4"></textarea>
+                <div class="relatorio-modelo-row">
+                  <select class="form-select" id="rel-tipo" aria-label="Tipo de relatório">
+                    <option value="atendimento">Relatório de atendimento · caso e resolução</option>
+                    <option value="pendencias">Relatório de pendências · emissão excepcional</option>
+                  </select>
+                  <input type="hidden" id="rel-formato" value="essencial">
+                  <select class="form-select" id="rel-modelo">
+                    <option value="geral">Modelo geral</option>
+                    <option value="pf">Pessoa Física e gov.br</option>
+                    <option value="pj">Pessoa Jurídica</option>
+                    <option value="regularizacao">Regularização e parcelamentos</option>
+                  </select>
+                  <button type="button" class="btn-utility" id="btn-rel-modelo"><i class="fa-solid fa-layer-group"></i> Aplicar modelo</button>
+                </div>
+                <label class="form-label" id="rel-label-titulo">Título do atendimento</label>
+                <input class="form-select" id="rel-titulo" maxlength="100" placeholder="Ex.: Regularização de Malha Fina 2024">
+                <label class="form-label relatorio-label-spaced" id="rel-label-problema">Descrição objetiva do caso</label>
+                <textarea class="form-textarea" id="rel-problema" maxlength="700" rows="3"></textarea>
+                <label class="form-label relatorio-label-spaced" id="rel-label-solucao">Resolução do caso</label>
+                <textarea class="form-textarea" id="rel-solucao" maxlength="700" rows="3" placeholder="Informe o resultado efetivamente obtido"></textarea>
+                <label class="form-label relatorio-label-spaced" id="rel-label-oquefeito">Providências realizadas <span class="relatorio-label-hint">(um item por linha)</span></label>
+                <textarea class="form-textarea" id="rel-oquefeito" maxlength="800" rows="4"></textarea>
+                <div id="rel-bloco-pendencias" hidden>
+                  <p class="relatorio-ia-hint" style="margin-top:14px;">Este documento será identificado como elaborado com base no Relatório de Pendências da Receita Federal e nas demais evidências levantadas.</p>
+                  <label class="form-label relatorio-label-spaced">Pendências identificadas <span class="relatorio-label-hint">(um item por linha)</span></label>
+                  <textarea class="form-textarea" id="rel-pendencias" maxlength="1100" rows="5"></textarea>
+                </div>
+                <div id="rel-bloco-comofeito" hidden>
+                  <label class="form-label relatorio-label-spaced">Orientações para regularização <span class="relatorio-label-hint">(um item por linha)</span></label>
+                  <textarea class="form-textarea" id="rel-comofeito" maxlength="800" rows="4"></textarea>
+                </div>
+                <input type="hidden" id="rel-entregas">
+                <input type="hidden" id="rel-responsavel">
+                <input type="hidden" id="rel-prazo">
+                <div class="relatorio-anexos-box">
+                  <div class="relatorio-anexos-head">
+                    <div><strong>Anexos e comprovantes</strong><small>Entregues separadamente; não aumentam o PDF de uma página.</small></div>
+                    <span id="rel-anexos-contador">0 selecionados</span>
+                  </div>
+                  <div id="rel-anexos-documentos" class="relatorio-anexos-lista"><small>Selecione um cliente para carregar os documentos.</small></div>
+                  <div class="relatorio-anexo-link-row">
+                    <select class="form-select" id="rel-anexo-link-tipo"><option value="protocolo">Protocolo</option><option value="guia">Guia</option><option value="comprovante">Comprovante</option><option value="link">Link</option><option value="outro">Outro</option></select>
+                    <input class="form-input" id="rel-anexo-link-titulo" maxlength="160" placeholder="Título ou identificação">
+                    <input class="form-input" id="rel-anexo-link-url" type="url" placeholder="https://...">
+                    <button type="button" class="btn-utility" id="btn-rel-anexo-link"><i class="fa-solid fa-plus"></i> Adicionar</button>
+                  </div>
+                  <div id="rel-anexos-manuais" class="relatorio-anexos-lista"></div>
+                </div>
+                <p class="relatorio-label-hint relatorio-draft-status" id="rel-draft-status">O rascunho é salvo automaticamente por 24 horas neste dispositivo.</p>
               </div>
               <!-- Prévia ao vivo do documento -->
               <div class="relatorio-preview-col">
@@ -490,12 +532,20 @@
 
           <!-- Passo 3: enviar ou arquivar -->
           <div class="relatorio-step" data-rel-step="enviar" hidden>
-            <p style="font-size:13px;color:var(--color-text-secondary);margin-bottom:16px;">Relatório gerado. Escolha por onde entregar ao cliente — ou arquive sem avisar agora.</p>
-            <div class="relatorio-envio-opcoes">
-              <label class="relatorio-envio-opcao"><input type="checkbox" id="rel-envio-chat" checked> <i class="fa-solid fa-comments"></i> Avisar no chat do atendimento</label>
-              <label class="relatorio-envio-opcao"><input type="checkbox" id="rel-envio-caixa-postal"> <i class="fa-solid fa-inbox"></i> Enviar pela Caixa Postal</label>
-              <label class="relatorio-envio-opcao"><input type="checkbox" id="rel-envio-email"> <i class="fa-solid fa-envelope"></i> Enviar por e-mail</label>
+            <p style="font-size:13px;color:var(--color-text-secondary);margin-bottom:16px;">Confira o caso e a consequência da ação. O atendimento só será concluído depois que a entrega na Área do Cliente for registrada.</p>
+            <div class="relatorio-revisao-final">
+              <div><span>Cliente</span><strong id="rel-review-cliente">—</strong></div>
+              <div><span>Tipo</span><strong id="rel-review-formato">—</strong></div>
+              <div><span>Caso</span><strong id="rel-review-caso">—</strong></div>
+              <div><span>Resultado</span><strong id="rel-review-resultado">—</strong></div>
+              <div><span>Anexos separados</span><strong id="rel-review-anexos">Nenhum</strong></div>
             </div>
+            <div class="relatorio-envio-opcoes">
+              <label class="relatorio-envio-opcao obrigatoria"><input type="checkbox" checked disabled> <i class="fa-solid fa-user-shield"></i> Entregar na Área do Cliente <small>obrigatório</small></label>
+              <label class="relatorio-envio-opcao"><input type="checkbox" id="rel-envio-email"> <i class="fa-solid fa-envelope"></i> Avisar também por e-mail</label>
+              <label class="relatorio-envio-opcao"><input type="checkbox" id="rel-envio-caixa-postal"> <i class="fa-solid fa-inbox"></i> Avisar também pela Caixa Postal</label>
+            </div>
+            <p class="relatorio-consequencia" id="rel-consequencia"><i class="fa-solid fa-circle-info"></i> Ao confirmar, o relatório ficará disponível para o cliente e o caso correspondente será concluído.</p>
             <p class="relatorio-label-hint" id="rel-envio-status" style="margin-top:12px;">&nbsp;</p>
           </div>
 
@@ -512,7 +562,13 @@
 
         <!-- Aba: Relatórios Finalizados — histórico de tudo que já foi gerado -->
         <div class="settings-pane" id="relatorio-pane-finalizados">
-          <p style="font-size:12px;color:var(--color-text-secondary);margin:16px 0;">Todos os relatórios já gerados, de todos os clientes.</p>
+          <div class="relatorios-metricas" id="relatorios-metricas"></div>
+          <div class="relatorios-filtros">
+            <input class="form-input" id="relatorios-busca" placeholder="Buscar cliente, assunto ou caso">
+            <select class="form-select" id="relatorios-status-filtro"><option value="todos">Todos os estados</option><option value="entregue">Entregues</option><option value="entrega_pendente">Entrega pendente</option><option value="falha_na_entrega">Falha na entrega</option><option value="arquivado_interno">Arquivados internos</option></select>
+            <select class="form-select" id="relatorios-modalidade-filtro"><option value="todas">Todas as modalidades</option><option value="sem_agendamento">Express</option><option value="agendado">Agendado</option></select>
+            <select class="form-select" id="relatorios-periodo-filtro"><option value="todos">Todo o período</option><option value="30">30 dias</option><option value="90">90 dias</option><option value="365">12 meses</option></select>
+          </div>
           <div id="relatorio-finalizados-lista"><p style="color:var(--color-text-secondary);font-size:13px;">Carregando…</p></div>
         </div>
 
@@ -1246,7 +1302,7 @@
                       <label class="cfg-label" style="font-size: 10px;">Ícone (fa)</label>
                       <input type="text" id="new-shortcut-icon" class="cfg-input" placeholder="fa-bolt" value="fa-bolt">
                     </div>
-                    <button class="btn-utility primary" id="btn-add-shortcut" style="height: 40px; margin-bottom: 4px;"><i class="fa-solid fa-plus"></i></button>
+                    <button class="btn-utility primary" id="btn-add-shortcut" aria-label="Adicionar atalho" style="height: 40px; margin-bottom: 4px;"><i class="fa-solid fa-plus"></i></button>
                   </div>
                 </div>
               </div>
@@ -1271,7 +1327,7 @@
                       <label class="cfg-label" style="font-size: 10px;">Pergunta enviada à IA</label>
                       <input type="text" id="new-copilot-shortcut-prompt" class="cfg-input" placeholder="Ex: Qual o prazo pra este tipo de caso?">
                     </div>
-                    <button class="btn-utility primary" id="btn-add-copilot-shortcut" style="height: 40px; margin-bottom: 4px;"><i class="fa-solid fa-plus"></i></button>
+                    <button class="btn-utility primary" id="btn-add-copilot-shortcut" aria-label="Adicionar atalho do copiloto" style="height: 40px; margin-bottom: 4px;"><i class="fa-solid fa-plus"></i></button>
                   </div>
                 </div>
               </div>
@@ -1602,6 +1658,11 @@
               <h3 style="font-size:16px;margin-bottom:16px">Cobranças recentes</h3>
               <div id="financeiro-cobrancas-lista" style="font-size:13px;color:var(--color-text-secondary)">Carregando cobranças…</div>
             </div>
+            <div class="financeiro-card full-width">
+              <h3 style="font-size:16px;margin-bottom:6px">Funil comercial · últimos 30 dias</h3>
+              <p style="font-size:12px;color:var(--color-text-secondary);margin:0 0 14px">Da visita à página de preços até a entrega do resultado.</p>
+              <div id="financeiro-funil" class="relatorios-metricas">Carregando métricas…</div>
+            </div>
           </div>
         </div>
 
@@ -1753,8 +1814,9 @@
 
         <div class="settings-pane radar-servico-pane" id="radar-pane-cnd">
           <h3><i class="fa-solid fa-certificate"></i> CND</h3>
-          <p>A CND usa uma API separada e exige contratação e credenciais próprias. Ela permanece indisponível para não confundir o relatório SITFIS com uma certidão oficial.</p>
-          <button type="button" class="btn-utility" disabled>Credenciais não configuradas</button>
+          <p>Emite a certidão oficial somente quando o produto específico estiver contratado e configurado. O SITFIS continua identificado separadamente.</p>
+          <button type="button" class="btn-utility primary" onclick="radarInternoCnd(this)"><i class="fa-solid fa-file-circle-check"></i> Emitir CND oficial</button>
+          <div id="radar-interno-cnd-resultado" class="radar-resultado"></div>
         </div>
       </section>
 
@@ -1829,6 +1891,14 @@
           <div class="financeiro-card" style="min-width:320px;">
             <h3 style="font-size:15px;margin-bottom:12px">Clientes por cidade</h3>
             <div id="insights-barras-cidade">Carregando…</div>
+          </div>
+
+          <div class="financeiro-card full-width">
+            <div style="display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap">
+              <div><h3 style="font-size:15px;margin:0 0 4px">Saúde da plataforma</h3><p style="font-size:12px;color:var(--color-text-secondary);margin:0">Erros agrupados dos últimos 30 dias, sem senhas, documentos ou dados de contato.</p></div>
+              <button type="button" class="btn-utility" id="btn-atualizar-erros"><i class="fa-solid fa-rotate"></i> Atualizar</button>
+            </div>
+            <div id="insights-erros-operacionais" style="margin-top:14px">Carregando…</div>
           </div>
         </div>
       </section>
@@ -2046,19 +2116,19 @@
                 <td><i class="fa-solid fa-file-pdf" style="color:#C0392B;"></i> recibo_entrega_irpf.pdf</td>
                 <td>10/07/2026</td>
                 <td>1.2 MB</td>
-                <td><button class="btn-doc-action"><i class="fa-solid fa-download"></i></button></td>
+                <td><button class="btn-doc-action" aria-label="Baixar recibo de entrega"><i class="fa-solid fa-download"></i></button></td>
               </tr>
               <tr>
                 <td><i class="fa-solid fa-image" style="color:#2980B9;"></i> informe_rendimentos.jpg</td>
                 <td>08/07/2026</td>
                 <td>450 KB</td>
-                <td><button class="btn-doc-action"><i class="fa-solid fa-download"></i></button></td>
+                <td><button class="btn-doc-action" aria-label="Baixar informe de rendimentos"><i class="fa-solid fa-download"></i></button></td>
               </tr>
               <tr>
                 <td><i class="fa-solid fa-file-pdf" style="color:#C0392B;"></i> notificacao_receita.pdf</td>
                 <td>08/07/2026</td>
                 <td>2.1 MB</td>
-                <td><button class="btn-doc-action"><i class="fa-solid fa-download"></i></button></td>
+                <td><button class="btn-doc-action" aria-label="Baixar notificação da Receita"><i class="fa-solid fa-download"></i></button></td>
               </tr>
             </tbody>
           </table>
@@ -2148,7 +2218,7 @@
             <small style="color:var(--color-text-secondary); font-size:11px; display:block; margin-bottom:12px;">Aparecem no cabeçalho e na assinatura do PDF entregue ao cliente. Se não enviar, usamos a marca padrão do Olá, Contador.</small>
             <div style="display: flex; gap: 20px; flex-wrap: wrap;">
               <div style="display: flex; align-items: center; gap: 10px;">
-                <img id="preview-profile-logo" src="" style="width:40px; height:40px; border-radius:8px; object-fit:cover; background:var(--color-bg); display:none; border:1px solid var(--color-border);">
+                <img id="preview-profile-logo" src="" alt="Prévia da marca do contador" style="width:40px; height:40px; border-radius:8px; object-fit:cover; background:var(--color-bg); display:none; border:1px solid var(--color-border);">
                 <div>
                   <label class="btn-utility" style="font-size:12px; cursor:pointer; display:inline-flex;" for="edit-profile-logo">
                     <i class="fa-solid fa-image"></i> Logo (quadrada)
@@ -2158,7 +2228,7 @@
                 </div>
               </div>
               <div style="display: flex; align-items: center; gap: 10px;">
-                <img id="preview-profile-assinatura" src="" style="width:70px; height:34px; object-fit:contain; background:var(--color-bg); display:none; border:1px solid var(--color-border); border-radius:6px;">
+                <img id="preview-profile-assinatura" src="" alt="Prévia da assinatura do contador" style="width:70px; height:34px; object-fit:contain; background:var(--color-bg); display:none; border:1px solid var(--color-border); border-radius:6px;">
                 <div>
                   <label class="btn-utility" style="font-size:12px; cursor:pointer; display:inline-flex;" for="edit-profile-assinatura">
                     <i class="fa-solid fa-signature"></i> Assinatura (imagem)
@@ -2190,15 +2260,16 @@
   <!-- JS Logic -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.2/dist/html2pdf.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
   <script src="config.js?v=2"></script>
-  <script src="oc-data.js?v=33"></script>
+  <script src="oc-data.js?v=37"></script>
   <script src="triagem-catalogo.js"></script>
   <script src="config-cliente.js"></script>
-  <script src="relatorio-pdf.js"></script>
+  <script src="relatorio-pdf.js?v=7"></script>
   <script src="ai-analysis.js"></script>
   <script src="kanban.js"></script>
   <script src="equipe.js"></script>
-  <script src="app.js?v=36"></script>
+  <script src="app.js?v=40"></script>
   <!-- Depois do app.js: reorganiza o painel para o celular (barra inferior,
        folha "Mais" e as três vistas do atendimento). Só age abaixo de 768px. -->
   <script src="contador-mobile.js"></script>
