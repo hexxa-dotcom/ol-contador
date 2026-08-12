@@ -13,7 +13,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
 
   <!-- CSS Stylesheet -->
-  <link rel="stylesheet" href="styles.css?v=35">
+  <link rel="stylesheet" href="styles.css?v=40">
   <!-- FontAwesome for icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <link rel="stylesheet" href="acessibilidade.css">
@@ -308,7 +308,7 @@
                 <!-- Copilot Welcome -->
                 <div style="display: flex; gap: 12px; max-width: 90%;">
                   <div style="width: 28px; height: 28px; border-radius: 50%; background: var(--color-pine); color: white; display: flex; align-items: center; justify-content: center; font-size: 12px; flex-shrink: 0;"><i class="fa-solid fa-robot"></i></div>
-                  <div style="background: white; border: 1px solid var(--color-border); padding: 12px; border-radius: 8px; font-size: 13px; color: var(--color-text); line-height: 1.4;">
+                  <div style="background: var(--color-card); border: 1px solid var(--color-border); padding: 12px; border-radius: 8px; font-size: 13px; color: var(--color-text); line-height: 1.4;">
                     Olá, contador! Estou acompanhando o chat em tempo real.<br><br>Selecione um comando rápido abaixo ou me pergunte o que precisar.
                   </div>
                 </div>
@@ -329,7 +329,7 @@
                    (localStorage) — editável/ligável em Configurações → Aparência do Chat. -->
               <div class="copilot-prompts" id="copilot-prompts-container"></div>
 
-              <div class="copilot-input-area" style="padding: 12px; background: white; border-top: 1px solid var(--color-border); display: flex; flex-direction: column; gap: 8px;">
+              <div class="copilot-input-area" style="padding: 12px; background: var(--color-card); border-top: 1px solid var(--color-border); display: flex; flex-direction: column; gap: 8px;">
                 <form id="form-copilot" style="display: flex; gap: 8px;" onsubmit="event.preventDefault(); submitCopilotMessage();">
                   <input type="text" id="copilot-input" aria-label="Pergunta para o copiloto" placeholder="Pergunte algo à IA sobre este atendimento..." style="flex: 1; border: 1px solid var(--color-border); border-radius: 20px; padding: 8px 16px; font-size: 12px; outline: none; font-family: inherit;">
                   <button type="submit" aria-label="Enviar pergunta ao copiloto" style="width: 34px; height: 34px; border-radius: 50%; border: none; background: var(--color-coral); color: white; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0;"><i class="fa-solid fa-arrow-up"></i></button>
@@ -606,13 +606,13 @@
               </div>
               <div class="form-group" style="margin-bottom: 0;">
                 <label class="form-label">Documentação Pendente</label>
-                <div class="checklist-docs" id="checklist-documents-prontuario" style="background: white; border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 12px; min-height: 120px;">
+                <div class="checklist-docs" id="checklist-documents-prontuario" style="background: var(--color-card); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 12px; min-height: 120px;">
                   <!-- Populated by JS -->
                 </div>
               </div>
               <div class="form-group" style="margin-bottom: 0;">
                 <label class="form-label">Documentos Enviados</label>
-                <div id="prontuario-documentos" style="display: flex; flex-direction: column; gap: 8px; background: white; border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 12px; min-height: 120px;">
+                <div id="prontuario-documentos" style="display: flex; flex-direction: column; gap: 8px; background: var(--color-card); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 12px; min-height: 120px;">
                   <!-- Populated by JS -->
                 </div>
               </div>
@@ -819,11 +819,11 @@
 
         <!-- Aba: Mensagens — caixa postal de verdade, contador ↔ cliente -->
         <div class="settings-pane" id="cp-mensagens">
-          <div style="display:flex; height: calc(100vh - 260px); min-height: 420px; border: 1px solid var(--color-border); border-radius: var(--radius-lg); overflow: hidden; background: white;">
+          <div style="display:flex; height: calc(100vh - 260px); min-height: 420px; border: 1px solid var(--color-border); border-radius: var(--radius-lg); overflow: hidden; background: var(--color-card);">
 
             <!-- Lista de clientes com thread -->
             <div style="width: 300px; flex-shrink: 0; border-right: 1px solid var(--color-border); display: flex; flex-direction: column; background: var(--color-bg);">
-              <div style="padding: 14px; border-bottom: 1px solid var(--color-border); background: white;">
+              <div style="padding: 14px; border-bottom: 1px solid var(--color-border); background: var(--color-card);">
                 <input type="text" class="cfg-input" id="caixa-postal-busca" placeholder="Buscar cliente...">
               </div>
               <div style="flex: 1; overflow-y: auto;" id="caixa-postal-clientes-lista">
@@ -1467,7 +1467,7 @@
       <!-- SECTION 6: Clientes (CRM) -->
       <section class="content-panel" id="section-clientes" style="padding: 0;">
 
-        <div style="padding: 20px 32px 0; background: white; border-bottom: 1px solid var(--color-border);">
+        <div style="padding: 20px 32px 0; background: var(--color-card); border-bottom: 1px solid var(--color-border);">
           <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
             <div>
               <h2 style="font-size: 18px; color: var(--color-pine); margin:0;">Clientes</h2>
@@ -1485,7 +1485,7 @@
         <div class="settings-pane active" id="clientes-pane-geral">
           <div class="dashboard-split-grid" style="display: grid; grid-template-columns: 320px 1fr; height: 100%;">
             <div style="border-right: 1px solid var(--color-border); display: flex; flex-direction: column; background: var(--color-bg);">
-              <div style="padding: 16px; border-bottom: 1px solid var(--color-border); background: white;">
+              <div style="padding: 16px; border-bottom: 1px solid var(--color-border); background: var(--color-card);">
                 <div class="search-chat" style="margin: 0 0 10px;">
                   <i class="fa-solid fa-search"></i>
                   <input type="text" id="crm-search" placeholder="Buscar CPF, CNPJ ou Nome...">
@@ -1501,7 +1501,7 @@
                 <!-- Rendered by JS -->
               </div>
             </div>
-            <div id="crm-client-detail" style="flex: 1; display: flex; flex-direction: column; background: white; overflow-y: auto;">
+            <div id="crm-client-detail" style="flex: 1; display: flex; flex-direction: column; background: var(--color-card); overflow-y: auto;">
               <!-- Rendered by JS -->
             </div>
           </div>
@@ -1513,7 +1513,7 @@
         <div class="settings-pane" id="clientes-pane-recorrentes">
           <div class="dashboard-split-grid" style="display: grid; grid-template-columns: 320px 1fr; height: 100%;">
             <div style="border-right: 1px solid var(--color-border); display: flex; flex-direction: column; background: var(--color-bg);">
-              <div style="padding: 16px; border-bottom: 1px solid var(--color-border); background: white;">
+              <div style="padding: 16px; border-bottom: 1px solid var(--color-border); background: var(--color-card);">
                 <h3 style="font-size: 13px; color: var(--color-pine); margin: 0 0 4px;"><i class="fa-solid fa-arrows-rotate"></i> Clientes Recorrentes</h3>
                 <p style="font-size: 11px; color: var(--color-text-secondary); margin: 0;">Acompanhamento mensal (parcelamento, obrigação recorrente etc.), serviço e prazos.</p>
               </div>
@@ -1521,7 +1521,7 @@
                 <!-- Rendered by JS -->
               </div>
             </div>
-            <div id="recorrentes-tab-detail" style="flex: 1; display: flex; flex-direction: column; background: white; overflow-y: auto;">
+            <div id="recorrentes-tab-detail" style="flex: 1; display: flex; flex-direction: column; background: var(--color-card); overflow-y: auto;">
               <!-- Rendered by JS -->
             </div>
           </div>

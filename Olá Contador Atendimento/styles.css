@@ -670,8 +670,8 @@ body {
   border-color: rgba(255, 103, 0, 0.24);
   background: linear-gradient(180deg, rgba(255, 247, 240, 0.72), var(--color-card) 42%);
 }
-.express-card { min-width: 0; flex: 0 0 auto; background: var(--color-card); border-left: 3px solid var(--color-coral); }
-.express-card.express-atrasado { border-color: rgba(231, 76, 60, 0.48); border-left-color: #C0392B; }
+.express-card { min-width: 0; flex: 0 0 auto; background: var(--color-card); border: none; }
+.express-card.express-atrasado { background: var(--color-card); }
 .express-tags { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
 .express-tag { display: inline-flex; align-items: center; gap: 4px; padding: 3px 7px; border-radius: 999px; background: rgba(255, 103, 0, 0.12); color: var(--color-coral-dark); font-size: 9px; font-weight: 800; letter-spacing: .05em; }
 .express-assunto { color: var(--color-pine) !important; font-size: 12px !important; font-weight: 700; margin-bottom: 8px !important; }
@@ -5462,9 +5462,9 @@ body.pagina-contador {
   --color-text-primary: #141414;
   --color-text-secondary: #6B6B6B;
   --color-border: rgba(0, 0, 0, 0.08);
-  /* Fundo greige quente (referência do usuário) — uma superfície única e
-     contínua do topo ao rodapé; quem "flutua" são os cards brancos. */
-  --contador-bg: #EBEBE2;
+  /* Fundo branco contínuo (estilo Nubank): quem dá contraste são os cards
+     cinza-claro, não o fundo da página. */
+  --contador-bg: #FFFFFF;
   background-color: var(--contador-bg) !important;
   color: #141414;
 }
@@ -5493,35 +5493,35 @@ body.pagina-contador .header-right {
 }
 
 body.pagina-contador .notification-trigger {
-  background: #FFFFFF !important;
-  border: 1px solid rgba(0, 0, 0, 0.08) !important;
+  background: var(--contador-surface, #F1F1EF) !important;
+  border: none !important;
   border-radius: 50% !important;
   width: 44px !important;
   height: 44px !important;
   display: grid !important;
   place-items: center !important;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05), 0 8px 20px rgba(0, 0, 0, 0.08) !important;
+  box-shadow: 0 1px 2px rgba(20, 20, 20, 0.04), 0 4px 14px rgba(20, 20, 20, 0.05) !important;
   color: #141414 !important;
   transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
 }
 
 body.pagina-contador .notification-trigger:hover {
   transform: translateY(-2px) scale(1.05) !important;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05), 0 14px 30px rgba(255, 103, 0, 0.18) !important;
+  background: var(--contador-surface-muted, #E7E7E4) !important;
 }
 
 body.pagina-contador .agent-profile {
-  background: #FFFFFF !important;
-  border: 1px solid rgba(0, 0, 0, 0.08) !important;
+  background: var(--contador-surface, #F1F1EF) !important;
+  border: none !important;
   border-radius: 30px !important;
   padding: 5px 16px 5px 6px !important;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05), 0 8px 20px rgba(0, 0, 0, 0.08) !important;
+  box-shadow: 0 1px 2px rgba(20, 20, 20, 0.04), 0 4px 14px rgba(20, 20, 20, 0.05) !important;
   transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
 }
 
 body.pagina-contador .agent-profile:hover {
   transform: translateY(-2px) !important;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05), 0 14px 30px rgba(255, 103, 0, 0.18) !important;
+  background: var(--contador-surface-muted, #E7E7E4) !important;
 }
 
 body.pagina-contador .agent-info h4 {
@@ -5533,12 +5533,43 @@ body.pagina-contador .agent-info span {
   color: #6B6B6B !important;
 }
 
-/* 2. Sidebar flutuante e limpa (mesmo padrão do cliente) sobre fundo
-   branco — texto/ícone em preto, item ativo em laranja (o destaque). */
-body.pagina-contador .dashboard-container {
-  padding: 12px 24px 24px 24px !important;
-  gap: 20px !important;
-  height: calc(100vh - 76px) !important;
+/* ==========================================================================
+   PAINEL DO CONTADOR — TEMA FLAT MINIMALISTA
+   Substitui as camadas anteriores (ULTRA-SOPHISTICATED, CONSOLIDAÇÃO 2026,
+   trava final) por uma única fonte de verdade: mesma paleta (pine + coral),
+   tratamento plano — sem gradiente, sem glow, sem sombra em camadas — com
+   a cor coral reservada só pra ações primárias e indicadores de seleção.
+   Cabeçalho (logo, notificações, perfil) não é tocado aqui de propósito —
+   ver bloco "1. Header" acima, mantido como estava.
+   ========================================================================== */
+body.pagina-contador {
+  --contador-ease: cubic-bezier(.2, .8, .2, 1);
+  /* Estilo Nubank: página branca, cards em cinza sólido — o contraste vem
+     da cor de fundo, não de borda nem sombra. */
+  --contador-surface: #F1F1EF;
+  --contador-surface-soft: #FFFFFF;
+  --contador-surface-muted: #E7E7E4;
+  --contador-line: rgba(20, 20, 20, 0.06);
+  --contador-line-strong: rgba(20, 20, 20, 0.10);
+  --contador-shadow-sm: 0 1px 2px rgba(20, 20, 20, 0.04), 0 4px 14px rgba(20, 20, 20, 0.05);
+  --contador-shadow-md: 0 1px 2px rgba(20, 20, 20, 0.04), 0 4px 14px rgba(20, 20, 20, 0.05);
+  /* Componentes antigos (fora deste bloco) ainda leem estas duas — sem
+     redefini-las aqui, eles vazam pro branco/bege originais e o "cinza só
+     aparece no hover" some do resto da tela. */
+  --color-card: var(--contador-surface);
+  --color-bg: var(--contador-bg);
+  --contador-accent: var(--color-coral);
+  --contador-accent-strong: var(--color-coral-dark);
+  --contador-accent-soft: rgba(255, 103, 0, 0.08);
+  --contador-accent-soft-hover: rgba(255, 103, 0, 0.14);
+  --contador-accent-line: rgba(255, 103, 0, 0.35);
+  --contador-green: #0C5446;
+  --contador-green-strong: #083F35;
+  --contador-green-soft: rgba(12, 84, 70, 0.08);
+  --contador-green-soft-hover: rgba(12, 84, 70, 0.14);
+  --contador-green-line: rgba(12, 84, 70, 0.30);
+  --contador-coral: var(--color-coral);
+  --contador-coral-strong: var(--color-coral-dark);
 }
 
 body.pagina-contador .dashboard-container,
@@ -5546,155 +5577,100 @@ body.pagina-contador .main-content-panels {
   background: var(--contador-bg) !important;
 }
 
-body.pagina-contador .app-sidebar-nav {
-  margin: 0 !important;
-  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
-}
-
-/* Fica preso ao desktop de propósito: essa mesma regra (com !important) vira
-   a barra inferior do celular fora daqui — aplicar sem media query pisaria
-   no padding/fundo/altura que o bloco mobile já define pra ela lá embaixo.
-   O height:100% em especial já causava isso ANTES desta mudança (bug
-   pré-existente, só que nunca tinha sido testado no celular): sem essa
-   media query, ele vencia (por !important) o "height: var(--oc-rodape)"
-   do bloco mobile — e sem outra âncora de tamanho, o sidebar.collapsed
-   virava uma barra cobrindo a tela toda, em vez de ficar preso ao rodapé. */
+/* Sidebar — invisível: sem moldura, sem fundo próprio, os itens sentam
+   direto sobre o branco da página. */
 @media (min-width: 769px) {
-  body.pagina-contador .app-sidebar-nav {
+  body.pagina-contador .app-sidebar-nav,
+  body.pagina-contador .app-sidebar-nav.collapsed {
     background: transparent !important;
     border: none !important;
-    box-shadow: none !important;
     border-radius: 0 !important;
-    padding: 60px 10px 18px !important;
-    height: 100% !important;
+    box-shadow: none !important;
+    padding: 16px 10px !important;
   }
 }
 
 body.pagina-contador .nav-section-title {
-  color: #8A8A8A !important;
-  font-weight: 800 !important;
-  letter-spacing: 0.14em !important;
-  margin: 8px 12px 14px 12px !important;
+  color: var(--color-text-secondary) !important;
+  font-weight: 700 !important;
 }
 
 body.pagina-contador .nav-item {
-  border-radius: 18px !important;
-  padding: 12px 16px !important;
-  font-weight: 600 !important;
-  color: #141414 !important;
-  margin-bottom: 4px !important;
-  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  border-radius: 10px !important;
+  color: var(--color-text-primary) !important;
+  font-weight: 550 !important;
+  transition: background-color .15s var(--contador-ease), color .15s var(--contador-ease) !important;
 }
 
 body.pagina-contador .nav-item:hover {
-  background: #FFFFFF !important;
-  color: #141414 !important;
-  box-shadow: 0 2px 8px rgba(20, 20, 20, 0.06) !important;
-  transform: translateX(3px) !important;
+  background: var(--contador-surface-soft) !important;
+  color: var(--color-text-primary) !important;
+  box-shadow: none !important;
+  transform: none !important;
 }
 
-/* Ativo: preenchimento coral sólido e ícone branco. Isso deixa a seleção
-   inequívoca, inclusive quando a barra está recolhida em ícones. */
-body.pagina-contador .nav-item.active {
-  background: linear-gradient(145deg, #FF8A42 0%, var(--color-coral) 62%, #E95800 100%) !important;
+body.pagina-contador .nav-item.active,
+body.pagina-contador .app-sidebar-nav.collapsed .nav-item.active {
+  background: var(--color-text-primary) !important;
   color: #FFFFFF !important;
   border: none !important;
-  box-shadow: 0 10px 18px rgba(255, 103, 0, 0.32), inset 0 1px 1px rgba(255, 255, 255, 0.42), inset 0 -2px 3px rgba(166, 58, 0, 0.24) !important;
-  transform: translateY(-2px) !important;
+  box-shadow: none !important;
+  transform: none !important;
 }
 
 body.pagina-contador .nav-item.active i {
   color: #FFFFFF !important;
 }
 
-/* Ícones num chip circular quando a barra está recolhida (só ícone, sem
-   rótulo) — mesmo tratamento do portal do cliente, só que aqui com
-   !important porque as regras de cima (item "2.") já usam !important e
-   venceriam sem isso. Preso a min-width pelo mesmo motivo de lá: não pode
-   vazar pra dentro da barra inferior do celular. */
 @media (min-width: 769px) {
   body.pagina-contador .app-sidebar-nav.collapsed .nav-item {
     width: 44px !important;
     height: 44px !important;
     padding: 0 !important;
-    margin: 0 auto 10px !important;
-    border-radius: 50% !important;
+    margin: 0 auto 6px !important;
+    border-radius: 12px !important;
     justify-content: center !important;
     border: none !important;
     background: transparent !important;
   }
-
   body.pagina-contador .app-sidebar-nav.collapsed .nav-item:hover:not(.active) {
-    background: rgba(255, 255, 255, 0.86) !important;
-    box-shadow: 0 5px 12px rgba(20, 20, 20, 0.08) !important;
-    transform: translateY(-1px) !important;
+    background: var(--contador-surface-soft) !important;
+    box-shadow: none !important;
+    transform: none !important;
   }
-
-  body.pagina-contador .app-sidebar-nav.collapsed .nav-item.active {
-    background: linear-gradient(145deg, #FF8A42 0%, var(--color-coral) 62%, #E95800 100%) !important;
-  }
-
   body.pagina-contador .app-sidebar-nav.collapsed .nav-item .nav-label {
     display: none !important;
   }
-
   body.pagina-contador .app-sidebar-nav.collapsed .nav-item i {
     width: auto !important;
   }
 }
 
-/* 3. Cards brancos sólidos sobre o fundo greige (padrão da referência):
-   contraste vem da diferença branco × greige, não de sombra pesada nem
-   vidro. Sombra bem suave, borda quase invisível. */
-body.pagina-contador .kpi-card,
-body.pagina-contador .dash-card,
-body.pagina-contador .tracking-card,
-body.pagina-contador .painel-abas-container,
-body.pagina-contador .relatorios-card,
-body.pagina-contador .financeiro-card {
-  background: #FFFFFF !important;
+/* Cards — cinza sólido, sem borda nem sombra (estilo Nubank: o contraste é
+   a cor de fundo contra a página branca, não moldura nem elevação). */
+body.pagina-contador :is(
+  .kpi-card, .dash-card, .financeiro-card, .tracking-card, .relatorios-card,
+  .triagem-card, .integration-card, .stat-card, .calendar-main,
+  .calendar-sidebar, .settings-sidebar, .settings-content, .dossier-panel,
+  .kanban-col, .table-container, .atendimento-module-container
+) {
+  background: var(--contador-surface) !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
-  border-radius: 20px !important;
-  border: 1px solid rgba(0, 0, 0, 0.04) !important;
-  box-shadow: 0 1px 2px rgba(20, 20, 20, 0.03), 0 6px 18px rgba(20, 20, 20, 0.05) !important;
-  padding: 24px 28px !important;
-  color: #141414 !important;
-  transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1) !important;
-}
-
-body.pagina-contador .kpi-card:hover,
-body.pagina-contador .dash-card:hover,
-body.pagina-contador .tracking-card:hover {
-  transform: translateY(-3px) !important;
-  box-shadow: 0 1px 2px rgba(20, 20, 20, 0.03), 0 14px 30px rgba(20, 20, 20, 0.1) !important;
-}
-
-/* Card de destaque em laranja (como o card "Activity" da referência, só
-   que na nossa cor de destaque): o último KPI da grade vira o "hero". */
-body.pagina-contador .kpi-cards-grid .kpi-card:last-child {
-  background: linear-gradient(150deg, #FF8A42 0%, var(--color-coral) 70%) !important;
   border: none !important;
-  box-shadow: 0 8px 24px rgba(255, 103, 0, 0.3) !important;
+  border-radius: 16px !important;
+  box-shadow: none !important;
+  transition: background-color .15s var(--contador-ease) !important;
 }
 
-body.pagina-contador .kpi-cards-grid .kpi-card:last-child .kpi-card-header span,
-body.pagina-contador .kpi-cards-grid .kpi-card:last-child h3,
-body.pagina-contador .kpi-cards-grid .kpi-card:last-child .kpi-trend {
-  color: #FFFFFF !important;
+body.pagina-contador :is(.kpi-card, .dash-card, .financeiro-card, .tracking-card, .integration-card, .stat-card, .kanban-card):hover {
+  transform: none !important;
+  background: var(--contador-surface-muted) !important;
+  box-shadow: none !important;
 }
 
-body.pagina-contador .kpi-cards-grid .kpi-card:last-child .kpi-trend {
-  background: rgba(255, 255, 255, 0.2) !important;
-}
-
-/* Retirar traço superior e ícones dos cards KPI para visual 100% limpo & moderno */
 body.pagina-contador .kpi-card::before,
-body.pagina-contador .kpi-card-header i {
-  display: none !important;
-}
-
-/* Retirar ícones decorativos dos títulos dos cards para design 100% clean */
+body.pagina-contador .kpi-card-header i,
 body.pagina-contador .dash-card-header h3 i {
   display: none !important;
 }
@@ -5703,322 +5679,99 @@ body.pagina-contador .kpi-card-header span {
   font-size: 12px !important;
   font-weight: 700 !important;
   text-transform: uppercase !important;
-  letter-spacing: 0.08em !important;
-  color: #5A5A5A !important;
+  letter-spacing: .06em !important;
+  color: var(--color-text-secondary) !important;
 }
 
 body.pagina-contador .kpi-card h3 {
-  font-size: 36px !important;
+  font-size: 32px !important;
   font-weight: 800 !important;
-  letter-spacing: -1.2px !important;
-  color: #141414 !important;
-  margin: 14px 0 10px 0 !important;
-  line-height: 1.1 !important;
+  letter-spacing: -.03em !important;
+  color: var(--color-text-primary) !important;
+  margin: 12px 0 8px 0 !important;
 }
 
 body.pagina-contador .dash-card-header h3 {
-  font-size: 18px !important;
-  font-weight: 800 !important;
-  letter-spacing: -0.4px !important;
-  color: #141414 !important;
+  font-size: 17px !important;
+  font-weight: 700 !important;
+  color: var(--color-text-primary) !important;
 }
 
 body.pagina-contador .kpi-trend {
-  padding: 5px 12px !important;
-  border-radius: 30px !important;
+  padding: 4px 10px !important;
+  border-radius: 999px !important;
   font-weight: 700 !important;
-  font-size: 11.5px !important;
+  font-size: 11px !important;
 }
 
-/* 4. Segmented Control Pill Tabs (Avisos / Mensagens & Outras Abas) */
-body.pagina-contador .painel-abas,
-body.pagina-contador .settings-tabs {
-  background: #FFFFFF !important;
-  padding: 6px !important;
-  border-radius: 20px !important;
-  border: 1px solid rgba(0, 0, 0, 0.04) !important;
-  box-shadow: 0 1px 2px rgba(20, 20, 20, 0.03), 0 6px 18px rgba(20, 20, 20, 0.05) !important;
-  display: inline-flex !important;
-  gap: 6px !important;
-  margin-bottom: 24px !important;
-}
-
-body.pagina-contador .painel-aba-btn,
-body.pagina-contador .settings-tab {
-  border-radius: 14px !important;
-  padding: 10px 20px !important;
-  font-weight: 700 !important;
-  font-size: 13.5px !important;
-  color: #6B6B6B !important;
-  background: transparent !important;
-  border: none !important;
-  cursor: pointer !important;
-  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
-}
-
-body.pagina-contador .painel-aba-btn:hover,
-body.pagina-contador .settings-tab:hover {
-  background: rgba(255, 103, 0, 0.06) !important;
-  color: #141414 !important;
-}
-
-body.pagina-contador .painel-aba-btn.active,
-body.pagina-contador .settings-tab.active {
-  background: var(--color-coral) !important;
-  color: #FFFFFF !important;
-  box-shadow: 0 4px 14px rgba(255, 103, 0, 0.28) !important;
-}
-
-/* Caixa Postal Thread Frame Floating Card */
-body.pagina-contador #cp-mensagens > div {
-  border-radius: 24px !important;
-  border: 1px solid rgba(12, 84, 70, 0.12) !important;
-  box-shadow: 0 8px 24px rgba(12, 84, 70, 0.07) !important;
-  overflow: hidden !important;
-}
-
-/* 5. Smooth Page Entrance & Hover Micro-animations */
-body.pagina-contador .content-panel.active {
-  animation: appleFadeInUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) !important;
-}
-
-@keyframes appleFadeInUp {
-  0% {
-    opacity: 0;
-    transform: translateY(14px) scale(0.99);
-  }
-  100% {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-}
-
-/* 6. Chat Area Frame (Borda Laranja 360 Encapsulada Flutuando) */
-body.pagina-contador .atendimento-module-container {
-  border-radius: 24px !important;
-  border: 2px solid var(--color-coral) !important; /* Borda Laranja em todo o container do chat */
-  box-shadow: 0 12px 32px rgba(255, 106, 69, 0.16), 0 4px 16px rgba(12, 84, 70, 0.08) !important;
-  overflow: hidden !important;
-  background: #FFFFFF !important;
-  box-sizing: border-box !important;
-}
-
-/* A trilha vertical (Chat / Copiloto) fica dentro da moldura laranja, sem borda
-   própria — é ela que troca o conteúdo do painel esquerdo. A regra que escondia
-   estes ícones no desktop veio junto com uma limpeza feita para o portal do
-   cliente e deixava o contador sem como voltar para a fila. */
-body.pagina-contador .atendimento-toolbar-left {
-  background: #FFFFFF !important;
-  border-right: 1px solid rgba(12, 84, 70, 0.1) !important;
-}
-
-body.pagina-contador .atendimento-side-panel,
-body.pagina-contador .sidebar-chats {
-  background: #FFFFFF !important;
-  border-right: 2px solid var(--color-coral) !important; /* Linha Laranja dividindo o histórico e a área de conversa */
-}
-
-body.pagina-contador .chat-item {
-  border-bottom: 1px solid rgba(12, 84, 70, 0.1) !important; /* Linha de divisão horizontal simples */
-  border-left: none !important;
-  border-right: none !important;
-  border-top: none !important;
-  transition: background-color 0.2s ease !important;
-}
-
-body.pagina-contador .chat-item:last-child {
-  border-bottom: none !important;
-}
-
-body.pagina-contador .chat-item.active {
-  background-color: var(--color-pine-ultra-light) !important;
-  border-left: none !important;
-}
-
-body.pagina-contador .chat-area {
-  border: none !important;
-  border-radius: 0 !important;
-  box-shadow: none !important;
-  margin: 0 !important;
-  background-color: #FFFFFF !important;
-}
-
-/* Contorno nos ícones da toolbar lateral (Chat / IA) quando selecionados */
-body.pagina-contador .btn-toolbar {
-  border: 2px solid transparent !important;
-  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
-}
-
-body.pagina-contador .btn-toolbar:hover:not(.active) {
-  border: 2px solid rgba(255, 103, 0, 0.4) !important;
-  background-color: rgba(255, 103, 0, 0.06) !important;
-}
-
-body.pagina-contador .btn-toolbar.active {
-  background-color: var(--color-pine-ultra-light) !important;
-  color: var(--color-pine) !important;
-  border: 2px solid var(--color-coral) !important; /* Contorno Laranja no ícone ativo da toolbar (Chat e IA) */
-  box-shadow: 0 4px 14px rgba(255, 103, 0, 0.2) !important;
-}
-
-/* ==========================================================================
-   SISTEMA VISUAL DO CONTADOR — CONSOLIDAÇÃO 2026
-   Esta é a camada final do painel. Ela corrige conflitos entre os estilos
-   históricos e usa os nomes reais dos componentes renderizados no HTML/JS.
-   ========================================================================== */
-body.pagina-contador {
-  --contador-accent: #E96B42;
-  --contador-accent-strong: #C9542E;
-  --contador-accent-soft: rgba(233, 107, 66, 0.10);
-  --contador-accent-soft-hover: rgba(233, 107, 66, 0.16);
-  --contador-accent-line: rgba(201, 84, 46, 0.24);
-  --contador-surface: #FFFFFF;
-  --contador-surface-soft: #F7F6F1;
-  --contador-surface-muted: #F0EFE8;
-  --contador-line: rgba(20, 20, 20, 0.10);
-  --contador-line-strong: rgba(20, 20, 20, 0.16);
-  --contador-shadow-sm: 0 1px 2px rgba(20, 20, 20, 0.04), 0 5px 14px rgba(20, 20, 20, 0.05);
-  --contador-shadow-md: 0 2px 4px rgba(20, 20, 20, 0.04), 0 12px 28px rgba(20, 20, 20, 0.08);
-  --contador-ease: cubic-bezier(0.16, 1, 0.3, 1);
-  --color-coral: var(--contador-accent);
-  --color-coral-dark: var(--contador-accent-strong);
-  --color-coral-light: #FFF0EA;
-  --color-pine-ultra-light: var(--contador-accent-soft);
-}
-
-/* Navegação: seleção suave e translúcida, sem o bloco laranja rígido. */
-body.pagina-contador .nav-item,
-body.pagina-contador .btn-toolbar,
-body.pagina-contador .btn-utility,
-body.pagina-contador .btn-primary,
-body.pagina-contador .btn-send,
-body.pagina-contador .btn-shortcut-tag,
-body.pagina-contador .calendar-nav-btn,
-body.pagina-contador .calendar-view-btn {
-  transition: color .22s var(--contador-ease), background-color .22s var(--contador-ease),
-              border-color .22s var(--contador-ease), box-shadow .22s var(--contador-ease),
-              transform .22s var(--contador-ease) !important;
-}
-
-body.pagina-contador .nav-item:hover {
-  background: rgba(255, 255, 255, 0.68) !important;
-  color: var(--contador-accent-strong) !important;
-  box-shadow: 0 3px 12px rgba(20, 20, 20, 0.05) !important;
-  transform: translateX(2px) !important;
-}
-
-body.pagina-contador .nav-item.active,
-body.pagina-contador .app-sidebar-nav.collapsed .nav-item.active {
-  background: var(--contador-accent-soft) !important;
-  color: var(--contador-accent-strong) !important;
-  border: 1px solid var(--contador-accent-line) !important;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.75), 0 4px 12px rgba(201, 84, 46, 0.08) !important;
-  transform: none !important;
-}
-
-body.pagina-contador .nav-item.active i {
-  color: var(--contador-accent-strong) !important;
-}
-
-body.pagina-contador .nav-item:active,
-body.pagina-contador button:active:not(:disabled) {
-  transform: scale(0.97) !important;
-}
-
-/* Superfícies compartilhadas por todas as seções. */
-body.pagina-contador :is(
-  .kpi-card, .dash-card, .financeiro-card, .tracking-card, .relatorios-card,
-  .triagem-card, .integration-card, .stat-card, .calendar-main,
-  .calendar-sidebar, .settings-sidebar, .settings-content, .dossier-panel,
-  .kanban-col, .table-container
-) {
-  border-color: var(--contador-line) !important;
-  box-shadow: var(--contador-shadow-sm) !important;
-  transition: transform .28s var(--contador-ease), box-shadow .28s var(--contador-ease), border-color .28s var(--contador-ease) !important;
-}
-
-body.pagina-contador :is(.kpi-card, .dash-card, .financeiro-card, .tracking-card, .integration-card, .stat-card):hover {
-  transform: translateY(-2px) !important;
-  border-color: var(--contador-accent-line) !important;
-  box-shadow: var(--contador-shadow-md) !important;
-}
-
-/* O KPI de destaque também passa a usar acento leve, não laranja sólido. */
+/* Card de destaque — mesmo tratamento dos demais, sem borda colorida */
 body.pagina-contador .kpi-cards-grid .kpi-card:last-child {
-  background: linear-gradient(145deg, rgba(233, 107, 66, 0.14), rgba(255, 255, 255, 0.94) 68%) !important;
-  border: 1px solid var(--contador-accent-line) !important;
-  box-shadow: var(--contador-shadow-sm) !important;
+  background: var(--contador-surface) !important;
+  border: none !important;
 }
 body.pagina-contador .kpi-cards-grid .kpi-card:last-child :is(.kpi-card-header span, h3, .kpi-trend) {
-  color: #141414 !important;
+  color: var(--color-text-primary) !important;
 }
 body.pagina-contador .kpi-cards-grid .kpi-card:last-child .kpi-trend {
-  background: rgba(255, 255, 255, 0.72) !important;
+  background: var(--contador-surface-muted) !important;
 }
 
-/* Entrada igual em todas as seções e em listas que trocam conteúdo. */
+/* Entrada de painel — só um fade, sem escala/translação exagerada */
 @keyframes contador-panel-in {
-  from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-@keyframes contador-list-in {
-  from { opacity: 0; transform: translateX(-5px); }
-  to { opacity: 1; transform: translateX(0); }
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 body.pagina-contador .content-panel.active {
-  animation: contador-panel-in .30s var(--contador-ease) both !important;
-}
-body.pagina-contador .painel-lista.ativa,
-body.pagina-contador .side-panel-content.active,
-body.pagina-contador .settings-pane.active {
-  animation: contador-list-in .22s var(--contador-ease) both;
+  animation: contador-panel-in .18s var(--contador-ease) both !important;
 }
 
-/* CHAT — moldura, trilha lateral e divisões. */
-body.pagina-contador .atendimento-module-container {
+@media (prefers-reduced-motion: reduce) {
+  body.pagina-contador *,
+  body.pagina-contador *::before,
+  body.pagina-contador *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: .01ms !important;
+  }
+}
+
+/* Abas (settings-tabs, painel-abas — .oc-segmented já tem regra própria acima) */
+body.pagina-contador :is(.painel-abas, .settings-tabs) {
+  background: var(--contador-surface-muted) !important;
+  border: 1px solid var(--contador-line) !important;
+  border-radius: 999px !important;
+  box-shadow: none !important;
+  padding: 4px !important;
+}
+body.pagina-contador :is(.painel-aba-btn, .settings-tab) {
+  border-radius: 999px !important;
+  color: var(--color-text-secondary) !important;
+  background: transparent !important;
+  border: none !important;
+  font-weight: 650 !important;
+}
+body.pagina-contador :is(.painel-aba-btn, .settings-tab):hover {
   background: var(--contador-surface) !important;
-  border: 1px solid var(--contador-line-strong) !important;
-  border-radius: 22px !important;
-  box-shadow: var(--contador-shadow-md) !important;
+  color: var(--color-text-primary) !important;
 }
-body.pagina-contador .atendimento-toolbar-left {
-  background: var(--contador-surface-soft) !important;
-  border-right: 1px solid var(--contador-line) !important;
-}
-body.pagina-contador .atendimento-side-panel,
-body.pagina-contador .sidebar-chats {
+body.pagina-contador :is(.painel-aba-btn.active, .settings-tab.active, .calendar-view-btn.active) {
   background: var(--contador-surface) !important;
-  border-right: 1px solid var(--contador-line-strong) !important;
-}
-body.pagina-contador .btn-toolbar {
-  border: 1px solid transparent !important;
-  color: #555 !important;
-}
-body.pagina-contador .btn-toolbar:hover:not(.active) {
-  background: rgba(255, 255, 255, 0.9) !important;
-  border-color: var(--contador-line) !important;
-  color: var(--contador-accent-strong) !important;
+  color: var(--color-text-primary) !important;
+  border-color: transparent !important;
   box-shadow: var(--contador-shadow-sm) !important;
-  transform: translateY(-1px) !important;
-}
-body.pagina-contador .btn-toolbar.active {
-  background: var(--contador-accent-soft) !important;
-  color: var(--contador-accent-strong) !important;
-  border: 1px solid var(--contador-accent-line) !important;
-  box-shadow: 0 4px 12px rgba(201, 84, 46, 0.10) !important;
 }
 
-/* Fila / Agenda: segmented control verdadeiro usando a classe real .painel-aba. */
 body.pagina-contador #panel-content-fila .painel-abas {
   display: flex !important;
   width: auto !important;
   margin: 14px !important;
   padding: 4px !important;
   gap: 4px !important;
-  border-radius: 14px !important;
+  border-radius: 12px !important;
   background: var(--contador-surface-muted) !important;
-  border: 1px solid var(--contador-line) !important;
-  box-shadow: inset 0 1px 2px rgba(20, 20, 20, 0.03) !important;
+  border: none !important;
+  box-shadow: none !important;
 }
 body.pagina-contador #panel-content-fila .painel-aba {
   display: flex !important;
@@ -6027,36 +5780,81 @@ body.pagina-contador #panel-content-fila .painel-aba {
   gap: 5px;
   min-height: 38px;
   padding: 8px 6px !important;
-  border: 1px solid transparent !important;
-  border-radius: 10px !important;
+  border: none !important;
+  border-radius: 8px !important;
   background: transparent !important;
-  color: #696969 !important;
+  color: var(--color-text-secondary) !important;
   font-size: 12px !important;
-  overflow: visible !important;
-  text-overflow: clip !important;
   box-shadow: none !important;
-  transition: color .20s var(--contador-ease), background-color .20s var(--contador-ease), box-shadow .20s var(--contador-ease), transform .20s var(--contador-ease) !important;
+  transition: background-color .15s var(--contador-ease), color .15s var(--contador-ease) !important;
 }
 body.pagina-contador #panel-content-fila .painel-aba:hover {
-  color: #222 !important;
-  background: rgba(255, 255, 255, 0.55) !important;
+  color: var(--color-text-primary) !important;
+  background: var(--contador-surface) !important;
 }
 body.pagina-contador #panel-content-fila .painel-aba.ativa {
-  color: #242424 !important;
+  color: var(--color-text-primary) !important;
   background: var(--contador-surface) !important;
-  border-color: rgba(20, 20, 20, 0.06) !important;
-  box-shadow: 0 1px 2px rgba(20, 20, 20, 0.06), 0 4px 10px rgba(20, 20, 20, 0.07) !important;
+  box-shadow: var(--contador-shadow-sm) !important;
 }
 body.pagina-contador #panel-content-fila .painel-aba .chat-count-badge {
   background: rgba(20, 20, 20, 0.08) !important;
-  color: #555 !important;
+  color: var(--color-text-secondary) !important;
   font-size: 9px !important;
   padding: 1px 5px !important;
-  transition: inherit;
 }
 body.pagina-contador #panel-content-fila .painel-aba.ativa .chat-count-badge {
-  background: var(--contador-accent-soft-hover) !important;
+  background: var(--contador-accent-soft) !important;
   color: var(--contador-accent-strong) !important;
+}
+
+/* Caixa Postal */
+body.pagina-contador #cp-mensagens > div {
+  border-radius: 14px !important;
+  border: none !important;
+  box-shadow: none !important;
+  overflow: hidden !important;
+}
+
+/* Chat — sem moldura ao redor, o cinza sólido já separa do fundo branco */
+body.pagina-contador .chat-area {
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  margin: 0 !important;
+  background: var(--contador-surface) !important;
+}
+body.pagina-contador .atendimento-module-container {
+  background: var(--contador-surface) !important;
+  border: none !important;
+  border-radius: 16px !important;
+  box-shadow: none !important;
+}
+body.pagina-contador .atendimento-toolbar-left {
+  background: var(--contador-surface-muted) !important;
+  border-right: none !important;
+}
+body.pagina-contador .atendimento-side-panel,
+body.pagina-contador .sidebar-chats {
+  background: var(--contador-surface) !important;
+  border-right: none !important;
+}
+body.pagina-contador .btn-toolbar {
+  border: 1px solid transparent !important;
+  color: var(--color-text-secondary) !important;
+}
+body.pagina-contador .btn-toolbar:hover:not(.active) {
+  background: var(--contador-surface-soft) !important;
+  border-color: var(--contador-line) !important;
+  color: var(--color-text-primary) !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+body.pagina-contador .btn-toolbar.active {
+  background: var(--color-text-primary) !important;
+  color: #FFFFFF !important;
+  border-color: var(--color-text-primary) !important;
+  box-shadow: none !important;
 }
 
 body.pagina-contador .search-chat {
@@ -6064,134 +5862,110 @@ body.pagina-contador .search-chat {
   border-bottom: 1px solid var(--contador-line) !important;
 }
 body.pagina-contador .search-chat input {
-  background: var(--contador-surface-soft) !important;
-  border: 1px solid var(--contador-line) !important;
-  min-height: 38px;
-  transition: border-color .2s ease, background-color .2s ease, box-shadow .2s ease;
+  background: var(--contador-surface-muted) !important;
+  border: none !important;
 }
 body.pagina-contador .search-chat input:focus {
   background: #fff !important;
-  border-color: var(--contador-accent-line) !important;
-  box-shadow: 0 0 0 3px var(--contador-accent-soft) !important;
+  box-shadow: none !important;
 }
 
-/* Linhas horizontais visíveis e seleção suave na fila. */
 body.pagina-contador .chat-list .chat-item {
-  position: relative;
-  padding: 14px 16px !important;
   border: 0 !important;
   border-bottom: 1px solid var(--contador-line) !important;
   background: transparent !important;
-  transition: background-color .18s ease, box-shadow .18s ease !important;
 }
-body.pagina-contador .chat-list .chat-item:last-child { border-bottom: 1px solid var(--contador-line) !important; }
 body.pagina-contador .chat-list .chat-item:hover { background: var(--contador-surface-soft) !important; }
 body.pagina-contador .chat-list .chat-item.active {
-  background: linear-gradient(90deg, var(--contador-accent-soft), rgba(233, 107, 66, 0.035)) !important;
+  background: var(--contador-surface-soft) !important;
   box-shadow: inset 3px 0 0 var(--contador-accent) !important;
 }
 
-/* Cabeçalho do cliente com cor leve e separação clara. */
 body.pagina-contador .chat-area-header {
-  min-height: 84px;
-  background: linear-gradient(100deg, rgba(233, 107, 66, 0.09), rgba(255, 255, 255, 0.96) 42%) !important;
-  border-bottom: 1px solid var(--contador-line-strong) !important;
-  box-shadow: 0 3px 14px rgba(20, 20, 20, 0.04) !important;
+  background: var(--contador-surface) !important;
+  border-bottom: 1px solid var(--contador-line) !important;
+  box-shadow: none !important;
 }
 body.pagina-contador .chat-area-header .chat-item-avatar {
-  background: linear-gradient(145deg, #4F8FC7, #337CB8) !important;
-  box-shadow: 0 4px 12px rgba(51, 124, 184, 0.22);
+  background: var(--color-text-primary) !important;
+  box-shadow: none !important;
 }
 body.pagina-contador .chat-actions-top .btn-utility:not(#btn-finish-chat) {
-  background: rgba(255, 255, 255, 0.78) !important;
-  border-color: var(--contador-line) !important;
+  background: var(--contador-surface-soft) !important;
+  border: none !important;
 }
 body.pagina-contador #btn-finish-chat {
   background: var(--contador-accent) !important;
   border-color: var(--contador-accent) !important;
-  box-shadow: 0 4px 12px rgba(201, 84, 46, 0.16) !important;
+  color: #fff !important;
+  box-shadow: none !important;
 }
 body.pagina-contador #btn-finish-chat:hover {
   background: var(--contador-accent-strong) !important;
-  box-shadow: 0 7px 18px rgba(201, 84, 46, 0.20) !important;
 }
 
-/* Histórico e balões: fundo quente, contraste previsível nos dois lados. */
 body.pagina-contador .messages-history,
 body.pagina-contador .chat-digitando {
-  background: #F5F4EF !important;
-}
-body.pagina-contador .messages-history {
-  background-image: radial-gradient(rgba(20, 20, 20, 0.035) .7px, transparent .7px) !important;
-  background-size: 12px 12px !important;
+  background: var(--contador-surface-soft) !important;
+  background-image: none !important;
 }
 body.pagina-contador .message-bubble {
-  border-radius: 14px !important;
-  box-shadow: 0 1px 2px rgba(20, 20, 20, 0.07) !important;
-  animation: chat-entra .20s var(--contador-ease) both !important;
+  border-radius: 12px !important;
+  box-shadow: none !important;
 }
 body.pagina-contador .message-bubble.received {
-  background: #FFFFFF !important;
-  color: #222 !important;
-  border: 1px solid rgba(20, 20, 20, 0.09) !important;
+  background: var(--contador-surface) !important;
+  color: var(--color-text-primary) !important;
+  border: none !important;
   border-bottom-left-radius: 4px !important;
 }
 body.pagina-contador .message-bubble.sent {
-  background: #276B5B !important;
+  background: var(--color-text-primary) !important;
   color: #FFFFFF !important;
-  border: 1px solid rgba(17, 82, 67, 0.32) !important;
+  border: none !important;
   border-bottom-right-radius: 4px !important;
 }
 body.pagina-contador .message-bubble.system {
-  background: rgba(255, 255, 255, 0.82) !important;
-  color: var(--contador-accent-strong) !important;
-  border: 1px dashed var(--contador-accent-line) !important;
+  background: var(--contador-surface-muted) !important;
+  color: var(--color-text-secondary) !important;
+  border: none !important;
   box-shadow: none !important;
 }
 
-/* Rodapé, atalhos, campo e botões de IA/enviar. */
 body.pagina-contador .chat-area-footer {
-  padding: 14px 18px !important;
   background: var(--contador-surface) !important;
-  border-top: 1px solid var(--contador-line-strong) !important;
-  box-shadow: 0 -4px 18px rgba(20, 20, 20, 0.035) !important;
+  border-top: 1px solid var(--contador-line) !important;
+  box-shadow: none !important;
 }
 body.pagina-contador .shortcuts-bar {
-  padding: 0 0 10px !important;
-  margin-bottom: 10px !important;
   border-bottom: 1px solid var(--contador-line) !important;
 }
 body.pagina-contador .btn-shortcut-tag {
   background: var(--contador-surface-soft) !important;
-  border-color: var(--contador-line) !important;
-  color: #555 !important;
+  border: none !important;
+  color: var(--color-text-secondary) !important;
 }
 body.pagina-contador .btn-shortcut-tag:hover,
 body.pagina-contador .btn-shortcut-tag.active {
   background: var(--contador-accent-soft) !important;
-  border-color: var(--contador-accent-line) !important;
+  border: none !important;
   color: var(--contador-accent-strong) !important;
-  transform: translateY(-1px);
+  transform: none !important;
 }
 body.pagina-contador .input-container {
-  min-height: 52px;
-  padding: 5px 6px !important;
-  gap: 6px !important;
-  border: 1px solid var(--contador-line-strong) !important;
+  border: none !important;
   background: var(--contador-surface-soft) !important;
-  box-shadow: inset 0 1px 2px rgba(20, 20, 20, 0.03) !important;
-  transition: border-color .2s ease, background-color .2s ease, box-shadow .2s ease !important;
+  box-shadow: none !important;
 }
 body.pagina-contador .input-container:focus-within {
   background: #fff !important;
-  border-color: var(--contador-accent-line) !important;
-  box-shadow: 0 0 0 3px var(--contador-accent-soft) !important;
+  box-shadow: none !important;
 }
 body.pagina-contador .input-container .input-message {
   background: transparent !important;
   border: 0 !important;
   outline: 0 !important;
-  color: #222 !important;
+  color: var(--color-text-primary) !important;
 }
 body.pagina-contador #btn-inline-ai {
   background: var(--contador-accent-soft) !important;
@@ -6201,204 +5975,40 @@ body.pagina-contador #btn-inline-ai {
 }
 body.pagina-contador #btn-inline-ai:hover {
   background: var(--contador-accent-soft-hover) !important;
-  transform: rotate(-4deg) scale(1.04) !important;
+  transform: none !important;
 }
 body.pagina-contador #btn-send-message,
 body.pagina-contador .copilot-input-area button[type="submit"] {
   background: var(--contador-accent) !important;
-  border: 1px solid rgba(201, 84, 46, 0.18) !important;
-  box-shadow: 0 4px 12px rgba(201, 84, 46, 0.18) !important;
+  border: 1px solid var(--contador-accent) !important;
+  color: #fff !important;
+  box-shadow: none !important;
 }
 body.pagina-contador #btn-send-message:hover,
 body.pagina-contador .copilot-input-area button[type="submit"]:hover {
   background: var(--contador-accent-strong) !important;
-  transform: translateY(-1px) scale(1.03) !important;
-  box-shadow: 0 7px 16px rgba(201, 84, 46, 0.22) !important;
+  transform: none !important;
 }
 
-/* Demais abas do painel usam o mesmo acento suave. */
-body.pagina-contador :is(.painel-aba-btn.active, .settings-tab.active, .calendar-view-btn.active) {
-  background: var(--contador-accent-soft) !important;
-  color: var(--contador-accent-strong) !important;
-  border-color: var(--contador-accent-line) !important;
-  box-shadow: 0 3px 10px rgba(201, 84, 46, 0.09) !important;
-}
-body.pagina-contador :is(.painel-aba-btn, .settings-tab, .calendar-view-btn):hover {
-  background: var(--contador-accent-soft) !important;
-  color: var(--contador-accent-strong) !important;
-}
-
-/* Tabelas e esteiras ganham a mesma resposta visual, sem saltos bruscos. */
-body.pagina-contador :is(.financeiro-table, table) tbody tr {
-  transition: background-color .18s ease, box-shadow .18s ease;
-}
+/* Tabelas e kanban — resposta neutra, sem cor decorativa */
 body.pagina-contador :is(.financeiro-table, table) tbody tr:hover {
-  background: rgba(233, 107, 66, 0.045) !important;
+  background: rgba(20, 20, 20, 0.03) !important;
 }
 body.pagina-contador .kanban-card {
-  transition: transform .22s var(--contador-ease), box-shadow .22s var(--contador-ease), border-color .22s var(--contador-ease) !important;
-}
-body.pagina-contador .kanban-card:hover {
-  transform: translateY(-2px) !important;
-  border-color: var(--contador-accent-line) !important;
-  box-shadow: var(--contador-shadow-sm) !important;
+  transition: border-color .15s var(--contador-ease), box-shadow .15s var(--contador-ease) !important;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  body.pagina-contador *,
-  body.pagina-contador *::before,
-  body.pagina-contador *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    scroll-behavior: auto !important;
-    transition-duration: 0.01ms !important;
-  }
-}
-
-/* Trava final da paleta neutra — precisa permanecer depois das camadas
-   históricas acima para garantir o mesmo acabamento em todas as seções. */
-body.pagina-contador {
-  --contador-green: #0C5446;
-  --contador-green-strong: #083F35;
-  --contador-green-soft: rgba(12, 84, 70, 0.10);
-  --contador-green-soft-hover: rgba(12, 84, 70, 0.16);
-  --contador-green-line: rgba(12, 84, 70, 0.24);
-  --contador-coral: #E96B42;
-  --contador-coral-strong: #C9542E;
-  --contador-bg: #EEF1F0;
-  --contador-surface: #FCFDFC;
-  --contador-surface-soft: #F4F6F5;
-  --contador-surface-muted: #E8ECEA;
-  --contador-line: rgba(31, 48, 43, 0.10);
-  --contador-line-strong: rgba(31, 48, 43, 0.16);
-  --contador-accent: var(--contador-green);
-  --contador-accent-strong: var(--contador-green-strong);
-  --contador-accent-soft: var(--contador-green-soft);
-  --contador-accent-soft-hover: var(--contador-green-soft-hover);
-  --contador-accent-line: var(--contador-green-line);
-  --color-bg: var(--contador-bg);
-  --color-card: var(--contador-surface);
-  --color-pine: var(--contador-green);
-  --color-pine-light: #14705E;
-  --color-pine-ultra-light: var(--contador-green-soft);
-  --color-coral: var(--contador-coral);
-  --color-coral-dark: var(--contador-coral-strong);
-  --color-text-primary: #19312B;
-  --color-text-secondary: #63716D;
-  --color-border: var(--contador-line);
-  background: var(--contador-bg) !important;
-}
-
-body.pagina-contador :is(.app-header, .dashboard-container, .main-content-panels) {
-  background: var(--contador-bg) !important;
-}
-
-body.pagina-contador :is(.logo-text, .panel-header-desc h2, .dash-card-header h3, .kpi-card h3) {
-  color: var(--contador-green-strong) !important;
-}
-
-@media (min-width: 769px) {
-  body.pagina-contador .app-sidebar-nav,
-  body.pagina-contador .app-sidebar-nav.collapsed {
-    background: var(--contador-surface-muted) !important;
-    border: 1px solid rgba(31, 48, 43, 0.07) !important;
-    border-radius: 22px !important;
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72) !important;
-  }
-}
-
-body.pagina-contador .nav-item:hover {
-  background: rgba(252, 253, 252, 0.84) !important;
-  color: var(--contador-green-strong) !important;
-}
-
-body.pagina-contador .nav-item.active,
-body.pagina-contador .app-sidebar-nav.collapsed .nav-item.active {
-  background: var(--contador-green-soft-hover) !important;
-  color: var(--contador-green-strong) !important;
-  border-color: var(--contador-green-line) !important;
-  box-shadow: inset 3px 0 0 var(--contador-green), inset 0 1px 0 rgba(255, 255, 255, 0.72) !important;
-}
-
-body.pagina-contador .nav-item.active i { color: var(--contador-green) !important; }
-
-body.pagina-contador :is(
-  .kpi-card, .dash-card, .financeiro-card, .tracking-card, .relatorios-card,
-  .triagem-card, .integration-card, .stat-card, .calendar-main,
-  .calendar-sidebar, .settings-sidebar, .settings-content, .dossier-panel,
-  .kanban-col, .table-container, .atendimento-module-container
-) {
-  background: var(--contador-surface) !important;
-  border-color: var(--contador-line) !important;
-}
-
-body.pagina-contador .kpi-cards-grid .kpi-card:last-child {
-  background: var(--contador-surface) !important;
-  border: 1px solid var(--contador-line) !important;
-  border-top: 3px solid var(--contador-coral) !important;
-}
-
-body.pagina-contador .kpi-cards-grid .kpi-card:last-child :is(.kpi-card-header span, h3, .kpi-trend) {
-  color: var(--contador-green-strong) !important;
-}
-
-body.pagina-contador :is(.painel-abas, .settings-tabs),
-body.pagina-contador #panel-content-fila .painel-abas {
-  background: var(--contador-surface-muted) !important;
-  border-color: var(--contador-line) !important;
-}
-
-body.pagina-contador :is(.painel-aba-btn.active, .settings-tab.active, .calendar-view-btn.active),
-body.pagina-contador #panel-content-fila .painel-aba.ativa {
-  background: var(--contador-surface) !important;
-  color: var(--contador-green-strong) !important;
-  border-color: var(--contador-green-line) !important;
-}
-
-body.pagina-contador .chat-list .chat-item.active {
-  background: linear-gradient(90deg, var(--contador-green-soft), rgba(12, 84, 70, 0.025)) !important;
-  box-shadow: inset 3px 0 0 var(--contador-green) !important;
-}
-
-body.pagina-contador .chat-area-header {
-  background: linear-gradient(100deg, var(--contador-green-soft), rgba(252, 253, 252, 0.98) 44%) !important;
-}
-
-body.pagina-contador .messages-history,
-body.pagina-contador .chat-digitando {
-  background-color: var(--contador-surface-soft) !important;
-}
-
-body.pagina-contador #btn-finish-chat,
-body.pagina-contador #btn-send-message,
-body.pagina-contador .copilot-input-area button[type="submit"] {
-  background: var(--contador-coral) !important;
-  border-color: var(--contador-coral) !important;
-  color: #FFFFFF !important;
-}
-
-body.pagina-contador #btn-finish-chat:hover,
-body.pagina-contador #btn-send-message:hover,
-body.pagina-contador .copilot-input-area button[type="submit"]:hover {
-  background: var(--contador-coral-strong) !important;
-  border-color: var(--contador-coral-strong) !important;
-}
-
-body.pagina-contador :is(.financeiro-table, table) tbody tr:hover {
-  background: rgba(12, 84, 70, 0.045) !important;
-}
-
+/* Barra inferior mobile */
 @media (max-width: 768px) {
   body.pagina-contador .app-sidebar-nav,
   body.pagina-contador .app-sidebar-nav.collapsed {
     background: var(--contador-surface) !important;
     border-top-color: var(--contador-line) !important;
   }
-
   body.pagina-contador .app-sidebar-nav .nav-item.mob-primaria.active {
-    background: var(--contador-green-soft) !important;
-    border-top-color: var(--contador-coral) !important;
-    color: var(--contador-green-strong) !important;
+    background: var(--contador-accent-soft) !important;
+    border-top-color: var(--contador-accent) !important;
+    color: var(--contador-accent-strong) !important;
   }
 }
 .relatorio-anexos-box{margin-top:18px;padding:14px;border:1px solid var(--color-border);border-radius:12px;background:var(--color-bg)}
