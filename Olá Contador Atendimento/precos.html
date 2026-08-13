@@ -319,34 +319,60 @@
     </div>
   </div>
 
-  <!-- Radar Fiscal ainda fora da oferta pública (atualizado em 2026-08-13,
-       critério original de 2026-08-03 continua valendo): a integração com o
-       Integra Contador (Serpro) ainda não foi validada com um cliente real,
-       e não se anuncia preço de um serviço que não se provou que entrega. O
-       bloco volta quando a consulta funcionar ponta a ponta — junto com a
-       chave RADAR_FISCAL_CLIENTE em config.js, que reabre a aba na área do
-       cliente. As ferramentas continuam disponíveis no painel do contador.
-
-       Preço novo (dois planos, definido em 2026-08-13 — ver
-       api/recorrencia.js e cliente.js para os valores cobrados de verdade):
-       mensal R$49,90/mês (sem fidelidade) e anual R$358,80 à vista
-       (equivalente a R$29,90/mês), que já inclui 1 atendimento agendado com
-       o contador no ano e desconto nos demais serviços. A cobrança anual em
-       si (pagamento único + liberar acesso por 12 meses) ainda não tem
-       mecanismo pronto no sistema — ver plano em
+  <!-- Radar Fiscal: seção pública de vendas divulgada em 2026-08-13, mas SEM
+       CTA de compra — a integração com o Integra Contador (Serpro) ainda não
+       foi validada com um cliente real, então em vez de "Ativar" mostramos
+       "Em breve" com um link de interesse por e-mail. Isso é diferente da
+       versão anterior (bloco inteiro comentado): aqui o texto e o preço já
+       ficam públicos, só a ativação em si é que não existe ainda. Quando a
+       consulta Serpro funcionar ponta a ponta, trocar o aviso "Em breve" por
+       um link real de assinatura e reabrir RADAR_FISCAL_CLIENTE em config.js
+       (isso reabre a aba na área do cliente — as ferramentas já funcionam no
+       painel do contador). A cobrança anual (pagamento único de R$358,80 +
+       liberar acesso por 12 meses) ainda não tem mecanismo pronto no
+       sistema — ver plano em
        /Users/filipeheck/.claude/plans/dreamy-meandering-lake.md antes de
-       ativar esta seção.
-  <div class="radar-faixa">
-    <div class="radar-icone"><i class="fa-solid fa-shield-halved"></i></div>
-    <div class="radar-texto">
-      <b>Radar Fiscal — monitoramento contínuo</b>
-      <span>Assinatura opcional que ativa depois do seu primeiro atendimento: avisamos antes que uma pendência na Receita vire multa.</span>
-      <span style="margin-top:8px;font-weight:600;">Plano anual: R$ 29,90/mês (R$ 358,80 à vista) — inclui 1 atendimento agendado no ano e desconto nos demais serviços.</span>
+       vender esse plano de verdade. -->
+  <div style="margin-top:96px;">
+    <div style="font-size:13px;letter-spacing:.24em;text-transform:uppercase;color:#EE5F3A;font-weight:700;margin-bottom:16px;">Em breve</div>
+    <h2 style="font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:38px;letter-spacing:-.03em;color:#344C4B;line-height:1.05;max-width:760px;margin:0 auto;">Radar Fiscal: descubra o problema antes que ele vire multa</h2>
+    <p style="font-size:17px;color:#344C4B;max-width:640px;margin:16px auto 0;">Um "Serasa da Receita Federal" pro seu CPF ou CNPJ. Monitoramos suas certidões e a caixa postal do e-CAC toda semana e avisamos assim que aparecer alguma pendência — antes que o CPF trave num banco ou a empresa não consiga emitir nota.</p>
+
+    <div class="plano card" style="max-width:720px;margin:40px auto 0;text-align:left;background:#344C4B;box-shadow:0 24px 50px -30px rgba(52, 76, 75, .7);">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+        <div style="font-family:'Bricolage Grotesque',sans-serif;font-weight:700;font-size:24px;color:#FFFFFF;">Radar Fiscal</div>
+        <div style="font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#344C4B;background:#F5A78D;padding:6px 14px;border-radius:20px;">Em breve</div>
+      </div>
+      <div style="font-size:15px;color:#FFFFFF;margin-top:10px;line-height:1.5;">Monitoramento contínuo das suas certidões (Receita Federal, PGFN, FGTS/trabalhista, tributos municipais) e da caixa postal do e-CAC.</div>
+
+      <div style="display:flex;gap:32px;flex-wrap:wrap;margin:28px 0 6px;">
+        <div>
+          <span style="font-size:18px;font-weight:700;vertical-align:top;line-height:2.3;color:#F5A78D;">R$&nbsp;</span><span class="preco-num" style="font-size:38px;color:#F5A78D;">49<span style="font-size:19px;">,90</span></span>
+          <div style="font-size:13px;color:#FFFFFF;font-weight:600;margin-top:2px;">por mês, sem fidelidade</div>
+        </div>
+        <div>
+          <span style="font-size:18px;font-weight:700;vertical-align:top;line-height:2.3;color:#F5A78D;">R$&nbsp;</span><span class="preco-num" style="font-size:38px;color:#F5A78D;">29<span style="font-size:19px;">,90</span></span>
+          <div style="font-size:13px;color:#FFFFFF;font-weight:600;margin-top:2px;">por mês no plano anual (R$&nbsp;358,80 à vista)</div>
+        </div>
+      </div>
+      <div style="font-size:13.5px;color:#F5A78D;font-weight:600;margin-bottom:8px;">O plano anual já inclui 1 atendimento agendado no ano e desconto nos demais serviços.</div>
+
+      <div class="resolve-rotulo" style="color:#F5A78D;">O que monitora</div>
+      <div class="chips"><span class="chip" style="background:rgba(245, 167, 141, .16);color:#F5A78D;">Certidão Receita Federal e PGFN</span><span class="chip" style="background:rgba(245, 167, 141, .16);color:#F5A78D;">Certidão FGTS/trabalhista</span><span class="chip" style="background:rgba(245, 167, 141, .16);color:#F5A78D;">Tributos municipais</span><span class="chip" style="background:rgba(245, 167, 141, .16);color:#F5A78D;">Caixa postal do e-CAC</span></div>
+
+      <details class="entregas" style="color:#FFFFFF;">
+        <summary>O que está incluído</summary>
+        <div class="ent"><span class="selo-check" style="color:#F5A78D;">✓</span><span><b>Checagem semanal da caixa postal</b><small>Verificamos toda semana se chegou algo da Receita e avisamos você na hora — quase ninguém entra lá sozinho pra conferir.</small></span></div>
+        <div class="ent"><span class="selo-check" style="color:#F5A78D;">✓</span><span><b>Relatório de situação fiscal sob demanda</b><small>Seu contador emite o relatório e as guias dos seus parcelamentos direto pela área do cliente.</small></span></div>
+        <div class="ent"><span class="selo-check" style="color:#F5A78D;">✓</span><span><b>Procuração eletrônica assistida</b><small>Explicamos o passo a passo pra outorgar a procuração no e-CAC pro nosso CNPJ depois da assinatura.</small></span></div>
+      </details>
+
+      <div style="margin-top:28px;text-align:center;background:rgba(255,255,255,.08);border-radius:14px;padding:16px;">
+        <div style="font-size:14.5px;color:#FFFFFF;font-weight:600;">Estamos validando a integração antes de abrir pra todo mundo.</div>
+        <a href="mailto:ola@olacontador.com.br?subject=Quero%20ser%20avisado%20quando%20o%20Radar%20Fiscal%20abrir" style="display:inline-block;margin-top:6px;color:#F5A78D;font-weight:700;text-decoration:underline;font-size:14px;">Avise-me quando abrir</a>
+      </div>
     </div>
-    <div class="radar-preco">R$ 49,90<small>por mês</small></div>
-    <a class="radar-cta" href="login">Já sou cliente — Ativar</a>
   </div>
-  -->
 
   <div style="text-align:left;font-size:13px;color:#344C4B;opacity:.85;margin-top:16px;">* O acompanhamento das obrigações do mês é feito via pagamento de recorrência mensal, combinado com o contador no atendimento.</div>
 
