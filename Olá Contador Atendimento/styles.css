@@ -5921,15 +5921,17 @@ body.pagina-contador .message-bubble {
   border-radius: 12px !important;
   box-shadow: none !important;
 }
+/* Fundo/cor do texto NÃO são pisados aqui de propósito — .message-bubble.sent/
+   .received já são coloridos pelas variáveis --chat-bubble-contador-bg/
+   --chat-bubble-cliente-bg, que Configurações → Aparência do Chat escreve em
+   tempo real via JS. Sobrescrever com !important aqui quebraria essa
+   personalização (a regra do body venceria sempre, mesmo depois do usuário
+   trocar a cor). Só o tratamento "flat" (sem sombra/borda) é nosso aqui. */
 body.pagina-contador .message-bubble.received {
-  background: var(--contador-surface) !important;
-  color: var(--color-text-primary) !important;
   border: none !important;
   border-bottom-left-radius: 4px !important;
 }
 body.pagina-contador .message-bubble.sent {
-  background: var(--color-text-primary) !important;
-  color: #FFFFFF !important;
   border: none !important;
   border-bottom-right-radius: 4px !important;
 }
