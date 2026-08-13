@@ -113,7 +113,7 @@ async function registrarEventoPublico(req, res) {
   if (!(await checarRateLimit(admin, req, 'funil-publico', 30, 15))) return res.status(429).json({ error: 'muitas_tentativas' });
   const evento = String((req.body || {}).evento || '');
   const sessaoRef = String((req.body || {}).sessaoRef || '');
-  if (!['precos_visualizados','agendamento_iniciado','checkout_iniciado'].includes(evento) ||
+  if (!['precos_visualizados','agendamento_iniciado','checkout_iniciado','radar_fiscal_visualizado','radar_fiscal_interesse'].includes(evento) ||
       !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(sessaoRef)) {
     return res.status(400).json({ error: 'invalid_params' });
   }
