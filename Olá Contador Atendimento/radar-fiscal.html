@@ -26,7 +26,7 @@
   "@context": "https://schema.org",
   "@type": "Service",
   "name": "Radar Fiscal",
-  "description": "Monitoramento contínuo de certidões (Receita Federal, PGFN, FGTS/trabalhista, tributos municipais) e da caixa postal do e-CAC, com aviso antecipado de pendências.",
+  "description": "Monitoramento contínuo de certidões e situação fiscal junto à Receita Federal e PGFN, caixa postal do e-CAC e emissão automática das guias de parcelamento, com aviso antecipado de pendências.",
   "provider": { "@type": "Organization", "name": "Olá, Contador" },
   "areaServed": "BR",
   "offers": [
@@ -43,7 +43,7 @@
     {
       "@type": "Question",
       "name": "O que é o Radar Fiscal?",
-      "acceptedAnswer": { "@type": "Answer", "text": "É um serviço de monitoramento contínuo do seu CPF ou CNPJ — algo como um \"Serasa da Receita Federal\". Ele acompanha a situação das suas certidões (Receita Federal e PGFN, FGTS/trabalhista, tributos municipais) e a caixa postal do e-CAC, avisando quando aparece uma pendência." }
+      "acceptedAnswer": { "@type": "Answer", "text": "É um serviço de monitoramento contínuo do seu CPF ou CNPJ — algo como um \"Serasa da Receita Federal\". Ele acompanha a situação das suas certidões e situação fiscal junto à Receita Federal e à PGFN, verifica a caixa postal do e-CAC e emite automaticamente as guias dos seus parcelamentos, avisando quando aparece uma pendência." }
     },
     {
       "@type": "Question",
@@ -54,6 +54,11 @@
       "@type": "Question",
       "name": "O que é a procuração eletrônica e é seguro?",
       "acceptedAnswer": { "@type": "Answer", "text": "É uma autorização emitida direto no site da Receita Federal (e-CAC) que dá acesso apenas de consulta a certidões e caixa postal — não permite movimentar nada em seu nome. Pode ser revogada a qualquer momento pelo próprio e-CAC." }
+    },
+    {
+      "@type": "Question",
+      "name": "Eu tenho parcelamento com a Receita. O Radar Fiscal ajuda com isso?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Sim — se você tem um parcelamento em andamento (Simples Nacional, MEI ou PGFN), a guia do mês é gerada e enviada automaticamente pro seu e-mail, sem você precisar entrar no e-CAC pra buscar. Se uma parcela ficar em aberto, você é avisado antes que vire pendência." }
     },
     {
       "@type": "Question",
@@ -238,10 +243,10 @@
     <h2 style="font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:38px;letter-spacing:-.03em;line-height:1.05;">O que o Radar Fiscal monitora</h2>
   </div>
   <div class="monitora">
-    <div class="monitora-item"><i class="fa-solid fa-file-shield"></i><b>Certidão Receita Federal e PGFN</b><p>Situação de regularidade e débitos federais em aberto.</p></div>
-    <div class="monitora-item"><i class="fa-solid fa-people-arrows"></i><b>Certidão FGTS/trabalhista</b><p>Pendências junto à Caixa e à Justiça do Trabalho.</p></div>
-    <div class="monitora-item"><i class="fa-solid fa-city"></i><b>Tributos municipais</b><p>Débitos e certidões junto à prefeitura do seu município.</p></div>
+    <div class="monitora-item"><i class="fa-solid fa-file-shield"></i><b>Certidão e situação fiscal</b><p>Regularidade e débitos junto à Receita Federal e à PGFN.</p></div>
     <div class="monitora-item"><i class="fa-solid fa-inbox"></i><b>Caixa postal do e-CAC</b><p>Notificações e intimações oficiais da Receita, verificadas toda semana.</p></div>
+    <div class="monitora-item"><i class="fa-solid fa-file-invoice-dollar"></i><b>Guia do parcelamento</b><p>Emitida e enviada automaticamente todo mês, sem você precisar lembrar.</p></div>
+    <div class="monitora-item"><i class="fa-solid fa-bell"></i><b>Aviso antecipado</b><p>Você é avisado assim que aparece algo novo, direto no seu e-mail.</p></div>
   </div>
 
   <!-- ================= PREÇOS ================= -->
@@ -265,6 +270,7 @@
       <div style="display:flex;flex-direction:column;gap:12px;flex:1;">
         <div class="ent"><span class="selo-check" style="color:#EE5F3A;">✓</span><span>Monitoramento semanal da caixa postal e das certidões</span></div>
         <div class="ent"><span class="selo-check" style="color:#EE5F3A;">✓</span><span>Aviso assim que aparecer uma pendência</span></div>
+        <div class="ent"><span class="selo-check" style="color:#EE5F3A;">✓</span><span>Guia do parcelamento gerada e enviada por e-mail todo mês</span></div>
         <div class="ent"><span class="selo-check" style="color:#EE5F3A;">✓</span><span>Relatório de situação fiscal sob demanda</span></div>
       </div>
       <a href="mailto:ola@olacontador.com.br?subject=Quero%20ser%20avisado%20quando%20o%20Radar%20Fiscal%20abrir%20(mensal)" class="btng" style="display:block;text-align:center;margin-top:28px;background:#344C4B;color:#FFFFFF;font-weight:700;font-size:16px;padding:14px;border-radius:14px;">Avise-me quando abrir</a>
@@ -295,6 +301,7 @@
   <!-- ================= CONFIANÇA ================= -->
   <div class="confianca">
     <div class="confianca-item"><span>✓</span> Sem fidelidade no mensal</div>
+    <div class="confianca-item"><span>✓</span> Guia do parcelamento sem precisar lembrar</div>
     <div class="confianca-item"><span>✓</span> Procuração revogável a qualquer momento</div>
     <div class="confianca-item"><span>✓</span> Sigilo profissional e dados protegidos</div>
   </div>
@@ -305,7 +312,7 @@
     <div class="faq" style="margin-top:36px;">
       <details>
         <summary>O que é o Radar Fiscal?</summary>
-        <p>É um serviço de monitoramento contínuo do seu CPF ou CNPJ — algo como um "Serasa da Receita Federal". Ele acompanha a situação das suas certidões (Receita Federal e PGFN, FGTS/trabalhista, tributos municipais) e a caixa postal do e-CAC, avisando quando aparece uma pendência.</p>
+        <p>É um serviço de monitoramento contínuo do seu CPF ou CNPJ — algo como um "Serasa da Receita Federal". Ele acompanha a situação das suas certidões e situação fiscal junto à Receita Federal e à PGFN, verifica a caixa postal do e-CAC e emite automaticamente as guias dos seus parcelamentos, avisando quando aparece uma pendência.</p>
       </details>
       <details>
         <summary>Como o Radar Fiscal descobre uma pendência?</summary>
@@ -314,6 +321,10 @@
       <details>
         <summary>O que é a procuração eletrônica e é seguro?</summary>
         <p>É uma autorização emitida direto no site da Receita Federal (e-CAC) que dá acesso apenas de consulta a certidões e caixa postal — não permite movimentar nada em seu nome. Pode ser revogada a qualquer momento pelo próprio e-CAC.</p>
+      </details>
+      <details>
+        <summary>Eu tenho parcelamento com a Receita. O Radar Fiscal ajuda com isso?</summary>
+        <p>Sim — se você tem um parcelamento em andamento (Simples Nacional, MEI ou PGFN), a guia do mês é gerada e enviada automaticamente pro seu e-mail, sem você precisar entrar no e-CAC pra buscar. Se uma parcela ficar em aberto, você é avisado antes que vire pendência.</p>
       </details>
       <details>
         <summary>Qual a diferença entre o plano mensal e o anual?</summary>
