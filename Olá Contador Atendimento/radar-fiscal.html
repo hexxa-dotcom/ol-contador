@@ -26,7 +26,7 @@
   "@context": "https://schema.org",
   "@type": "Service",
   "name": "Radar Fiscal",
-  "description": "Monitoramento contínuo de certidões e situação fiscal junto à Receita Federal e PGFN, caixa postal do e-CAC e emissão automática das guias de parcelamento, com aviso antecipado de pendências.",
+  "description": "Monitoramento contínuo de certidões e situação fiscal junto à Receita Federal e PGFN, caixa postal do e-CAC, emissão automática das guias de parcelamento e relatório mensal de saúde fiscal em PDF, com aviso antecipado de pendências.",
   "provider": { "@type": "Organization", "name": "Olá, Contador" },
   "areaServed": "BR",
   "offers": [
@@ -59,6 +59,11 @@
       "@type": "Question",
       "name": "Eu tenho parcelamento com a Receita. O Radar Fiscal ajuda com isso?",
       "acceptedAnswer": { "@type": "Answer", "text": "Sim — se você tem um parcelamento em andamento (Simples Nacional, MEI ou PGFN), a guia do mês é gerada e enviada automaticamente pro seu e-mail, sem você precisar entrar no e-CAC pra buscar. Se uma parcela ficar em aberto, você é avisado antes que vire pendência." }
+    },
+    {
+      "@type": "Question",
+      "name": "O que vem no relatório mensal de saúde fiscal?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Todo mês você recebe um PDF com o timbrado do escritório dizendo, em linguagem simples, se o seu CPF ou CNPJ está com débito em aberto na Receita — e se estiver, quanto já foi pago e quanto falta. É o mesmo tipo de acompanhamento que um contador tradicional manda por fora, só que incluso na assinatura e automático." }
     },
     {
       "@type": "Question",
@@ -121,7 +126,7 @@
   .passo p{font-size:14px;line-height:1.5}
 
   /* O que monitora */
-  .monitora{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;margin-top:24px;text-align:left}
+  .monitora{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:24px;text-align:left}
   .monitora-item{background:#344C4B;border-radius:20px;padding:24px}
   .monitora-item i{color:#F5A78D;font-size:20px;margin-bottom:12px;display:block}
   .monitora-item b{font-family:"Bricolage Grotesque",sans-serif;color:#FFFFFF;font-size:16px;display:block;margin-bottom:6px}
@@ -246,6 +251,7 @@
     <div class="monitora-item"><i class="fa-solid fa-file-shield"></i><b>Certidão e situação fiscal</b><p>Regularidade e débitos junto à Receita Federal e à PGFN.</p></div>
     <div class="monitora-item"><i class="fa-solid fa-inbox"></i><b>Caixa postal do e-CAC</b><p>Notificações e intimações oficiais da Receita, verificadas toda semana.</p></div>
     <div class="monitora-item"><i class="fa-solid fa-file-invoice-dollar"></i><b>Guia do parcelamento</b><p>Emitida e enviada automaticamente todo mês, sem você precisar lembrar.</p></div>
+    <div class="monitora-item"><i class="fa-solid fa-heart-pulse"></i><b>Relatório mensal de saúde fiscal</b><p>PDF com o timbrado do escritório, todo mês, dizendo se há débito em aberto e quanto já foi pago — como o contador que manda a CND todo mês, só que automático.</p></div>
     <div class="monitora-item"><i class="fa-solid fa-bell"></i><b>Aviso antecipado</b><p>Você é avisado assim que aparece algo novo, direto no seu e-mail.</p></div>
   </div>
 
@@ -271,7 +277,7 @@
         <div class="ent"><span class="selo-check" style="color:#EE5F3A;">✓</span><span>Monitoramento semanal da caixa postal e das certidões</span></div>
         <div class="ent"><span class="selo-check" style="color:#EE5F3A;">✓</span><span>Aviso assim que aparecer uma pendência</span></div>
         <div class="ent"><span class="selo-check" style="color:#EE5F3A;">✓</span><span>Guia do parcelamento gerada e enviada por e-mail todo mês</span></div>
-        <div class="ent"><span class="selo-check" style="color:#EE5F3A;">✓</span><span>Relatório de situação fiscal sob demanda</span></div>
+        <div class="ent"><span class="selo-check" style="color:#EE5F3A;">✓</span><span>Relatório mensal de saúde fiscal em PDF, com timbrado</span></div>
       </div>
       <a href="mailto:ola@olacontador.com.br?subject=Quero%20ser%20avisado%20quando%20o%20Radar%20Fiscal%20abrir%20(mensal)" class="btng" style="display:block;text-align:center;margin-top:28px;background:#344C4B;color:#FFFFFF;font-weight:700;font-size:16px;padding:14px;border-radius:14px;">Avise-me quando abrir</a>
     </div>
@@ -325,6 +331,10 @@
       <details>
         <summary>Eu tenho parcelamento com a Receita. O Radar Fiscal ajuda com isso?</summary>
         <p>Sim — se você tem um parcelamento em andamento (Simples Nacional, MEI ou PGFN), a guia do mês é gerada e enviada automaticamente pro seu e-mail, sem você precisar entrar no e-CAC pra buscar. Se uma parcela ficar em aberto, você é avisado antes que vire pendência.</p>
+      </details>
+      <details>
+        <summary>O que vem no relatório mensal de saúde fiscal?</summary>
+        <p>Todo mês você recebe um PDF com o timbrado do escritório dizendo, em linguagem simples, se o seu CPF ou CNPJ está com débito em aberto na Receita — e se estiver, quanto já foi pago e quanto falta. É o mesmo tipo de acompanhamento que um contador tradicional manda por fora, só que incluso na assinatura e automático.</p>
       </details>
       <details>
         <summary>Qual a diferença entre o plano mensal e o anual?</summary>
