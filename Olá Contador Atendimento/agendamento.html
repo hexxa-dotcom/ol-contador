@@ -55,15 +55,15 @@
 
       <section class="bloco">
         <h2>Formato do atendimento</h2>
-        <p class="ajuda">O valor do serviço é o mesmo. Muda apenas a forma de acompanhamento.</p>
+        <p class="ajuda">Escolha como prefere ser atendido — o valor muda conforme a modalidade.</p>
         <div class="metodo-pagamento" id="opcoes-modalidade">
           <label class="metodo-opcao">
             <input type="radio" name="modalidade" value="sem_agendamento" checked>
-            <span><strong>Atendimento Express</strong><small>Envie tudo e acompanhe, sem marcar conversa.</small></span>
+            <span><strong>Atendimento Express</strong><small>Envie tudo e acompanhe, sem marcar conversa.</small><small class="resumo-preco" id="preco-express"></small></span>
           </label>
           <label class="metodo-opcao">
             <input type="radio" name="modalidade" value="agendado">
-            <span><strong>Atendimento com horário</strong><small>Escolha um dia e um horário para falar com o contador.</small></span>
+            <span><strong>Atendimento com horário</strong><small>Escolha um dia e um horário para falar com o contador.</small><small class="resumo-preco" id="preco-agendado"></small></span>
           </label>
         </div>
         <div class="vantagens-sem-agendamento" id="vantagens-sem-agendamento">
@@ -181,6 +181,13 @@
     el.classList.add('on');
   }
 
+  // Agendado pode custar mais que Express (atendimento com horário reservado
+  // exige agenda do contador) — quando o serviço não diferencia
+  // (price_agendado_cents vazio), os dois valores ficam iguais.
+  function precoModalidade(s, modo){
+    return (modo === 'agendado' && s.price_agendado_cents) ? s.price_agendado_cents : s.price_cents;
+  }
+
   // O serviço já foi escolhido na página de preços — aqui ele só é confirmado.
   function renderResumoServico(){
     const s = servicos.find(x => x.id === servicoId);
@@ -191,8 +198,10 @@
       </div>
       <div class="resumo-linha">
         <strong>${esc(s.name)}</strong>
-        <span class="resumo-preco">${money(s.price_cents)}</span>
+        <span class="resumo-preco">${money(precoModalidade(s, modalidade))}</span>
       </div>`;
+    $('preco-express').textContent = money(precoModalidade(s, 'sem_agendamento'));
+    $('preco-agendado').textContent = money(precoModalidade(s, 'agendado'));
   }
 
   // "O que houve" — sem preço, porque aqui a pessoa diz qual é o problema, não
@@ -269,6 +278,7 @@
       ? 'Ideal para quem quer resolver com agilidade e praticidade. Você envia as informações depois do pagamento e acompanha tudo pela área do cliente.'
       : 'Na próxima etapa você preenche seus dados e paga. O horário só fica reservado depois do pagamento confirmado.';
     $('btn-continuar').textContent = sem ? 'Continuar com Atendimento Express' : 'Continuar para seus dados';
+    if (servicoId) renderResumoServico();
   }
 
   // Descobre qual serviço foi contratado: primeiro pelo link (?plano= ou
@@ -322,7 +332,7 @@
     const assuntoSelecionado = modalidade === 'agendado' ? assuntoId : null;
     const a = assuntos.find(x => x.id === assuntoSelecionado);
     sessionStorage.setItem(CHAVE, JSON.stringify({
-      servicoId, servicoNome: s.name, precoCents: s.price_cents,
+      servicoId, servicoNome: s.name, precoCents: precoModalidade(s, modalidade),
       assuntoId: assuntoSelecionado, assuntoTitulo: a ? a.titulo : '', modalidade,
       dia: modalidade === 'agendado' ? dia : null,
       hora: modalidade === 'agendado' ? hora : null

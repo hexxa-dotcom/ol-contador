@@ -2926,14 +2926,14 @@ window.subscribeRadar = async function() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         clientId: clienteLogado.id, ativar: true, tipo: 'Radar Fiscal',
-        diaVenc: new Date().getDate(), valor: 29.90
+        diaVenc: new Date().getDate(), valor: 49.90
       })
     });
 
     if (res.ok) {
       clienteLogado.recorrente = true;
       clienteLogado.recorrenteTipo = 'Radar Fiscal';
-      alert('Radar Fiscal ativado! A cobrança mensal de R$ 29,90 já começou no Asaas.');
+      alert('Radar Fiscal ativado! A cobrança mensal de R$ 49,90 já começou no Asaas.');
       if (btn) {
         btn.innerHTML = '<i class="fa-solid fa-check"></i> Radar Ativado';
         btn.style.background = '#2ECC71';
@@ -2945,7 +2945,7 @@ window.subscribeRadar = async function() {
         ? 'Pagamentos ainda não estão configurados. Fale com o contador.'
         : 'Erro ao processar assinatura. Tente novamente mais tarde.');
       if (btn) {
-        btn.innerHTML = '<i class="fa-solid fa-headset"></i> Assinar Radar Fiscal (R$ 29,90/mês)';
+        btn.innerHTML = '<i class="fa-solid fa-headset"></i> Assinar Radar Fiscal (R$ 49,90/mês)';
         btn.disabled = false;
       }
     }
@@ -2953,7 +2953,7 @@ window.subscribeRadar = async function() {
     console.error(e);
     alert('Erro de conexão.');
     if (btn) {
-      btn.innerHTML = '<i class="fa-solid fa-headset"></i> Assinar Radar Fiscal (R$ 29,90/mês)';
+      btn.innerHTML = '<i class="fa-solid fa-headset"></i> Assinar Radar Fiscal (R$ 49,90/mês)';
       btn.disabled = false;
     }
   }

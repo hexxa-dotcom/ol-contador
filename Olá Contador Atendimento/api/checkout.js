@@ -38,9 +38,15 @@ module.exports = async (req, res) => {
     const { data: pagas } = await admin.from('cobrancas').select('id')
       .eq('cliente_ref', clientId).eq('status', 'paid').limit(1);
     const desconto = !!(pagas && pagas.length);
-    const precoCents = desconto
-      ? Math.round(servico.price_cents * (1 - DESCONTO_RECORRENTE))
+    // Express e Agendado têm preços diferentes desde 2026-08-13 — agendado
+    // usa price_agendado_cents quando o serviço tiver essa coluna
+    // preenchida, senão cai no price_cents de sempre.
+    const baseCents = (modo === 'agendado' && servico.price_agendado_cents)
+      ? servico.price_agendado_cents
       : servico.price_cents;
+    const precoCents = desconto
+      ? Math.round(baseCents * (1 - DESCONTO_RECORRENTE))
+      : baseCents;
 
     const customerId = await asaas.createCustomer({ name: cliente.name, cpfCnpj: cliente.cpf, email: cliente.email });
     const descricao = `${servico.name} — ${cliente.name}${desconto ? ' (10% cliente recorrente)' : ''}`;

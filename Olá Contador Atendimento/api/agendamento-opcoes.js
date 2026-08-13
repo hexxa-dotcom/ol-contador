@@ -17,8 +17,8 @@ const HORARIOS_PADRAO = ['09:00', '10:00', '11:00', '14:00', '15:00', '16:30'];
 async function buscarServicos(admin) {
   const buscar = colunas => admin.from('servicos').select(colunas)
     .eq('active', true).eq('recurrence', 'avulso').order('price_cents');
-  const comItens = await buscar('id,name,description,price_cents,itens');
-  if (!comItens.error || !/itens/.test(comItens.error.message || '')) return comItens;
+  const comItens = await buscar('id,name,description,price_cents,price_agendado_cents,itens');
+  if (!comItens.error || !/itens|price_agendado_cents/.test(comItens.error.message || '')) return comItens;
   return buscar('id,name,description,price_cents');
 }
 

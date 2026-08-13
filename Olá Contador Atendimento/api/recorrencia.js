@@ -13,7 +13,7 @@ const { registrarErro } = require('./_lib/monitoramento');
 // Só a equipe (is_staff()) pode informar um valor livre no corpo da
 // requisição, pro caso de acompanhamento sob medida (ex. Assessoria MEI).
 const PRECOS_AUTOATENDIMENTO_CENTS = {
-  'Radar Fiscal': 2990
+  'Radar Fiscal': 4990
 };
 
 module.exports = async (req, res) => {

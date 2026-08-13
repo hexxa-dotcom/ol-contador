@@ -39,7 +39,13 @@ module.exports = async (req, res) => {
   const modo = modalidade === 'sem_agendamento' ? 'sem_agendamento' : 'agendado';
   const canal = 'email';
   if (modo === 'agendado' && (!date || !time)) return res.status(400).json({ error: 'invalid_params' });
-  const precoCents = cartao ? servico.price_cents : Math.round(servico.price_cents * (1 - DESCONTO_PIX));
+  // Express e Agendado têm preços diferentes desde 2026-08-13 — agendado usa
+  // price_agendado_cents quando o serviço tiver essa coluna preenchida,
+  // senão cai no price_cents de sempre (serviços que não diferenciam).
+  const baseCents = (modo === 'agendado' && servico.price_agendado_cents)
+    ? servico.price_agendado_cents
+    : servico.price_cents;
+  const precoCents = cartao ? baseCents : Math.round(baseCents * (1 - DESCONTO_PIX));
 
   try {
     const clientId = digitos;

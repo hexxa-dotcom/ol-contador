@@ -265,7 +265,8 @@
       <div style="margin:28px 0 6px;color:#344C4B;">
         <span style="font-size:20px;font-weight:700;vertical-align:top;line-height:2.6;">R$&nbsp;</span><span class="preco-num" data-preco-servico>199</span>
       </div>
-      <div style="font-size:16px;color:#344C4B;margin-bottom:4px;">por atendimento</div>
+      <div style="font-size:16px;color:#344C4B;margin-bottom:4px;">Atendimento Express — sem marcar horário</div>
+      <div style="font-size:13.5px;color:#344C4B;font-weight:600;margin-bottom:8px;" data-preco-agendado-nota hidden>Com horário marcado: R$&nbsp;<span data-preco-agendado-servico>249</span></div>
       <div style="font-size:13.5px;color:#344C4B;font-weight:600;margin-bottom:8px;">no Pix ou em até 3x no cartão</div>
       <div class="resolve-rotulo" style="color:#344C4B;">Resolve, por exemplo</div>
       <div class="chips"><span class="chip" style="background:rgba(245, 167, 141, .16);color:#344C4B;">Malha fina e cartas da Receita</span><span class="chip" style="background:rgba(245, 167, 141, .16);color:#344C4B;">Declarar ou corrigir o IR</span><span class="chip" style="background:rgba(245, 167, 141, .16);color:#344C4B;">Vendi imóvel, carro ou outro bem</span><span class="chip" style="background:rgba(245, 167, 141, .16);color:#344C4B;">Recebo como autônomo (carnê-leão)</span><span class="chip" style="background:rgba(245, 167, 141, .16);color:#344C4B;">Outros assuntos</span></div>
@@ -317,19 +318,31 @@
     </div>
   </div>
 
-  <!-- Radar Fiscal removido da oferta pública em 2026-08-03: a integração com
-       o Integra Contador (Serpro) ainda não foi validada com um cliente real,
+  <!-- Radar Fiscal ainda fora da oferta pública (atualizado em 2026-08-13,
+       critério original de 2026-08-03 continua valendo): a integração com o
+       Integra Contador (Serpro) ainda não foi validada com um cliente real,
        e não se anuncia preço de um serviço que não se provou que entrega. O
        bloco volta quando a consulta funcionar ponta a ponta — junto com a
        chave RADAR_FISCAL_CLIENTE em config.js, que reabre a aba na área do
        cliente. As ferramentas continuam disponíveis no painel do contador.
+
+       Preço novo (dois planos, definido em 2026-08-13 — ver
+       api/recorrencia.js e cliente.js para os valores cobrados de verdade):
+       mensal R$49,90/mês (sem fidelidade) e anual R$358,80 à vista
+       (equivalente a R$29,90/mês), que já inclui 1 atendimento agendado com
+       o contador no ano e desconto nos demais serviços. A cobrança anual em
+       si (pagamento único + liberar acesso por 12 meses) ainda não tem
+       mecanismo pronto no sistema — ver plano em
+       /Users/filipeheck/.claude/plans/dreamy-meandering-lake.md antes de
+       ativar esta seção.
   <div class="radar-faixa">
     <div class="radar-icone"><i class="fa-solid fa-shield-halved"></i></div>
     <div class="radar-texto">
       <b>Radar Fiscal — monitoramento contínuo</b>
       <span>Assinatura opcional que ativa depois do seu primeiro atendimento: avisamos antes que uma pendência na Receita vire multa.</span>
+      <span style="margin-top:8px;font-weight:600;">Plano anual: R$ 29,90/mês (R$ 358,80 à vista) — inclui 1 atendimento agendado no ano e desconto nos demais serviços.</span>
     </div>
-    <div class="radar-preco">R$ 29,90<small>por mês</small></div>
+    <div class="radar-preco">R$ 49,90<small>por mês</small></div>
     <a class="radar-cta" href="login">Já sou cliente — Ativar</a>
   </div>
   -->
@@ -438,7 +451,16 @@
     document.querySelectorAll('[data-servico-id]').forEach(card => {
       const servico = servicos.find(s => s.id === card.dataset.servicoId);
       const preco = card.querySelector('[data-preco-servico]');
-      if (servico && preco) preco.textContent = new Intl.NumberFormat('pt-BR', { maximumFractionDigits:0 }).format(servico.price_cents / 100);
+      const fmt = v => new Intl.NumberFormat('pt-BR', { maximumFractionDigits:0 }).format(v / 100);
+      if (servico && preco) preco.textContent = fmt(servico.price_cents);
+      if (servico && servico.price_agendado_cents) {
+        const nota = card.querySelector('[data-preco-agendado-nota]');
+        const precoAgendado = card.querySelector('[data-preco-agendado-servico]');
+        if (nota && precoAgendado) {
+          precoAgendado.textContent = fmt(servico.price_agendado_cents);
+          nota.hidden = false;
+        }
+      }
     });
   }).catch(() => {});
   document.querySelectorAll('a[href*="agendamento"]').forEach(link => link.addEventListener('click', () => evento('agendamento_iniciado')));

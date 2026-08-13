@@ -412,8 +412,8 @@ app.get('/api/servicos', async (req, res) => {
 async function buscarServicosAvulsos() {
   const buscar = colunas => supabaseAdmin.from('servicos').select(colunas)
     .eq('active', true).eq('recurrence', 'avulso').order('price_cents');
-  const comItens = await buscar('id,name,description,price_cents,itens');
-  if (!comItens.error || !/itens/.test(comItens.error.message || '')) return comItens;
+  const comItens = await buscar('id,name,description,price_cents,price_agendado_cents,itens');
+  if (!comItens.error || !/itens|price_agendado_cents/.test(comItens.error.message || '')) return comItens;
   return buscar('id,name,description,price_cents');
 }
 
@@ -509,7 +509,7 @@ app.delete('/api/servicos', async (req, res) => {
 // Cria a cobrança Pix para um serviço + horário pretendido.
 // body: { clientId, servicoId, date, time }
 app.post('/api/checkout', async (req, res) => {
-  const { clientId, servicoId, date, time } = req.body;
+  const { clientId, servicoId, date, time, modalidade } = req.body;
   if (!clientId || !servicoId) return res.status(400).send('Invalid params');
 
   const { data: servico } = await supabaseAdmin.from('servicos').select('*').eq('id', servicoId).single();
@@ -528,7 +528,13 @@ app.post('/api/checkout', async (req, res) => {
     const { data: pagas } = await supabaseAdmin.from('cobrancas').select('id')
       .eq('cliente_ref', clientId).eq('status', 'paid').limit(1);
     const desconto = !!(pagas && pagas.length);
-    const precoCents = desconto ? Math.round(servico.price_cents * 0.9) : servico.price_cents;
+    // Express e Agendado têm preços diferentes desde 2026-08-13 — agendado
+    // usa price_agendado_cents quando o serviço tiver essa coluna
+    // preenchida, senão cai no price_cents de sempre.
+    const baseCents = (modalidade === 'agendado' && servico.price_agendado_cents)
+      ? servico.price_agendado_cents
+      : servico.price_cents;
+    const precoCents = desconto ? Math.round(baseCents * 0.9) : baseCents;
 
     // 1) cliente no Asaas
     const customerId = await asaas.createCustomer({ name: cliente.name, cpfCnpj: cliente.cpf, email: cliente.email });
@@ -562,7 +568,7 @@ app.post('/api/checkout', async (req, res) => {
       cobrancaId: cob.id,
       servico: mapServico(servico),
       valor: precoCents / 100,
-      valorOriginal: servico.price_cents / 100,
+      valorOriginal: baseCents / 100,
       desconto,
       pixPayload: qr.payload,
       pixImage: qr.encodedImage,
@@ -586,7 +592,7 @@ app.post('/api/checkout', async (req, res) => {
 const DESCONTO_PIX = 0.05;
 
 app.post('/api/signup-checkout', async (req, res) => {
-  const { name, cpfCnpj, email, phone, sexo, cep, endereco, numero, bairro, cidade, estado, servicoId, date, time, summary, assunto, metodoPagamento } = req.body || {};
+  const { name, cpfCnpj, email, phone, sexo, cep, endereco, numero, bairro, cidade, estado, servicoId, date, time, summary, assunto, modalidade, metodoPagamento } = req.body || {};
   if (!name || !email || !phone || !servicoId) return res.status(400).json({ error: 'invalid_params' });
   const { valido, digitos } = validarCpfCnpj(cpfCnpj);
   if (!valido) return res.status(400).json({ error: 'cpf_cnpj_invalido' });
@@ -596,7 +602,14 @@ app.post('/api/signup-checkout', async (req, res) => {
   if (!servico) return res.status(404).json({ error: 'servico_not_found' });
 
   const cartao = metodoPagamento === 'cartao';
-  const precoCents = cartao ? servico.price_cents : Math.round(servico.price_cents * (1 - DESCONTO_PIX));
+  const modo = modalidade === 'sem_agendamento' ? 'sem_agendamento' : 'agendado';
+  // Express e Agendado têm preços diferentes desde 2026-08-13 — agendado usa
+  // price_agendado_cents quando o serviço tiver essa coluna preenchida,
+  // senão cai no price_cents de sempre.
+  const baseCents = (modo === 'agendado' && servico.price_agendado_cents)
+    ? servico.price_agendado_cents
+    : servico.price_cents;
+  const precoCents = cartao ? baseCents : Math.round(baseCents * (1 - DESCONTO_PIX));
 
   try {
     const clientId = digitos;
@@ -608,7 +621,8 @@ app.post('/api/signup-checkout', async (req, res) => {
     const dadosCliente = {
       name, email, phone, sexo: sexo || null,
       cep: cep || null, endereco: endereco || null, numero: numero || null, bairro: bairro || null,
-      cidade: cidade || null, estado: estado || null, assunto: assunto || null, summary: summary || null
+      cidade: cidade || null, estado: estado || null, assunto: assunto || null, summary: summary || null,
+      modalidade: modo
     };
 
     // Cliente e triagem só nascem quando o pagamento confirmar (dentro de
@@ -618,7 +632,7 @@ app.post('/api/signup-checkout', async (req, res) => {
       const { data: cob, error } = await supabaseAdmin.from('cobrancas').insert({
         cliente_ref: clientId, servico_id: servicoId, asaas_customer_id: customerId,
         asaas_payment_id: payment.id, valor_cents: precoCents, status: 'pending',
-        billing_type: 'CREDIT_CARD', invoice_url: payment.invoiceUrl,
+        billing_type: 'CREDIT_CARD', invoice_url: payment.invoiceUrl, modalidade: modo,
         appt_date: date || null, appt_time: time || null, dados_cliente: dadosCliente
       }).select().single();
       if (error) throw error;
@@ -634,13 +648,13 @@ app.post('/api/signup-checkout', async (req, res) => {
       cliente_ref: clientId, servico_id: servicoId, asaas_customer_id: customerId,
       asaas_payment_id: payment.id, valor_cents: precoCents, status: 'pending',
       billing_type: 'PIX', pix_payload: qr.payload, pix_image: qr.encodedImage, invoice_url: payment.invoiceUrl,
-      appt_date: date || null, appt_time: time || null, dados_cliente: dadosCliente
+      modalidade: modo, appt_date: date || null, appt_time: time || null, dados_cliente: dadosCliente
     }).select().single();
     if (error) throw error;
 
     res.json({
       clientId, cobrancaId: cob.id, servico: mapServico(servico),
-      valor: precoCents / 100, valorOriginal: servico.price_cents / 100, metodoPagamento: 'pix',
+      valor: precoCents / 100, valorOriginal: baseCents / 100, metodoPagamento: 'pix',
       pixPayload: qr.payload, pixImage: qr.encodedImage, invoiceUrl: payment.invoiceUrl, status: 'pending'
     });
   } catch (e) {
