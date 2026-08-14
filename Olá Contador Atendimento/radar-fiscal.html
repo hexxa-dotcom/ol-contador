@@ -118,9 +118,6 @@
      caixa pra aparecer). */
   .nav-encolhe{transition:opacity .2s ease, max-width .2s ease, margin .2s ease}
   .topo.nav-compacto .nav-encolhe{opacity:0;max-width:0 !important;margin:0 !important;pointer-events:none;overflow:hidden}
-  .nav-cta-scroll{opacity:0;max-width:0;margin-left:0 !important;overflow:hidden;pointer-events:none;
-    transition:opacity .2s ease, max-width .2s ease, margin .2s ease}
-  .topo.nav-compacto .nav-cta-scroll{opacity:1;max-width:220px;margin-left:6px !important;pointer-events:auto}
   .lk{transition:color .15s}
   .lk:hover{color:#344C4B}
   .nav-links a[aria-current="page"]{font-weight:700;color:#EE5F3A}
@@ -214,21 +211,20 @@
 
 <div class="topo">
   <div class="topo-in">
-    <a class="marca" href="index.html"><img src="logo.svg" alt="Olá, Contador" /><b>Olá<i>,</i> Contador<i>.</i></b></a>
+    <a class="marca" href="index.html"><img src="logo.svg" alt="Olá, Contador" /><b class="nav-wordmark nav-encolhe">Olá<i>,</i> Contador<i>.</i></b></a>
     <div class="nav-links nav-encolhe">
       <a class="lk" href="precos.html">Preços</a>
       <a class="lk" href="radar-fiscal.html" aria-current="page">Radar Fiscal</a>
-      <a class="lk" href="mailto:ola@olacontador.com.br">Contato</a>
+      <a class="lk" href="index.html#contato">Contato</a>
     </div>
-    <div class="nav-acoes">
-      <div class="nav-entrar-wrap nav-encolhe">
+    <div class="nav-acoes nav-encolhe">
+      <div class="nav-entrar-wrap">
         <button type="button" class="nav-entrar-btn" aria-haspopup="true" aria-expanded="false">Entrar <span class="nav-caret">▾</span></button>
         <div class="nav-entrar-menu" role="menu">
           <a href="login.html?role=cliente" role="menuitem">Área do cliente</a>
           <a href="login.html?role=contador" role="menuitem">Área do escritório</a>
         </div>
       </div>
-      <a class="btng nav-cta-scroll" href="#planos" style="background:#344C4B;color:#fff;font-weight:600;font-size:15px;padding:11px 22px;border-radius:12px;box-shadow:0 10px 22px -14px rgba(52, 76, 75, .5);">Ver preços</a>
     </div>
   </div>
 </div>

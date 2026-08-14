@@ -138,6 +138,36 @@ async function registrarErroPublico(req, res) {
   res.json({ ok: true });
 }
 
+// POST /api/status?acao=enviar-contato — formulário de contato público (sem
+// login) da home. Manda por e-mail em vez de gravar em tabela nova: é o
+// bastante pro volume esperado e não consome uma das 12 funções serverless
+// do plano Hobby (por isso vive aqui dentro, não em api/contato.js).
+async function enviarContatoPublico(req, res) {
+  if (req.method !== 'POST') return res.status(405).json({ error: 'method_not_allowed' });
+  const admin = adminClient();
+  if (!admin) return res.status(503).json({ error: 'service_role_not_configured' });
+  if (!(await checarRateLimit(admin, req, 'contato-publico', 5, 15))) return res.status(429).json({ error: 'muitas_tentativas' });
+
+  const body = req.body || {};
+  const nome = String(body.nome || '').trim().slice(0, 120);
+  const email = String(body.email || '').trim().slice(0, 160);
+  const mensagem = String(body.mensagem || '').trim().slice(0, 4000);
+  if (!nome || !mensagem || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return res.status(400).json({ error: 'invalid_params' });
+  }
+  if (!notify.emailConfigured()) return res.status(503).json({ error: 'email_not_configured' });
+
+  const html = `<div style="font-family:sans-serif;font-size:14px;color:#111">
+    <p><b>Nova mensagem pelo site</b></p>
+    <p><b>Nome:</b> ${escapeHtml(nome)}</p>
+    <p><b>E-mail:</b> ${escapeHtml(email)}</p>
+    <p><b>Mensagem:</b><br>${escapeHtml(mensagem).replace(/\n/g, '<br>')}</p>
+  </div>`;
+  const resultado = await notify.sendEmail('ola@olacontador.com.br', `Contato pelo site — ${nome}`, html);
+  if (!resultado || resultado.ok === false) return res.status(502).json({ error: 'envio_falhou' });
+  res.json({ ok: true });
+}
+
 async function errosOperacionais(req, res) {
   const admin = await exigirEquipe(req, res);
   if (!admin) return;
@@ -617,6 +647,7 @@ module.exports = async (req, res) => {
   if (req.query.acao === 'finalizar-pos-atendimento') return finalizarPosAtendimento(req, res);
   if (req.query.acao === 'registrar-evento-funil') return registrarEventoPublico(req, res);
   if (req.query.acao === 'registrar-erro') return registrarErroPublico(req, res);
+  if (req.query.acao === 'enviar-contato') return enviarContatoPublico(req, res);
   if (req.query.acao === 'erros-operacionais') return errosOperacionais(req, res);
   if (req.query.acao === 'metricas-funil') return metricasFunil(req, res);
   if (req.query.acao === 'servicos-municipais') return statusServicosMunicipais(req, res);
