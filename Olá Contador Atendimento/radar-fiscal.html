@@ -95,12 +95,26 @@
   .marca b i{font-style:normal;color:#EE5F3A}
   .nav-links{display:flex;align-items:center;gap:32px;font-size:15px;font-weight:500;color:#344C4B}
   .nav-acoes{display:flex;align-items:center;gap:18px}
-  .nav-btn-mini{font-size:13.5px;font-weight:600;color:#344C4B;border:1.5px solid rgba(52, 76, 75, .25);
-    padding:7px 14px;border-radius:10px;transition:border-color .15s, background .15s;white-space:nowrap}
-  .nav-btn-mini:hover{border-color:#344C4B;background:rgba(52, 76, 75, .06)}
-  .nav-mini-btns{display:flex;align-items:center;gap:10px}
+  /* Dropdown único "Entrar ▾" — clique alterna, hover no desktop também abre. */
+  .nav-entrar-wrap{position:relative}
+  .nav-entrar-btn{display:flex;align-items:center;gap:6px;background:none;border:none;font-family:inherit;
+    cursor:pointer;color:#344C4B;font-weight:600;font-size:15px;padding:8px 2px}
+  .nav-caret{font-size:10px;transition:transform .15s ease;display:inline-block}
+  .nav-entrar-wrap.aberto .nav-caret{transform:rotate(180deg)}
+  .nav-entrar-menu{position:absolute;top:calc(100% + 8px);right:0;background:#fff;
+    border:1px solid rgba(52, 76, 75, .15);border-radius:14px;box-shadow:0 20px 40px -20px rgba(52, 76, 75, .4);
+    padding:8px;min-width:190px;display:flex;flex-direction:column;gap:2px;
+    opacity:0;visibility:hidden;transform:translateY(-6px);
+    transition:opacity .15s ease, transform .15s ease, visibility .15s;z-index:60}
+  .nav-entrar-wrap:hover .nav-entrar-menu, .nav-entrar-wrap.aberto .nav-entrar-menu{opacity:1;visibility:visible;transform:none}
+  .nav-entrar-menu a{padding:10px 12px;border-radius:9px;font-size:14.5px;font-weight:600;color:#344C4B;transition:background .15s}
+  .nav-entrar-menu a:hover{background:rgba(52, 76, 75, .07)}
+
   .nav-encolhe{transition:opacity .2s ease, max-width .2s ease, margin .2s ease;overflow:hidden}
   .topo.nav-compacto .nav-encolhe{opacity:0;max-width:0 !important;margin:0 !important;pointer-events:none}
+  .nav-cta-scroll{opacity:0;max-width:0;margin-left:0 !important;overflow:hidden;pointer-events:none;
+    transition:opacity .2s ease, max-width .2s ease, margin .2s ease}
+  .topo.nav-compacto .nav-cta-scroll{opacity:1;max-width:220px;margin-left:6px !important;pointer-events:auto}
   .lk{transition:color .15s}
   .lk:hover{color:#344C4B}
   .nav-links a[aria-current="page"]{font-weight:700;color:#EE5F3A}
@@ -173,8 +187,8 @@
     .radar-hero h1{font-size:38px}
     h2{font-size:30px !important}
     .topo-in{padding:12px 14px}
-    .nav-links, .nav-mini-btns{display:none}
-    .nav-entrar{font-size:12px !important;white-space:nowrap}
+    .nav-links{display:none}
+    .nav-entrar-btn{font-size:12px !important;white-space:nowrap}
     .btng{font-size:12px !important;padding:8px 12px !important;white-space:nowrap}
     .marca b{font-size:17px !important}
     .nav-acoes{gap:8px !important}
@@ -198,14 +212,17 @@
     <div class="nav-links nav-encolhe">
       <a class="lk" href="precos.html">Preços</a>
       <a class="lk" href="radar-fiscal.html" aria-current="page">Radar Fiscal</a>
+      <a class="lk" href="mailto:ola@olacontador.com.br">Contato</a>
     </div>
     <div class="nav-acoes">
-      <a class="lk nav-entrar nav-encolhe" href="login.html" style="font-weight:600;">Entrar</a>
-      <div class="nav-mini-btns nav-encolhe">
-        <a class="nav-btn-mini" href="login.html?role=cliente">Cliente</a>
-        <a class="nav-btn-mini" href="login.html?role=contador">Contador</a>
+      <div class="nav-entrar-wrap nav-encolhe">
+        <button type="button" class="nav-entrar-btn" aria-haspopup="true" aria-expanded="false">Entrar <span class="nav-caret">▾</span></button>
+        <div class="nav-entrar-menu" role="menu">
+          <a href="login.html?role=cliente" role="menuitem">Área do cliente</a>
+          <a href="login.html?role=contador" role="menuitem">Área do escritório</a>
+        </div>
       </div>
-      <a class="btng" href="#planos" style="background:#344C4B;color:#fff;font-weight:600;font-size:15px;padding:11px 22px;border-radius:12px;box-shadow:0 10px 22px -14px rgba(52, 76, 75, .5);">Ver preços</a>
+      <a class="btng nav-cta-scroll" href="#planos" style="background:#344C4B;color:#fff;font-weight:600;font-size:15px;padding:11px 22px;border-radius:12px;box-shadow:0 10px 22px -14px rgba(52, 76, 75, .5);">Ver preços</a>
     </div>
   </div>
 </div>
@@ -421,14 +438,33 @@
   evento('radar_fiscal_visualizado');
   document.querySelectorAll('a[href^="mailto:"]').forEach(link => link.addEventListener('click', () => evento('radar_fiscal_interesse')));
 })();
-// Header compacto ao rolar: some com o menu e Entrar/Cliente/Contador, sobra
-// só a logo e o CTA principal.
+// Header compacto ao rolar: some com o menu e Entrar, sobra só a logo — e o
+// CTA faz o inverso, some no topo e só aparece a partir daqui.
 (() => {
   const topo = document.querySelector('.topo');
   if (!topo) return;
   const aoRolar = () => topo.classList.toggle('nav-compacto', window.scrollY > 80);
   window.addEventListener('scroll', aoRolar, { passive: true });
   aoRolar();
+})();
+// Dropdown "Entrar ▾" — clique alterna (funciona em touch); hover no desktop
+// já abre sozinho via CSS.
+(() => {
+  document.querySelectorAll('.nav-entrar-wrap').forEach(wrap => {
+    const btn = wrap.querySelector('.nav-entrar-btn');
+    if (!btn) return;
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const aberto = wrap.classList.toggle('aberto');
+      btn.setAttribute('aria-expanded', aberto ? 'true' : 'false');
+    });
+  });
+  document.addEventListener('click', () => {
+    document.querySelectorAll('.nav-entrar-wrap.aberto').forEach(w => {
+      w.classList.remove('aberto');
+      w.querySelector('.nav-entrar-btn')?.setAttribute('aria-expanded', 'false');
+    });
+  });
 })();
 // Revelação suave ao rolar, sem lib nenhuma.
 (() => {

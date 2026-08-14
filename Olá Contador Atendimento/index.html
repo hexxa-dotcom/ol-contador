@@ -144,17 +144,34 @@
     .card:hover{transform:translateY(-4px);}
     .card{transition:transform .2s ease;}
 
-    /* Botões pequenos "Cliente"/"Contador" no menu — mesma linha do "Entrar",
-       contorno fino pra não competir com o CTA principal em coral. */
-    .nav-btn-mini{font-size:13.5px;font-weight:600;color:#344C4B;border:1.5px solid rgba(52, 76, 75, .25);
-      padding:7px 14px;border-radius:10px;transition:border-color .15s, background .15s;white-space:nowrap;}
-    .nav-btn-mini:hover{border-color:#344C4B;background:rgba(52, 76, 75, .06);}
+    /* Dropdown único "Entrar ▾" — clique alterna, hover no desktop também
+       abre. Substitui os 3 elementos soltos (Entrar + botão Cliente + botão
+       Contador) que disputavam espaço no menu. */
+    .nav-entrar-wrap{position:relative;}
+    .nav-entrar-btn{display:flex;align-items:center;gap:6px;background:none;border:none;font-family:inherit;
+      cursor:pointer;color:#344C4B;font-weight:600;font-size:15px;padding:8px 2px;}
+    .nav-caret{font-size:10px;transition:transform .15s ease;display:inline-block;}
+    .nav-entrar-wrap.aberto .nav-caret{transform:rotate(180deg);}
+    .nav-entrar-menu{position:absolute;top:calc(100% + 8px);right:0;background:#fff;
+      border:1px solid rgba(52, 76, 75, .15);border-radius:14px;box-shadow:0 20px 40px -20px rgba(52, 76, 75, .4);
+      padding:8px;min-width:190px;display:flex;flex-direction:column;gap:2px;
+      opacity:0;visibility:hidden;transform:translateY(-6px);
+      transition:opacity .15s ease, transform .15s ease, visibility .15s;z-index:60;}
+    .nav-entrar-wrap:hover .nav-entrar-menu, .nav-entrar-wrap.aberto .nav-entrar-menu{
+      opacity:1;visibility:visible;transform:none;}
+    .nav-entrar-menu a{padding:10px 12px;border-radius:9px;font-size:14.5px;font-weight:600;
+      color:#344C4B;transition:background .15s;}
+    .nav-entrar-menu a:hover{background:rgba(52, 76, 75, .07);}
 
-    /* Header compacto ao rolar: some com o menu e Entrar/Cliente/Contador,
-       sobra só a logo e o CTA principal. #nav-fixo ganha .nav-compacto via JS
-       quando passa de 80px de scroll (ver script no fim do body). */
+    /* Header compacto ao rolar: some com o menu/Entrar, sobra só a logo. O
+       CTA "Resolver agora" faz o inverso — fica invisível no topo (o hero já
+       tem CTA igual logo abaixo) e só aparece depois que rola, junto com o
+       modo compacto. #nav-fixo ganha .nav-compacto via JS (ver fim do body). */
     .nav-encolhe{transition:opacity .2s ease, max-width .2s ease, margin .2s ease;overflow:hidden;}
     #nav-fixo.nav-compacto .nav-encolhe{opacity:0;max-width:0 !important;margin:0 !important;pointer-events:none;}
+    .nav-cta-scroll{opacity:0;max-width:0;margin-left:0 !important;overflow:hidden;pointer-events:none;
+      transition:opacity .2s ease, max-width .2s ease, margin .2s ease;}
+    #nav-fixo.nav-compacto .nav-cta-scroll{opacity:1;max-width:220px;margin-left:6px !important;pointer-events:auto;}
     #nav-fixo{transition:box-shadow .2s ease;}
     #nav-fixo.nav-compacto{box-shadow:0 4px 16px rgba(52, 76, 75, .08);}
 
@@ -169,10 +186,10 @@
     /* Responsividade Mobile */
     @media (max-width: 900px) {
       .planos-grid { grid-template-columns: 1fr !important; max-width: 460px !important; }
-      /* .nav-entrar fica visível — é o único jeito de chegar no login pelo
-         cabeçalho no celular. Os botões Cliente/Contador e o menu de âncoras
-         somem por espaço; "Entrar" sozinho já leva pro login certo. */
-      .nav-links, .nav-mini-btns { display: none !important; }
+      /* O dropdown "Entrar" fica visível — é o único jeito de chegar no
+         login pelo cabeçalho no celular (o menu de âncoras some por
+         espaço). No touch não existe hover, então o toque abre via JS. */
+      .nav-links { display: none !important; }
       .nav-container { padding: 12px 20px !important; }
       /* Barra fixa fica mais baixa no mobile (menos padding, sem os links). */
       body { padding-top: 59px !important; }
@@ -196,7 +213,7 @@
          logo. Aperta os dois elementos do lado direito pra caber numa
          linha só — os estilos aqui são inline no HTML, então !important é
          necessário pra vencer. */
-      .nav-entrar { font-size: 12px !important; white-space: nowrap; }
+      .nav-entrar-btn { font-size: 12px !important; white-space: nowrap; }
       .btng { font-size: 12px !important; padding: 8px 12px !important; white-space: nowrap; }
       .nav-container { padding: 12px 14px !important; gap: 6px; }
       .nav-container > a:first-child { gap: 7px !important; min-width: 0; }
@@ -237,17 +254,25 @@
       <div data-dc-tpl="13" class="nav-links nav-encolhe" style="display: flex; align-items: center; gap: 32px; font-size: 15px; font-weight: 500; color: rgb(52, 76, 75);">
         <a data-dc-tpl="16" class="lk" href="precos.html" style="transition: color 0.15s;">Preços</a>
         <a class="lk" href="radar-fiscal.html" style="transition: color 0.15s;">Radar Fiscal</a>
+        <a class="lk" href="mailto:ola@olacontador.com.br" style="transition: color 0.15s;">Contato</a>
       </div>
-      <div style="display: flex; align-items: center; gap: 22px;">
-        <a class="lk nav-entrar nav-encolhe" href="login.html" style="transition: color 0.15s; font-weight: 600; font-size: 15px;">Entrar</a>
-        <div class="nav-mini-btns nav-encolhe" style="display: flex; align-items: center; gap: 10px;">
-          <a class="nav-btn-mini" href="login.html?role=cliente">Cliente</a>
-          <a class="nav-btn-mini" href="login.html?role=contador">Contador</a>
+      <div style="display: flex; align-items: center; gap: 14px;">
+        <!-- Um botão só: "Entrar" com setinha, clique (ou hover no desktop)
+             abre Cliente/Contador. Antes eram 3 elementos soltos no menu. -->
+        <div class="nav-entrar-wrap nav-encolhe">
+          <button type="button" class="nav-entrar-btn" aria-haspopup="true" aria-expanded="false">Entrar <span class="nav-caret">▾</span></button>
+          <div class="nav-entrar-menu" role="menu">
+            <a href="login.html?role=cliente" role="menuitem">Área do cliente</a>
+            <a href="login.html?role=contador" role="menuitem">Área do escritório</a>
+          </div>
         </div>
         <!-- Teal, não coral: a 15px o branco sobre coral não passa no contraste
              mínimo (3,32:1 pra um exigido de 4,5:1). O teal dá 9,2:1 e ainda
-             cria hierarquia — o coral fica reservado pro CTA principal. -->
-        <a data-dc-tpl="19" class="btng" href="precos.html" style="background: rgb(52, 76, 75); color: rgb(255, 255, 255); font-weight: 600; font-size: 15px; padding: 11px 22px; border-radius: 12px; box-shadow: rgba(52, 76, 75, 0.5) 0px 10px 22px -14px; white-space: nowrap;">Resolver agora</a>
+             cria hierarquia — o coral fica reservado pro CTA principal.
+             Some por padrão: só aparece depois que a pessoa rola a página
+             (o hero já tem o CTA principal logo abaixo, repetir aqui em cima
+             seria redundante enquanto o hero está visível). -->
+        <a data-dc-tpl="19" class="btng nav-cta-scroll" href="precos.html" style="background: rgb(52, 76, 75); color: rgb(255, 255, 255); font-weight: 600; font-size: 15px; padding: 11px 22px; border-radius: 12px; box-shadow: rgba(52, 76, 75, 0.5) 0px 10px 22px -14px; white-space: nowrap;">Resolver agora</a>
       </div>
     </div>
   </div>
@@ -622,14 +647,37 @@
     </div>
   </div></div></div></div>
 <script>
-  // Header compacto ao rolar: some com o menu e Entrar/Cliente/Contador,
-  // sobra só a logo e o CTA. Volta ao normal perto do topo.
+  // Header compacto ao rolar: some com o menu e o "Entrar", sobra só a logo
+  // — e o CTA "Resolver agora" faz o caminho inverso, só aparece aqui.
   (() => {
     const nav = document.getElementById('nav-fixo');
     if (!nav) return;
     const aoRolar = () => nav.classList.toggle('nav-compacto', window.scrollY > 80);
     window.addEventListener('scroll', aoRolar, { passive: true });
     aoRolar();
+  })();
+
+  // Dropdown "Entrar ▾" — clique alterna (funciona em touch, onde não tem
+  // hover); hover no desktop já abre sozinho via CSS.
+  (() => {
+    document.querySelectorAll('.nav-entrar-wrap').forEach(wrap => {
+      const btn = wrap.querySelector('.nav-entrar-btn');
+      if (!btn) return;
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const aberto = wrap.classList.toggle('aberto');
+        btn.setAttribute('aria-expanded', aberto ? 'true' : 'false');
+      });
+    });
+    document.addEventListener('click', () => {
+      document.querySelectorAll('.nav-entrar-wrap.aberto').forEach(w => {
+        w.classList.remove('aberto');
+        w.querySelector('.nav-entrar-btn')?.setAttribute('aria-expanded', 'false');
+      });
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') document.querySelectorAll('.nav-entrar-wrap.aberto').forEach(w => w.classList.remove('aberto'));
+    });
   })();
 
   // Revelação suave: seções entram com leve fade + subida ao aparecer na tela.
