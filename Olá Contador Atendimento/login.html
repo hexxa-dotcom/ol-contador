@@ -9,26 +9,34 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Hanken+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <style>
-    /* cores tiradas do próprio site, para o login não parecer outro produto */
-    :root { --pine:#093726; --pine-light:#F7F1E6; --coral:#FF6A45; --border:#E3DDD1; --text:#1A2B25; --muted:#6B7A74; }
+    /* Paleta única do site público (mesma de precos.html/radar-fiscal.html) —
+       antes o login tinha um verde/coral só seus, diferente do resto. */
+    :root { --pine:#344C4B; --pine-light:#FAF7F2; --coral:#EE5F3A; --coral-light:#F5A78D; --border:#E3DDD1; --text:#1A2B25; --muted:#6B7A74; }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: 'Hanken Grotesk', system-ui, sans-serif; background: var(--pine-light); color: var(--text);
-      min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
-    .card { background: #fff; border: 1px solid var(--border); border-radius: 16px; padding: 36px 32px;
-      width: 100%; max-width: 400px; box-shadow: 0 12px 40px rgba(31,77,61,0.08); }
-    .brand { display: flex; align-items: center; gap: 10px; margin-bottom: 18px; }
+      min-height: 100vh; }
+    a { color: inherit; }
+
+    .shell { min-height: 100vh; display: grid; grid-template-columns: 1fr 1fr; }
+    @media (max-width: 860px) { .shell { grid-template-columns: 1fr; } }
+
+    /* Coluna do formulário */
+    .lado-form { display: flex; align-items: center; justify-content: center; padding: 40px 24px; }
+    .card { width: 100%; max-width: 400px; }
+    .brand { display: flex; align-items: center; gap: 10px; margin-bottom: 30px; }
     .brand img { width: 34px; display: block; }
     .brand h1 { font-family: 'Bricolage Grotesque', system-ui, sans-serif; font-size: 19px; font-weight: 800;
       color: var(--pine); letter-spacing: -.02em; }
     .brand h1 i { font-style: normal; color: var(--coral); }
-    h2 { font-family: 'Bricolage Grotesque', system-ui, sans-serif; font-size: 22px; font-weight: 800; margin-bottom: 6px; }
-    p.sub { font-size: 13px; color: var(--muted); margin-bottom: 22px; line-height: 1.5; }
+    h2 { font-family: 'Bricolage Grotesque', system-ui, sans-serif; font-size: 26px; font-weight: 800; margin-bottom: 6px; letter-spacing: -.02em; }
+    p.sub { font-size: 14px; color: var(--muted); margin-bottom: 26px; line-height: 1.5; }
     label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; }
     input { width: 100%; padding: 12px 14px; border: 1px solid var(--border); border-radius: 10px;
       font-size: 15px; font-family: inherit; margin-bottom: 16px; outline: none; transition: border-color .15s; }
     input:focus { border-color: var(--pine); }
     button { width: 100%; padding: 13px; border: none; border-radius: 10px; background: var(--pine);
-      color: #fff; font-size: 15px; font-weight: 600; cursor: pointer; font-family: inherit; transition: opacity .15s; }
+      color: #fff; font-size: 15px; font-weight: 600; cursor: pointer; font-family: inherit; transition: opacity .15s, transform .15s; }
+    button:hover:not(:disabled) { transform: translateY(-1px); }
     button:disabled { opacity: .55; cursor: default; }
     button.ghost { background: none; color: var(--pine); border: 1px solid var(--border); margin-top: 10px; }
     .msg { font-size: 13px; padding: 10px 12px; border-radius: 8px; margin-bottom: 16px; display: none; line-height: 1.5; }
@@ -38,33 +46,60 @@
     .sep::before, .sep::after { content: ''; flex: 1; height: 1px; background: var(--border); }
     .foot { margin-top: 22px; text-align: center; font-size: 12px; color: var(--muted); line-height: 1.6; }
     .foot a { color: var(--pine); font-weight: 600; text-decoration: none; }
+
+    /* Coluna de imagem — placeholder até termos a foto real do escritório/equipe.
+       Fica pronta pra virar `background-image` sem mexer em mais nada. */
+    .lado-imagem { position: relative; background: linear-gradient(155deg, var(--pine) 0%, #26433f 100%); overflow: hidden; }
+    @media (max-width: 860px) { .lado-imagem { display: none; } }
+    .lado-imagem::before, .lado-imagem::after { content: ''; position: absolute; border-radius: 50%; opacity: .12; background: var(--coral); }
+    .lado-imagem::before { width: 420px; height: 420px; top: -120px; right: -140px; }
+    .lado-imagem::after { width: 280px; height: 280px; bottom: -100px; left: -80px; background: var(--coral-light); }
+    .imagem-conteudo { position: relative; z-index: 1; height: 100%; display: flex; flex-direction: column; align-items: flex-start; justify-content: flex-end; padding: 56px; color: #fff; }
+    .imagem-selo { width: 56px; height: 56px; border-radius: 16px; background: rgba(255,255,255,.12); backdrop-filter: blur(4px);
+      display: flex; align-items: center; justify-content: center; font-size: 24px; margin-bottom: 24px; }
+    .imagem-conteudo h3 { font-family: 'Bricolage Grotesque', system-ui, sans-serif; font-size: 28px; font-weight: 800; letter-spacing: -.02em; line-height: 1.15; max-width: 380px; margin-bottom: 12px; }
+    .imagem-conteudo p { font-size: 15px; opacity: .82; line-height: 1.5; max-width: 360px; }
   </style>
 <link rel="stylesheet" href="acessibilidade.css">
 <script src="monitoramento.js" defer></script>
 </head>
 <body>
-  <div class="card">
-    <div class="brand"><img src="logo.svg" alt="" /><h1>Olá<i>,</i> Contador<i>.</i></h1></div>
-    <h2 id="titulo">Entrar</h2>
-    <p class="sub" id="subtitulo">Use o e-mail da sua conta. Levamos você direto para a sua área.</p>
+  <div class="shell">
+    <div class="lado-form">
+      <div class="card">
+        <a class="brand" href="index.html"><img src="logo.svg" alt="" /><h1>Olá<i>,</i> Contador<i>.</i></h1></a>
+        <h2 id="titulo">Entrar</h2>
+        <p class="sub" id="subtitulo">Use o e-mail da sua conta. Levamos você direto para a sua área.</p>
 
-    <div class="msg" id="msg"></div>
+        <div class="msg" id="msg"></div>
 
-    <div id="form">
-      <label for="email">E-mail</label>
-      <input type="email" id="email" placeholder="voce@email.com" autocomplete="email" />
+        <div id="form">
+          <label for="email">E-mail</label>
+          <input type="email" id="email" placeholder="voce@email.com" autocomplete="email" />
 
-      <label for="senha">Senha</label>
-      <input type="password" id="senha" placeholder="sua senha" autocomplete="current-password" />
-      <button id="btn-senha">Entrar</button>
+          <label for="senha">Senha</label>
+          <input type="password" id="senha" placeholder="sua senha" autocomplete="current-password" />
+          <button id="btn-senha">Entrar</button>
 
-      <div class="sep">ou</div>
-      <button class="ghost" id="btn-link">Receber link de acesso por e-mail</button>
+          <div class="sep">ou</div>
+          <button class="ghost" id="btn-link">Receber link de acesso por e-mail</button>
+        </div>
+
+        <div class="foot">
+          Ainda não é cliente? <a href="precos.html">Ver preços e agendar</a><br />
+          Não tem senha? Use o link de acesso — dá para criar uma senha depois, na sua área.
+        </div>
+      </div>
     </div>
 
-    <div class="foot">
-      Ainda não é cliente? <a href="index.html#precos">Ver preços e agendar</a><br />
-      Não tem senha? Use o link de acesso — dá para criar uma senha depois, na sua área.
+    <!-- Placeholder pronto pra virar foto real do escritório/equipe — só trocar
+         o gradiente por `background-image:url(...)` quando a foto chegar. -->
+    <div class="lado-imagem" aria-hidden="true">
+      <div class="imagem-conteudo">
+        <div class="imagem-selo">🧾</div>
+        <h3 id="imagem-titulo">Um contador de verdade, do outro lado da tela</h3>
+        <p id="imagem-texto">Registro ativo no CRC, sigilo profissional e resposta por escrito — sem sair de casa.</p>
+      </div>
     </div>
   </div>
 
@@ -92,6 +127,22 @@
       location.href = 'contador.html';
       return true;
     }
+
+    // Ajusta só o texto conforme ?role= (window.OC_ROLE, já lido em config.js) —
+    // não muda a autenticação em si, quem decide o destino real é o banco.
+    (function ajustarTextoPeloRole() {
+      if (window.OC_ROLE === 'cliente') {
+        document.getElementById('titulo').textContent = 'Entrar como cliente';
+        document.getElementById('subtitulo').textContent = 'Acesse sua área para acompanhar atendimentos, documentos e o Radar Fiscal.';
+        document.getElementById('imagem-titulo').textContent = 'Sua situação com a Receita, sempre à vista';
+        document.getElementById('imagem-texto').textContent = 'Acompanhe atendimentos, documentos e prazos num só lugar, direto do celular.';
+      } else if (window.OC_ROLE === 'contador') {
+        document.getElementById('titulo').textContent = 'Painel do escritório';
+        document.getElementById('subtitulo').textContent = 'Entre com a conta cadastrada pelo escritório.';
+        document.getElementById('imagem-titulo').textContent = 'Todo o escritório num painel só';
+        document.getElementById('imagem-texto').textContent = 'Atendimentos, clientes e financeiro organizados num só lugar.';
+      }
+    })();
 
     // O coração do login único: quem decide o destino é o banco, não a URL.
     // is_staff() → contador pré-cadastrado. my_client_id() → cliente que veio pela compra.

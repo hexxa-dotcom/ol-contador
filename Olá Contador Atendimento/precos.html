@@ -113,7 +113,8 @@
   /* Cabeçalho idêntico ao da home: mesma cor, mesmos links, mesma altura.
      Antes esta página tinha uma barra própria só com "Voltar ao site", o que
      dava a sensação de ter saído do site pra um lugar solto. */
-  .topo{position:sticky;top:0;z-index:50;background:rgba(240, 235, 228, .85);backdrop-filter:blur(12px);border-bottom:1px solid rgba(52, 76, 75, .07)}
+  .topo{position:sticky;top:0;z-index:50;background:rgba(250, 247, 242, .85);backdrop-filter:blur(12px);border-bottom:1px solid rgba(52, 76, 75, .07);transition:box-shadow .2s ease}
+  .topo.nav-compacto{box-shadow:0 4px 16px rgba(52, 76, 75, .08)}
   .topo-in{display:flex;align-items:center;justify-content:space-between;padding:16px 32px;max-width:1200px;margin:0 auto}
   .marca{display:flex;align-items:center;gap:12px}
   .marca img{width:36px;display:block}
@@ -121,6 +122,12 @@
   .marca b i{font-style:normal;color:#EE5F3A}
   .nav-links{display:flex;align-items:center;gap:32px;font-size:15px;font-weight:500;color:#344C4B}
   .nav-acoes{display:flex;align-items:center;gap:18px}
+  .nav-btn-mini{font-size:13.5px;font-weight:600;color:#344C4B;border:1.5px solid rgba(52, 76, 75, .25);
+    padding:7px 14px;border-radius:10px;transition:border-color .15s, background .15s;white-space:nowrap}
+  .nav-btn-mini:hover{border-color:#344C4B;background:rgba(52, 76, 75, .06)}
+  .nav-mini-btns{display:flex;align-items:center;gap:10px}
+  .nav-encolhe{transition:opacity .2s ease, max-width .2s ease, margin .2s ease;overflow:hidden}
+  .topo.nav-compacto .nav-encolhe{opacity:0;max-width:0 !important;margin:0 !important;pointer-events:none}
   .lk{transition:color .15s}
   .lk:hover{color:#344C4B}
   /* Marca a página atual na navegação — o visitante sabe onde está. */
@@ -141,6 +148,11 @@
   .planos{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;align-items:stretch;text-align:left;margin-top:48px}
   .plano{display:flex;flex-direction:column;border-radius:24px;padding:32px 28px}
   .preco-num{font-family:"Bricolage Grotesque",sans-serif;font-weight:800;font-size:64px;line-height:.95;letter-spacing:-.04em}
+  /* Enquanto o preço real não chega do /api/agendamento-opcoes, mostra um
+     traço pulsando em vez de um número — nunca mais um valor errado piscando
+     antes do certo (já aconteceu com o PJ: mostrava 399 e virava 349). */
+  .preco-num[data-carregando]{opacity:.35;animation:preco-pulse 1.1s ease-in-out infinite}
+  @keyframes preco-pulse{0%,100%{opacity:.25}50%{opacity:.5}}
   .ent{display:flex;gap:10px;align-items:flex-start;line-height:1.4}
   .ent b{display:block;font-size:15px}
   .ent small{display:block;font-size:13px;opacity:.78;margin-top:2px}
@@ -185,6 +197,10 @@
     .radar-faixa .radar-preco{flex:1 1 auto;text-align:left}
   }
 
+  [data-reveal]{opacity:0;transform:translateY(18px);transition:opacity .55s ease, transform .55s ease}
+  [data-reveal].reveal-in{opacity:1;transform:none}
+  @media (prefers-reduced-motion: reduce){[data-reveal]{opacity:1;transform:none;transition:none}}
+
   .faq{max-width:760px;margin:0 auto;text-align:left}
   .faq details{background:#FFFFFF;border:1px solid rgba(52, 76, 75, .18);border-radius:16px;padding:0;margin-bottom:12px;overflow:hidden}
   .faq summary{cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center;gap:16px;padding:20px 24px;font-family:"Bricolage Grotesque",sans-serif;font-weight:700;font-size:19px;color:#344C4B}
@@ -202,7 +218,7 @@
     .topo-in{padding:12px 14px}
     /* .nav-entrar (Já sou cliente) fica visível — sem ele, o celular não
        tinha nenhum jeito de chegar no portal do cliente pelo cabeçalho. */
-    .nav-links{display:none}
+    .nav-links, .nav-mini-btns{display:none}
     /* Com "Já sou cliente" de volta, sobra pouco espaço pro CTA num celular
        estreito — aperta os dois pra caber numa linha só (os estilos do CTA
        são inline no HTML, então !important é necessário pra vencer). */
@@ -226,15 +242,16 @@
 <div class="topo">
   <div class="topo-in">
     <a class="marca" href="index.html"><img src="logo.svg" alt="Olá, Contador" /><b>Olá<i>,</i> Contador<i>.</i></b></a>
-    <div class="nav-links">
-      <a class="lk" href="index.html#como">Como funciona</a>
-      <a class="lk" href="index.html#servicos">Pra que serve</a>
+    <div class="nav-links nav-encolhe">
       <a class="lk" href="precos.html" aria-current="page">Preços</a>
       <a class="lk" href="radar-fiscal.html">Radar Fiscal</a>
-      <a class="lk" href="index.html#faq">Dúvidas</a>
     </div>
     <div class="nav-acoes">
-      <a class="lk nav-entrar" href="cliente.html" style="font-weight:600;">Já sou cliente</a>
+      <a class="lk nav-entrar nav-encolhe" href="login.html" style="font-weight:600;">Entrar</a>
+      <div class="nav-mini-btns nav-encolhe">
+        <a class="nav-btn-mini" href="login.html?role=cliente">Cliente</a>
+        <a class="nav-btn-mini" href="login.html?role=contador">Contador</a>
+      </div>
       <!-- Teal a 15px pelo mesmo motivo do topo da home: contraste. -->
       <a class="btng" href="#planos" style="background:#344C4B;color:#fff;font-weight:600;font-size:15px;padding:11px 22px;border-radius:12px;box-shadow:0 10px 22px -14px rgba(52, 76, 75, .5);">Escolher plano</a>
     </div>
@@ -264,7 +281,7 @@
       <div style="font-family:'Bricolage Grotesque',sans-serif;font-weight:700;font-size:24px;color:#344C4B;">Pessoa Física</div>
       <div style="font-size:15px;color:#344C4B;margin-top:6px;line-height:1.5;">Para quem recebeu uma carta da Receita, travou no IR ou vendeu um bem e não sabe o que fazer agora.</div>
       <div style="margin:28px 0 6px;color:#344C4B;">
-        <span style="font-size:20px;font-weight:700;vertical-align:top;line-height:2.6;">R$&nbsp;</span><span class="preco-num" data-preco-servico>199</span>
+        <span style="font-size:20px;font-weight:700;vertical-align:top;line-height:2.6;">R$&nbsp;</span><span class="preco-num" data-preco-servico data-carregando>···</span>
       </div>
       <div style="font-size:16px;color:#344C4B;margin-bottom:4px;">Atendimento Express — sem marcar horário</div>
       <div style="font-size:13.5px;color:#344C4B;font-weight:600;margin-bottom:8px;" data-preco-agendado-nota hidden>Com horário marcado: R$&nbsp;<span data-preco-agendado-servico>249</span></div>
@@ -280,7 +297,7 @@
       <div style="font-family:'Bricolage Grotesque',sans-serif;font-weight:700;font-size:24px;color:#FFFFFF;">Pessoa Jurídica</div>
       <div style="font-size:15px;color:#FFFFFF;margin-top:6px;line-height:1.5;">Para MEI, Simples Nacional ou Ltda — qualquer porte de empresa que precise de alguém cuidando das guias, dos prazos e das pendências.</div>
       <div style="margin:28px 0 6px;color:#F5A78D;">
-        <span style="font-size:20px;font-weight:700;vertical-align:top;line-height:2.6;">R$&nbsp;</span><span class="preco-num" data-preco-servico>399</span>
+        <span style="font-size:20px;font-weight:700;vertical-align:top;line-height:2.6;">R$&nbsp;</span><span class="preco-num" data-preco-servico data-carregando>···</span>
       </div>
       <div style="font-size:16px;color:#FFFFFF;margin-bottom:4px;">Atendimento Express — sem marcar horário</div>
       <div style="font-size:13.5px;color:#F5A78D;font-weight:600;margin-bottom:8px;" data-preco-agendado-nota hidden>Com horário marcado: R$&nbsp;<span data-preco-agendado-servico>449</span></div>
@@ -297,7 +314,7 @@
       <div style="font-size:15px;color:#344C4B;margin-top:6px;line-height:1.5;">Para o caso grande que não cabe num atendimento: baixa de empresa, CNPJ inapto, anos de declaração atrasados.</div>
       <div style="margin:22px 0 4px;color:#344C4B;">
         <span style="font-size:15px;font-weight:700;display:block;opacity:.8;margin-bottom:-2px;">análise inicial</span>
-        <span style="font-size:20px;font-weight:700;vertical-align:top;line-height:2.6;">R$&nbsp;</span><span class="preco-num" data-preco-servico>199</span>
+        <span style="font-size:20px;font-weight:700;vertical-align:top;line-height:2.6;">R$&nbsp;</span><span class="preco-num" data-preco-servico data-carregando>···</span>
       </div>
       <div style="font-size:16px;color:#344C4B;margin-bottom:4px;">diagnóstico e plano de ação por escrito</div>
       <div style="font-size:13.5px;color:#344C4B;font-weight:600;margin-bottom:8px;">execução adicional somente após orçamento aprovado</div>
@@ -441,7 +458,7 @@
       const servico = servicos.find(s => s.id === card.dataset.servicoId);
       const preco = card.querySelector('[data-preco-servico]');
       const fmt = v => new Intl.NumberFormat('pt-BR', { maximumFractionDigits:0 }).format(v / 100);
-      if (servico && preco) preco.textContent = fmt(servico.price_cents);
+      if (servico && preco) { preco.textContent = fmt(servico.price_cents); preco.removeAttribute('data-carregando'); }
       if (servico && servico.price_agendado_cents) {
         const nota = card.querySelector('[data-preco-agendado-nota]');
         const precoAgendado = card.querySelector('[data-preco-agendado-servico]');
@@ -451,8 +468,31 @@
         }
       }
     });
-  }).catch(() => {});
+  }).catch(() => {
+    // Se a API falhar, para de pulsar em vez de girar pra sempre — melhor um
+    // traço parado do que sugerir que o preço está carregando eternamente.
+    document.querySelectorAll('[data-carregando]').forEach(el => { el.removeAttribute('data-carregando'); el.style.opacity = '.35'; });
+  });
   document.querySelectorAll('a[href*="agendamento"]').forEach(link => link.addEventListener('click', () => evento('agendamento_iniciado')));
+})();
+// Header compacto ao rolar: some com o menu e Entrar/Cliente/Contador, sobra
+// só a logo e o CTA principal.
+(() => {
+  const topo = document.querySelector('.topo');
+  if (!topo) return;
+  const aoRolar = () => topo.classList.toggle('nav-compacto', window.scrollY > 80);
+  window.addEventListener('scroll', aoRolar, { passive: true });
+  aoRolar();
+})();
+// Revelação suave ao rolar, sem lib nenhuma.
+(() => {
+  const alvos = document.querySelectorAll('.planos, .faq');
+  if (!alvos.length || !('IntersectionObserver' in window)) return;
+  alvos.forEach(el => el.setAttribute('data-reveal', ''));
+  const obs = new IntersectionObserver((entradas) => {
+    entradas.forEach(e => { if (e.isIntersecting) { e.target.classList.add('reveal-in'); obs.unobserve(e.target); } });
+  }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+  alvos.forEach(el => obs.observe(el));
 })();
 </script>
 </body>
