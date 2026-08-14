@@ -130,9 +130,10 @@
     *{box-sizing:border-box;}
     /* scroll-padding-top compensa os links #como/#servicos/#faq: sem isso eles
        ficariam escondidos atrás do cabeçalho fixo ao navegar pelas âncoras. */
-    html{scroll-behavior:smooth;scroll-padding-top:78px;}
-    /* Compensa a barra fixa (position:fixed sai do fluxo normal do documento). */
-    body{margin:0;padding-top:67px;background:#FAF7F2;font-family:'Hanken Grotesk',sans-serif;color:#344C4B;-webkit-font-smoothing:antialiased;}
+    html{scroll-behavior:smooth;scroll-padding-top:104px;}
+    /* Compensa a barra fixa (position:fixed sai do fluxo normal do documento)
+       + os 14px de respiro da pílula flutuante. */
+    body{margin:0;padding-top:92px;background:#FAF7F2;font-family:'Hanken Grotesk',sans-serif;color:#344C4B;-webkit-font-smoothing:antialiased;}
     a{text-decoration:none;color:inherit;}
     /* Coral claro + texto teal escuro: coral cheio com texto branco dá só
        3,3:1 de contraste (ilegível no rodapé escuro, que foi o problema
@@ -145,8 +146,16 @@
     .btnp:hover{transform:translateY(-2px);box-shadow:0 16px 30px -14px rgba(238, 95, 58, 0.6);}
     .btng{transition:transform .15s ease, box-shadow .15s ease;}
     .btng:hover{transform:translateY(-2px);box-shadow:0 16px 30px -14px rgba(52, 76, 75, 0.5);}
-    .card:hover{transform:translateY(-4px);}
-    .card{transition:transform .2s ease;}
+    /* Cards ganham profundidade e sobem no hover. Os escuros (teal) usam
+       sombra da própria cor pra não virar um borrão cinza. */
+    .card{transition:transform .25s cubic-bezier(.2,.8,.2,1), box-shadow .25s ease;
+      box-shadow:0 2px 4px rgba(52,76,75,.05), 0 12px 28px -18px rgba(52,76,75,.35);}
+    .card:hover{transform:translateY(-6px);
+      box-shadow:0 6px 12px rgba(52,76,75,.07), 0 26px 50px -22px rgba(52,76,75,.42);}
+    .card-escuro{transition:transform .25s cubic-bezier(.2,.8,.2,1), box-shadow .25s ease;
+      box-shadow:0 4px 10px rgba(52,76,75,.18), 0 22px 48px -26px rgba(52,76,75,.7);}
+    .card-escuro:hover{transform:translateY(-6px);
+      box-shadow:0 8px 18px rgba(52,76,75,.24), 0 34px 66px -28px rgba(52,76,75,.8);}
 
     /* Dropdown único "Entrar ▾" — clique alterna, hover no desktop também
        abre. Substitui os 3 elementos soltos (Entrar + botão Cliente + botão
@@ -179,8 +188,27 @@
        overflow:hidden só entra junto com o modo compacto — se ficasse sempre
        ligado, cortava o dropdown do "Entrar". */
     .nav-encolhe{transition:opacity .2s ease, max-width .2s ease, margin .2s ease;}
-    #nav-fixo{transition:box-shadow .2s ease;}
-    #nav-fixo.nav-compacto{box-shadow:0 4px 16px rgba(52, 76, 75, .08);}
+
+    /* Barra flutuante em "liquid glass": em vez de uma faixa colada no topo,
+       é uma pílula com margem, cantos arredondados e vidro de verdade —
+       blur + saturate (que é o que dá o efeito de vidro, não só o blur),
+       borda coral clarinha e um brilho interno no topo (inset) simulando a
+       luz batendo na quina do vidro. */
+    #nav-fixo{
+      position:fixed; top:14px; left:50%; transform:translateX(-50%);
+      width:calc(100% - 28px); max-width:1240px; z-index:50; border-radius:22px;
+      background:linear-gradient(180deg, rgba(255,253,250,.82), rgba(250,247,242,.68));
+      backdrop-filter:blur(20px) saturate(180%);
+      -webkit-backdrop-filter:blur(20px) saturate(180%);
+      border:1.5px solid rgba(238, 95, 58, .22);
+      box-shadow:0 1px 0 rgba(255,255,255,.7) inset, 0 10px 30px -18px rgba(52,76,75,.35);
+      transition:box-shadow .25s ease, background .25s ease, border-color .25s ease;
+    }
+    #nav-fixo.nav-compacto{
+      background:linear-gradient(180deg, rgba(255,253,250,.92), rgba(250,247,242,.8));
+      border-color:rgba(238, 95, 58, .3);
+      box-shadow:0 1px 0 rgba(255,255,255,.8) inset, 0 16px 40px -20px rgba(52,76,75,.5);
+    }
 
     /* Hambúrguer: só no celular (ver media query). */
     .nav-hamburguer{display:none;background:none;border:none;cursor:pointer;padding:8px;
@@ -207,11 +235,17 @@
          barra fica só com marca, "Resolver agora" e o botão do menu. */
       .nav-links, .nav-acoes-desktop { display: none !important; }
       .nav-hamburguer { display: flex !important; }
+      /* Com a barra virando pílula flutuante, o painel também vira um cartão
+         próprio logo abaixo dela — em vez de uma faixa colada. */
+      /* Fundo sólido de propósito: backdrop-filter aninhado dentro de outro
+         elemento que já tem backdrop-filter (a barra) não borra a página
+         atrás — o painel ficava transparente com o texto vazando. */
       .nav-painel {
-        display: block; position: absolute; top: 100%; left: 0; right: 0;
-        background: #FAF7F2; border-bottom: 2px solid rgba(238, 95, 58, .22);
-        box-shadow: 0 18px 30px -20px rgba(52, 76, 75, .35);
-        padding: 8px 20px 18px; max-height: 0; overflow: hidden;
+        display: block; position: absolute; top: calc(100% + 8px); left: 0; right: 0;
+        background: #FDFBF8;
+        border: 1.5px solid rgba(238, 95, 58, .22); border-radius: 20px;
+        box-shadow: 0 1px 0 rgba(255,255,255,.7) inset, 0 22px 40px -22px rgba(52, 76, 75, .45);
+        padding: 6px 20px 14px; max-height: 0; overflow: hidden;
         opacity: 0; visibility: hidden; transition: max-height .25s ease, opacity .2s ease, visibility .25s;
       }
       .nav-aberto .nav-painel { max-height: 380px; opacity: 1; visibility: visible; }
@@ -232,9 +266,11 @@
       .nav-painel a[href*="role=cliente"]::before { background: #EE5F3A; }
       .nav-painel a[href*="role=contador"]::before { background: #344C4B; }
       .nav-container { padding: 12px 20px !important; }
-      /* Barra fixa fica mais baixa no mobile (menos padding, sem os links). */
-      body { padding-top: 59px !important; }
-      html { scroll-padding-top: 70px !important; }
+      /* Barra fixa fica mais baixa no mobile (menos padding, sem os links) —
+         + 14px do respiro da pílula flutuante. */
+      body { padding-top: 78px !important; }
+      html { scroll-padding-top: 90px !important; }
+      #nav-fixo { top: 10px; width: calc(100% - 20px); border-radius: 18px; }
       .hero-grid { grid-template-columns: 1fr !important; gap: 40px !important; padding: 40px 20px !important; text-align: center; }
       .hero-grid p { margin-left: auto; margin-right: auto; }
       .hero-checks { justify-content: center; }
@@ -282,7 +318,7 @@
        tem overflow:hidden, e como quem rola de fato é o html/body (não esse
        wrapper), o sticky nunca via o scroll e a barra sumia ao descer a
        página. Fixed não depende de nenhum ancestral, então funciona sempre. -->
-  <div id="nav-fixo" data-dc-tpl="6" style="position: fixed; top: 0px; left: 0px; width: 100%; z-index: 50; background: rgba(250, 247, 242, 0.85); backdrop-filter: blur(12px); border-bottom: 2px solid rgba(238, 95, 58, .22);">
+  <div id="nav-fixo" data-dc-tpl="6">
     <div data-dc-tpl="7" class="nav-container" style="max-width: 1200px; margin: 0px auto; padding: 16px 32px; display: flex; align-items: center; justify-content: space-between;">
       <a data-dc-tpl="8" href="#top" style="display: flex; align-items: center; gap: 12px;">
         <img data-dc-tpl="9" src="logo.svg" alt="" style="width: 36px; display: block; flex-shrink: 0;">
@@ -551,7 +587,7 @@
         </div>
       </div>
 
-      <div style="background: rgb(52, 76, 75); border-radius: 28px; padding: 40px 36px; position: relative; overflow: hidden; display: flex; flex-direction: column;">
+      <div class="card-escuro" style="background: rgb(52, 76, 75); border-radius: 28px; padding: 40px 36px; position: relative; overflow: hidden; display: flex; flex-direction: column;">
         <div style="position: absolute; right: -70px; top: -70px; width: 240px; height: 240px; border-radius: 50%; background: radial-gradient(circle, rgba(238, 95, 58, 0.18), transparent 70%);"></div>
         <div style="position: relative; display: flex; flex-direction: column; flex: 1;">
           <div style="font-size: 13px; letter-spacing: 0.24em; text-transform: uppercase; color: rgb(245, 167, 141); font-weight: 700; margin-bottom: 14px;">O que você recebe</div>
@@ -669,7 +705,7 @@
         </form>
       </div>
 
-      <div style="background: rgb(52, 76, 75); border-radius: 28px; padding: 40px 36px; position: relative; overflow: hidden; display: flex; flex-direction: column;">
+      <div class="card-escuro" style="background: rgb(52, 76, 75); border-radius: 28px; padding: 40px 36px; position: relative; overflow: hidden; display: flex; flex-direction: column;">
         <div style="position: absolute; right: -70px; top: -70px; width: 240px; height: 240px; border-radius: 50%; background: radial-gradient(circle, rgba(238, 95, 58, 0.18), transparent 70%);"></div>
         <div style="position: relative; display: flex; flex-direction: column; flex: 1;">
           <div style="font-size: 13px; letter-spacing: 0.24em; text-transform: uppercase; color: rgb(245, 167, 141); font-weight: 700; margin-bottom: 14px;">Prefere WhatsApp?</div>
@@ -709,7 +745,7 @@
   </div>
 
   
-  <div data-dc-tpl="221" style="background: rgb(52, 76, 75); color: rgb(255, 255, 255);">
+  <div data-dc-tpl="221" style="background: rgb(52, 76, 75); color: rgb(255, 255, 255); border-radius: 28px 28px 0 0; overflow: hidden;">
     <div data-dc-tpl="222" style="max-width: 1200px; margin: 0px auto; padding: 56px 32px 40px; display: grid; grid-template-columns: 1.4fr 1fr 1fr 1fr; gap: 32px;">
       <div data-dc-tpl="223">
         <div data-dc-tpl="224" style="display: flex; align-items: center; gap: 11px; margin-bottom: 16px;">

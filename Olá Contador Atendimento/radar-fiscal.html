@@ -89,8 +89,19 @@
      contra um destaque claro do navegador — ficava ilegível ("sumia"). */
   ::selection{background:#F5A78D;color:#344C4B}
   .wrap{max-width:1200px;margin:0 auto;padding:0 32px}
-  .topo{position:sticky;top:0;z-index:50;background:rgba(250, 247, 242, .85);backdrop-filter:blur(12px);border-bottom:2px solid rgba(238, 95, 58, .22);transition:box-shadow .2s ease}
-  .topo.nav-compacto{box-shadow:0 4px 16px rgba(52, 76, 75, .08)}
+  .topo{position:fixed;top:14px;left:50%;transform:translateX(-50%);
+    width:calc(100% - 28px);max-width:1240px;z-index:50;border-radius:22px;
+    background:linear-gradient(180deg, rgba(255,253,250,.82), rgba(250,247,242,.68));
+    backdrop-filter:blur(20px) saturate(180%);-webkit-backdrop-filter:blur(20px) saturate(180%);
+    border:1.5px solid rgba(238, 95, 58, .22);
+    box-shadow:0 1px 0 rgba(255,255,255,.7) inset, 0 10px 30px -18px rgba(52,76,75,.35);
+    transition:box-shadow .25s ease, background .25s ease, border-color .25s ease}
+  .topo.nav-compacto{background:linear-gradient(180deg, rgba(255,253,250,.92), rgba(250,247,242,.8));
+    border-color:rgba(238, 95, 58, .3);
+    box-shadow:0 1px 0 rgba(255,255,255,.8) inset, 0 16px 40px -20px rgba(52,76,75,.5)}
+  /* Compensa a barra que agora é fixed (saiu do fluxo) + o respiro da pílula. */
+  body{padding-top:92px}
+  html{scroll-padding-top:104px}
   .topo-in{display:flex;align-items:center;justify-content:space-between;padding:16px 32px;max-width:1200px;margin:0 auto}
   .marca{display:flex;align-items:center;gap:12px}
   .marca img{width:36px;display:block}
@@ -136,8 +147,15 @@
   .btnp:hover{transform:translateY(-2px);box-shadow:0 16px 30px -14px rgba(238, 95, 58, .6)}
   .btng{transition:transform .15s ease}
   .btng:hover{transform:translateY(-2px)}
-  .card{transition:transform .2s ease}
-  .card:hover{transform:translateY(-4px)}
+  .card{transition:transform .25s cubic-bezier(.2,.8,.2,1), box-shadow .25s ease;
+    box-shadow:0 2px 4px rgba(52,76,75,.05), 0 12px 28px -18px rgba(52,76,75,.35)}
+  .card:hover{transform:translateY(-6px);
+    box-shadow:0 6px 12px rgba(52,76,75,.07), 0 26px 50px -22px rgba(52,76,75,.42)}
+  /* Cards escuros usam sombra da própria cor pra não virar borrão cinza. */
+  .card-escuro{transition:transform .25s cubic-bezier(.2,.8,.2,1), box-shadow .25s ease;
+    box-shadow:0 4px 10px rgba(52,76,75,.18), 0 22px 48px -26px rgba(52,76,75,.7)}
+  .card-escuro:hover{transform:translateY(-6px);
+    box-shadow:0 8px 18px rgba(52,76,75,.24), 0 34px 66px -28px rgba(52,76,75,.8)}
 
   /* Hero */
   .radar-hero{padding:64px 32px 40px;text-align:center;position:relative}
@@ -207,13 +225,20 @@
     .nav-links, .nav-acoes-desktop{display:none !important}
     .nav-wordmark{display:none !important}
     .nav-hamburguer{display:flex !important}
+    /* Fundo sólido de propósito: backdrop-filter aninhado dentro de outro
+       elemento que já tem backdrop-filter (a barra) não borra a página atrás
+       — o painel ficava transparente com o texto vazando. */
     .nav-painel{
-      display:block;position:absolute;top:100%;left:0;right:0;
-      background:#FAF7F2;border-bottom:2px solid rgba(238, 95, 58, .22);
-      box-shadow:0 18px 30px -20px rgba(52, 76, 75, .35);
-      padding:8px 20px 18px;max-height:0;overflow:hidden;
+      display:block;position:absolute;top:calc(100% + 8px);left:0;right:0;
+      background:#FDFBF8;
+      border:1.5px solid rgba(238, 95, 58, .22);border-radius:20px;
+      box-shadow:0 1px 0 rgba(255,255,255,.7) inset, 0 22px 40px -22px rgba(52, 76, 75, .45);
+      padding:6px 20px 14px;max-height:0;overflow:hidden;
       opacity:0;visibility:hidden;transition:max-height .25s ease, opacity .2s ease, visibility .25s;
     }
+    .topo{top:10px;width:calc(100% - 20px);border-radius:18px}
+    body{padding-top:78px}
+    html{scroll-padding-top:90px}
     .topo.nav-aberto .nav-painel{max-height:380px;opacity:1;visibility:visible}
     .nav-painel a{display:flex;align-items:center;gap:10px;padding:14px 4px;font-size:16px;
       font-weight:600;color:#344C4B;border-bottom:1px solid rgba(52, 76, 75, .1)}
@@ -360,7 +385,7 @@
     </div>
 
     <!-- Anual -->
-    <div class="plano card" style="background:#344C4B;box-shadow:0 24px 50px -30px rgba(52, 76, 75, .7);">
+    <div class="plano card-escuro" style="background:#344C4B;">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
         <div style="font-family:'Bricolage Grotesque',sans-serif;font-weight:700;font-size:20px;color:#FFFFFF;">Anual</div>
         <div class="radar-badge" style="background:#F5A78D;color:#344C4B;">Mais vantajoso</div>
@@ -434,7 +459,7 @@
 
 </main>
 
-<div style="background:#344C4B;color:#FFFFFF;margin-top:80px;">
+<div style="background:#344C4B;color:#FFFFFF;margin-top:80px;border-radius:28px 28px 0 0;overflow:hidden;">
   <div class="rodape-grid" style="max-width:1200px;margin:0 auto;padding:56px 32px 40px;display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr;gap:32px;text-align:left;">
     <div>
       <div style="display:flex;align-items:center;gap:11px;margin-bottom:16px;">
