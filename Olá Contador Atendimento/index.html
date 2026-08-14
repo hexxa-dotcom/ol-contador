@@ -134,6 +134,9 @@
     /* Compensa a barra fixa (position:fixed sai do fluxo normal do documento). */
     body{margin:0;padding-top:67px;background:#FAF7F2;font-family:'Hanken Grotesk',sans-serif;color:#344C4B;-webkit-font-smoothing:antialiased;}
     a{text-decoration:none;color:inherit;}
+    /* Sem isso, o texto selecionado herdava a cor branca do rodapé escuro
+       contra um destaque claro do navegador — ficava ilegível ("sumia"). */
+    ::selection{background:#EE5F3A;color:#FFFFFF;}
     @keyframes floaty{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
     @keyframes marquee{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
     .lk:hover{color:#344C4B !important;}
@@ -167,8 +170,11 @@
        CTA "Resolver agora" faz o inverso — fica invisível no topo (o hero já
        tem CTA igual logo abaixo) e só aparece depois que rola, junto com o
        modo compacto. #nav-fixo ganha .nav-compacto via JS (ver fim do body). */
-    .nav-encolhe{transition:opacity .2s ease, max-width .2s ease, margin .2s ease;overflow:hidden;}
-    #nav-fixo.nav-compacto .nav-encolhe{opacity:0;max-width:0 !important;margin:0 !important;pointer-events:none;}
+    /* overflow:hidden só entra junto com o modo compacto — se ficasse sempre
+       ligado, cortava o dropdown do "Entrar" (que precisa vazar pra fora da
+       caixa pra aparecer). */
+    .nav-encolhe{transition:opacity .2s ease, max-width .2s ease, margin .2s ease;}
+    #nav-fixo.nav-compacto .nav-encolhe{opacity:0;max-width:0 !important;margin:0 !important;pointer-events:none;overflow:hidden;}
     .nav-cta-scroll{opacity:0;max-width:0;margin-left:0 !important;overflow:hidden;pointer-events:none;
       transition:opacity .2s ease, max-width .2s ease, margin .2s ease;}
     #nav-fixo.nav-compacto .nav-cta-scroll{opacity:1;max-width:220px;margin-left:6px !important;pointer-events:auto;}
@@ -245,7 +251,7 @@
        tem overflow:hidden, e como quem rola de fato é o html/body (não esse
        wrapper), o sticky nunca via o scroll e a barra sumia ao descer a
        página. Fixed não depende de nenhum ancestral, então funciona sempre. -->
-  <div id="nav-fixo" data-dc-tpl="6" style="position: fixed; top: 0px; left: 0px; width: 100%; z-index: 50; background: rgba(250, 247, 242, 0.85); backdrop-filter: blur(12px); border-bottom: 1px solid rgba(52, 76, 75, 0.07);">
+  <div id="nav-fixo" data-dc-tpl="6" style="position: fixed; top: 0px; left: 0px; width: 100%; z-index: 50; background: rgba(250, 247, 242, 0.85); backdrop-filter: blur(12px); border-bottom: 2px solid rgba(238, 95, 58, .22);">
     <div data-dc-tpl="7" class="nav-container" style="max-width: 1200px; margin: 0px auto; padding: 16px 32px; display: flex; align-items: center; justify-content: space-between;">
       <a data-dc-tpl="8" href="#top" style="display: flex; align-items: center; gap: 12px;">
         <img data-dc-tpl="9" src="logo.svg" alt="" style="width: 36px; display: block;">
@@ -492,7 +498,12 @@
         </div>
 
         <div style="margin-top: 28px; padding: 20px 22px; background: rgba(238, 95, 58, 0.1); border-radius: 18px; display: flex; gap: 13px; align-items: flex-start;">
-          <span style="font-size: 20px; line-height: 1.1; flex-shrink: 0;">🛡️</span>
+          <!-- Selo do escudo trocado de emoji pra SVG flat — emoji rendeeriza
+               colorido/diferente por sistema, quebrando o padrão dos círculos
+               de ícone (✓) usados no resto da seção. -->
+          <span style="width: 34px; height: 34px; border-radius: 50%; background: rgba(238, 95, 58, 0.16); color: rgb(238, 95, 58); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 5v6c0 5 3.5 8.5 8 11 4.5-2.5 8-6 8-11V5z"/><path d="m9 12 2 2 4-4"/></svg>
+          </span>
           <div><b style="font-family: &quot;Bricolage Grotesque&quot;, sans-serif; font-size: 17px; color: rgb(52, 76, 75);">Não resolveu, não paga.</b><div style="font-size: 14.5px; color: rgb(52, 76, 75); line-height: 1.45; margin-top: 3px;">Se o contador avaliar seu caso e concluir que não temos como ajudar, você recebe 100% de volta.</div></div>
         </div>
       </div>
