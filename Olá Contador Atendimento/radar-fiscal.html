@@ -87,7 +87,7 @@
   a{text-decoration:none;color:inherit}
   /* Sem isso, o texto selecionado herdava a cor branca do rodapé escuro
      contra um destaque claro do navegador — ficava ilegível ("sumia"). */
-  ::selection{background:#EE5F3A;color:#FFFFFF}
+  ::selection{background:#F5A78D;color:#344C4B}
   .wrap{max-width:1200px;margin:0 auto;padding:0 32px}
   .topo{position:sticky;top:0;z-index:50;background:rgba(250, 247, 242, .85);backdrop-filter:blur(12px);border-bottom:2px solid rgba(238, 95, 58, .22);transition:box-shadow .2s ease}
   .topo.nav-compacto{box-shadow:0 4px 16px rgba(52, 76, 75, .08)}
@@ -110,8 +110,19 @@
     opacity:0;visibility:hidden;transform:translateY(-6px);
     transition:opacity .15s ease, transform .15s ease, visibility .15s;z-index:60}
   .nav-entrar-wrap:hover .nav-entrar-menu, .nav-entrar-wrap.aberto .nav-entrar-menu{opacity:1;visibility:visible;transform:none}
-  .nav-entrar-menu a{padding:10px 12px;border-radius:9px;font-size:14.5px;font-weight:600;color:#344C4B;transition:background .15s}
-  .nav-entrar-menu a:hover{background:rgba(52, 76, 75, .07)}
+  .nav-entrar-menu a{padding:10px 12px;border-radius:9px;font-size:14.5px;font-weight:600;color:#344C4B;transition:background .15s;display:flex;align-items:center;gap:9px}
+  .nav-entrar-menu a::before{content:'';width:8px;height:8px;border-radius:50%;flex-shrink:0}
+  .nav-entrar-menu a[href*="cliente"]::before{background:#EE5F3A}
+  .nav-entrar-menu a[href*="contador"]::before{background:#344C4B}
+  .nav-entrar-menu a[href*="cliente"]:hover{background:rgba(238, 95, 58, .1);color:#EE5F3A}
+  .nav-entrar-menu a[href*="contador"]:hover{background:rgba(52, 76, 75, .09)}
+
+  .nav-hamburguer{display:none;background:none;border:none;cursor:pointer;padding:8px;flex-direction:column;gap:4.5px;flex-shrink:0}
+  .nav-hamburguer span{display:block;width:21px;height:2px;background:#344C4B;border-radius:2px;transition:transform .2s ease, opacity .2s ease}
+  .nav-aberto .nav-hamburguer span:nth-child(1){transform:translateY(6.5px) rotate(45deg)}
+  .nav-aberto .nav-hamburguer span:nth-child(2){opacity:0}
+  .nav-aberto .nav-hamburguer span:nth-child(3){transform:translateY(-6.5px) rotate(-45deg)}
+  .nav-painel{display:none}
 
   /* overflow:hidden só entra junto com o modo compacto — se ficasse sempre
      ligado, cortava o dropdown do "Entrar" (que precisa vazar pra fora da
@@ -190,10 +201,30 @@
     .radar-hero h1{font-size:38px}
     h2{font-size:30px !important}
     .topo-in{padding:12px 14px}
-    .nav-links{display:none}
-    .nav-entrar-btn{font-size:12px !important;white-space:nowrap}
-    .btng{font-size:12px !important;padding:8px 12px !important;white-space:nowrap}
-    .marca b{font-size:17px !important}
+    /* No celular tudo (links + Entrar) vai pro painel do hambúrguer, e o
+       wordmark sai da barra pra sobrar largura pro CTA — que é o motivo de
+       encolher a marca aqui (no desktop cabe tudo, então lá não some nada). */
+    .nav-links, .nav-acoes-desktop{display:none !important}
+    .nav-wordmark{display:none !important}
+    .nav-hamburguer{display:flex !important}
+    .nav-painel{
+      display:block;position:absolute;top:100%;left:0;right:0;
+      background:#FAF7F2;border-bottom:2px solid rgba(238, 95, 58, .22);
+      box-shadow:0 18px 30px -20px rgba(52, 76, 75, .35);
+      padding:8px 20px 18px;max-height:0;overflow:hidden;
+      opacity:0;visibility:hidden;transition:max-height .25s ease, opacity .2s ease, visibility .25s;
+    }
+    .topo.nav-aberto .nav-painel{max-height:380px;opacity:1;visibility:visible}
+    .nav-painel a{display:flex;align-items:center;gap:10px;padding:14px 4px;font-size:16px;
+      font-weight:600;color:#344C4B;border-bottom:1px solid rgba(52, 76, 75, .1)}
+    .nav-painel a:last-child{border-bottom:none}
+    .nav-painel .painel-rotulo{font-size:11px;letter-spacing:.16em;text-transform:uppercase;
+      font-weight:800;color:rgba(52, 76, 75, .5);padding:14px 4px 4px}
+    .nav-painel a[href*="role=cliente"]::before,
+    .nav-painel a[href*="role=contador"]::before{content:'';width:8px;height:8px;border-radius:50%;flex-shrink:0}
+    .nav-painel a[href*="role=cliente"]::before{background:#EE5F3A}
+    .nav-painel a[href*="role=contador"]::before{background:#344C4B}
+    .btng{font-size:13px !important;padding:9px 14px !important;white-space:nowrap}
     .nav-acoes{gap:8px !important}
     .wrap{padding:0 18px}
   }
@@ -211,22 +242,37 @@
 
 <div class="topo">
   <div class="topo-in">
-    <a class="marca" href="index.html"><img src="logo.svg" alt="Olá, Contador" /><b class="nav-wordmark nav-encolhe">Olá<i>,</i> Contador<i>.</i></b></a>
-    <div class="nav-links nav-encolhe">
+    <a class="marca" href="index.html"><img src="logo.svg" alt="Olá, Contador" /><b class="nav-wordmark">Olá<i>,</i> Contador<i>.</i></b></a>
+    <div class="nav-links">
       <a class="lk" href="precos.html">Preços</a>
       <a class="lk" href="radar-fiscal.html" aria-current="page">Radar Fiscal</a>
       <a class="lk" href="index.html#contato">Contato</a>
     </div>
-    <div class="nav-acoes nav-encolhe">
-      <div class="nav-entrar-wrap">
-        <button type="button" class="nav-entrar-btn" aria-haspopup="true" aria-expanded="false">Entrar <span class="nav-caret">▾</span></button>
-        <div class="nav-entrar-menu" role="menu">
-          <a href="login.html?role=cliente" role="menuitem">Área do cliente</a>
-          <a href="login.html?role=contador" role="menuitem">Área do escritório</a>
+    <div class="nav-acoes">
+      <div class="nav-acoes-desktop">
+        <div class="nav-entrar-wrap">
+          <button type="button" class="nav-entrar-btn" aria-haspopup="true" aria-expanded="false">Entrar <span class="nav-caret">▾</span></button>
+          <div class="nav-entrar-menu" role="menu">
+            <a href="login.html?role=cliente" role="menuitem">Área do cliente</a>
+            <a href="login.html?role=contador" role="menuitem">Área do escritório</a>
+          </div>
         </div>
       </div>
+      <a class="btng" href="#planos" style="background:#344C4B;color:#fff;font-weight:600;font-size:15px;padding:11px 22px;border-radius:12px;box-shadow:0 10px 22px -14px rgba(52, 76, 75, .5);white-space:nowrap;">Ver preços</a>
+      <button type="button" class="nav-hamburguer" aria-label="Abrir menu" aria-expanded="false">
+        <span></span><span></span><span></span>
+      </button>
     </div>
   </div>
+    <!-- Painel do hambúrguer: só existe no celular (CSS na media query). -->
+    <div class="nav-painel">
+      <a href="precos.html">Preços</a>
+      <a href="radar-fiscal.html">Radar Fiscal</a>
+      <a href="index.html#contato">Contato</a>
+      <div class="painel-rotulo">Entrar</div>
+      <a href="login.html?role=cliente">Área do cliente</a>
+      <a href="login.html?role=contador">Área do escritório</a>
+    </div>
 </div>
 
 <main class="wrap" style="padding-bottom:20px;">
@@ -448,6 +494,22 @@
   const aoRolar = () => topo.classList.toggle('nav-compacto', window.scrollY > 80);
   window.addEventListener('scroll', aoRolar, { passive: true });
   aoRolar();
+})();
+// Menu hambúrguer (celular): agrupa links e opções de entrar num painel.
+(() => {
+  const topo = document.querySelector('.topo');
+  const botao = topo && topo.querySelector('.nav-hamburguer');
+  if (!botao) return;
+  const alternar = (abrir) => {
+    const aberto = abrir !== undefined ? abrir : !topo.classList.contains('nav-aberto');
+    topo.classList.toggle('nav-aberto', aberto);
+    botao.setAttribute('aria-expanded', aberto ? 'true' : 'false');
+    botao.setAttribute('aria-label', aberto ? 'Fechar menu' : 'Abrir menu');
+  };
+  botao.addEventListener('click', (e) => { e.stopPropagation(); alternar(); });
+  topo.querySelectorAll('.nav-painel a').forEach(a => a.addEventListener('click', () => alternar(false)));
+  document.addEventListener('click', (e) => { if (!topo.contains(e.target)) alternar(false); });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') alternar(false); });
 })();
 // Dropdown "Entrar ▾" — clique alterna (funciona em touch); hover no desktop
 // já abre sozinho via CSS.
