@@ -157,9 +157,13 @@
 
     /* Textura de linhas orgânicas — mesmo traço fino e ondulado das
        ilustrações, aplicada como fundo repetido nos cards escuros pra
-       não ficarem uma chapa lisa. */
+       não ficarem uma chapa lisa.
+       O ladrilho é 200x180 e cada onda começa e termina na MESMA altura e
+       com a mesma inclinação (meio período de senoide aproximado por dois
+       cúbicos simétricos) — sem isso as linhas não se encontram na emenda
+       e aparecem quebradas. Mesmo desenho de padrao-visual.css. */
     .textura-linhas{position:absolute;inset:0;pointer-events:none;opacity:.55;
-      background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="240" height="240"><path d="M-20 36 C 30 8, 70 64, 120 36 S 210 8, 260 36" stroke="white" stroke-width="1.3" fill="none" opacity="0.13"/><path d="M-20 108 C 30 80, 70 136, 120 108 S 210 80, 260 108" stroke="white" stroke-width="1.3" fill="none" opacity="0.10"/><path d="M-20 180 C 30 152, 70 208, 120 180 S 210 152, 260 180" stroke="white" stroke-width="1.3" fill="none" opacity="0.08"/></svg>');
+      background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="200" height="180"><g stroke="white" fill="none" stroke-width="1.4"><path d="M0 30 C 36 18, 64 18, 100 30 C 136 42, 164 42, 200 30" opacity="0.13"/><path d="M0 90 C 36 78, 64 78, 100 90 C 136 102, 164 102, 200 90" opacity="0.10"/><path d="M0 150 C 36 138, 64 138, 100 150 C 136 162, 164 162, 200 150" opacity="0.08"/></g></svg>');
       background-repeat:repeat;}
 
     /* Iluminação difusa em verde vivo — dá volume ao teal chapado sem
@@ -193,7 +197,7 @@
     /* Mesma textura de linhas dos cards escuros, aqui em branco bem baixo:
        tira o "chapado" do gradiente sem virar padrão visível. */
     .hero-textura{position:absolute;inset:0;pointer-events:none;opacity:.5;
-      background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="280" height="280"><path d="M-20 42 C 40 10, 90 74, 150 42 S 260 10, 320 42" stroke="white" stroke-width="1.4" fill="none" opacity="0.13"/><path d="M-20 126 C 40 94, 90 158, 150 126 S 260 94, 320 126" stroke="white" stroke-width="1.4" fill="none" opacity="0.10"/><path d="M-20 210 C 40 178, 90 242, 150 210 S 260 178, 320 210" stroke="white" stroke-width="1.4" fill="none" opacity="0.08"/></svg>');
+      background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="200" height="180"><g stroke="white" fill="none" stroke-width="1.4"><path d="M0 30 C 36 18, 64 18, 100 30 C 136 42, 164 42, 200 30" opacity="0.13"/><path d="M0 90 C 36 78, 64 78, 100 90 C 136 102, 164 102, 200 90" opacity="0.10"/><path d="M0 150 C 36 138, 64 138, 100 150 C 136 162, 164 162, 200 150" opacity="0.08"/></g></svg>');
       background-repeat:repeat;}
 
     /* Vinheta: escurece as bordas de leve, o centro "sobe" e o texto ganha
@@ -304,6 +308,12 @@
       transition:opacity .15s ease, transform .15s ease, visibility .15s;z-index:60;}
     .nav-entrar-wrap:hover .nav-entrar-menu, .nav-entrar-wrap.aberto .nav-entrar-menu{
       opacity:1;visibility:visible;transform:none;}
+    /* Links no centro da BARRA, não no espaço que sobra: com space-between
+       eles ficavam ~80px à direita, porque a marca é bem mais larga que o
+       "Entrar" do outro lado. Absoluto resolve sem depender das larguras. */
+    .nav-container{position:relative;}
+    .nav-links{position:absolute;left:50%;transform:translateX(-50%);}
+
     /* O ícone de cada papel (pessoa/calculadora) vem de padrao-visual.css. */
     .nav-entrar-menu a{position:relative;padding:9px 12px;border-radius:10px;font-size:14.5px;font-weight:600;
       color:#344C4B;transition:background .15s, color .15s;display:flex;align-items:center;gap:10px;}
@@ -901,7 +911,7 @@
         <p data-dc-tpl="229" style="font-size: 15px; line-height: 1.55; max-width: 280px; margin: 0px;">Um contador a um clique, pra você resolver a vida com a Receita sem sair de casa.</p>
       </div>
       <div data-dc-tpl="230">
-        <div data-dc-tpl="231" style="color: rgb(255, 255, 255); font-weight: 700; font-size: 14px; margin-bottom: 14px;">Produto</div>
+        <div data-dc-tpl="231" style="color: rgb(255, 255, 255); font-weight: 700; font-size: 14px; margin-bottom: 14px;">Serviços</div>
         <div data-dc-tpl="232" style="display: flex; flex-direction: column; gap: 10px; font-size: 15px;">
           <a data-dc-tpl="233" class="lk" href="#como" style="transition: color 0.15s;">Como funciona</a>
           <a data-dc-tpl="234" class="lk" href="#servicos" style="transition: color 0.15s;">Pra que serve</a>
