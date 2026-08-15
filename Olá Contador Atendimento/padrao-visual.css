@@ -1,0 +1,58 @@
+/* Padrão visual dos blocos escuros do site.
+ *
+ * Uso: adicione a classe `superficie-escura` em qualquer bloco de fundo teal
+ * (cards, faixas, rodapé). Ele ganha a textura de ondas da marca e duas
+ * manchas de luz difusa, sem precisar de nenhuma div extra na marcação.
+ *
+ * Como funciona: a textura e a luz entram como ::before/::after com
+ * `z-index:-1`. Negativo faz elas pintarem acima do fundo do próprio bloco,
+ * mas abaixo do conteúdo — então o texto nunca fica atrás da textura. O
+ * `isolation:isolate` prende esse -1 dentro do card, senão ele escaparia
+ * para trás de ancestrais com fundo.
+ *
+ * Variante coral: `superficie-escura coral` troca a luz verde pela quente,
+ * pro caso dos blocos que usam o gradiente coral do banner.
+ */
+
+.superficie-escura {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+/* Textura de ondas. O ladrilho é 200x180 e cada onda começa e termina na
+   mesma altura e inclinação (meio período de senoide aproximado por dois
+   cúbicos simétricos) — sem isso as linhas não se encontram na emenda. */
+.superficie-escura::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: .55;
+  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="200" height="180"><g stroke="white" fill="none" stroke-width="1.4"><path d="M0 30 C 36 18, 64 18, 100 30 C 136 42, 164 42, 200 30" opacity="0.13"/><path d="M0 90 C 36 78, 64 78, 100 90 C 136 102, 164 102, 200 90" opacity="0.10"/><path d="M0 150 C 36 138, 64 138, 100 150 C 136 162, 164 162, 200 150" opacity="0.08"/></g></svg>');
+  background-repeat: repeat;
+}
+
+/* Duas manchas de luz num só elemento: raio grande e cor fraca viram
+   iluminação; concentrado demais vira mancha. */
+.superficie-escura::after {
+  content: '';
+  position: absolute;
+  inset: -20%;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 88% 4%, rgba(126, 214, 190, .22), transparent 42%),
+    radial-gradient(circle at 6% 96%, rgba(150, 225, 205, .14), transparent 46%);
+}
+
+.superficie-escura.coral::after {
+  background:
+    radial-gradient(circle at 88% 4%, rgba(255, 214, 190, .26), transparent 42%),
+    radial-gradient(circle at 6% 96%, rgba(255, 170, 130, .16), transparent 46%);
+}
+
+/* Blocos pequenos (um item de lista, por exemplo) não comportam a textura:
+   o padrão fica maior que o card e vira sujeira. Só a luz. */
+.superficie-escura.so-luz::before { content: none; }

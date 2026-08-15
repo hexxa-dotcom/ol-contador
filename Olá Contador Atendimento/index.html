@@ -432,6 +432,19 @@
       .hero-checks { gap: 24px !important; margin-top: 40px !important; padding-top: 26px !important; }
       .hero-h1 { font-size: 46px !important; }
       .hero-sub { font-size: 18.5px !important; }
+      /* CTA final: 52px de título e dois botões lado a lado não cabem —
+         título encolhe e os botões empilham em largura cheia. */
+      .cta-final { padding: 48px 24px !important; border-radius: 26px !important; }
+      .cta-final h2 { font-size: 34px !important; }
+      .cta-final p { font-size: 17px !important; }
+      .cta-final-botoes { flex-direction: column !important; gap: 12px !important; }
+      .cta-final-botoes > a { width: 100%; text-align: center; }
+      /* Rodapé: 4 colunas viram 2, e a base empilha. */
+      .rodape-grid { grid-template-columns: 1fr 1fr !important; gap: 32px 24px !important; padding: 44px 24px 32px !important; }
+      .rodape-grid > div:first-child { grid-column: 1 / -1; }
+      .rodape-base { flex-direction: column; gap: 8px; text-align: center; padding: 20px 24px !important; }
+      /* Cards do carrossel podem crescer: só um aparece por vez. */
+      .carrossel .card { padding: 28px 26px !important; }
       .grid-3 { grid-template-columns: 1fr !important; }
       .grid-4 { grid-template-columns: repeat(2, 1fr) !important; gap: 40px !important; }
       .confianca-grid { grid-template-columns: 1fr !important; }
@@ -470,6 +483,12 @@
       .btnp { min-height: 48px; display: inline-flex; align-items: center; justify-content: center; }
       .btng { display: inline-flex; align-items: center; justify-content: center; }
       .card { padding: 25px 22px !important; }
+      .cta-final { padding: 40px 20px !important; }
+      .cta-final h2 { font-size: 29px !important; }
+      .cta-final img { width: 48px !important; }
+      /* Celular estreito: 2 colunas de rodapé ainda quebram palavra
+         ("É contador? Atenda com a gente"), então vira coluna única. */
+      .rodape-grid { grid-template-columns: 1fr !important; gap: 28px !important; }
     }
 
     /* Telas bem estreitas (iPhone SE e afins): a marca continua inteira, mas
@@ -485,8 +504,10 @@
       .hero-badge { font-size: 13px !important; padding: 8px 14px !important; }
     }
 </style>
+<link rel="stylesheet" href="padrao-visual.css">
 <link rel="stylesheet" href="acessibilidade.css">
 <script src="monitoramento.js" defer></script>
+<script src="carrossel.js" defer></script>
 </head>
 <body>
 <div id="dc-root"><div class="sc-host" data-sc-name="site-preview"><div data-dc-tpl="5" style="width: 100%; overflow: hidden;">
@@ -600,7 +621,7 @@
     <h2 data-dc-tpl="99" class="h2-title" style="font-family: &quot;Bricolage Grotesque&quot;, sans-serif; font-weight: 800; font-size: 46px; letter-spacing: -0.03em; color: rgb(52, 76, 75); margin: 0px; line-height: 1.05;">Três passos entre você e o problema resolvido</h2>
     <p data-dc-tpl="100" style="font-size: 19px; color: rgb(52, 76, 75); max-width: 650px; margin: 18px auto 0px;">A plataforma mostra uma coisa de cada vez. Você não precisa entender de contabilidade para começar.</p>
 
-    <div data-dc-tpl="101" class="grid-3" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; margin-top: 56px; text-align: left;">
+    <div data-dc-tpl="101" class="grid-3 carrossel" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; margin-top: 56px; text-align: left;">
       <div data-dc-tpl="102" class="card" style="background: rgb(255, 255, 255); border: 1px solid rgba(52, 76, 75, 0.2); border-radius: 24px; padding: 34px; box-shadow: rgba(52, 76, 75, 0.5) 0px 18px 40px -34px;">
         <div data-dc-tpl="103" style="width: 56px; height: 56px; border-radius: 16px; background: rgb(255, 239, 229); display: flex; align-items: center; justify-content: center; font-family: &quot;Bricolage Grotesque&quot;, sans-serif; font-weight: 800; color: rgb(238, 95, 58); font-size: 24px;">1</div>
         <h3 data-dc-tpl="104" style="font-family: &quot;Bricolage Grotesque&quot;, sans-serif; font-weight: 700; font-size: 23px; color: rgb(52, 76, 75); margin: 22px 0px 10px;">Escolha o que precisa</h3>
@@ -652,7 +673,7 @@
       <div data-dc-tpl="118" style="position: relative;">
         <div data-dc-tpl="119" style="font-size: 13px; letter-spacing: 0.24em; text-transform: uppercase; color: rgb(245, 167, 141); font-weight: 700; margin-bottom: 14px;">Pra que serve</div>
         <h2 data-dc-tpl="120" class="h2-title" style="font-family: &quot;Bricolage Grotesque&quot;, sans-serif; font-weight: 800; font-size: 46px; letter-spacing: -0.03em; color: rgb(255, 255, 255); margin: 0px; max-width: 640px; line-height: 1.05;">Um atendimento pra cada dor de cabeça com a Receita</h2>
-        <div data-dc-tpl="121" class="grid-3" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; margin-top: 44px;">
+        <div data-dc-tpl="121" class="grid-3 carrossel" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; margin-top: 44px;">
           <div data-dc-tpl="122" class="mini-card" style="background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 18px; padding: 24px;">
             <div data-dc-tpl="123" style="font-family: &quot;Bricolage Grotesque&quot;, sans-serif; font-weight: 700; font-size: 19px; color: rgb(255, 255, 255);">Imposto de Renda</div>
             <div data-dc-tpl="124" style="font-size: 15px; color: rgb(255, 255, 255); margin-top: 6px; line-height: 1.45;">Declaração feita ou revisada com você, na tela, item por item.</div>
@@ -885,7 +906,7 @@
 
 
   <div data-dc-tpl="209" style="max-width: 1200px; margin: 0px auto; padding: 64px 32px 80px;">
-    <div data-dc-tpl="210" style="background: linear-gradient(135deg, rgb(52, 76, 75), rgb(52, 76, 75)); border-radius: 36px; padding: 72px 56px; text-align: center; position: relative; overflow: hidden;">
+    <div data-dc-tpl="210" class="cta-final" style="background: linear-gradient(135deg, rgb(52, 76, 75), rgb(52, 76, 75)); border-radius: 36px; padding: 72px 56px; text-align: center; position: relative; overflow: hidden;">
       <div data-dc-tpl="212" style="position: absolute; right: -60px; top: -60px; width: 280px; height: 280px; border-radius: 50%; border: 1px solid rgba(255, 255, 255, 0.08);"></div>
       <div class="textura-linhas"></div>
       <div class="brilho-verde" style="left: -140px; bottom: -180px; width: 620px; height: 620px;"></div>
@@ -894,7 +915,7 @@
         <img data-dc-tpl="214" src="logo.svg" alt="" style="width: 64px; margin-bottom: 24px;">
         <h2 data-dc-tpl="215" style="font-family: &quot;Bricolage Grotesque&quot;, sans-serif; font-weight: 800; font-size: 52px; letter-spacing: -0.03em; color: rgb(255, 255, 255); margin: 0px; line-height: 1.05;">Seu problema com a Receita<br data-dc-tpl="216">acaba hoje.</h2>
         <p data-dc-tpl="217" style="font-size: 19px; color: rgb(255, 255, 255); margin: 20px auto 0px; max-width: 520px;">Um contador com CRC ativo assume seu caso e te devolve o caminho por escrito. O primeiro passo leva dois minutos — a parte de perder o sono, deixa com a gente.</p>
-        <div data-dc-tpl="218" style="display: flex; gap: 14px; justify-content: center; margin-top: 36px;">
+        <div data-dc-tpl="218" class="cta-final-botoes" style="display: flex; gap: 14px; justify-content: center; margin-top: 36px;">
           <a data-dc-tpl="219" class="btnp" href="precos.html" style="background: rgb(238, 95, 58); color: rgb(255, 255, 255); font-weight: 700; font-size: 19px; padding: 16px 32px; border-radius: 14px;">Resolver meu problema</a>
           <a data-dc-tpl="220" href="#como" style="background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2); color: rgb(255, 255, 255); font-weight: 700; font-size: 19px; padding: 16px 32px; border-radius: 14px;">Como funciona</a>
         </div>
@@ -908,7 +929,7 @@
     <div class="textura-linhas"></div>
     <div class="brilho-verde" style="left: 8%; top: -160px; width: 560px; height: 560px;"></div>
     <div class="brilho-verde suave" style="right: -120px; bottom: -200px; width: 520px; height: 520px;"></div>
-    <div data-dc-tpl="222" style="max-width: 1200px; margin: 0px auto; padding: 56px 32px 40px; display: grid; grid-template-columns: 1.4fr 1fr 1fr 1fr; gap: 32px; position: relative;">
+    <div data-dc-tpl="222" class="rodape-grid" style="max-width: 1200px; margin: 0px auto; padding: 56px 32px 40px; display: grid; grid-template-columns: 1.4fr 1fr 1fr 1fr; gap: 32px; position: relative;">
       <div data-dc-tpl="223">
         <div data-dc-tpl="224" style="display: flex; align-items: center; gap: 11px; margin-bottom: 16px;">
           <img data-dc-tpl="225" src="logo.svg" alt="" style="width: 32px; display: block; filter: brightness(0) invert(1);">
@@ -943,7 +964,7 @@
       </div>
     </div>
     <div data-dc-tpl="247" style="border-top: 1px solid rgba(255, 255, 255, 0.08); position: relative;">
-      <div data-dc-tpl="248" style="max-width: 1200px; margin: 0px auto; padding: 22px 32px; display: flex; justify-content: space-between; font-size: 13px;">
+      <div data-dc-tpl="248" class="rodape-base" style="max-width: 1200px; margin: 0px auto; padding: 22px 32px; display: flex; justify-content: space-between; font-size: 13px;">
         <span data-dc-tpl="249">© 2026 Olá, Contador · HEXX SERVIÇOS DIGITAIS LTDA · CNPJ 62.414.421/0001-16</span>
         <span data-dc-tpl="250">Feito com carinho no Brasil 🇧🇷</span>
       </div>

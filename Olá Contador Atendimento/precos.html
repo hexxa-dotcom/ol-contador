@@ -292,7 +292,9 @@
     .nav-painel a[href*="role=contador"]::before{content:'';width:8px;height:8px;border-radius:50%;flex-shrink:0}
     .nav-painel a[href*="role=cliente"]::before{background:#EE5F3A}
     .nav-painel a[href*="role=contador"]::before{background:#344C4B}
-    .btng{font-size:13px !important;padding:9px 14px !important;white-space:nowrap}
+    /* Só o CTA da barra encolhe. Sem o escopo `.topo`, essa regra pegava
+       tambem os botoes dos planos e do rodape, que viravam 13px/35px. */
+    .topo .btng{font-size:13px !important;padding:9px 14px !important;white-space:nowrap}
     .nav-acoes{gap:8px !important}
     .wrap{padding:0 18px}
   }
@@ -300,10 +302,20 @@
     .rodape-grid{grid-template-columns:1fr 1fr !important;gap:28px !important}
     .rodape-fim{flex-direction:column;align-items:center;text-align:center}
   }
-  @media (max-width:520px){.passos{grid-template-columns:1fr}.rodape-grid{grid-template-columns:1fr !important}}
+  @media (max-width:520px){.rodape-grid{grid-template-columns:1fr !important}}
+  /* No celular os passos viram carrossel (ver carrossel.js): como só um card
+     aparece por vez, ele pode respirar mais. */
+  @media (max-width:860px){
+    .passo{padding:26px 24px}
+    .passo-n{width:36px;height:36px;font-size:16px;margin-bottom:14px}
+    .passo b{font-size:18.5px;margin-bottom:8px}
+    .passo p{font-size:15.5px}
+  }
 </style>
+<link rel="stylesheet" href="padrao-visual.css">
 <link rel="stylesheet" href="acessibilidade.css">
 <script src="monitoramento.js" defer></script>
+<script src="carrossel.js" defer></script>
 </head>
 <body>
 
@@ -350,7 +362,7 @@
   <p style="font-size:19px;color:#344C4B;max-width:680px;margin:22px auto 0;">Você sabe quanto custa antes de começar. Escolha o serviço agora e, na etapa seguinte, decida como prefere ser atendido. No fim, recebe tudo por escrito e assinado por contador com CRC.</p>
 
   <!-- ================= COMO FUNCIONA ================= -->
-  <div class="passos">
+  <div class="passos carrossel">
     <div class="passo"><div class="passo-n">1</div><b>Escolha o serviço</b><p>Selecione Pessoa Física, Pessoa Jurídica ou um caso sob demanda.</p></div>
     <div class="passo"><div class="passo-n">2</div><b>Escolha o atendimento</b><p>Na próxima tela, escolha entre um horário para conversar ou Atendimento Express.</p></div>
     <div class="passo"><div class="passo-n">3</div><b>Faça a triagem</b><p>Depois da confirmação, explique o caso com suas palavras e envie os documentos pela área do cliente.</p></div>
@@ -377,7 +389,7 @@
     </div>
 
     <!-- Pessoa Jurídica -->
-    <div class="plano card-escuro" data-servico-id="pj-atendimento" style="background:#344C4B;">
+    <div class="plano card-escuro superficie-escura" data-servico-id="pj-atendimento" style="background:#344C4B;">
       <div style="font-family:'Bricolage Grotesque',sans-serif;font-weight:700;font-size:24px;color:#FFFFFF;">Pessoa Jurídica</div>
       <div style="font-size:15px;color:#FFFFFF;margin-top:6px;line-height:1.5;">Para MEI, Simples Nacional ou Ltda — qualquer porte de empresa que precise de alguém cuidando das guias, dos prazos e das pendências.</div>
       <div style="margin:28px 0 6px;color:#F5A78D;">
@@ -485,7 +497,7 @@
 
 <!-- Mesmo rodapé da home: a página de preços tinha só uma linha de copyright,
      o que somado à barra diferente fazia parecer um site à parte. -->
-<div style="background:#344C4B;color:#FFFFFF;margin-top:80px;border-radius:28px 28px 0 0;overflow:hidden;">
+<div class="superficie-escura" style="background:#344C4B;color:#FFFFFF;margin-top:80px;border-radius:28px 28px 0 0;">
   <div class="rodape-grid" style="max-width:1200px;margin:0 auto;padding:56px 32px 40px;display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr;gap:32px;text-align:left;">
     <div>
       <div style="display:flex;align-items:center;gap:11px;margin-bottom:16px;">
