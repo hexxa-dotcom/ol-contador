@@ -144,8 +144,23 @@
     .lk:hover{color:#344C4B !important;}
     .btnp{transition:transform .15s ease, box-shadow .15s ease;}
     .btnp:hover{transform:translateY(-2px);box-shadow:0 16px 30px -14px rgba(238, 95, 58, 0.6);}
-    .btng{transition:transform .15s ease, box-shadow .15s ease;}
-    .btng:hover{transform:translateY(-2px);box-shadow:0 16px 30px -14px rgba(52, 76, 75, 0.5);}
+    /* "Resolver agora" é o único CTA sempre visível na tela — ganha um halo
+       verde que pulsa devagar pra puxar o olho sem gritar, e o mesmo brilho
+       que atravessa no hover. */
+    .btng{position:relative;overflow:hidden;
+      transition:transform .18s ease, box-shadow .25s ease;
+      animation:halo-btng 3.4s ease-in-out infinite;}
+    .btng:hover{transform:translateY(-2px);animation:none;
+      box-shadow:0 0 0 4px rgba(126,214,190,.22), 0 18px 34px -14px rgba(52,76,75,.55);}
+    .btng::before{content:'';position:absolute;top:0;left:-70%;width:45%;height:100%;
+      background:linear-gradient(100deg,transparent,rgba(255,255,255,.22),transparent);
+      transform:skewX(-18deg);transition:left .55s cubic-bezier(.3,.8,.35,1);}
+    .btng:hover::before{left:130%;}
+    @keyframes halo-btng{
+      0%,100%{box-shadow:0 0 0 0 rgba(126,214,190,0), 0 10px 22px -14px rgba(52,76,75,.5);}
+      50%{box-shadow:0 0 0 6px rgba(126,214,190,.18), 0 10px 22px -14px rgba(52,76,75,.5);}
+    }
+    @media (prefers-reduced-motion: reduce){ .btng{animation:none;} }
     /* Cards ganham profundidade e sobem no hover. Os escuros (teal) usam
        sombra da própria cor pra não virar um borrão cinza. */
     .card{transition:transform .25s cubic-bezier(.2,.8,.2,1), box-shadow .25s ease;
@@ -156,6 +171,140 @@
       box-shadow:0 4px 10px rgba(52,76,75,.18), 0 22px 48px -26px rgba(52,76,75,.7);}
     .card-escuro:hover{transform:translateY(-6px);
       box-shadow:0 8px 18px rgba(52,76,75,.24), 0 34px 66px -28px rgba(52,76,75,.8);}
+
+    /* Textura de linhas orgânicas — mesmo traço fino e ondulado das
+       ilustrações, aplicada como fundo repetido nos cards escuros pra
+       não ficarem uma chapa lisa. */
+    .textura-linhas{position:absolute;inset:0;pointer-events:none;opacity:.55;
+      background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="240" height="240"><path d="M-20 36 C 30 8, 70 64, 120 36 S 210 8, 260 36" stroke="white" stroke-width="1.3" fill="none" opacity="0.13"/><path d="M-20 108 C 30 80, 70 136, 120 108 S 210 80, 260 108" stroke="white" stroke-width="1.3" fill="none" opacity="0.10"/><path d="M-20 180 C 30 152, 70 208, 120 180 S 210 152, 260 180" stroke="white" stroke-width="1.3" fill="none" opacity="0.08"/></svg>');
+      background-repeat:repeat;}
+
+    /* Iluminação difusa em verde vivo — dá volume ao teal chapado sem
+       introduzir outra cor. Grande e espalhada de propósito: glow
+       concentrado vira "mancha". */
+    .brilho-verde{position:absolute;pointer-events:none;border-radius:50%;
+      background:radial-gradient(circle, rgba(126,214,190,.26), rgba(126,214,190,.09) 45%, transparent 72%);
+      filter:blur(26px);}
+    .brilho-verde.suave{background:radial-gradient(circle, rgba(150,225,205,.16), rgba(126,214,190,.05) 48%, transparent 74%);}
+
+    /* ---------- Banner coral do hero ---------- */
+    .hero-banner{position:relative;overflow:hidden;isolation:isolate;
+      max-width:1240px;margin:0 auto;border-radius:32px;
+      background:
+        linear-gradient(152deg, #F58A6B 0%, #F1734F 42%, #E6603D 78%, #D9532F 100%);
+      box-shadow:0 2px 6px rgba(200,66,31,.14), 0 40px 80px -40px rgba(200,66,31,.42);}
+
+    /* Camadas de luz: focos grandes e desfocados dão volume ao gradiente
+       chapado. blur alto + baixa opacidade = luz, não mancha. */
+    .hero-luz{position:absolute;border-radius:50%;pointer-events:none;}
+    .hero-luz-1{width:820px;height:820px;top:-380px;left:-140px;
+      background:radial-gradient(circle, rgba(255,214,190,.42), rgba(255,190,160,.12) 45%, transparent 70%);
+      filter:blur(30px);}
+    .hero-luz-2{width:640px;height:640px;bottom:-340px;right:-100px;
+      background:radial-gradient(circle, rgba(255,160,120,.34), rgba(220,78,43,.10) 48%, transparent 72%);
+      filter:blur(34px);}
+    .hero-luz-3{width:520px;height:520px;top:24%;right:14%;
+      background:radial-gradient(circle, rgba(255,255,255,.16), transparent 66%);
+      filter:blur(40px);}
+
+    /* Mesma textura de linhas dos cards escuros, aqui em branco bem baixo:
+       tira o "chapado" do gradiente sem virar padrão visível. */
+    .hero-textura{position:absolute;inset:0;pointer-events:none;opacity:.5;
+      background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="280" height="280"><path d="M-20 42 C 40 10, 90 74, 150 42 S 260 10, 320 42" stroke="white" stroke-width="1.4" fill="none" opacity="0.13"/><path d="M-20 126 C 40 94, 90 158, 150 126 S 260 94, 320 126" stroke="white" stroke-width="1.4" fill="none" opacity="0.10"/><path d="M-20 210 C 40 178, 90 242, 150 210 S 260 178, 320 210" stroke="white" stroke-width="1.4" fill="none" opacity="0.08"/></svg>');
+      background-repeat:repeat;}
+
+    /* Vinheta: escurece as bordas de leve, o centro "sobe" e o texto ganha
+       contraste sem precisar de sombra na fonte. */
+    .hero-vinheta{position:absolute;inset:0;pointer-events:none;
+      background:radial-gradient(ellipse 80% 72% at 50% 42%, transparent 44%, rgba(150,44,18,.14) 100%);}
+
+    .hero-centro{position:relative;z-index:1;max-width:900px;margin:0 auto;
+      padding:104px 32px 72px;text-align:center;color:#fff;}
+
+    .hero-badge{display:inline-flex;align-items:center;gap:9px;
+      background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.28);
+      backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+      border-radius:999px;padding:9px 18px;font-size:14px;font-weight:600;
+      color:#fff;margin-bottom:32px;}
+    .hero-badge-ponto{width:8px;height:8px;border-radius:50%;background:#fff;
+      box-shadow:0 0 0 0 rgba(255,255,255,.6);animation:pulso-ponto 2.4s ease-out infinite;}
+    @keyframes pulso-ponto{
+      0%{box-shadow:0 0 0 0 rgba(255,255,255,.55);}
+      70%{box-shadow:0 0 0 9px rgba(255,255,255,0);}
+      100%{box-shadow:0 0 0 0 rgba(255,255,255,0);}
+    }
+
+    .hero-h1{font-family:'Bricolage Grotesque',sans-serif;font-weight:800;
+      font-size:68px;line-height:1.02;letter-spacing:-.038em;color:#fff;margin:0;
+      text-shadow:0 2px 24px rgba(140,40,15,.22);}
+    .hero-h1-realce{color:#FFE9DF;}
+
+    .hero-sub{font-size:20.5px;line-height:1.55;color:rgba(255,255,255,.92);
+      margin:26px auto 0;max-width:620px;}
+
+    .hero-buttons{display:flex;align-items:center;justify-content:center;
+      gap:14px;margin-top:40px;flex-wrap:wrap;}
+    /* Botão branco sobre coral: máximo contraste possível — o olho vai
+       direto nele, que é o objetivo do banner. */
+    .btn-hero-branco{position:relative;overflow:hidden;background:#fff;color:#C8421F;
+      font-weight:700;font-size:18px;padding:17px 34px;border-radius:14px;
+      box-shadow:0 4px 12px rgba(140,40,15,.18), 0 16px 34px -16px rgba(90,24,8,.6);
+      transition:transform .2s cubic-bezier(.2,.8,.2,1), box-shadow .2s ease;}
+    .btn-hero-branco:hover{transform:translateY(-3px);
+      box-shadow:0 6px 16px rgba(140,40,15,.22), 0 26px 48px -18px rgba(90,24,8,.7);}
+    .btn-hero-branco::before{content:'';position:absolute;top:0;left:-70%;width:45%;height:100%;
+      background:linear-gradient(100deg,transparent,rgba(238,95,58,.16),transparent);
+      transform:skewX(-18deg);transition:left .6s cubic-bezier(.3,.8,.35,1);}
+    .btn-hero-branco:hover::before{left:130%;}
+
+    .btn-hero-ghost{color:#fff;font-weight:600;font-size:16px;padding:16px 24px;
+      border-radius:14px;border:1px solid rgba(255,255,255,.32);
+      transition:background .2s ease, border-color .2s ease;}
+    .btn-hero-ghost:hover{background:rgba(255,255,255,.14);border-color:rgba(255,255,255,.5);}
+
+    .hero-preco{display:flex;align-items:center;justify-content:center;gap:10px;
+      margin-top:22px;font-size:15px;color:rgba(255,255,255,.92);flex-wrap:wrap;}
+    .hero-preco b{font-weight:700;}
+    .hero-preco .sep{opacity:.4;}
+    .hero-preco .fraco{opacity:.8;}
+
+    .hero-checks{display:flex;align-items:center;justify-content:center;gap:38px;
+      margin-top:54px;padding-top:32px;border-top:1px solid rgba(255,255,255,.18);
+      flex-wrap:wrap;}
+    .hero-check{display:flex;align-items:center;gap:9px;font-size:14.5px;
+      font-weight:600;color:rgba(255,255,255,.94);}
+    .hero-check-icone{width:24px;height:24px;border-radius:50%;flex-shrink:0;
+      background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.3);
+      display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;}
+
+    /* Sublinhado coral que cresce da esquerda pra direita no hover dos
+       links do menu. scaleX + transform-origin em vez de animar width:
+       roda na GPU, não recalcula layout. */
+    .nav-links .lk{position:relative;padding-bottom:4px;}
+    .nav-links .lk::after{content:'';position:absolute;left:0;right:0;bottom:0;height:2px;
+      background:#EE5F3A;border-radius:2px;
+      transform:scaleX(0);transform-origin:left center;
+      transition:transform .28s cubic-bezier(.22,.9,.3,1);}
+    .nav-links .lk:hover::after{transform:scaleX(1);}
+
+    /* Cards internos do bloco escuro: sobem de leve e o contorno acende.
+       Sutil de propósito — são 6 lado a lado, exagero vira poluição. */
+    .mini-card{transition:transform .25s cubic-bezier(.2,.8,.2,1), background .25s ease, border-color .25s ease;}
+    .mini-card:hover{transform:translateY(-4px);
+      background:rgba(255,255,255,.09) !important;
+      border-color:rgba(126,214,190,.34) !important;}
+
+    /* Números grandes da faixa de prova social: contorno coral acende ao
+       passar o mouse, reforçando que ali tem informação real. */
+    .stat-item{transition:transform .3s cubic-bezier(.2,.8,.2,1);}
+    .stat-item:hover{transform:translateY(-4px);}
+
+    /* Botão primário: brilho que atravessa da esquerda pra direita. */
+    .btnp{position:relative;overflow:hidden;}
+    .btnp::before{content:'';position:absolute;top:0;left:-70%;width:45%;height:100%;
+      background:linear-gradient(100deg,transparent,rgba(255,255,255,.28),transparent);
+      transform:skewX(-18deg);transition:left .55s cubic-bezier(.3,.8,.35,1);}
+    .btnp:hover::before{left:130%;}
 
     /* Dropdown único "Entrar ▾" — clique alterna, hover no desktop também
        abre. Substitui os 3 elementos soltos (Entrar + botão Cliente + botão
@@ -174,13 +323,20 @@
       opacity:1;visibility:visible;transform:none;}
     /* Cada área com sua cor: coral pro cliente, teal pro escritório — dá pra
        identificar o destino no relance, sem depender de ler o texto. */
-    .nav-entrar-menu a{padding:10px 12px;border-radius:9px;font-size:14.5px;font-weight:600;
-      color:#344C4B;transition:background .15s;display:flex;align-items:center;gap:9px;}
+    .nav-entrar-menu a{position:relative;padding:10px 12px;border-radius:9px;font-size:14.5px;font-weight:600;
+      color:#344C4B;transition:background .15s, color .15s;display:flex;align-items:center;gap:9px;}
     .nav-entrar-menu a::before{content:'';width:8px;height:8px;border-radius:50%;flex-shrink:0;}
     .nav-entrar-menu a[href*="cliente"]::before{background:#EE5F3A;}
     .nav-entrar-menu a[href*="contador"]::before{background:#344C4B;}
-    .nav-entrar-menu a[href*="cliente"]:hover{background:rgba(238, 95, 58, .1);color:#EE5F3A;}
-    .nav-entrar-menu a[href*="contador"]:hover{background:rgba(52, 76, 75, .09);}
+    .nav-entrar-menu a[href*="cliente"]:hover{color:#EE5F3A;}
+    /* Mesma barrinha do menu principal: cresce da esquerda, na cor do papel
+       (coral pro cliente, verde pro contador). */
+    .nav-entrar-menu a::after{content:'';position:absolute;left:12px;right:12px;bottom:4px;height:2px;
+      border-radius:2px;transform:scaleX(0);transform-origin:left center;
+      transition:transform .28s cubic-bezier(.22,.9,.3,1);}
+    .nav-entrar-menu a[href*="cliente"]::after{background:#EE5F3A;}
+    .nav-entrar-menu a[href*="contador"]::after{background:#344C4B;}
+    .nav-entrar-menu a:hover::after{transform:scaleX(1);}
 
     /* Header compacto ao rolar: no DESKTOP nada some (cabe tudo), só ganha
        sombra. No CELULAR o wordmark "Olá, Contador." some pra sobrar largura
@@ -271,11 +427,11 @@
       body { padding-top: 78px !important; }
       html { scroll-padding-top: 90px !important; }
       #nav-fixo { top: 10px; width: calc(100% - 20px); border-radius: 18px; }
-      .hero-grid { grid-template-columns: 1fr !important; gap: 40px !important; padding: 40px 20px !important; text-align: center; }
-      .hero-grid p { margin-left: auto; margin-right: auto; }
-      .hero-checks { justify-content: center; }
-      .hero-preco { justify-content: center; }
+      .hero-banner { border-radius: 26px; }
+      .hero-centro { padding: 64px 24px 52px !important; }
+      .hero-checks { gap: 24px !important; margin-top: 40px !important; padding-top: 26px !important; }
       .hero-h1 { font-size: 46px !important; }
+      .hero-sub { font-size: 18.5px !important; }
       .grid-3 { grid-template-columns: 1fr !important; }
       .grid-4 { grid-template-columns: repeat(2, 1fr) !important; gap: 40px !important; }
       .confianca-grid { grid-template-columns: 1fr !important; }
@@ -285,26 +441,48 @@
     }
     
     @media (max-width: 600px) {
-      /* Celular estreito: o wordmark "Olá, Contador." sai da barra pra sobrar
-         largura pro "Resolver agora" — que é justamente o motivo de encolher
-         a marca aqui (no desktop cabe tudo, então lá não some nada). */
-      .nav-wordmark { display: none !important; }
-      .btng { font-size: 13px !important; padding: 9px 14px !important; white-space: nowrap; }
-      .nav-container { padding: 12px 14px !important; gap: 8px; }
+      /* No celular a marca completa fica (é o que identifica o site), então
+         quem cede espaço é o CTA: fonte e padding menores. */
+      .nav-wordmark { font-size: 16px !important; white-space: nowrap; }
+      /* No celular o halo pulsante fica desproporcional num botão pequeno —
+         vira um brilho fixo e discreto, e o toque responde com um afundar
+         rápido (:active) em vez do hover, que não existe aqui. */
+      .btng { font-size: 13px !important; font-weight: 600 !important;
+        padding: 10px 15px !important; border-radius: 10px !important;
+        min-height: 38px !important; white-space: nowrap;
+        animation: none !important;
+        box-shadow: 0 0 0 3px rgba(126,214,190,.16), 0 6px 14px -8px rgba(52,76,75,.55) !important; }
+      .btng:active { transform: scale(.96); box-shadow: 0 0 0 2px rgba(126,214,190,.22), 0 3px 8px -6px rgba(52,76,75,.6) !important; }
+      .nav-container { padding: 12px 12px !important; gap: 6px; }
       .nav-container > a:first-child { gap: 7px !important; min-width: 0; }
-      .nav-container > a:first-child img { width: 32px !important; }
+      .nav-container > a:first-child img { width: 28px !important; }
       .hero-h1 { font-size: 40px !important; }
       .h2-title { font-size: 32px !important; }
       .grid-4 { grid-template-columns: 1fr !important; gap: 32px !important; }
       .hero-buttons { flex-direction: column; align-items: stretch !important; gap: 16px !important; }
       .hero-buttons > * { width: 100%; text-align: center; justify-content: center; }
-      .hero-checks { flex-direction: column; align-items: flex-start !important; gap: 12px !important; }
-      .hero-grid { padding-top: 30px !important; gap: 30px !important; }
-      .hero-grid > div:first-child > p { font-size: 18px !important; line-height: 1.48 !important; }
+      .hero-checks { flex-direction: column; align-items: center !important; gap: 14px !important; }
+      .hero-centro { padding: 52px 20px 44px !important; }
+      .hero-sub { font-size: 17.5px !important; line-height: 1.5 !important; }
       .hero-preco { gap: 7px !important; font-size: 14px !important; }
-      .hero-img { display: none !important; }
-      .btnp,.btng { min-height: 48px; display: inline-flex; align-items: center; justify-content: center; }
+      .hero-banner { border-radius: 22px; }
+      .btn-hero-branco, .btn-hero-ghost { width: 100%; text-align: center; }
+      .btnp { min-height: 48px; display: inline-flex; align-items: center; justify-content: center; }
+      .btng { display: inline-flex; align-items: center; justify-content: center; }
       .card { padding: 25px 22px !important; }
+    }
+
+    /* Telas bem estreitas (iPhone SE e afins): a marca continua inteira, mas
+       encolhe junto com o CTA — sem isso o botão passa por cima do wordmark. */
+    @media (max-width: 400px) {
+      .nav-wordmark { font-size: 14px !important; }
+      .nav-container > a:first-child img { width: 24px !important; }
+      .nav-container > a:first-child { gap: 5px !important; }
+      .btng { font-size: 12px !important; padding: 9px 12px !important; min-height: 34px !important; }
+      .nav-container { padding: 10px 10px !important; gap: 4px; }
+      .nav-hamburguer { margin-left: 0 !important; }
+      .hero-h1 { font-size: 34px !important; }
+      .hero-badge { font-size: 13px !important; padding: 8px 14px !important; }
     }
 </style>
 <link rel="stylesheet" href="acessibilidade.css">
@@ -337,8 +515,8 @@
           <div class="nav-entrar-wrap">
             <button type="button" class="nav-entrar-btn" aria-haspopup="true" aria-expanded="false">Entrar <span class="nav-caret">▾</span></button>
             <div class="nav-entrar-menu" role="menu">
-              <a href="login.html?role=cliente" role="menuitem">Área do cliente</a>
-              <a href="login.html?role=contador" role="menuitem">Área do escritório</a>
+              <a href="login.html?role=cliente" role="menuitem">Sou cliente</a>
+              <a href="login.html?role=contador" role="menuitem">Sou contador</a>
             </div>
           </div>
         </div>
@@ -357,77 +535,53 @@
       <a href="radar-fiscal.html">Radar Fiscal</a>
       <a href="#contato">Contato</a>
       <div class="painel-rotulo">Entrar</div>
-      <a href="login.html?role=cliente">Área do cliente</a>
-      <a href="login.html?role=contador">Área do escritório</a>
+      <a href="login.html?role=cliente">Sou cliente</a>
+      <a href="login.html?role=contador">Sou contador</a>
     </div>
   </div>
 
   
-  <div data-dc-tpl="20" id="top" style="position: relative;">
-    <div data-dc-tpl="21" style="position: absolute; inset: 0px; pointer-events: none; background: radial-gradient(circle at 82% 20%, rgba(238, 95, 58, 0.1), transparent 40%), radial-gradient(circle at 12% 80%, rgba(52, 76, 75, 0.08), transparent 42%);"></div>
-    <div data-dc-tpl="22" class="hero-grid" style="max-width: 1200px; margin: 0px auto; padding: 80px 32px 60px; display: grid; grid-template-columns: 1.05fr 0.95fr; gap: 48px; align-items: center; position: relative;">
-      <div data-dc-tpl="23">
-        <div data-dc-tpl="24" style="display: inline-flex; align-items: center; gap: 9px; background: rgb(255, 255, 255); border-radius: 999px; padding: 8px 16px; font-size: 14px; font-weight: 600; color: rgb(52, 76, 75); margin-bottom: 26px;">
-          <span data-dc-tpl="25" style="width: 8px; height: 8px; border-radius: 50%; background: rgb(238, 95, 58);"></span>Resolva pelo celular, no seu tempo
+  <!-- Banner coral: primeiro contato do cliente. O coral vira o fundo (em vez
+       de aparecer só em detalhe), com gradiente diagonal + camadas de luz +
+       a textura de linhas da marca. Texto branco por cima, leitura em coluna
+       única: promessa → explicação → ação → preço → prova. -->
+  <div data-dc-tpl="20" id="top" style="padding: 22px 20px 64px;">
+    <div class="hero-banner">
+      <div class="hero-luz hero-luz-1"></div>
+      <div class="hero-luz hero-luz-2"></div>
+      <div class="hero-luz hero-luz-3"></div>
+      <div class="hero-textura"></div>
+      <div class="hero-vinheta"></div>
+
+      <div data-dc-tpl="22" class="hero-centro">
+        <div data-dc-tpl="24" class="hero-badge">
+          <span data-dc-tpl="25" class="hero-badge-ponto"></span>Resolva pelo celular, no seu tempo
         </div>
-        <h1 data-dc-tpl="26" class="hero-h1" style="font-family: &quot;Bricolage Grotesque&quot;, sans-serif; font-weight: 800; font-size: 64px; line-height: 1.02; letter-spacing: -0.035em; color: rgb(52, 76, 75); margin: 0px;">Bagunça com a Receita? <span data-dc-tpl="27" style="color: rgb(238, 95, 58);">A gente resolve com você.</span></h1>
-        <p data-dc-tpl="28" style="font-size: 20px; line-height: 1.5; color: rgb(52, 76, 75); margin: 24px 0px 0px; max-width: 560px;">Conte o que aconteceu com suas próprias palavras, envie os documentos pelo celular e relaxa — a partir daqui, um contador de verdade cuida do resto. Sem escritório, sem papelada.</p>
-        <div data-dc-tpl="29" class="hero-buttons" style="display: flex; align-items: center; gap: 16px; margin-top: 34px;">
-          <a data-dc-tpl="30" class="btnp" href="precos.html" style="background: rgb(238, 95, 58); color: rgb(255, 255, 255); font-weight: 700; font-size: 19px; padding: 16px 30px; border-radius: 14px; box-shadow: rgba(238, 95, 58, 0.7) 0px 14px 28px -14px;">Resolver meu problema</a>
-          <a data-dc-tpl="31" class="lk" href="#como" style="font-weight: 600; font-size: 16px; color: rgb(52, 76, 75); display: flex; align-items: center; gap: 8px; transition: color 0.15s;">Ver como funciona →</a>
+
+        <h1 data-dc-tpl="26" class="hero-h1">Bagunça com a Receita?<br><span data-dc-tpl="27" class="hero-h1-realce">A gente resolve com você.</span></h1>
+
+        <p data-dc-tpl="28" class="hero-sub">Conte o que aconteceu com suas próprias palavras, envie os documentos pelo celular e relaxa — a partir daqui, um contador com CRC ativo cuida do resto.</p>
+
+        <div data-dc-tpl="29" class="hero-buttons">
+          <a data-dc-tpl="30" class="btn-hero-branco" href="precos.html">Resolver meu problema</a>
+          <a data-dc-tpl="31" class="btn-hero-ghost" href="#como">Ver como funciona →</a>
         </div>
+
         <!-- Preço no hero: quem chega quer saber "é caro?" antes de ler
              benefício. Esconder isso até o fim da página só faz a pessoa sair. -->
-        <div class="hero-preco" style="display: flex; align-items: center; gap: 10px; margin-top: 18px; font-size: 15px; color: rgb(52, 76, 75); flex-wrap: wrap;">
-          <b style="font-weight: 700;">A partir de R$ 199</b>
-          <span style="opacity: .45;">·</span>
-          <span>sem mensalidade</span>
-          <span style="opacity: .45;">·</span>
-          <span><b style="font-weight: 700;">não resolveu, não paga</b></span>
+        <div class="hero-preco">
+          <b>A partir de R$ 199</b>
+          <span class="sep">·</span>
+          <span class="fraco">sem mensalidade</span>
+          <span class="sep">·</span>
+          <b>não resolveu, não paga</b>
         </div>
-        <div class="hero-checks" style="display: flex; align-items: center; gap: 18px; margin-top: 34px; flex-wrap: wrap;"><div style="display: flex; align-items: center; gap: 8px; font-size: 14px; color: rgb(52, 76, 75);"><span style="width: 26px; height: 26px; border-radius: 50%; background: rgba(52, 76, 75, 0.12); color: rgb(52, 76, 75); display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 13px; flex-shrink: 0;">✓</span><b style="color: rgb(52, 76, 75);">Contadores com CRC ativo</b></div><div style="display: flex; align-items: center; gap: 8px; font-size: 14px; color: rgb(52, 76, 75);"><span style="width: 26px; height: 26px; border-radius: 50%; background: rgba(52, 76, 75, 0.12); color: rgb(52, 76, 75); display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 13px; flex-shrink: 0;">✓</span><b style="color: rgb(52, 76, 75);">Sigilo profissional</b></div><div style="display: flex; align-items: center; gap: 8px; font-size: 14px; color: rgb(52, 76, 75);"><span style="width: 26px; height: 26px; border-radius: 50%; background: rgba(52, 76, 75, 0.12); color: rgb(52, 76, 75); display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 13px; flex-shrink: 0;">✓</span><b style="color: rgb(52, 76, 75);">Relatório assinado no fim</b></div></div>
-      </div>
 
-      
-      <div data-dc-tpl="40" class="hero-img" style="display: flex; justify-content: center; position: relative;">
-        <div data-dc-tpl="41" style="position: absolute; width: 340px; height: 340px; border-radius: 50%; background: radial-gradient(circle, rgba(238, 95, 58, 0.14), transparent 68%);"></div>
-        <!-- Placeholder pronto pra virar foto real de um contador do time —
-             só trocar o emoji/gradiente por <img>. Reforça "gente de verdade"
-             sem depender da foto que ainda não temos. -->
-        <div class="hero-foto-selo" style="position: absolute; left: -18px; bottom: 46px; z-index: 2; background: rgb(255, 255, 255); border-radius: 18px; padding: 13px 16px; box-shadow: rgba(52, 76, 75, 0.35) 0px 20px 40px -20px; display: flex; align-items: center; gap: 12px; max-width: 220px;">
-          <div style="width: 42px; height: 42px; border-radius: 50%; background: linear-gradient(135deg, rgb(52, 76, 75), rgb(38, 67, 63)); display: flex; align-items: center; justify-content: center; color: rgb(245, 167, 141); font-size: 18px; flex-shrink: 0;">🧑‍💼</div>
-          <div>
-            <div style="font-family: &quot;Bricolage Grotesque&quot;, sans-serif; font-weight: 700; font-size: 12.5px; color: rgb(52, 76, 75); line-height: 1.25;">Gente de verdade do outro lado</div>
-            <div style="font-size: 11px; color: rgb(52, 76, 75); opacity: .65; margin-top: 2px;">Contadores com registro CRC ativo</div>
-          </div>
-        </div>
-        <div data-dc-tpl="42" style="width: 272px; animation: 6s ease-in-out 0s infinite normal none running floaty; background: rgb(52, 76, 75); border-radius: 48px; padding: 12px; box-shadow: rgba(52, 76, 75, 0.55) 0px 40px 70px -30px; position: relative; z-index: 1;">
-          <div data-dc-tpl="43" style="background: rgb(235, 235, 223); border-radius: 38px; overflow: hidden; display: flex; flex-direction: column; min-height: 540px;">
-            <div data-dc-tpl="44" style="background: rgb(52, 76, 75); padding: 20px 20px 22px; color: rgb(255, 255, 255);">
-              <div data-dc-tpl="45" style="display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: rgb(255, 255, 255); margin-bottom: 18px;"><span data-dc-tpl="46">9:41</span><span data-dc-tpl="47">Atendimento Express</span></div>
-              <div data-dc-tpl="48" style="display: flex; align-items: center; gap: 12px;">
-                <div data-dc-tpl="49" style="position: relative; flex: 0 0 auto;">
-                  <div data-dc-tpl="50" style="width: 48px; height: 48px; border-radius: 50%; background: rgb(238, 95, 58); display: flex; align-items: center; justify-content: center;"><img data-dc-tpl="51" src="logo.svg" alt="" style="width: 27px; display: block;"></div>
-                  <div data-dc-tpl="52" style="position: absolute; right: -1px; bottom: -1px; width: 14px; height: 14px; border-radius: 50%; background: rgb(255, 255, 255); border: 2.5px solid rgb(52, 76, 75);"></div>
-                </div>
-                <div data-dc-tpl="53"><div data-dc-tpl="54" style="font-family: &quot;Bricolage Grotesque&quot;, sans-serif; font-weight: 700; font-size: 16px;">Olá<span data-dc-tpl="55" style="color: rgb(238, 95, 58);">,</span> Contador<span data-dc-tpl="56" style="color: rgb(238, 95, 58);">.</span></div><div data-dc-tpl="57" style="font-size: 12px; color: rgb(255, 255, 255);">Seu caso · contador com CRC</div></div>
-              </div>
-            </div>
-            <div data-dc-tpl="58" style="padding: 18px 16px 14px; flex: 1 1 0%; display: flex; flex-direction: column; gap: 10px;">
-              <div data-dc-tpl="59" style="align-self: center; background: rgb(234, 227, 214); color: rgb(138, 148, 143); font-size: 11px; padding: 4px 12px; border-radius: 999px;">Hoje, 9:32</div>
-              <div data-dc-tpl="60" style="background: rgb(238, 95, 58); color: rgb(255, 255, 255); border-radius: 16px 16px 5px; padding: 11px 14px; font-size: 13px; line-height: 1.4; max-width: 84%; margin-left: auto;">Recebi uma carta da Receita e não sei o que fazer 😰</div>
-              <div data-dc-tpl="61" style="background: rgb(255, 255, 255); border-radius: 16px 16px 16px 5px; padding: 11px 14px; font-size: 13px; color: rgb(52, 76, 75); line-height: 1.4; max-width: 84%;">Calma, isso tem solução. Fotografe a carta e responda algumas perguntas. A gente cuida do resto.</div>
-              <div data-dc-tpl="62" style="background: rgb(234, 227, 214); border: 1px solid rgba(52, 76, 75, 0.15); border-radius: 14px; padding: 12px 14px; display: flex; justify-content: space-between; align-items: center;">
-                <div data-dc-tpl="63"><div data-dc-tpl="64" style="font-size: 11px; color: rgb(52, 76, 75);">Triagem recebida</div><div data-dc-tpl="65" style="font-family: &quot;Bricolage Grotesque&quot;, sans-serif; font-weight: 700; color: rgb(52, 76, 75); font-size: 17px; font-variant-numeric: tabular-nums;">Em análise</div></div>
-                <div data-dc-tpl="66" style="background: rgb(52, 76, 75); color: rgb(255, 255, 255); font-size: 12px; font-weight: 600; padding: 8px 13px; border-radius: 9px;">Acompanhar</div>
-              </div>
-              <div data-dc-tpl="67" style="background: rgb(238, 95, 58); color: rgb(255, 255, 255); border-radius: 16px 16px 5px; padding: 11px 14px; font-size: 13px; line-height: 1.4; max-width: 76%; margin-left: auto;">Tudo conosco agora ✓</div>
-            </div>
-            <div data-dc-tpl="68" style="padding: 0px 16px 20px; display: flex; gap: 8px; align-items: center;">
-              <div data-dc-tpl="69" style="flex: 1 1 0%; background: rgb(234, 227, 214); border-radius: 999px; height: 40px; display: flex; align-items: center; padding: 0px 16px; font-size: 13px; color: rgb(138, 148, 143);">Adicionar informação…</div>
-              <div data-dc-tpl="70" style="width: 40px; height: 40px; border-radius: 50%; background: rgb(238, 95, 58); flex: 0 0 auto; display: flex; align-items: center; justify-content: center; color: rgb(255, 255, 255); font-size: 17px;">➔</div>
-            </div>
-          </div>
+        <!-- Selos de confiança fecham o bloco, separados por uma linha translúcida. -->
+        <div class="hero-checks">
+          <div class="hero-check"><span class="hero-check-icone">✓</span>Contadores com CRC ativo</div>
+          <div class="hero-check"><span class="hero-check-icone">✓</span>Sigilo profissional</div>
+          <div class="hero-check"><span class="hero-check-icone">✓</span>Relatório assinado no fim</div>
         </div>
       </div>
     </div>
@@ -493,32 +647,33 @@
   <div data-dc-tpl="114" id="servicos" class="section-pad" style="max-width: 1200px; margin: 0px auto; padding: 64px 32px;">
     <div data-dc-tpl="115" class="dark-box" style="background: rgb(52, 76, 75); border-radius: 32px; padding: 56px; position: relative; overflow: hidden;">
       <div data-dc-tpl="116" style="position: absolute; right: -90px; top: -90px; width: 340px; height: 340px; border-radius: 50%; border: 1px solid rgba(255, 255, 255, 0.08);"></div>
-      <div data-dc-tpl="117" style="position: absolute; right: 40px; top: 20px; width: 220px; height: 220px; border-radius: 50%; background: radial-gradient(circle, rgba(238, 95, 58, 0.14), transparent 70%);"></div>
+      <div class="textura-linhas"></div>
+      <div class="brilho-verde" style="right: -120px; top: -140px; width: 520px; height: 520px;"></div>
       <div data-dc-tpl="118" style="position: relative;">
         <div data-dc-tpl="119" style="font-size: 13px; letter-spacing: 0.24em; text-transform: uppercase; color: rgb(245, 167, 141); font-weight: 700; margin-bottom: 14px;">Pra que serve</div>
         <h2 data-dc-tpl="120" class="h2-title" style="font-family: &quot;Bricolage Grotesque&quot;, sans-serif; font-weight: 800; font-size: 46px; letter-spacing: -0.03em; color: rgb(255, 255, 255); margin: 0px; max-width: 640px; line-height: 1.05;">Um atendimento pra cada dor de cabeça com a Receita</h2>
         <div data-dc-tpl="121" class="grid-3" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; margin-top: 44px;">
-          <div data-dc-tpl="122" style="background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 18px; padding: 24px;">
+          <div data-dc-tpl="122" class="mini-card" style="background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 18px; padding: 24px;">
             <div data-dc-tpl="123" style="font-family: &quot;Bricolage Grotesque&quot;, sans-serif; font-weight: 700; font-size: 19px; color: rgb(255, 255, 255);">Imposto de Renda</div>
             <div data-dc-tpl="124" style="font-size: 15px; color: rgb(255, 255, 255); margin-top: 6px; line-height: 1.45;">Declaração feita ou revisada com você, na tela, item por item.</div>
           </div>
-          <div data-dc-tpl="125" style="background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 18px; padding: 24px;">
+          <div data-dc-tpl="125" class="mini-card" style="background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 18px; padding: 24px;">
             <div data-dc-tpl="126" style="font-family: &quot;Bricolage Grotesque&quot;, sans-serif; font-weight: 700; font-size: 19px; color: rgb(255, 255, 255);">Malha fina</div>
             <div data-dc-tpl="127" style="font-size: 15px; color: rgb(255, 255, 255); margin-top: 6px; line-height: 1.45;">Entenda por que caiu e saia com o plano pra regularizar.</div>
           </div>
-          <div data-dc-tpl="128" style="background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 18px; padding: 24px;">
+          <div data-dc-tpl="128" class="mini-card" style="background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 18px; padding: 24px;">
             <div data-dc-tpl="129" style="font-family: &quot;Bricolage Grotesque&quot;, sans-serif; font-weight: 700; font-size: 19px; color: rgb(255, 255, 255);">Ganho de capital</div>
             <div data-dc-tpl="130" style="font-size: 15px; color: rgb(255, 255, 255); margin-top: 6px; line-height: 1.45;">Vendeu imóvel ou ações? Cálculo certo, sem pagar imposto a mais.</div>
           </div>
-          <div data-dc-tpl="131" style="background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 18px; padding: 24px;">
+          <div data-dc-tpl="131" class="mini-card" style="background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 18px; padding: 24px;">
             <div data-dc-tpl="132" style="font-family: &quot;Bricolage Grotesque&quot;, sans-serif; font-weight: 700; font-size: 19px; color: rgb(255, 255, 255);">Autônomos &amp; carnê-leão</div>
             <div data-dc-tpl="133" style="font-size: 15px; color: rgb(255, 255, 255); margin-top: 6px; line-height: 1.45;">Recolha o certo todo mês, com INSS e deduções em ordem.</div>
           </div>
-          <div data-dc-tpl="134" style="background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 18px; padding: 24px;">
+          <div data-dc-tpl="134" class="mini-card" style="background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 18px; padding: 24px;">
             <div data-dc-tpl="135" style="font-family: &quot;Bricolage Grotesque&quot;, sans-serif; font-weight: 700; font-size: 19px; color: rgb(255, 255, 255);">Dívidas com a Receita</div>
             <div data-dc-tpl="136" style="font-size: 15px; color: rgb(255, 255, 255); margin-top: 6px; line-height: 1.45;">Parcelamento e negociação sem juridiquês nem susto.</div>
           </div>
-          <div data-dc-tpl="137" style="background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 18px; padding: 24px;">
+          <div data-dc-tpl="137" class="mini-card" style="background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 18px; padding: 24px;">
             <div data-dc-tpl="138" style="font-family: &quot;Bricolage Grotesque&quot;, sans-serif; font-weight: 700; font-size: 19px; color: rgb(255, 255, 255);">Aquela dúvida</div>
             <div data-dc-tpl="139" style="font-size: 15px; color: rgb(255, 255, 255); margin-top: 6px; line-height: 1.45;">Herança, aluguel, cripto, pensão… pergunte o que quiser.</div>
           </div>
@@ -533,15 +688,15 @@
          perguntar. O "+2 mil" vem do atendimento direto de antes da
          plataforma — a nota de rodapé diz isso em vez de deixar no ar. -->
     <div data-dc-tpl="141" class="grid-3" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; text-align: center;">
-      <div data-dc-tpl="142">
+      <div data-dc-tpl="142" class="stat-item">
         <div data-dc-tpl="143" style="font-family: &quot;Bricolage Grotesque&quot;, sans-serif; font-weight: 800; font-size: 52px; color: rgb(52, 76, 75); letter-spacing: -0.03em; font-variant-numeric: tabular-nums;">+2<span data-dc-tpl="144" style="color: rgb(238, 95, 58);"> mil</span></div>
         <div data-dc-tpl="145" style="font-size: 15px; color: rgb(52, 76, 75); margin-top: 4px;">atendimentos individuais realizados<span style="color: rgb(238, 95, 58);">*</span></div>
       </div>
-      <div data-dc-tpl="150">
+      <div data-dc-tpl="150" class="stat-item">
         <div data-dc-tpl="151" style="font-family: &quot;Bricolage Grotesque&quot;, sans-serif; font-weight: 800; font-size: 52px; color: rgb(52, 76, 75); letter-spacing: -0.03em; font-variant-numeric: tabular-nums;">24<span data-dc-tpl="152" style="color: rgb(238, 95, 58);">h</span></div>
         <div data-dc-tpl="153" style="font-size: 15px; color: rgb(52, 76, 75); margin-top: 4px;">prazo de conclusão para pessoa física</div>
       </div>
-      <div data-dc-tpl="154">
+      <div data-dc-tpl="154" class="stat-item">
         <div data-dc-tpl="155" style="font-family: &quot;Bricolage Grotesque&quot;, sans-serif; font-weight: 800; font-size: 52px; color: rgb(52, 76, 75); letter-spacing: -0.03em; font-variant-numeric: tabular-nums;">100<span data-dc-tpl="156" style="color: rgb(238, 95, 58);">%</span></div>
         <div data-dc-tpl="157" style="font-size: 15px; color: rgb(52, 76, 75); margin-top: 4px;">contadores com registro CRC ativo</div>
       </div>
@@ -588,7 +743,8 @@
       </div>
 
       <div class="card-escuro" style="background: rgb(52, 76, 75); border-radius: 28px; padding: 40px 36px; position: relative; overflow: hidden; display: flex; flex-direction: column;">
-        <div style="position: absolute; right: -70px; top: -70px; width: 240px; height: 240px; border-radius: 50%; background: radial-gradient(circle, rgba(238, 95, 58, 0.18), transparent 70%);"></div>
+        <div class="textura-linhas"></div>
+        <div class="brilho-verde" style="right: -110px; top: -120px; width: 420px; height: 420px;"></div>
         <div style="position: relative; display: flex; flex-direction: column; flex: 1;">
           <div style="font-size: 13px; letter-spacing: 0.24em; text-transform: uppercase; color: rgb(245, 167, 141); font-weight: 700; margin-bottom: 14px;">O que você recebe</div>
           <h2 style="font-family: &quot;Bricolage Grotesque&quot;, sans-serif; font-weight: 800; font-size: 30px; letter-spacing: -0.03em; color: rgb(255, 255, 255); margin: 0px 0px 8px; line-height: 1.08;">Um relatório assinado, não um "resolvido, confia"</h2>
@@ -706,7 +862,8 @@
       </div>
 
       <div class="card-escuro" style="background: rgb(52, 76, 75); border-radius: 28px; padding: 40px 36px; position: relative; overflow: hidden; display: flex; flex-direction: column;">
-        <div style="position: absolute; right: -70px; top: -70px; width: 240px; height: 240px; border-radius: 50%; background: radial-gradient(circle, rgba(238, 95, 58, 0.18), transparent 70%);"></div>
+        <div class="textura-linhas"></div>
+        <div class="brilho-verde" style="right: -110px; top: -120px; width: 420px; height: 420px;"></div>
         <div style="position: relative; display: flex; flex-direction: column; flex: 1;">
           <div style="font-size: 13px; letter-spacing: 0.24em; text-transform: uppercase; color: rgb(245, 167, 141); font-weight: 700; margin-bottom: 14px;">Prefere WhatsApp?</div>
           <h3 style="font-family: &quot;Bricolage Grotesque&quot;, sans-serif; font-weight: 800; font-size: 26px; letter-spacing: -0.03em; color: rgb(255, 255, 255); margin: 0px 0px 10px; line-height: 1.15;">Estamos quase lá</h3>
@@ -729,8 +886,10 @@
 
   <div data-dc-tpl="209" style="max-width: 1200px; margin: 0px auto; padding: 64px 32px 80px;">
     <div data-dc-tpl="210" style="background: linear-gradient(135deg, rgb(52, 76, 75), rgb(52, 76, 75)); border-radius: 36px; padding: 72px 56px; text-align: center; position: relative; overflow: hidden;">
-      <div data-dc-tpl="211" style="position: absolute; left: -80px; bottom: -120px; width: 360px; height: 360px; border-radius: 50%; background: radial-gradient(circle, rgba(238, 95, 58, 0.16), transparent 68%);"></div>
       <div data-dc-tpl="212" style="position: absolute; right: -60px; top: -60px; width: 280px; height: 280px; border-radius: 50%; border: 1px solid rgba(255, 255, 255, 0.08);"></div>
+      <div class="textura-linhas"></div>
+      <div class="brilho-verde" style="left: -140px; bottom: -180px; width: 620px; height: 620px;"></div>
+      <div class="brilho-verde" style="right: -100px; top: -160px; width: 460px; height: 460px;"></div>
       <div data-dc-tpl="213" style="position: relative;">
         <img data-dc-tpl="214" src="logo.svg" alt="" style="width: 64px; margin-bottom: 24px;">
         <h2 data-dc-tpl="215" style="font-family: &quot;Bricolage Grotesque&quot;, sans-serif; font-weight: 800; font-size: 52px; letter-spacing: -0.03em; color: rgb(255, 255, 255); margin: 0px; line-height: 1.05;">Seu problema com a Receita<br data-dc-tpl="216">acaba hoje.</h2>
@@ -745,8 +904,11 @@
   </div>
 
   
-  <div data-dc-tpl="221" style="background: rgb(52, 76, 75); color: rgb(255, 255, 255); border-radius: 28px 28px 0 0; overflow: hidden;">
-    <div data-dc-tpl="222" style="max-width: 1200px; margin: 0px auto; padding: 56px 32px 40px; display: grid; grid-template-columns: 1.4fr 1fr 1fr 1fr; gap: 32px;">
+  <div data-dc-tpl="221" style="background: rgb(52, 76, 75); color: rgb(255, 255, 255); border-radius: 28px 28px 0 0; overflow: hidden; position: relative;">
+    <div class="textura-linhas"></div>
+    <div class="brilho-verde" style="left: 8%; top: -160px; width: 560px; height: 560px;"></div>
+    <div class="brilho-verde suave" style="right: -120px; bottom: -200px; width: 520px; height: 520px;"></div>
+    <div data-dc-tpl="222" style="max-width: 1200px; margin: 0px auto; padding: 56px 32px 40px; display: grid; grid-template-columns: 1.4fr 1fr 1fr 1fr; gap: 32px; position: relative;">
       <div data-dc-tpl="223">
         <div data-dc-tpl="224" style="display: flex; align-items: center; gap: 11px; margin-bottom: 16px;">
           <img data-dc-tpl="225" src="logo.svg" alt="" style="width: 32px; display: block; filter: brightness(0) invert(1);">
@@ -780,7 +942,7 @@
         </div>
       </div>
     </div>
-    <div data-dc-tpl="247" style="border-top: 1px solid rgba(255, 255, 255, 0.08);">
+    <div data-dc-tpl="247" style="border-top: 1px solid rgba(255, 255, 255, 0.08); position: relative;">
       <div data-dc-tpl="248" style="max-width: 1200px; margin: 0px auto; padding: 22px 32px; display: flex; justify-content: space-between; font-size: 13px;">
         <span data-dc-tpl="249">© 2026 Olá, Contador · HEXX SERVIÇOS DIGITAIS LTDA · CNPJ 62.414.421/0001-16</span>
         <span data-dc-tpl="250">Feito com carinho no Brasil 🇧🇷</span>

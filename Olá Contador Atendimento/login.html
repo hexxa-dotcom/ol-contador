@@ -18,19 +18,35 @@
     a { color: inherit; }
     ::selection { background: var(--coral); color: #fff; }
 
-    .shell { min-height: 100vh; display: grid; grid-template-columns: 1fr 1fr; }
-    @media (max-width: 860px) { .shell { grid-template-columns: 1fr; } }
+    .shell { height: 100vh; display: grid; grid-template-columns: 0.92fr 1.08fr; }
+    @media (max-width: 860px) { .shell { height: auto; min-height: 100vh; grid-template-columns: 1fr; } }
 
     /* Coluna do formulário */
-    .lado-form { display: flex; align-items: center; justify-content: center; padding: 40px 24px; }
-    .card { width: 100%; max-width: 400px; }
-    .brand { display: flex; align-items: center; gap: 10px; margin-bottom: 30px; }
+    .lado-form { position: relative; display: flex; align-items: center; justify-content: center; padding: 40px 24px; overflow-y: auto; }
+    .card { width: 100%; max-width: 380px; }
+
+    /* Saída pra home: quem caiu aqui sem querer precisa de um caminho de volta
+       que não seja o botão do navegador. Fica no canto pra não competir com o
+       formulário. */
+    .voltar { position: absolute; top: 28px; left: 28px; display: inline-flex;
+      align-items: center; gap: 7px; font-size: 13.5px; font-weight: 600;
+      color: var(--muted); text-decoration: none; padding: 8px 13px;
+      border-radius: 999px; border: 1px solid transparent;
+      transition: color .18s ease, background .18s ease, border-color .18s ease; }
+    .voltar:hover { color: var(--pine); background: rgba(52,76,75,.06); border-color: var(--border); }
+    .voltar svg { width: 15px; height: 15px; flex-shrink: 0;
+      transition: transform .18s cubic-bezier(.2,.8,.2,1); }
+    .voltar:hover svg { transform: translateX(-2px); }
+    @media (max-width: 860px) { .voltar { top: 18px; left: 16px; } }
+    .brand { display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 30px; }
     .brand img { width: 34px; display: block; }
     .brand h1 { font-family: 'Bricolage Grotesque', system-ui, sans-serif; font-size: 19px; font-weight: 800;
       color: var(--pine); letter-spacing: -.02em; }
     .brand h1 i { font-style: normal; color: var(--coral); }
-    h2 { font-family: 'Bricolage Grotesque', system-ui, sans-serif; font-size: 26px; font-weight: 800; margin-bottom: 6px; letter-spacing: -.02em; }
-    p.sub { font-size: 14px; color: var(--muted); margin-bottom: 26px; line-height: 1.5; }
+    h2 { font-family: 'Bricolage Grotesque', system-ui, sans-serif; font-size: 26px; font-weight: 800; margin-bottom: 6px; letter-spacing: -.02em; text-align: center; }
+    p.sub { font-size: 14px; color: var(--muted); margin-bottom: 26px; line-height: 1.5; text-align: center; }
+    /* Rótulos seguem alinhados à esquerda: eles ancoram o campo logo abaixo,
+       centralizar quebraria essa relação. */
     label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; }
     input { width: 100%; padding: 12px 14px; border: 1px solid var(--border); border-radius: 10px;
       font-size: 15px; font-family: inherit; margin-bottom: 16px; outline: none; transition: border-color .15s; }
@@ -48,18 +64,87 @@
     .foot { margin-top: 22px; text-align: center; font-size: 12px; color: var(--muted); line-height: 1.6; }
     .foot a { color: var(--pine); font-weight: 600; text-decoration: none; }
 
-    /* Coluna de imagem — placeholder até termos a foto real do escritório/equipe.
-       Fica pronta pra virar `background-image` sem mexer em mais nada. */
-    .lado-imagem { position: relative; background: linear-gradient(155deg, var(--pine) 0%, #26433f 100%); overflow: hidden; }
+    /* Coluna da direita: card arredondado com o mesmo tratamento dos cards do
+       site (gradiente + luz difusa + textura de linhas). Verde pro cliente,
+       coral pro contador — a cor identifica o papel antes de ler o texto. */
+    .lado-imagem { position: relative; height: 100%; padding: 20px 20px 20px 0; }
     @media (max-width: 860px) { .lado-imagem { display: none; } }
-    .lado-imagem::before, .lado-imagem::after { content: ''; position: absolute; border-radius: 50%; opacity: .12; background: var(--coral); }
-    .lado-imagem::before { width: 420px; height: 420px; top: -120px; right: -140px; }
-    .lado-imagem::after { width: 280px; height: 280px; bottom: -100px; left: -80px; background: var(--coral-light); }
-    .imagem-conteudo { position: relative; z-index: 1; height: 100%; display: flex; flex-direction: column; align-items: flex-start; justify-content: flex-end; padding: 56px; color: #fff; }
-    .imagem-selo { width: 56px; height: 56px; border-radius: 16px; background: rgba(255,255,255,.12); backdrop-filter: blur(4px);
-      display: flex; align-items: center; justify-content: center; font-size: 24px; margin-bottom: 24px; }
-    .imagem-conteudo h3 { font-family: 'Bricolage Grotesque', system-ui, sans-serif; font-size: 28px; font-weight: 800; letter-spacing: -.02em; line-height: 1.15; max-width: 380px; margin-bottom: 12px; }
-    .imagem-conteudo p { font-size: 15px; opacity: .82; line-height: 1.5; max-width: 360px; }
+
+    .painel { position: relative; height: 100%; overflow: hidden; border-radius: 28px;
+      background: linear-gradient(152deg, #4A6B69 0%, #3D5A58 45%, #344C4B 78%, #2A3E3D 100%);
+      box-shadow: 0 2px 6px rgba(42,62,61,.14), 0 30px 60px -34px rgba(42,62,61,.5); }
+    /* Variante do contador: mesmo desenho, paleta coral do banner da home. */
+    body[data-papel="contador"] .painel {
+      background: linear-gradient(152deg, #F58A6B 0%, #F1734F 45%, #E6603D 78%, #D9532F 100%);
+      box-shadow: 0 2px 6px rgba(200,66,31,.14), 0 30px 60px -34px rgba(200,66,31,.42); }
+
+    /* Luzes difusas — blur alto e opacidade baixa viram iluminação, não mancha. */
+    .luz { position: absolute; border-radius: 50%; pointer-events: none; }
+    .luz-1 { width: 560px; height: 560px; top: -240px; left: -120px;
+      background: radial-gradient(circle, rgba(150,225,205,.30), rgba(126,214,190,.08) 46%, transparent 72%);
+      filter: blur(30px); }
+    .luz-2 { width: 420px; height: 420px; bottom: -200px; right: -90px;
+      background: radial-gradient(circle, rgba(126,214,190,.22), transparent 70%);
+      filter: blur(34px); }
+    .luz-3 { width: 340px; height: 340px; top: 40%; right: 12%;
+      background: radial-gradient(circle, rgba(255,255,255,.12), transparent 68%);
+      filter: blur(38px); }
+    body[data-papel="contador"] .luz-1 {
+      background: radial-gradient(circle, rgba(255,214,190,.40), rgba(255,190,160,.12) 46%, transparent 72%); }
+    body[data-papel="contador"] .luz-2 {
+      background: radial-gradient(circle, rgba(255,160,120,.30), transparent 72%); }
+
+    /* Textura de ondas. O ladrilho é 200x180 e cada onda começa e termina na
+       MESMA altura e com a mesma inclinação (meio período de seno aproximado
+       por dois cúbicos simétricos) — sem isso as linhas não se encontram na
+       emenda e aparecem "quebradas". */
+    .textura { position: absolute; inset: 0; pointer-events: none; opacity: .55;
+      background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="200" height="180"><g stroke="white" fill="none" stroke-width="1.4"><path d="M0 30 C 36 18, 64 18, 100 30 C 136 42, 164 42, 200 30" opacity="0.13"/><path d="M0 90 C 36 78, 64 78, 100 90 C 136 102, 164 102, 200 90" opacity="0.10"/><path d="M0 150 C 36 138, 64 138, 100 150 C 136 162, 164 162, 200 150" opacity="0.08"/></g></svg>');
+      background-repeat: repeat; }
+
+    .vinheta { position: absolute; inset: 0; pointer-events: none;
+      background: radial-gradient(ellipse 80% 74% at 50% 44%, transparent 46%, rgba(18,34,33,.20) 100%); }
+    body[data-papel="contador"] .vinheta {
+      background: radial-gradient(ellipse 80% 74% at 50% 44%, transparent 46%, rgba(150,44,18,.16) 100%); }
+
+    .painel-conteudo { position: relative; z-index: 1; height: 100%; display: flex;
+      flex-direction: column; align-items: center; justify-content: center;
+      padding: 56px; color: #fff; text-align: center; }
+
+    /* Marca no topo do painel (desktop). No celular o painel não existe, então
+       ela volta pra coluna do formulário — ver media query lá embaixo. */
+    .painel-marca { position: absolute; top: 40px; left: 0; right: 0; z-index: 1;
+      display: flex; align-items: center; justify-content: center; gap: 11px; }
+    .painel-marca img { width: 34px; display: block; filter: brightness(0) invert(1); }
+    .painel-marca span { font-family: 'Bricolage Grotesque', system-ui, sans-serif;
+      font-size: 20px; font-weight: 800; letter-spacing: -.02em; color: #fff; }
+    .painel-marca i { font-style: normal; opacity: .72; }
+
+    /* Carrossel: os slides ficam empilhados no mesmo lugar (grid 1x1) e só a
+       opacidade/posição muda — assim a altura do bloco não pula entre frases
+       de tamanhos diferentes. */
+    .slides { display: grid; width: 100%; max-width: 520px; }
+    .slide { grid-area: 1 / 1; opacity: 0; transform: translateY(10px);
+      transition: opacity .7s ease, transform .7s cubic-bezier(.2,.8,.2,1);
+      pointer-events: none; }
+    .slide.ativo { opacity: 1; transform: none; }
+    .slide h3 { font-family: 'Bricolage Grotesque', system-ui, sans-serif;
+      font-size: 46px; font-weight: 800; letter-spacing: -.034em; line-height: 1.06;
+      margin: 0 auto 18px; color: #fff; text-shadow: 0 2px 22px rgba(0,0,0,.18); }
+    .slide p { font-size: 17px; color: rgba(255,255,255,.9); line-height: 1.55;
+      max-width: 400px; margin: 0 auto; }
+
+    /* Indicadores: mostram quantas frases existem e onde estamos. */
+    .slides-pontos { display: flex; gap: 8px; justify-content: center; margin-top: 40px; }
+    .slides-pontos span { width: 7px; height: 7px; border-radius: 50%;
+      background: rgba(255,255,255,.32); transition: background .4s ease, width .4s ease; }
+    .slides-pontos span.ativo { background: rgba(255,255,255,.95); width: 22px; border-radius: 4px; }
+
+    @media (prefers-reduced-motion: reduce) { .slide { transition: none; } }
+
+    /* No desktop a marca vive no painel; no celular (painel escondido) ela
+       volta pro topo do formulário. */
+    @media (min-width: 861px) { .brand { display: none; } }
   </style>
 <link rel="stylesheet" href="acessibilidade.css">
 <script src="monitoramento.js" defer></script>
@@ -67,6 +152,10 @@
 <body>
   <div class="shell">
     <div class="lado-form">
+      <a class="voltar" href="index.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+        Voltar para a home
+      </a>
       <div class="card">
         <a class="brand" href="index.html"><img src="logo.svg" alt="" /><h1>Olá<i>,</i> Contador<i>.</i></h1></a>
         <h2 id="titulo">Entrar</h2>
@@ -93,13 +182,21 @@
       </div>
     </div>
 
-    <!-- Placeholder pronto pra virar foto real do escritório/equipe — só trocar
-         o gradiente por `background-image:url(...)` quando a foto chegar. -->
-    <div class="lado-imagem" aria-hidden="true">
-      <div class="imagem-conteudo">
-        <div class="imagem-selo">🧾</div>
-        <h3 id="imagem-titulo">Um contador de verdade, do outro lado da tela</h3>
-        <p id="imagem-texto">Registro ativo no CRC, sigilo profissional e resposta por escrito — sem sair de casa.</p>
+    <!-- aria-hidden fica só nas camadas decorativas e no carrossel (texto de
+         marketing que rodando vira ruído no leitor de tela). A marca é um link
+         de verdade, então precisa continuar acessível. -->
+    <div class="lado-imagem">
+      <div class="painel">
+        <div class="luz luz-1" aria-hidden="true"></div>
+        <div class="luz luz-2" aria-hidden="true"></div>
+        <div class="luz luz-3" aria-hidden="true"></div>
+        <div class="textura" aria-hidden="true"></div>
+        <div class="vinheta" aria-hidden="true"></div>
+        <a class="painel-marca" href="index.html"><img src="logo.svg" alt="" /><span>Olá<i>,</i> Contador<i>.</i></span></a>
+        <div class="painel-conteudo" aria-hidden="true">
+          <div class="slides" id="slides"></div>
+          <div class="slides-pontos" id="slides-pontos"></div>
+        </div>
       </div>
     </div>
   </div>
@@ -129,20 +226,86 @@
       return true;
     }
 
-    // Ajusta só o texto conforme ?role= (window.OC_ROLE, já lido em config.js) —
-    // não muda a autenticação em si, quem decide o destino real é o banco.
+    // Frases do painel: cada papel vê o que importa pra ele. Só funções que
+    // existem de verdade no sistema — nada de promessa que a plataforma não
+    // entrega.
+    const FRASES = {
+      geral: [
+        ['Um contador de verdade, do outro lado da tela', 'Registro ativo no CRC, sigilo profissional e resposta por escrito — sem sair de casa.'],
+        ['Sua situação com a Receita, sempre à vista', 'Acompanhe atendimentos, documentos e prazos num só lugar, direto do celular.'],
+        ['Tudo termina com relatório assinado', 'No fim do atendimento você baixa um PDF com o que aconteceu, o que foi feito e o que vem agora.'],
+        ['Radar Fiscal de olho por você', 'A gente monitora sua situação na Receita e avisa antes do problema crescer.']
+      ],
+      cliente: [
+        ['Sua situação com a Receita, sempre à vista', 'Acompanhe atendimentos, documentos e prazos num só lugar, direto do celular.'],
+        ['Converse com quem cuida do seu caso', 'Mensagens, documentos e histórico ficam guardados na plataforma — nada se perde no WhatsApp.'],
+        ['Tudo termina com relatório assinado', 'Baixe um PDF com o que aconteceu, o que foi feito e o que vem agora. Seu, para sempre.'],
+        ['Radar Fiscal de olho por você', 'A gente monitora sua situação na Receita e avisa antes do problema crescer.']
+      ],
+      contador: [
+        ['Todo o escritório num painel só', 'Atendimentos, clientes e financeiro organizados num só lugar.'],
+        ['Do primeiro contato ao relatório final', 'Triagem, acompanhamento em Kanban e relatório assinado — o fluxo inteiro na mesma tela.'],
+        ['Documentos e histórico no lugar certo', 'Cada caso guarda suas mensagens, arquivos e anotações. Sem caçar informação depois.'],
+        ['Cobrança e recebimento integrados', 'Emissão, acompanhamento de pagamento e conciliação sem sair do painel.']
+      ]
+    };
+
+    // Ajusta texto e cor do painel conforme ?role= (window.OC_ROLE, já lido em
+    // config.js) — não muda a autenticação em si, quem decide o destino real é
+    // o banco. O data-papel no body é o que troca o painel verde pelo coral.
     (function ajustarTextoPeloRole() {
       if (window.OC_ROLE === 'cliente') {
         document.getElementById('titulo').textContent = 'Entrar como cliente';
         document.getElementById('subtitulo').textContent = 'Acesse sua área para acompanhar atendimentos, documentos e o Radar Fiscal.';
-        document.getElementById('imagem-titulo').textContent = 'Sua situação com a Receita, sempre à vista';
-        document.getElementById('imagem-texto').textContent = 'Acompanhe atendimentos, documentos e prazos num só lugar, direto do celular.';
       } else if (window.OC_ROLE === 'contador') {
+        document.body.dataset.papel = 'contador';
         document.getElementById('titulo').textContent = 'Painel do escritório';
         document.getElementById('subtitulo').textContent = 'Entre com a conta cadastrada pelo escritório.';
-        document.getElementById('imagem-titulo').textContent = 'Todo o escritório num painel só';
-        document.getElementById('imagem-texto').textContent = 'Atendimentos, clientes e financeiro organizados num só lugar.';
       }
+    })();
+
+    // Carrossel de frases do painel. Pausa quando a aba sai de foco pra não
+    // gastar timer à toa, e respeita quem pediu menos movimento no sistema.
+    (function montarSlides() {
+      const alvo = document.getElementById('slides');
+      const pontos = document.getElementById('slides-pontos');
+      if (!alvo) return;
+
+      const lista = FRASES[window.OC_ROLE] || FRASES.geral;
+      lista.forEach(([titulo, texto], i) => {
+        const slide = document.createElement('div');
+        slide.className = 'slide' + (i === 0 ? ' ativo' : '');
+        const h = document.createElement('h3');
+        h.textContent = titulo;
+        const p = document.createElement('p');
+        p.textContent = texto;
+        slide.append(h, p);
+        alvo.appendChild(slide);
+
+        const ponto = document.createElement('span');
+        if (i === 0) ponto.className = 'ativo';
+        pontos.appendChild(ponto);
+      });
+
+      if (lista.length < 2) return;
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+      const slides = alvo.querySelectorAll('.slide');
+      const bolinhas = pontos.querySelectorAll('span');
+      let atual = 0, timer = null;
+
+      function avancar() {
+        slides[atual].classList.remove('ativo');
+        bolinhas[atual].classList.remove('ativo');
+        atual = (atual + 1) % slides.length;
+        slides[atual].classList.add('ativo');
+        bolinhas[atual].classList.add('ativo');
+      }
+      const iniciar = () => { timer = timer || setInterval(avancar, 5500); };
+      const parar = () => { clearInterval(timer); timer = null; };
+
+      iniciar();
+      document.addEventListener('visibilitychange', () => document.hidden ? parar() : iniciar());
     })();
 
     // O coração do login único: quem decide o destino é o banco, não a URL.
