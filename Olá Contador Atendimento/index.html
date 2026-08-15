@@ -321,9 +321,8 @@
     .nav-entrar-menu a[href*="contador"]::after{background:#344C4B;}
     .nav-entrar-menu a:hover::after{transform:scaleX(1);}
 
-    /* Header compacto ao rolar: no DESKTOP nada some (cabe tudo), só ganha
-       sombra. No CELULAR o wordmark "Olá, Contador." some pra sobrar largura
-       pro botão "Resolver agora" — que é o motivo de encolher a marca.
+    /* Header compacto ao rolar: ganha sombra e os links recuam, mas a marca
+       fica inteira — a barra tem só marca + links + "Entrar", sobra espaço.
        overflow:hidden só entra junto com o modo compacto — se ficasse sempre
        ligado, cortava o dropdown do "Entrar". */
     .nav-encolhe{transition:opacity .2s ease, max-width .2s ease, margin .2s ease;}
@@ -371,7 +370,7 @@
     @media (max-width: 900px) {
       .planos-grid { grid-template-columns: 1fr !important; max-width: 460px !important; }
       /* No celular tudo (links + Entrar) vai pro painel do hambúrguer — a
-         barra fica só com marca, "Resolver agora" e o botão do menu. */
+         barra fica só com a marca e o botão do menu. */
       .nav-links, .nav-acoes-desktop { display: none !important; }
       .nav-hamburguer { display: flex !important; }
       /* Com a barra virando pílula flutuante, o painel também vira um cartão
