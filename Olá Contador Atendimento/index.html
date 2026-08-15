@@ -185,7 +185,7 @@
     .hero-banner{position:relative;overflow:hidden;isolation:isolate;
       max-width:1240px;margin:0 auto;border-radius:32px;
       background:
-        linear-gradient(152deg, #F58A6B 0%, #F1734F 42%, #E6603D 78%, #D9532F 100%);
+        linear-gradient(152deg, #F79C80 0%, #F3805F 42%, #EA6D4B 78%, #E0603C 100%);
       box-shadow:0 2px 6px rgba(200,66,31,.14), 0 40px 80px -40px rgba(200,66,31,.42);}
 
     /* Camadas de luz: focos grandes e desfocados dão volume ao gradiente
@@ -213,7 +213,7 @@
       background:radial-gradient(ellipse 80% 72% at 50% 42%, transparent 44%, rgba(150,44,18,.14) 100%);}
 
     .hero-centro{position:relative;z-index:1;max-width:900px;margin:0 auto;
-      padding:104px 32px 72px;text-align:center;color:#fff;}
+      padding:80px 32px 68px;text-align:center;color:#fff;}
 
     .hero-badge{display:inline-flex;align-items:center;gap:9px;
       background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.28);
@@ -262,13 +262,15 @@
     .hero-preco .sep{opacity:.4;}
     .hero-preco .fraco{opacity:.8;}
 
-    .hero-checks{display:flex;align-items:center;justify-content:center;gap:38px;
-      margin-top:54px;padding-top:32px;border-top:1px solid rgba(255,255,255,.18);
-      flex-wrap:wrap;}
+    /* Selos fora do coral: viram uma faixa clara logo abaixo do banner. É o
+       ponto de descanso do olho — sem isso o campo de cor ia direto do topo
+       da tela até a faixa verde, sem respiro. */
+    .hero-checks{display:flex;align-items:center;justify-content:center;gap:40px;
+      margin:26px auto 0;max-width:1240px;padding:0 8px;flex-wrap:wrap;}
     .hero-check{display:flex;align-items:center;gap:9px;font-size:14.5px;
-      font-weight:600;color:rgba(255,255,255,.94);}
+      font-weight:600;color:#344C4B;}
     .hero-check-icone{width:24px;height:24px;border-radius:50%;flex-shrink:0;
-      background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.3);
+      background:rgba(52,76,75,.1);color:#344C4B;
       display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;}
 
     /* Sublinhado coral que cresce da esquerda pra direita no hover dos
@@ -418,7 +420,7 @@
       #nav-fixo { top: 10px; width: calc(100% - 20px); border-radius: 18px; }
       .hero-banner { border-radius: 26px; }
       .hero-centro { padding: 64px 24px 52px !important; }
-      .hero-checks { gap: 24px !important; margin-top: 40px !important; padding-top: 26px !important; }
+      .hero-checks { gap: 22px !important; margin-top: 22px !important; }
       .hero-h1 { font-size: 46px !important; }
       .hero-sub { font-size: 18.5px !important; }
       /* CTA final: 52px de título e dois botões lado a lado não cabem —
@@ -459,7 +461,7 @@
       .grid-4 { grid-template-columns: 1fr !important; gap: 32px !important; }
       .hero-buttons { flex-direction: column; align-items: stretch !important; gap: 16px !important; }
       .hero-buttons > * { width: 100%; text-align: center; justify-content: center; }
-      .hero-checks { flex-direction: column; align-items: center !important; gap: 14px !important; }
+      .hero-checks { flex-direction: column; align-items: center !important; gap: 12px !important; margin-top: 20px !important; }
       .hero-centro { padding: 52px 20px 44px !important; }
       .hero-sub { font-size: 17.5px !important; line-height: 1.5 !important; }
       .hero-preco { gap: 7px !important; font-size: 14px !important; }
@@ -578,13 +580,15 @@
           <b>não resolveu, não paga</b>
         </div>
 
-        <!-- Selos de confiança fecham o bloco, separados por uma linha translúcida. -->
-        <div class="hero-checks">
-          <div class="hero-check"><span class="hero-check-icone">✓</span>Contadores com CRC ativo</div>
-          <div class="hero-check"><span class="hero-check-icone">✓</span>Sigilo profissional</div>
-          <div class="hero-check"><span class="hero-check-icone">✓</span>Relatório assinado no fim</div>
-        </div>
       </div>
+    </div>
+
+    <!-- Selos fora do coral, no fundo claro: o campo de cor fica menor e o
+         olho ganha um ponto de descanso logo abaixo do banner. -->
+    <div class="hero-checks">
+      <div class="hero-check"><span class="hero-check-icone">✓</span>Contadores com CRC ativo</div>
+      <div class="hero-check"><span class="hero-check-icone">✓</span>Sigilo profissional</div>
+      <div class="hero-check"><span class="hero-check-icone">✓</span>Relatório assinado no fim</div>
     </div>
   </div>
 
