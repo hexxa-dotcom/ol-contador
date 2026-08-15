@@ -144,23 +144,6 @@
     .lk:hover{color:#344C4B !important;}
     .btnp{transition:transform .15s ease, box-shadow .15s ease;}
     .btnp:hover{transform:translateY(-2px);box-shadow:0 16px 30px -14px rgba(238, 95, 58, 0.6);}
-    /* "Resolver agora" é o único CTA sempre visível na tela — ganha um halo
-       verde que pulsa devagar pra puxar o olho sem gritar, e o mesmo brilho
-       que atravessa no hover. */
-    .btng{position:relative;overflow:hidden;
-      transition:transform .18s ease, box-shadow .25s ease;
-      animation:halo-btng 3.4s ease-in-out infinite;}
-    .btng:hover{transform:translateY(-2px);animation:none;
-      box-shadow:0 0 0 4px rgba(126,214,190,.22), 0 18px 34px -14px rgba(52,76,75,.55);}
-    .btng::before{content:'';position:absolute;top:0;left:-70%;width:45%;height:100%;
-      background:linear-gradient(100deg,transparent,rgba(255,255,255,.22),transparent);
-      transform:skewX(-18deg);transition:left .55s cubic-bezier(.3,.8,.35,1);}
-    .btng:hover::before{left:130%;}
-    @keyframes halo-btng{
-      0%,100%{box-shadow:0 0 0 0 rgba(126,214,190,0), 0 10px 22px -14px rgba(52,76,75,.5);}
-      50%{box-shadow:0 0 0 6px rgba(126,214,190,.18), 0 10px 22px -14px rgba(52,76,75,.5);}
-    }
-    @media (prefers-reduced-motion: reduce){ .btng{animation:none;} }
     /* Cards ganham profundidade e sobem no hover. Os escuros (teal) usam
        sombra da própria cor pra não virar um borrão cinza. */
     .card{transition:transform .25s cubic-bezier(.2,.8,.2,1), box-shadow .25s ease;
@@ -454,18 +437,7 @@
     }
     
     @media (max-width: 600px) {
-      /* No celular a marca completa fica (é o que identifica o site), então
-         quem cede espaço é o CTA: fonte e padding menores. */
       .nav-wordmark { font-size: 16px !important; white-space: nowrap; }
-      /* No celular o halo pulsante fica desproporcional num botão pequeno —
-         vira um brilho fixo e discreto, e o toque responde com um afundar
-         rápido (:active) em vez do hover, que não existe aqui. */
-      .btng { font-size: 13px !important; font-weight: 600 !important;
-        padding: 10px 15px !important; border-radius: 10px !important;
-        min-height: 38px !important; white-space: nowrap;
-        animation: none !important;
-        box-shadow: 0 0 0 3px rgba(126,214,190,.16), 0 6px 14px -8px rgba(52,76,75,.55) !important; }
-      .btng:active { transform: scale(.96); box-shadow: 0 0 0 2px rgba(126,214,190,.22), 0 3px 8px -6px rgba(52,76,75,.6) !important; }
       .nav-container { padding: 12px 12px !important; gap: 6px; }
       .nav-container > a:first-child { gap: 7px !important; min-width: 0; }
       .nav-container > a:first-child img { width: 28px !important; }
@@ -481,7 +453,6 @@
       .hero-banner { border-radius: 22px; }
       .btn-hero-branco, .btn-hero-ghost { width: 100%; text-align: center; }
       .btnp { min-height: 48px; display: inline-flex; align-items: center; justify-content: center; }
-      .btng { display: inline-flex; align-items: center; justify-content: center; }
       .card { padding: 25px 22px !important; }
       .cta-final { padding: 40px 20px !important; }
       .cta-final h2 { font-size: 29px !important; }
@@ -497,7 +468,6 @@
       .nav-wordmark { font-size: 14px !important; }
       .nav-container > a:first-child img { width: 24px !important; }
       .nav-container > a:first-child { gap: 5px !important; }
-      .btng { font-size: 12px !important; padding: 9px 12px !important; min-height: 34px !important; }
       .nav-container { padding: 10px 10px !important; gap: 4px; }
       .nav-hamburguer { margin-left: 0 !important; }
       .hero-h1 { font-size: 34px !important; }
@@ -521,7 +491,6 @@
     <div data-dc-tpl="7" class="nav-container" style="max-width: 1200px; margin: 0px auto; padding: 16px 32px; display: flex; align-items: center; justify-content: space-between;">
       <a data-dc-tpl="8" href="#top" style="display: flex; align-items: center; gap: 12px;">
         <img data-dc-tpl="9" src="logo.svg" alt="" style="width: 36px; display: block; flex-shrink: 0;">
-        <!-- Só some no celular (ver media query) pra sobrar espaço pro CTA. -->
         <span data-dc-tpl="10" class="nav-wordmark" style="font-family: &quot;Bricolage Grotesque&quot;, sans-serif; font-weight: 800; font-size: 21px; letter-spacing: -0.02em; color: rgb(52, 76, 75); white-space: nowrap;">Olá<span data-dc-tpl="11" style="color: rgb(238, 95, 58);">,</span> Contador<span data-dc-tpl="12" style="color: rgb(238, 95, 58);">.</span></span>
       </a>
       <div data-dc-tpl="13" class="nav-links" style="display: flex; align-items: center; gap: 32px; font-size: 15px; font-weight: 500; color: rgb(52, 76, 75);">
@@ -529,6 +498,9 @@
         <a class="lk" href="radar-fiscal.html" style="transition: color 0.15s;">Radar Fiscal</a>
         <a class="lk" href="#contato" style="transition: color 0.15s;">Contato</a>
       </div>
+      <!-- Sem CTA aqui: o hero já abre com "Resolver meu problema" logo abaixo,
+           e repetir o botão na barra só competia com ele. Sobra o "Entrar",
+           que é a única ação que a barra precisa oferecer sempre. -->
       <div style="display: flex; align-items: center; gap: 14px;">
         <div class="nav-acoes-desktop" style="display: flex; align-items: center;">
           <!-- Um botão só: "Entrar" com setinha, clique (ou hover no desktop)
@@ -541,10 +513,6 @@
             </div>
           </div>
         </div>
-        <!-- Teal, não coral: a 15px o branco sobre coral não passa no contraste
-             mínimo (3,32:1 pra um exigido de 4,5:1). O teal dá 9,2:1 e ainda
-             cria hierarquia — o coral fica reservado pro CTA do hero. -->
-        <a data-dc-tpl="19" class="btng" href="precos.html" style="background: rgb(52, 76, 75); color: rgb(255, 255, 255); font-weight: 600; font-size: 15px; padding: 11px 22px; border-radius: 12px; box-shadow: rgba(52, 76, 75, 0.5) 0px 10px 22px -14px; white-space: nowrap;">Resolver agora</a>
         <button type="button" class="nav-hamburguer" aria-label="Abrir menu" aria-expanded="false">
           <span></span><span></span><span></span>
         </button>

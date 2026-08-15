@@ -219,11 +219,10 @@
     .radar-hero h1{font-size:38px}
     h2{font-size:30px !important}
     .topo-in{padding:12px 14px}
-    /* No celular tudo (links + Entrar) vai pro painel do hambúrguer, e o
-       wordmark sai da barra pra sobrar largura pro CTA — que é o motivo de
-       encolher a marca aqui (no desktop cabe tudo, então lá não some nada). */
+    /* No celular os links vão pro painel do hambúrguer. A marca completa
+       fica: é o que identifica o site. */
     .nav-links, .nav-acoes-desktop{display:none !important}
-    .nav-wordmark{display:none !important}
+    .nav-wordmark{font-size:16px !important;white-space:nowrap}
     .nav-hamburguer{display:flex !important}
     /* Fundo sólido de propósito: backdrop-filter aninhado dentro de outro
        elemento que já tem backdrop-filter (a barra) não borra a página atrás
@@ -249,9 +248,6 @@
     .nav-painel a[href*="role=contador"]::before{content:'';width:8px;height:8px;border-radius:50%;flex-shrink:0}
     .nav-painel a[href*="role=cliente"]::before{background:#EE5F3A}
     .nav-painel a[href*="role=contador"]::before{background:#344C4B}
-    /* Só o CTA da barra encolhe. Sem o escopo `.topo`, essa regra pegava
-       tambem os botoes dos planos e do rodape, que viravam 13px/35px. */
-    .topo .btng{font-size:13px !important;padding:9px 14px !important;white-space:nowrap}
     .nav-acoes{gap:8px !important}
     .wrap{padding:0 18px}
   }
@@ -290,12 +286,11 @@
         <div class="nav-entrar-wrap">
           <button type="button" class="nav-entrar-btn" aria-haspopup="true" aria-expanded="false">Entrar <span class="nav-caret">▾</span></button>
           <div class="nav-entrar-menu" role="menu">
-            <a href="login.html?role=cliente" role="menuitem">Área do cliente</a>
-            <a href="login.html?role=contador" role="menuitem">Área do escritório</a>
+            <a href="login.html?role=cliente" role="menuitem">Sou cliente</a>
+            <a href="login.html?role=contador" role="menuitem">Sou contador</a>
           </div>
         </div>
       </div>
-      <a class="btng" href="#planos" style="background:#344C4B;color:#fff;font-weight:600;font-size:15px;padding:11px 22px;border-radius:12px;box-shadow:0 10px 22px -14px rgba(52, 76, 75, .5);white-space:nowrap;">Ver preços</a>
       <button type="button" class="nav-hamburguer" aria-label="Abrir menu" aria-expanded="false">
         <span></span><span></span><span></span>
       </button>
@@ -307,8 +302,8 @@
       <a href="radar-fiscal.html">Radar Fiscal</a>
       <a href="index.html#contato">Contato</a>
       <div class="painel-rotulo">Entrar</div>
-      <a href="login.html?role=cliente">Área do cliente</a>
-      <a href="login.html?role=contador">Área do escritório</a>
+      <a href="login.html?role=cliente">Sou cliente</a>
+      <a href="login.html?role=contador">Sou contador</a>
     </div>
 </div>
 
