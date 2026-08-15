@@ -56,3 +56,31 @@
 /* Blocos pequenos (um item de lista, por exemplo) não comportam a textura:
    o padrão fica maior que o card e vira sujeira. Só a luz. */
 .superficie-escura.so-luz::before { content: none; }
+
+
+/* ---------- Marcador de papel no menu "Entrar" ----------
+ *
+ * Substitui a bolinha colorida por um ícone: uma pessoa pro cliente e uma
+ * calculadora pro contador. A bolinha só funcionava pra quem já sabia o que
+ * cada cor significava; o ícone diz sozinho pra quem é cada link — que é o
+ * ponto, já que a pessoa precisa acertar de primeira qual porta é a dela.
+ *
+ * Verde pro cliente, coral pro contador.
+ */
+.papel-icone {
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background .18s ease, color .18s ease;
+}
+.papel-icone svg { width: 16px; height: 16px; display: block; }
+
+a[href*="role=cliente"] .papel-icone { background: rgba(52, 76, 75, .1); color: #344C4B; }
+a[href*="role=cliente"]:hover .papel-icone { background: rgba(52, 76, 75, .16); }
+
+a[href*="role=contador"] .papel-icone { background: rgba(238, 95, 58, .12); color: #EE5F3A; }
+a[href*="role=contador"]:hover .papel-icone { background: rgba(238, 95, 58, .2); }
