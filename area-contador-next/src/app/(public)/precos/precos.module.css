@@ -23,9 +23,9 @@
   gap: 8px;
   font-size: 0.85rem;
   font-weight: 700;
-  color: var(--pub-coral, #EE5F3A);
-  background: rgba(238, 95, 58, 0.08);
-  border: 1px solid rgba(238, 95, 58, 0.2);
+  color: #FF6A45;
+  background: rgba(255, 106, 69, 0.08);
+  border: 1px solid rgba(255, 106, 69, 0.2);
   padding: 8px 18px;
   border-radius: 99px;
   margin-bottom: 24px;
@@ -36,8 +36,8 @@
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: var(--pub-coral, #EE5F3A);
-  box-shadow: 0 0 10px var(--pub-coral, #EE5F3A);
+  background: #FF6A45;
+  box-shadow: 0 0 10px #FF6A45;
 }
 
 .heroTitle {
@@ -52,7 +52,7 @@
 }
 
 .accent {
-  color: var(--pub-coral, #EE5F3A);
+  color: #FF6A45;
 }
 
 .heroSub {
@@ -86,7 +86,7 @@
 .passoCard:hover {
   transform: translateY(-4px);
   box-shadow: 0 14px 28px -10px rgba(34, 49, 47, 0.12);
-  border-color: rgba(238, 95, 58, 0.3);
+  border-color: rgba(255, 106, 69, 0.3);
 }
 
 .passoHeader {
@@ -100,8 +100,8 @@
   font-family: 'Bricolage Grotesque', sans-serif;
   font-size: 1.1rem;
   font-weight: 800;
-  color: var(--pub-coral, #EE5F3A);
-  background: rgba(238, 95, 58, 0.1);
+  color: #FF6A45;
+  background: rgba(255, 106, 69, 0.1);
   padding: 4px 12px;
   border-radius: 12px;
 }
@@ -178,8 +178,8 @@
 
 /* SELEÇÃO ATIVA 3D */
 .planoSelecionado {
-  border: 2.5px solid var(--pub-coral, #EE5F3A) !important;
-  box-shadow: 0 0 0 4px rgba(238, 95, 58, 0.18), 0 24px 50px -15px rgba(238, 95, 58, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.9) !important;
+  border: 2.5px solid #FF6A45 !important;
+  box-shadow: 0 0 0 4px rgba(255, 106, 69, 0.18), 0 24px 50px -15px rgba(255, 106, 69, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.9) !important;
   transform: translateY(-6px) scale(1.01);
 }
 
@@ -195,7 +195,7 @@
   top: -16px;
   left: 50%;
   transform: translateX(-50%);
-  background: var(--pub-coral, #EE5F3A);
+  background: #FF6A45;
   color: #FFFFFF;
   font-family: 'Hanken Grotesk', sans-serif;
   font-size: 0.78rem;
@@ -204,7 +204,7 @@
   text-transform: uppercase;
   padding: 6px 18px;
   border-radius: 99px;
-  box-shadow: 0 4px 14px rgba(238, 95, 58, 0.4);
+  box-shadow: 0 4px 14px rgba(255, 106, 69, 0.4);
   white-space: nowrap;
   display: flex;
   align-items: center;
@@ -213,7 +213,7 @@
 }
 
 .badgeCoral {
-  background: linear-gradient(135deg, #EE5F3A 0%, #d44824 100%);
+  background: linear-gradient(135deg, #FF6A45 0%, #e04b2b 100%);
 }
 
 .badgeDestaqueFixo {
@@ -494,26 +494,26 @@
 }
 
 .btnCardSelected {
-  background: var(--pub-coral, #EE5F3A);
+  background: #FF6A45;
   color: #FFFFFF !important;
-  box-shadow: 0 6px 20px rgba(238, 95, 58, 0.4);
+  box-shadow: 0 6px 20px rgba(255, 106, 69, 0.4);
 }
 
 .btnCardSelected:hover {
-  background: #d44824;
+  background: #e04b2b;
   transform: translateY(-2px);
 }
 
 .btnCardCoral {
-  background: var(--pub-coral, #EE5F3A);
+  background: #FF6A45;
   color: #FFFFFF !important;
-  box-shadow: 0 8px 24px rgba(238, 95, 58, 0.4);
+  box-shadow: 0 8px 24px rgba(255, 106, 69, 0.4);
 }
 
 .btnCardCoral:hover {
-  background: #d44824;
+  background: #e04b2b;
   transform: translateY(-2px);
-  box-shadow: 0 12px 30px rgba(238, 95, 58, 0.5);
+  box-shadow: 0 12px 30px rgba(255, 106, 69, 0.5);
 }
 
 .btnCardOutline {
@@ -552,13 +552,13 @@
   width: 56px;
   height: 56px;
   border-radius: 18px;
-  background: var(--pub-coral, #EE5F3A);
+  background: #FF6A45;
   color: #FFFFFF;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  box-shadow: 0 8px 20px rgba(238, 95, 58, 0.35);
+  box-shadow: 0 8px 20px rgba(255, 106, 69, 0.35);
 }
 
 .garantiaText b {
@@ -643,20 +643,20 @@
   gap: 10px;
   padding: 18px 40px;
   border-radius: 99px;
-  background: var(--pub-coral, #EE5F3A);
+  background: #FF6A45;
   color: #FFFFFF !important;
   font-family: 'Hanken Grotesk', sans-serif;
   font-size: 1.1rem;
   font-weight: 800;
   text-decoration: none !important;
-  box-shadow: 0 10px 28px -8px rgba(238, 95, 58, 0.7);
+  box-shadow: 0 10px 28px -8px rgba(255, 106, 69, 0.7);
   transition: all 0.25s ease;
 }
 
 .btnCtaMain:hover {
-  background: #d44824;
+  background: #e04b2b;
   transform: translateY(-2px);
-  box-shadow: 0 14px 36px -8px rgba(238, 95, 58, 0.8);
+  box-shadow: 0 14px 36px -8px rgba(255, 106, 69, 0.8);
 }
 
 .ctaSubLink {
