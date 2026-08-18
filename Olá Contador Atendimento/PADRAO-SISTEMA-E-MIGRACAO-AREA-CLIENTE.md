@@ -357,12 +357,15 @@ estruturas ou nos scripts SQL do projeto.
 - [x] Adaptar a densidade: menos opções simultâneas e foco na próxima ação
   (onboarding obrigatório por triagem, hub por seção em vez de tudo junto).
 - [ ] Testar os mesmos eventos aparecendo de forma consistente nas duas áreas
-  — auditoria em 18/08/2026 achou 3 assimetrias reais (lado contador nunca
-  publicava presença nem "digitando", e não escutava UPDATE de read_at em
-  `mensagens`) e o código foi corrigido em `src/components/views.tsx`
-  (build e typecheck passam). Falta validar manualmente com duas sessões
-  abertas (contador + cliente) e decidir se `caixa_postal`, `documentos` e
-  `agendamentos` devem ganhar realtime ou seguem só por polling.
+  — auditoria em 18/08/2026 achou 3 assimetrias reais no chat (lado contador
+  nunca publicava presença nem "digitando", e não escutava UPDATE de
+  read_at em `mensagens`) e o código foi corrigido em
+  `src/components/views.tsx`. Decisão de produto em 18/08/2026:
+  `agendamentos` segue só por polling (10s já é aceitável); `caixa_postal`
+  ganhou realtime nos dois lados (também precisou ser adicionada à
+  publicação `supabase_realtime`, que não a incluía); `documentos` segue
+  sem realtime por ora. Falta validar manualmente com duas sessões abertas
+  (contador + cliente).
 
 ### Fase 6 — homologação e corte
 
