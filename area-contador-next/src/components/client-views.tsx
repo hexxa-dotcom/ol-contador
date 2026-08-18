@@ -3,13 +3,15 @@
 import { useEffect, useRef, useState, useTransition, type ChangeEvent, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import {
-  BadgeCheck, CalendarClock, Check, CheckCheck, CircleAlert, Download,
-  FileText, Inbox, Landmark, Lock, MessageCircle, Play, Search, Send, Star, Upload, UserRound, Zap,
+  AlertTriangle, BadgeCheck, CalendarCheck, CalendarClock, CalendarPlus, Camera, Check, CheckCheck,
+  CheckCircle2, CircleAlert, ClipboardList, Download, FileCheck2, FilePlus2,
+  FileText, Inbox, KeyRound, Landmark, ListChecks, Lock, MessageCircle, Play, Search, Send, Star, Upload, UserRound, X, Zap,
 } from "lucide-react";
 import { Badge, Button, Card, EmptyState, Input } from "@/components/ui/primitives";
 import { PageTitle } from "@/components/views";
-import type { PortalAppointment, PortalAtendimentoExpress, PortalAvaliacao, PortalContador, PortalData, PortalDocument, PortalMailItem, PortalMessage, PortalOcupado, PortalReport, PortalServico, PortalTriagem } from "@/lib/portal";
+import type { PortalAppointment, PortalAtendimentoExpress, PortalAvaliacao, PortalContador, PortalData, PortalDocument, PortalMailItem, PortalMessage, PortalObrigacao, PortalOcupado, PortalReport, PortalServico, PortalTriagem } from "@/lib/portal";
 import { getDocumentDownloadUrl, markMailRead, markPortalMessagesRead, saveTriagem, sendPortalMailMessage, sendPortalMessage, submitAvaliacao } from "@/app/portal/actions";
+import type { RealtimeChannel } from "@supabase/supabase-js";
 import { createClient as createBrowserClient } from "@/lib/supabase/client";
 import { acharAssunto, completude, type TriagemAssunto, type TriagemPergunta, type TriagemRegras } from "@/lib/triagemCatalogo";
 import { abrirImpressaoRelatorio } from "@/lib/reportPrint";
@@ -101,6 +103,260 @@ const STATUS_EXPRESS_LABEL: Record<string, string> = {
   cancelado: "Cancelado",
 };
 
+// Porte 1:1 de atualizarProximaAcao do cliente.js legado — árvore de 9
+// estados, primeiro que casar vence. A ordem dos `if`s é a regra.
+type ProximaAcaoTom = "coral" | "green" | "pine";
+type ProximaAcao = { Icon: typeof ListChecks; title: string; text: string; buttonLabel: string; target: string; tone: ProximaAcaoTom };
+
+function computeProximaAcao(data: PortalData): ProximaAcao {
+  const semAgendamento = data.client.atendimentoModalidade === "sem_agendamento";
+  const triagemEnviada = data.triagem?.status === "enviada";
+  const qtdDocs = data.documents.length;
+  const temAppt = data.appointments.length > 0;
+  const apptFeito = data.appointments.some((a) => a.status === "done");
+  const relatorio = data.reports[0];
+  const temRelatorio = Boolean(relatorio);
+  const atendimentoExpress = data.atendimentosExpress.find((item) => item.status !== "concluido" && item.status !== "cancelado");
+
+  if (temRelatorio && relatorio?.pendencias) {
+    return {
+      Icon: ListChecks,
+      title: "Seu resultado foi entregue — há um próximo passo",
+      text: relatorio.pendencias + (relatorio.prazoProximoPasso ? ` Prazo: ${formatDate(relatorio.prazoProximoPasso)}.` : ""),
+      buttonLabel: "Ver relatório e próximos passos",
+      target: "documentos",
+      tone: "coral",
+    };
+  }
+  if (temRelatorio) {
+    return { Icon: FileCheck2, title: "Seu relatório está pronto", text: "O atendimento foi concluído. Baixe seu relatório quando quiser.", buttonLabel: "Ver relatório", target: "documentos", tone: "green" };
+  }
+  if (!triagemEnviada) {
+    return { Icon: ClipboardList, title: "Conte o que aconteceu", text: "Responda perguntas simples, do seu jeito. O rascunho fica salvo automaticamente.", buttonLabel: "Começar triagem", target: "triagem", tone: "coral" };
+  }
+  if (semAgendamento && atendimentoExpress?.status === "aguardando_documentos") {
+    return { Icon: FilePlus2, title: "Precisamos de mais um documento", text: "Abra seu caso para ver exatamente o que falta e continuar a análise.", buttonLabel: "Ver o que falta", target: "documentos", tone: "coral" };
+  }
+  if (!qtdDocs) {
+    return {
+      Icon: Camera,
+      title: "Envie os documentos que você já tiver",
+      text: semAgendamento ? "Você pode fotografar pelo celular. Se não tiver algum agora, avisaremos caso ele seja necessário." : "Eles ajudam o contador a analisar o caso antes da conversa.",
+      buttonLabel: "Tirar foto ou anexar",
+      target: "triagem",
+      tone: "pine",
+    };
+  }
+  if (semAgendamento) {
+    return {
+      Icon: CheckCircle2,
+      title: "Está tudo conosco agora",
+      text: "Você não precisa fazer nada neste momento." + (atendimentoExpress?.prazoConclusaoEm ? ` Previsão de conclusão: ${formatDate(atendimentoExpress.prazoConclusaoEm.slice(0, 10))}.` : " Avisaremos quando houver uma atualização."),
+      buttonLabel: "Ver meu caso",
+      target: "triagem",
+      tone: "green",
+    };
+  }
+  if (!temAppt) {
+    return { Icon: CalendarPlus, title: "Escolha o horário do seu atendimento", text: "Depois da confirmação, seu chat será liberado no horário marcado.", buttonLabel: "Agendar atendimento", target: "agendamento", tone: "pine" };
+  }
+  if (!apptFeito) {
+    return { Icon: CalendarCheck, title: "Seu atendimento está agendado", text: "Confira data e horário na sua agenda. O chat abre no momento da reunião.", buttonLabel: "Ver agendamento", target: "agendamento", tone: "pine" };
+  }
+  return { Icon: FileText, title: "Seu relatório está sendo preparado", text: "Assim que ele estiver pronto, você receberá um aviso aqui.", buttonLabel: "Acompanhar atendimento", target: "atendimento", tone: "pine" };
+}
+
+function PortalProximaAcaoCard({ data, onNavigate }: { data: PortalData; onNavigate: (id: string) => void }) {
+  const acao = computeProximaAcao(data);
+  const Icon = acao.Icon;
+  return (
+    <Card className={`portal-tile next-action-card tone-${acao.tone}`}>
+      <div className="next-action-icon">
+        <Icon size={20} />
+      </div>
+      <div className="next-action-body">
+        <strong>{acao.title}</strong>
+        <p>{acao.text}</p>
+      </div>
+      <Button className="secondary" onClick={() => onNavigate(acao.target)}>
+        {acao.buttonLabel}
+      </Button>
+    </Card>
+  );
+}
+
+// Porte 1:1 de montarLinhaDoTempo — duas listas de passos dependendo da
+// modalidade (Express: 4 passos; agendado: 5), com a primeira não-feita
+// marcada como "etapa atual".
+type PassoTimeline = { titulo: string; descricao: string; feito: boolean };
+
+function computeTimeline(data: PortalData): { passos: PassoTimeline[]; ativoIndex: number } {
+  const semAgendamento = data.client.atendimentoModalidade === "sem_agendamento";
+  const triagemEnviada = data.triagem?.status === "enviada";
+  const qtdDocs = data.documents.length;
+  const apptFeito = data.appointments.some((a) => a.status === "done");
+  const temRelatorio = data.reports.length > 0;
+  const atendimentoExpress = data.atendimentosExpress.find((item) => item.status !== "concluido" && item.status !== "cancelado");
+
+  const passos: PassoTimeline[] = semAgendamento
+    ? [
+        { titulo: "Serviço contratado", descricao: "Seu pagamento foi confirmado.", feito: true },
+        { titulo: "Triagem recebida", descricao: "Você contou o que aconteceu.", feito: Boolean(triagemEnviada) },
+        {
+          titulo: "Análise e execução",
+          descricao: atendimentoExpress ? STATUS_EXPRESS_LABEL[atendimentoExpress.status] || "Em análise" : "Aguardando início da análise.",
+          feito: atendimentoExpress ? ["em_execucao", "pronto_envio", "concluido"].includes(atendimentoExpress.status) : false,
+        },
+        { titulo: "Resultado entregue", descricao: "Relatório disponível em Documentos.", feito: temRelatorio },
+      ]
+    : [
+        { titulo: "Serviço contratado", descricao: "Seu pagamento foi confirmado.", feito: true },
+        { titulo: "Pré-atendimento", descricao: "Você contou o que aconteceu.", feito: Boolean(triagemEnviada) },
+        { titulo: "Documentos", descricao: qtdDocs ? `${qtdDocs} documento(s) enviado(s).` : "Envie os documentos do seu caso.", feito: qtdDocs > 0 },
+        { titulo: "Atendimento", descricao: apptFeito ? "Atendimento realizado." : "Agende um horário para conversar.", feito: apptFeito },
+        { titulo: "Relatório entregue", descricao: "Relatório disponível em Documentos.", feito: temRelatorio },
+      ];
+
+  const ativoIndex = passos.findIndex((p) => !p.feito);
+  return { passos, ativoIndex };
+}
+
+function PortalTimelineCard({ data }: { data: PortalData }) {
+  const { passos, ativoIndex } = computeTimeline(data);
+  const passoAtivo = ativoIndex >= 0 ? passos[ativoIndex] : null;
+  const feitos = passos.filter((p) => p.feito).length;
+  return (
+    <Card className="portal-tile timeline-card">
+      <strong>Linha do tempo do seu caso</strong>
+      <div className="timeline-passos">
+        {passos.map((p, i) => (
+          <div key={p.titulo} className={`timeline-passo ${p.feito ? "feito" : i === ativoIndex ? "ativo" : ""}`}>
+            <span className="timeline-marca">{p.feito ? <Check size={13} /> : i + 1}</span>
+            <div>
+              <strong>{p.titulo}</strong>
+              <p>{p.descricao}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+      {passoAtivo ? (
+        <p className="timeline-resumo">
+          Etapa atual: <strong>{passoAtivo.titulo}</strong> · {feitos} de {passos.length} etapas concluídas.
+        </p>
+      ) : (
+        <p className="timeline-resumo">Tudo certo — atendimento concluído.</p>
+      )}
+    </Card>
+  );
+}
+
+// Porte 1:1 de loadAgendaFiscal — só existe pra quem tem serviço recorrente
+// ativo (client.recorrente); a lista já vem calculada e ordenada de portal.ts.
+function PortalAgendaFiscalCard({ obrigacoes }: { obrigacoes: PortalObrigacao[] }) {
+  if (!obrigacoes.length) return null;
+  return (
+    <Card className="portal-tile agenda-fiscal-card">
+      <div className="card-heading">
+        <div>
+          <Landmark size={18} />
+          <strong>Agenda fiscal</strong>
+        </div>
+      </div>
+      <div className="agenda-fiscal-lista">
+        {obrigacoes.map((ob) => {
+          const urgente = ob.reminderDays != null && ob.daysUntil <= ob.reminderDays;
+          return (
+            <div key={ob.id} className={`agenda-fiscal-item ${urgente ? "urgente" : ""}`}>
+              <div>
+                <strong>{ob.title}</strong>
+                {ob.description && <p>{ob.description}</p>}
+              </div>
+              <div className="agenda-fiscal-data">
+                {urgente && <AlertTriangle size={13} />}
+                <span>{formatDate(ob.dueDate)}</span>
+                <small>{ob.daysUntil === 0 ? "vence hoje" : ob.daysUntil === 1 ? "vence amanhã" : `em ${ob.daysUntil} dias`}</small>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </Card>
+  );
+}
+
+// Porte 1:1 do card dispensável "criar senha" — é 100% client-side
+// (localStorage), sem coluna nem tabela nova. `null` = ainda não sabemos se
+// já foi dispensado (evita flash), decidido no primeiro efeito.
+function PortalCriarSenhaCard({ clientId }: { clientId: string }) {
+  const storageKey = `oc_senha_feita_${clientId}`;
+  const [show, setShow] = useState<boolean | null>(null);
+  const [senha, setSenha] = useState("");
+  const [pending, startTransition] = useTransition();
+  const [mensagem, setMensagem] = useState("");
+
+  useEffect(() => {
+    setShow(window.localStorage.getItem(storageKey) !== "true");
+  }, [storageKey]);
+
+  if (!show) return null;
+
+  function dispensar() {
+    window.localStorage.setItem(storageKey, "true");
+    setShow(false);
+  }
+
+  function salvar() {
+    if (senha.length < 6) {
+      setMensagem("Use pelo menos 6 caracteres.");
+      return;
+    }
+    startTransition(async () => {
+      const supabase = createBrowserClient();
+      if (!supabase) {
+        setMensagem("Conexão indisponível.");
+        return;
+      }
+      const { error } = await supabase.auth.updateUser({ password: senha });
+      if (error) {
+        setMensagem("Não foi possível criar a senha agora.");
+        return;
+      }
+      setMensagem("Senha criada!");
+      window.setTimeout(dispensar, 1200);
+    });
+  }
+
+  return (
+    <Card className="portal-tile criar-senha-card">
+      <div className="card-heading">
+        <div>
+          <KeyRound size={18} />
+          <strong>Crie uma senha pra sua conta</strong>
+        </div>
+        <button type="button" className="icon-dismiss" aria-label="Dispensar" onClick={dispensar}>
+          <X size={15} />
+        </button>
+      </div>
+      <p>Hoje você entra só pelo link do e-mail. Com uma senha, fica mais rápido acessar depois.</p>
+      <div className="criar-senha-form">
+        <Input
+          type="password"
+          value={senha}
+          onChange={(event) => setSenha(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === "Enter") salvar();
+          }}
+          placeholder="Mínimo de 6 caracteres"
+        />
+        <Button disabled={pending} onClick={salvar}>
+          {pending ? "Salvando…" : "Criar senha"}
+        </Button>
+      </div>
+      {mensagem && <small className="criar-senha-msg">{mensagem}</small>}
+    </Card>
+  );
+}
+
 export function PortalDashboardView({ data, onNavigate }: { data: PortalData; onNavigate: (id: string) => void }) {
   const today = new Date().toISOString().slice(0, 10);
   const proximo = data.appointments
@@ -113,6 +369,8 @@ export function PortalDashboardView({ data, onNavigate }: { data: PortalData; on
   return (
     <div className="view-stack">
       <PageTitle title={`Olá, ${data.client.name.split(" ")[0]}`} description="Resumo do seu atendimento — o que precisa da sua atenção primeiro." />
+      <PortalProximaAcaoCard data={data} onNavigate={onNavigate} />
+      <PortalCriarSenhaCard clientId={data.client.id} />
       <section>
         <div className="stats-grid">
           <button type="button" className="card dashboard-link-card portal-tile" onClick={() => onNavigate(proximo || !expressAtivo ? "agendamento" : "historico")}>
@@ -178,6 +436,8 @@ export function PortalDashboardView({ data, onNavigate }: { data: PortalData; on
           </button>
         </div>
       </section>
+      <PortalTimelineCard data={data} />
+      <PortalAgendaFiscalCard obrigacoes={data.agendaFiscal} />
       <PortalAvaliacaoCard report={data.reports.find((r) => r.status === "entregue")} avaliacoes={data.avaliacoes} />
     </div>
   );
@@ -223,6 +483,145 @@ function useContadorPresence(clientId: string) {
   return { isOnline, label };
 }
 
+// Porta 1:1 a lógica de aplicarEstadoDoChat do cliente.js legado: "total"
+// (agendamento futuro pendente, vence sobre tudo), "parcial"
+// (clientes.status === 'locked', sem agendamento pendente) e "finalizado"
+// (clientes.status === 'done'). Só o "finalizado" desabilita o campo — nos
+// outros dois a mensagem digitada é redirecionada pra Caixa Postal.
+type ChatLockMode = "none" | "total" | "parcial" | "finalizado";
+type ChatLockAppointment = { date: string | null; time: string | null; status: string | null };
+
+function computeChatLock(status: string | null, appointments: ChatLockAppointment[]): { mode: ChatLockMode; proximo: ChatLockAppointment | null } {
+  if (status === "done") return { mode: "finalizado", proximo: null };
+  const now = Date.now();
+  const proximo =
+    appointments
+      .filter((a) => a.status !== "done" && a.status !== "cancelled" && a.date && a.time)
+      .map((a) => ({ a, when: new Date(`${a.date}T${a.time}:00`).getTime() }))
+      .filter(({ when }) => when > now)
+      .sort((x, y) => x.when - y.when)[0]?.a ?? null;
+  if (proximo) return { mode: "total", proximo };
+  if (status === "locked") return { mode: "parcial", proximo: null };
+  return { mode: "none", proximo: null };
+}
+
+function useChatLock(clientId: string, initialStatus: string | null, initialAppointments: PortalAppointment[]) {
+  const [status, setStatus] = useState(initialStatus);
+  const [appointments, setAppointments] = useState<ChatLockAppointment[]>(initialAppointments);
+
+  useEffect(() => {
+    const supabase = createBrowserClient();
+    if (!supabase) return;
+
+    async function refetch() {
+      if (!supabase) return;
+      const [clientResult, appointmentsResult] = await Promise.all([
+        supabase.from("clientes").select("status").eq("id", clientId).maybeSingle(),
+        supabase.from("agendamentos").select("date,time,status").eq("cliente_ref", clientId),
+      ]);
+      if (clientResult.data) setStatus(clientResult.data.status);
+      if (appointmentsResult.data) setAppointments(appointmentsResult.data);
+    }
+
+    const channel = supabase
+      .channel(`oc-status-${clientId}`)
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "clientes", filter: `id=eq.${clientId}` }, (payload) => {
+        setStatus((payload.new as { status: string | null }).status);
+      })
+      .subscribe();
+
+    // Sem isso, ninguém pega a destravagem automática por horário — nada
+    // escreve no banco quando o relógio passa da hora marcada, só o polling
+    // percebe. Mesmo intervalo do legado (buscarStatusAtual a cada 10s).
+    const interval = setInterval(() => {
+      if (document.visibilityState === "visible") refetch();
+    }, 10000);
+    document.addEventListener("visibilitychange", refetch);
+
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener("visibilitychange", refetch);
+      void supabase.removeChannel(channel);
+    };
+  }, [clientId]);
+
+  return computeChatLock(status, appointments);
+}
+
+const TYPING_THROTTLE_MS = 2000;
+const TYPING_HIDE_MS = 3000;
+
+// Broadcast efêmero, nunca grava em tabela — mesmo desenho do legado
+// (oc-typing-<clientId>): o payload só carrega quem está digitando, nunca
+// o texto, porque o nome do canal é previsível a partir do id do cliente.
+function useTypingIndicator(clientId: string) {
+  const [agentTyping, setAgentTyping] = useState(false);
+  const channelRef = useRef<RealtimeChannel | null>(null);
+  const lastSentRef = useRef(0);
+  const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    const supabase = createBrowserClient();
+    if (!supabase) return;
+    const channel = supabase.channel(`oc-typing-${clientId}`, { config: { broadcast: { self: false } } });
+    channel.on("broadcast", { event: "typing" }, ({ payload }) => {
+      if ((payload as { from?: string })?.from !== "agent") return;
+      setAgentTyping(true);
+      if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+      hideTimerRef.current = setTimeout(() => setAgentTyping(false), TYPING_HIDE_MS);
+    });
+    channel.subscribe();
+    channelRef.current = channel;
+    return () => {
+      if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+      channelRef.current = null;
+      void supabase.removeChannel(channel);
+    };
+  }, [clientId]);
+
+  function notifyTyping() {
+    const now = Date.now();
+    if (now - lastSentRef.current < TYPING_THROTTLE_MS) return;
+    lastSentRef.current = now;
+    channelRef.current?.send({ type: "broadcast", event: "typing", payload: { from: "client" } });
+  }
+
+  return { agentTyping, notifyTyping };
+}
+
+function useLiveMessages(clientId: string, setMessages: (updater: (items: PortalMessage[]) => PortalMessage[]) => void) {
+  useEffect(() => {
+    const supabase = createBrowserClient();
+    if (!supabase) return;
+    const channel = supabase
+      .channel(`oc-mensagens-${clientId}`)
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "mensagens", filter: `cliente_id=eq.${clientId}` },
+        (payload) => {
+          const row = payload.new as { id: string; sender: string; text: string | null; type: string | null; doc_name: string | null; duration: string | null; time: string | null; created_at: string | null; read_at: string | null; seq: number };
+          setMessages((items) =>
+            items.some((item) => item.id === row.id)
+              ? items
+              : [...items, { id: row.id, sender: row.sender, text: row.text, type: row.type, docName: row.doc_name, duration: row.duration, time: row.time, createdAt: row.created_at, readAt: row.read_at, seq: row.seq }],
+          );
+        },
+      )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "mensagens", filter: `cliente_id=eq.${clientId}` },
+        (payload) => {
+          const row = payload.new as { id: string; read_at: string | null };
+          setMessages((items) => items.map((item) => (item.id === row.id ? { ...item, readAt: row.read_at } : item)));
+        },
+      )
+      .subscribe();
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [clientId, setMessages]);
+}
+
 function MessageTicks({ item }: { item: PortalMessage }) {
   if (item.readAt) return <CheckCheck size={13} className="chat-tick lida" />;
   return <Check size={13} className="chat-tick" />;
@@ -255,24 +654,33 @@ export function PortalAtendimentoView({
   messages: initialMessages,
   contador,
   clientId,
+  clientStatus,
+  appointments,
   triagem,
   reports,
   catalogo,
   documents,
+  onNavigate,
 }: {
   messages: PortalMessage[];
   contador: PortalContador;
   clientId: string;
+  clientStatus: string | null;
+  appointments: PortalAppointment[];
   triagem: PortalTriagem | null;
   reports: PortalReport[];
   catalogo: TriagemAssunto[];
   documents: PortalDocument[];
+  onNavigate?: (id: string) => void;
 }) {
   const [messages, setMessages] = useState(initialMessages);
   const [text, setText] = useState("");
   const [pending, startTransition] = useTransition();
   const bottomRef = useRef<HTMLDivElement>(null);
   const presence = useContadorPresence(clientId);
+  const lock = useChatLock(clientId, clientStatus, appointments);
+  const typing = useTypingIndicator(clientId);
+  useLiveMessages(clientId, setMessages);
   const initials = contador.name.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join("").toUpperCase() || "OC";
   // Mesma lógica do cliente.html: assunto vem do relatório mais recente, senão
   // da triagem ativa (traduzida pelo catálogo); protocolo vem do id da
@@ -295,6 +703,21 @@ export function PortalAtendimentoView({
   function send() {
     const value = text.trim();
     if (!value) return;
+    // Mesma regra do legado: com o chat travado (total ou parcial), a
+    // mensagem não vai pro atendimento — vira Caixa Postal, e quem escreveu
+    // é avisado que a resposta demora até 1 dia útil.
+    if (lock.mode === "total" || lock.mode === "parcial") {
+      startTransition(async () => {
+        const result = await sendPortalMailMessage({ assunto: "", mensagem: value });
+        if (result.ok) {
+          setText("");
+          feedback("Chat bloqueado no momento — sua mensagem foi enviada para a Caixa Postal. Resposta em até 1 dia útil.");
+        } else {
+          feedback(result.message);
+        }
+      });
+      return;
+    }
     startTransition(async () => {
       const result = await sendPortalMessage(value);
       if (result.ok) {
@@ -305,6 +728,13 @@ export function PortalAtendimentoView({
       }
     });
   }
+
+  const lockPlaceholder =
+    lock.mode === "finalizado"
+      ? "Atendimento encerrado."
+      : lock.mode === "total" || lock.mode === "parcial"
+        ? "Chat bloqueado — sua mensagem vai para a Caixa Postal…"
+        : "Escreva sua mensagem…";
 
   return (
     <div className="view-stack">
@@ -335,6 +765,50 @@ export function PortalAtendimentoView({
             <span className="chat-header-codigo">Protocolo: #OC-{protocolo}</span>
           </div>
         </div>
+        {lock.mode !== "none" && (
+          <div className={`chat-lock-banner ${lock.mode}`}>
+            {lock.mode === "finalizado" ? (
+              <>
+                <CheckCheck size={18} />
+                <div>
+                  <strong>Atendimento concluído</strong>
+                  <p>O relatório do seu caso está em Documentos.</p>
+                </div>
+                {onNavigate && (
+                  <Button className="secondary" onClick={() => onNavigate("documentos")}>
+                    Ver relatório
+                  </Button>
+                )}
+              </>
+            ) : lock.mode === "total" ? (
+              <>
+                <CalendarClock size={18} />
+                <div>
+                  <strong>Seu atendimento ainda não começou</strong>
+                  <p>
+                    O chat abre no horário marcado. Se escrever agora, sua mensagem vai para a Caixa Postal (resposta em até 1 dia útil).
+                    {lock.proximo?.date && lock.proximo?.time && (
+                      <> Marcado para {formatDate(lock.proximo.date)} às {lock.proximo.time}.</>
+                    )}
+                  </p>
+                </div>
+                {onNavigate && (
+                  <Button className="secondary" onClick={() => onNavigate("agendamento")}>
+                    Ver agendamento
+                  </Button>
+                )}
+              </>
+            ) : (
+              <>
+                <Lock size={18} />
+                <div>
+                  <strong>Chat bloqueado temporariamente</strong>
+                  <p>Se escrever agora, sua mensagem vai para a Caixa Postal (resposta em até 1 dia útil).</p>
+                </div>
+              </>
+            )}
+          </div>
+        )}
         <div className="chat-messages">
           {messages.length ? (
             messages.map((item) => (
@@ -358,25 +832,36 @@ export function PortalAtendimentoView({
           ) : (
             <EmptyState>Nenhuma mensagem ainda — escreva para o escritório abaixo.</EmptyState>
           )}
+          {typing.agentTyping && (
+            <div className="chat-digitando">
+              <span /><span /><span />
+              {contador.name} está digitando
+            </div>
+          )}
           <div ref={bottomRef} />
         </div>
-        <div className="composer">
-          <Input
-            value={text}
-            onChange={(event) => setText(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === "Enter" && !event.shiftKey) {
-                event.preventDefault();
-                send();
-              }
-            }}
-            placeholder="Escreva sua mensagem…"
-            disabled={pending}
-          />
-          <Button className="icon" disabled={pending || !text.trim()} onClick={send} aria-label="Enviar mensagem">
-            <Send size={16} />
-          </Button>
-        </div>
+        {lock.mode !== "finalizado" && (
+          <div className="composer">
+            <Input
+              value={text}
+              onChange={(event) => {
+                setText(event.target.value);
+                if (event.target.value.trim()) typing.notifyTyping();
+              }}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" && !event.shiftKey) {
+                  event.preventDefault();
+                  send();
+                }
+              }}
+              placeholder={lockPlaceholder}
+              disabled={pending}
+            />
+            <Button className="icon" disabled={pending || !text.trim()} onClick={send} aria-label="Enviar mensagem">
+              <Send size={16} />
+            </Button>
+          </div>
+        )}
       </Card>
     </div>
   );

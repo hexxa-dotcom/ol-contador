@@ -75,6 +75,7 @@ export type PortalReport = {
   contadorAssinatura: string | null;
   contadorNome: string | null;
   contadorCrc: string | null;
+  prazoProximoPasso: string | null;
   anexos: PortalReportAnexo[];
 };
 
@@ -97,6 +98,8 @@ export type PortalContador = {
   verified: boolean;
 };
 
+export type PortalObrigacao = { id: string; title: string; description: string | null; dueDate: string; daysUntil: number; reminderDays: number | null };
+
 export type PortalData = {
   client: {
     id: string;
@@ -117,6 +120,7 @@ export type PortalData = {
     cidade: string | null;
     estado: string | null;
     cep: string | null;
+    atendimentoModalidade: string | null;
   };
   contador: PortalContador;
   messages: PortalMessage[];
@@ -135,11 +139,76 @@ export type PortalData = {
   agendaHorarios: string[];
   agendaDiasBloqueados: string[];
   agendaOcupados: PortalOcupado[];
+  agendaFiscal: PortalObrigacao[];
 };
 
+// Porte 1:1 de agenda.js do legado (lógica pura, sem DOM) — calcula próximos
+// vencimentos aplicáveis a partir do catálogo de obrigações fiscais.
+function lastDayOfMonth(year: number, month0: number) {
+  return new Date(year, month0 + 1, 0).getDate();
+}
+
+function nextDueDate(ob: { recurrence: string; day_of_month: number; month: number | null }, from: Date): Date | null {
+  const base = new Date(from.getFullYear(), from.getMonth(), from.getDate());
+  if (ob.recurrence === "monthly") {
+    let y = base.getFullYear();
+    let m = base.getMonth();
+    for (let i = 0; i < 13; i++) {
+      const day = Math.min(ob.day_of_month, lastDayOfMonth(y, m));
+      const d = new Date(y, m, day);
+      if (d >= base) return d;
+      m++;
+      if (m > 11) {
+        m = 0;
+        y++;
+      }
+    }
+  } else if (ob.recurrence === "yearly") {
+    const month0 = (ob.month || 1) - 1;
+    for (let y = base.getFullYear(); y <= base.getFullYear() + 1; y++) {
+      const day = Math.min(ob.day_of_month, lastDayOfMonth(y, month0));
+      const d = new Date(y, month0, day);
+      if (d >= base) return d;
+    }
+  }
+  return null;
+}
+
+function obrigacaoAplica(keywords: string[] | null, taxType: string | null) {
+  const kw = keywords || [];
+  if (!kw.length) return true;
+  const t = (taxType || "").toLowerCase();
+  return kw.some((k) => t.includes(String(k).toLowerCase()));
+}
+
+function diasEntre(date: Date, from: Date) {
+  const a = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const b = new Date(from.getFullYear(), from.getMonth(), from.getDate());
+  return Math.round((a.getTime() - b.getTime()) / 86400000);
+}
+
+function toISODate(d: Date) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+function proximosVencimentos(
+  obrigacoes: { id: string; title: string; description: string | null; active: boolean | null; recurrence: string; day_of_month: number; month: number | null; keywords: string[] | null; reminder_days: number | null }[],
+  taxType: string | null,
+  from = new Date(),
+): PortalObrigacao[] {
+  return obrigacoes
+    .filter((ob) => ob.active !== false && obrigacaoAplica(ob.keywords, taxType))
+    .map((ob) => {
+      const due = nextDueDate(ob, from);
+      return { id: ob.id, title: ob.title, description: ob.description, dueDate: due ? toISODate(due) : null, daysUntil: due ? diasEntre(due, from) : null, reminderDays: ob.reminder_days };
+    })
+    .filter((x): x is PortalObrigacao => Boolean(x.dueDate) && x.daysUntil !== null)
+    .sort((a, b) => a.dueDate.localeCompare(b.dueDate));
+}
+
 export async function loadPortalData(supabase: SupabaseClient<Database>, clientId: string): Promise<PortalData> {
-  const [clientResult, messagesResult, appointmentsResult, triagensResult, documentsResult, mailResult, reportsResult, perfilResult, configResult, servicosResult, ocupadosResult, anexosResult, avaliacoesResult, expressResult] = await Promise.all([
-    supabase.from("clientes").select("id,name,email,phone,tax_type,status,honorarios,recorrente,recorrente_tipo,onboarding_pendente,caixa_postal_novas,cpf,endereco,numero,bairro,cidade,estado,cep").eq("id", clientId).single(),
+  const [clientResult, messagesResult, appointmentsResult, triagensResult, documentsResult, mailResult, reportsResult, perfilResult, configResult, servicosResult, ocupadosResult, anexosResult, avaliacoesResult, expressResult, obrigacoesResult] = await Promise.all([
+    supabase.from("clientes").select("id,name,email,phone,tax_type,status,honorarios,recorrente,recorrente_tipo,onboarding_pendente,caixa_postal_novas,cpf,endereco,numero,bairro,cidade,estado,cep,atendimento_modalidade").eq("id", clientId).single(),
     supabase.from("mensagens").select("id,sender,text,type,doc_name,duration,time,created_at,read_at,seq").eq("cliente_id", clientId).order("seq", { ascending: true }).limit(200),
     supabase.from("agendamentos").select("id,date,time,status,tax_type").eq("cliente_ref", clientId).order("date", { ascending: false }).limit(50),
     // Só a triagem ativa (a mais recente ainda não arquivada) — igual ao
@@ -149,7 +218,7 @@ export async function loadPortalData(supabase: SupabaseClient<Database>, clientI
     supabase.from("caixa_postal").select("id,assunto,mensagem,remetente,lida,created_at").eq("cliente_ref", clientId).order("created_at", { ascending: false }).limit(100),
     supabase
       .from("relatorios")
-      .select("id,titulo,status,tipo_relatorio,entregue_em,created_at,codigo_validacao,caso_ref,cliente_nome,cliente_cpf,problema,solucao,oque_feito,como_feito,pendencias,contador_assinatura,contador_nome,contador_crc")
+      .select("id,titulo,status,tipo_relatorio,entregue_em,created_at,codigo_validacao,caso_ref,cliente_nome,cliente_cpf,problema,solucao,oque_feito,como_feito,pendencias,contador_assinatura,contador_nome,contador_crc,prazo_proximo_passo")
       .eq("cliente_ref", clientId)
       .in("status", ["entregue", "arquivado_interno"])
       .order("created_at", { ascending: false })
@@ -164,6 +233,10 @@ export async function loadPortalData(supabase: SupabaseClient<Database>, clientI
     supabase.from("relatorio_anexos").select("id,relatorio_id,titulo,url,tipo").eq("cliente_ref", clientId).eq("visivel_cliente", true),
     supabase.from("avaliacoes").select("id,caso_ref,relatorio_id,nota,comentario,created_at").eq("cliente_ref", clientId).order("created_at", { ascending: false }),
     supabase.from("atendimentos_express").select("id,servico_id,assunto,status,contratado_em,prazo_conclusao_em,concluido_em").eq("cliente_ref", clientId).order("contratado_em", { ascending: false }).limit(20),
+    // Agenda fiscal só é relevante pra quem tem serviço recorrente ativo —
+    // mas o catálogo em si (`obrigacoes`) é o mesmo pra todo mundo, então
+    // sempre buscamos e filtramos depois pelo `client.recorrente`.
+    supabase.from("obrigacoes").select("id,title,description,active,recurrence,day_of_month,month,keywords,reminder_days").eq("active", true),
   ]);
 
   if (clientResult.error || !clientResult.data) throw clientResult.error || new Error("client_not_found");
@@ -229,6 +302,7 @@ export async function loadPortalData(supabase: SupabaseClient<Database>, clientI
       cidade: clientResult.data.cidade,
       estado: clientResult.data.estado,
       cep: clientResult.data.cep,
+      atendimentoModalidade: clientResult.data.atendimento_modalidade,
     },
     contador,
     messages,
@@ -271,6 +345,7 @@ export async function loadPortalData(supabase: SupabaseClient<Database>, clientI
       contadorAssinatura: r.contador_assinatura,
       contadorNome: r.contador_nome,
       contadorCrc: r.contador_crc,
+      prazoProximoPasso: r.prazo_proximo_passo,
       anexos: (anexosResult.data ?? []).filter((a) => a.relatorio_id === r.id).map((a) => ({ id: a.id, titulo: a.titulo, url: a.url, tipo: a.tipo })),
     })),
     avaliacoes: (avaliacoesResult.data ?? []).map((a) => ({ id: a.id, casoRef: a.caso_ref, relatorioId: a.relatorio_id, nota: a.nota, comentario: a.comentario, createdAt: a.created_at })),
@@ -280,5 +355,6 @@ export async function loadPortalData(supabase: SupabaseClient<Database>, clientI
     agendaHorarios,
     agendaDiasBloqueados,
     agendaOcupados: (ocupadosResult.data ?? []).filter((a): a is { date: string; time: string; status: string | null } => Boolean(a.date && a.time)).map((a) => ({ date: a.date, time: a.time })),
+    agendaFiscal: clientResult.data.recorrente ? proximosVencimentos(obrigacoesResult.data ?? [], clientResult.data.tax_type) : [],
   };
 }

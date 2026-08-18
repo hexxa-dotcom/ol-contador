@@ -200,7 +200,7 @@ export function ClientShell({ data }: { data: PortalData }) {
             {active === "dashboard" ? (
               <PortalDashboardView data={data} onNavigate={navigate} />
             ) : active === "atendimento" ? (
-              <PortalAtendimentoView messages={data.messages} contador={data.contador} clientId={data.client.id} triagem={data.triagem} reports={data.reports} catalogo={data.triagemCatalogo} documents={data.documents} />
+              <PortalAtendimentoView messages={data.messages} contador={data.contador} clientId={data.client.id} clientStatus={data.client.status} appointments={data.appointments} triagem={data.triagem} reports={data.reports} catalogo={data.triagemCatalogo} documents={data.documents} onNavigate={navigate} />
             ) : active === "agendamento" ? (
               <PortalAgendaView
                 clientId={data.client.id}
