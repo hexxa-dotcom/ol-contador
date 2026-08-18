@@ -74,7 +74,7 @@ export function HomePage({ precos }: { precos: { pf: number; pj: number; consult
               </Reveal>
               <h1 className={styles.heroTitleBold}>
                 Um contador de verdade,<br />
-                <span className={styles.accent}>dedicado ao seu caso</span>
+                <span className={styles.accent} style={{ color: "#FF9C7E" }}>dedicado ao seu caso</span>
               </h1>
               <p className={styles.heroSub}>Conte o que está acontecendo, envie os documentos pelo celular, e um contador com registro ativo cuida do seu caso do começo ao fim — sem termo técnico, sem enrolação.</p>
               <div className={styles.heroActions}>
