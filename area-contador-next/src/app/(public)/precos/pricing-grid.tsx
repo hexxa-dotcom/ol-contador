@@ -2,7 +2,16 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { CheckCircle2, Sparkles, ArrowRight, ShieldCheck, User, Building2, Zap } from "lucide-react";
+import { 
+  CheckCircle2, 
+  Sparkles, 
+  ArrowRight, 
+  User, 
+  Building2, 
+  Zap,
+  ChevronDown,
+  ChevronUp
+} from "lucide-react";
 import styles from "./precos.module.css";
 
 interface PricingGridProps {
@@ -13,43 +22,22 @@ interface PricingGridProps {
 
 export function PricingGrid({ pfCents, pjCents, consultaCents }: PricingGridProps) {
   const [selectedPlan, setSelectedPlan] = useState<"pf" | "pj" | "sob-demanda">("pj");
+  const [expandedCards, setExpandedCards] = useState<{ pf: boolean; pj: boolean; "sob-demanda": boolean }>({
+    pf: false,
+    pj: false,
+    "sob-demanda": false,
+  });
+
+  const toggleExpand = (plan: "pf" | "pj" | "sob-demanda", e: React.MouseEvent) => {
+    e.stopPropagation();
+    setExpandedCards((prev) => ({ ...prev, [plan]: !prev[plan] }));
+  };
 
   const money = (cents: number) => new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 0 }).format(cents / 100);
 
   return (
     <div className={styles.planosContainer}>
       
-      {/* SELETOR INTERATIVO / TOGGLE DEDICADO */}
-      <div className={styles.selectorBar}>
-        <span className={styles.selectorLabel}>Selecione o tipo de atendimento:</span>
-        <div className={styles.selectorTabs}>
-          <button
-            type="button"
-            className={`${styles.tabBtn} ${selectedPlan === "pf" ? styles.tabActive : ""}`}
-            onClick={() => setSelectedPlan("pf")}
-          >
-            <User size={16} />
-            <span>Pessoa Física</span>
-          </button>
-          <button
-            type="button"
-            className={`${styles.tabBtn} ${selectedPlan === "pj" ? styles.tabActive : ""}`}
-            onClick={() => setSelectedPlan("pj")}
-          >
-            <Building2 size={16} />
-            <span>Pessoa Jurídica</span>
-          </button>
-          <button
-            type="button"
-            className={`${styles.tabBtn} ${selectedPlan === "sob-demanda" ? styles.tabActive : ""}`}
-            onClick={() => setSelectedPlan("sob-demanda")}
-          >
-            <Zap size={16} />
-            <span>Sob Demanda</span>
-          </button>
-        </div>
-      </div>
-
       {/* GRID DE PLANOS 3D */}
       <div className={styles.planosGrid} id="planos">
         
@@ -89,13 +77,14 @@ export function PricingGrid({ pfCents, pjCents, consultaCents }: PricingGridProp
           <div className={styles.resolveSection}>
             <div className={styles.resolveRotulo}>Resolve, por exemplo:</div>
             <div className={styles.chipsWrap}>
-              <span className={styles.chipLight}>Malha fina e cartas da Receita</span>
-              <span className={styles.chipLight}>Declarar ou corrigir o IR</span>
-              <span className={styles.chipLight}>Vendi imóvel, carro ou outro bem</span>
-              <span className={styles.chipLight}>Recebo como autônomo (carnê-leão)</span>
+              <span className={styles.chipLight}>Malha fina e cartas</span>
+              <span className={styles.chipLight}>Declarar / corrigir IR</span>
+              <span className={styles.chipLight}>Venda de bens</span>
+              <span className={styles.chipLight}>Carnê-leão autônomo</span>
             </div>
           </div>
 
+          {/* LISTA DE ENTREGÁVEIS (REDUZIDA / EXPANSÍVEL) */}
           <div className={styles.entregaveisList}>
             <div className={styles.entregavelItem}>
               <CheckCircle2 size={18} className={styles.checkIconLight} />
@@ -121,37 +110,52 @@ export function PricingGrid({ pfCents, pjCents, consultaCents }: PricingGridProp
               </div>
             </div>
 
-            <div className={styles.entregavelItem}>
-              <CheckCircle2 size={18} className={styles.checkIconLight} />
-              <div className={styles.entregavelText}>
-                <b>Conclusão rápida em até 24h</b>
-                <small>Muitos casos de pessoa física se resolvem no mesmo dia.</small>
-              </div>
-            </div>
+            {/* ITENS EXPANDIDOS */}
+            {expandedCards.pf && (
+              <>
+                <div className={styles.entregavelItem}>
+                  <CheckCircle2 size={18} className={styles.checkIconLight} />
+                  <div className={styles.entregavelText}>
+                    <b>Conclusão rápida em até 24h</b>
+                    <small>Muitos casos de pessoa física se resolvem no mesmo dia.</small>
+                  </div>
+                </div>
 
-            <div className={styles.entregavelItem}>
-              <CheckCircle2 size={18} className={styles.checkIconLight} />
-              <div className={styles.entregavelText}>
-                <b>Transparência total, do começo ao fim</b>
-                <small>Cada etapa registrada na sua área do cliente: linha do tempo do caso, documentos e lembretes.</small>
-              </div>
-            </div>
+                <div className={styles.entregavelItem}>
+                  <CheckCircle2 size={18} className={styles.checkIconLight} />
+                  <div className={styles.entregavelText}>
+                    <b>Transparência total na área do cliente</b>
+                    <small>Linha do tempo do caso, documentos e lembretes de vencimentos registrados.</small>
+                  </div>
+                </div>
 
-            <div className={styles.entregavelItem}>
-              <CheckCircle2 size={18} className={styles.checkIconLight} />
-              <div className={styles.entregavelText}>
-                <b>Sigilo e segurança dos seus dados</b>
-                <small>Conversa e documentos protegidos, visíveis só para você e para o contador responsável.</small>
-              </div>
-            </div>
+                <div className={styles.entregavelItem}>
+                  <CheckCircle2 size={18} className={styles.checkIconLight} />
+                  <div className={styles.entregavelText}>
+                    <b>Sigilo e segurança dos seus dados</b>
+                    <small>Conversa e documentos protegidos, visíveis só para você e o contador responsável.</small>
+                  </div>
+                </div>
 
-            <div className={styles.entregavelItem}>
-              <CheckCircle2 size={18} className={styles.checkIconLight} />
-              <div className={styles.entregavelText}>
-                <b>Retorno grátis em até 7 dias</b>
-                <small>Ficou dúvida depois do atendimento? Volta sem pagar de novo.</small>
-              </div>
-            </div>
+                <div className={styles.entregavelItem}>
+                  <CheckCircle2 size={18} className={styles.checkIconLight} />
+                  <div className={styles.entregavelText}>
+                    <b>Retorno grátis em até 7 dias</b>
+                    <small>Ficou dúvida depois do atendimento? Volta sem pagar de novo.</small>
+                  </div>
+                </div>
+              </>
+            )}
+
+            {/* BOTÃO EXPANDIR / RECOLHER */}
+            <button
+              type="button"
+              className={styles.btnExpandir}
+              onClick={(e) => toggleExpand("pf", e)}
+            >
+              <span>{expandedCards.pf ? "Ver menos detalhes" : "Ver todos os 7 entregáveis"}</span>
+              {expandedCards.pf ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+            </button>
           </div>
 
           <Link
@@ -163,7 +167,7 @@ export function PricingGrid({ pfCents, pjCents, consultaCents }: PricingGridProp
           </Link>
         </div>
 
-        {/* 2. PESSOA JURÍDICA (CARD DARK EMBOSSED DEDICADO) */}
+        {/* 2. PESSOA JURÍDICA (CARD DARK EMBOSSED) */}
         <div
           onClick={() => setSelectedPlan("pj")}
           className={`${styles.planoCard} ${styles.planoDark} ${selectedPlan === "pj" ? styles.planoSelecionadoDark : ""}`}
@@ -204,12 +208,13 @@ export function PricingGrid({ pfCents, pjCents, consultaCents }: PricingGridProp
             <div className={`${styles.resolveRotulo} ${styles.textCoral}`}>Resolve, por exemplo:</div>
             <div className={styles.chipsWrap}>
               <span className={styles.chipDark}>Guias DAS atrasadas</span>
-              <span className={styles.chipDark}>Declaração anual (DASN)</span>
-              <span className={styles.chipDark}>Desenquadramento do MEI</span>
+              <span className={styles.chipDark}>Declaração DASN</span>
+              <span className={styles.chipDark}>Desenquadramento MEI</span>
               <span className={styles.chipDark}>Dúvidas do Simples</span>
             </div>
           </div>
 
+          {/* LISTA DE ENTREGÁVEIS (REDUZIDA / EXPANSÍVEL) */}
           <div className={styles.entregaveisList}>
             <div className={styles.entregavelItem}>
               <CheckCircle2 size={18} className={styles.checkIconCoral} />
@@ -223,7 +228,7 @@ export function PricingGrid({ pfCents, pjCents, consultaCents }: PricingGridProp
               <CheckCircle2 size={18} className={styles.checkIconCoral} />
               <div className={styles.entregavelText}>
                 <b className={styles.textLight}>Contador especialista em empresas</b>
-                <small className={styles.textMutedDark}>Profissional com foco em MEI, Simples Nacional e na rotina fiscal do seu negócio.</small>
+                <small className={styles.textMutedDark}>Profissional com foco em MEI, Simples Nacional e rotina fiscal do seu negócio.</small>
               </div>
             </div>
 
@@ -235,21 +240,36 @@ export function PricingGrid({ pfCents, pjCents, consultaCents }: PricingGridProp
               </div>
             </div>
 
-            <div className={styles.entregavelItem}>
-              <CheckCircle2 size={18} className={styles.checkIconCoral} />
-              <div className={styles.entregavelText}>
-                <b className={styles.textLight}>Emissão de guias inclusa</b>
-                <small className={styles.textMutedDark}>DAS e guias do Simples Nacional emitidas e disponibilizadas na sua área do cliente.</small>
-              </div>
-            </div>
+            {/* ITENS EXPANDIDOS */}
+            {expandedCards.pj && (
+              <>
+                <div className={styles.entregavelItem}>
+                  <CheckCircle2 size={18} className={styles.checkIconCoral} />
+                  <div className={styles.entregavelText}>
+                    <b className={styles.textLight}>Emissão de guias inclusa</b>
+                    <small className={styles.textMutedDark}>DAS e guias do Simples Nacional emitidas e disponibilizadas na área do cliente.</small>
+                  </div>
+                </div>
 
-            <div className={styles.entregavelItem}>
-              <CheckCircle2 size={18} className={styles.checkIconCoral} />
-              <div className={styles.entregavelText}>
-                <b className={styles.textLight}>Acompanhamento de obrigações</b>
-                <small className={styles.textMutedDark}>Lembretes de prazos e pendências para você não perder datas nem pagar multas.</small>
-              </div>
-            </div>
+                <div className={styles.entregavelItem}>
+                  <CheckCircle2 size={18} className={styles.checkIconCoral} />
+                  <div className={styles.entregavelText}>
+                    <b className={styles.textLight}>Acompanhamento de obrigações</b>
+                    <small className={styles.textMutedDark}>Lembretes de prazos e pendências para você não perder datas nem pagar multas.</small>
+                  </div>
+                </div>
+              </>
+            )}
+
+            {/* BOTÃO EXPANDIR / RECOLHER (DARK) */}
+            <button
+              type="button"
+              className={`${styles.btnExpandir} ${styles.btnExpandirDark}`}
+              onClick={(e) => toggleExpand("pj", e)}
+            >
+              <span>{expandedCards.pj ? "Ver menos detalhes" : "Ver todos os 5 entregáveis"}</span>
+              {expandedCards.pj ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+            </button>
           </div>
 
           <Link
@@ -281,7 +301,7 @@ export function PricingGrid({ pfCents, pjCents, consultaCents }: PricingGridProp
               </div>
             </div>
             <p className={styles.planoSubtitulo}>
-              Para o caso que não cabe em um atendimento: anos de declaração atrasada, escopo grande ou situação específica.
+              Para o caso que não cabe em um atendimento: anos de declaração atrasada ou escopo grande.
             </p>
           </div>
 
@@ -294,12 +314,13 @@ export function PricingGrid({ pfCents, pjCents, consultaCents }: PricingGridProp
           <div className={styles.resolveSection}>
             <div className={styles.resolveRotulo}>Resolve, por exemplo:</div>
             <div className={styles.chipsWrap}>
-              <span className={styles.chipLight}>Vários anos de IR atrasados</span>
+              <span className={styles.chipLight}>Vários anos atrasados</span>
               <span className={styles.chipLight}>Regularizações extensas</span>
-              <span className={styles.chipLight}>Demanda recorrente sob medida</span>
+              <span className={styles.chipLight}>Demanda recorrente</span>
             </div>
           </div>
 
+          {/* LISTA DE ENTREGÁVEIS (REDUZIDA / EXPANSÍVEL) */}
           <div className={styles.entregaveisList}>
             <div className={styles.entregavelItem}>
               <CheckCircle2 size={18} className={styles.checkIconLight} />
@@ -317,21 +338,36 @@ export function PricingGrid({ pfCents, pjCents, consultaCents }: PricingGridProp
               </div>
             </div>
 
-            <div className={styles.entregavelItem}>
-              <CheckCircle2 size={18} className={styles.checkIconLight} />
-              <div className={styles.entregavelText}>
-                <b>A mesma estrutura completa</b>
-                <small>Chat seguro com contador, linha do tempo na área do cliente e relatório final assinado com CRC.</small>
-              </div>
-            </div>
+            {/* ITENS EXPANDIDOS */}
+            {expandedCards["sob-demanda"] && (
+              <>
+                <div className={styles.entregavelItem}>
+                  <CheckCircle2 size={18} className={styles.checkIconLight} />
+                  <div className={styles.entregavelText}>
+                    <b>A mesma estrutura completa</b>
+                    <small>Chat seguro com contador, linha do tempo na área do cliente e relatório final assinado com CRC.</small>
+                  </div>
+                </div>
 
-            <div className={styles.entregavelItem}>
-              <CheckCircle2 size={18} className={styles.checkIconLight} />
-              <div className={styles.entregavelText}>
-                <b>Sem compromisso de fechar</b>
-                <small>Você decide com a proposta formal na mão. Se optar por não seguir, o relatório de diagnóstico é seu.</small>
-              </div>
-            </div>
+                <div className={styles.entregavelItem}>
+                  <CheckCircle2 size={18} className={styles.checkIconLight} />
+                  <div className={styles.entregavelText}>
+                    <b>Sem compromisso de fechar</b>
+                    <small>Você decide com a proposta formal na mão. Se optar por não seguir, o relatório de diagnóstico é seu.</small>
+                  </div>
+                </div>
+              </>
+            )}
+
+            {/* BOTÃO EXPANDIR / RECOLHER */}
+            <button
+              type="button"
+              className={styles.btnExpandir}
+              onClick={(e) => toggleExpand("sob-demanda", e)}
+            >
+              <span>{expandedCards["sob-demanda"] ? "Ver menos detalhes" : "Ver todos os 4 entregáveis"}</span>
+              {expandedCards["sob-demanda"] ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+            </button>
           </div>
 
           <Link

@@ -131,56 +131,6 @@
   margin-bottom: 64px;
 }
 
-.selectorBar {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 16px;
-  margin-bottom: 36px;
-  flex-wrap: wrap;
-}
-
-.selectorLabel {
-  font-size: 0.95rem;
-  font-weight: 700;
-  color: var(--pub-ink-soft, #5A6B69);
-}
-
-.selectorTabs {
-  display: inline-flex;
-  background: rgba(34, 49, 47, 0.06);
-  padding: 5px;
-  border-radius: 99px;
-  border: 1px solid rgba(34, 49, 47, 0.08);
-  gap: 6px;
-}
-
-.tabBtn {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 20px;
-  border-radius: 99px;
-  border: none;
-  background: transparent;
-  font-family: 'Hanken Grotesk', sans-serif;
-  font-size: 0.92rem;
-  font-weight: 700;
-  color: var(--pub-ink-soft, #5A6B69);
-  cursor: pointer;
-  transition: all 0.25s ease;
-}
-
-.tabBtn:hover {
-  color: var(--pub-ink, #22312F);
-}
-
-.tabActive {
-  background: #FFFFFF;
-  color: var(--pub-coral, #EE5F3A) !important;
-  box-shadow: 0 4px 14px rgba(34, 49, 47, 0.1);
-}
-
 .planosGrid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -285,7 +235,7 @@
 
 /* HEADER DO CARD */
 .planoHeader {
-  margin-bottom: 24px;
+  margin-bottom: 20px;
 }
 
 .planoNomeFlex {
@@ -322,13 +272,13 @@
   font-size: 0.94rem;
   color: var(--pub-ink-soft, #5A6B69);
   line-height: 1.5;
-  min-height: 56px;
+  min-height: 52px;
 }
 
 /* PREÇO */
 .precoBox {
-  margin: 16px 0 24px;
-  padding-bottom: 20px;
+  margin: 12px 0 20px;
+  padding-bottom: 16px;
   border-bottom: 1px solid rgba(34, 49, 47, 0.08);
 }
 
@@ -351,7 +301,7 @@
 
 .precoNum {
   font-family: 'Bricolage Grotesque', sans-serif;
-  font-size: 3.4rem;
+  font-size: 3.2rem;
   font-weight: 800;
   letter-spacing: -0.04em;
   color: var(--pub-green, #0C5446);
@@ -360,7 +310,7 @@
 
 .precoSobConsultaTitle {
   font-family: 'Bricolage Grotesque', sans-serif;
-  font-size: 2.2rem;
+  font-size: 2.1rem;
   font-weight: 800;
   letter-spacing: -0.03em;
   color: var(--pub-green, #0C5446);
@@ -368,14 +318,14 @@
 }
 
 .precoUnidade {
-  font-size: 0.95rem;
+  font-size: 0.92rem;
   color: var(--pub-ink, #22312F);
   margin-top: 4px;
   font-weight: 600;
 }
 
 .precoPagamento {
-  font-size: 0.86rem;
+  font-size: 0.85rem;
   color: var(--pub-green, #0C5446);
   font-weight: 700;
   margin-top: 2px;
@@ -383,39 +333,39 @@
 
 /* SEÇÃO RESOLVE (CHIPS) */
 .resolveSection {
-  margin-bottom: 28px;
+  margin-bottom: 24px;
 }
 
 .resolveRotulo {
-  font-size: 0.76rem;
+  font-size: 0.75rem;
   font-weight: 800;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--pub-green, #0C5446);
-  margin-bottom: 12px;
+  margin-bottom: 10px;
 }
 
 .chipsWrap {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 6px;
 }
 
 .chipLight {
-  font-size: 0.78rem;
+  font-size: 0.76rem;
   font-weight: 700;
   background: var(--pub-green-mist, #E6EFED);
   color: var(--pub-green, #0C5446);
-  padding: 6px 12px;
+  padding: 5px 11px;
   border-radius: 20px;
 }
 
 .chipDark {
-  font-size: 0.78rem;
+  font-size: 0.76rem;
   font-weight: 700;
   background: rgba(255, 156, 126, 0.16);
   color: #FF9C7E;
-  padding: 6px 12px;
+  padding: 5px 11px;
   border-radius: 20px;
 }
 
@@ -423,14 +373,14 @@
 .entregaveisList {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 14px;
   flex: 1;
-  margin-bottom: 32px;
+  margin-bottom: 24px;
 }
 
 .entregavelItem {
   display: flex;
-  gap: 12px;
+  gap: 10px;
   align-items: flex-start;
 }
 
@@ -448,7 +398,7 @@
 
 .entregavelText b {
   display: block;
-  font-size: 0.98rem;
+  font-size: 0.94rem;
   font-weight: 700;
   color: var(--pub-ink, #22312F);
   line-height: 1.35;
@@ -456,10 +406,46 @@
 
 .entregavelText small {
   display: block;
-  font-size: 0.85rem;
+  font-size: 0.83rem;
   color: var(--pub-ink-soft, #5A6B69);
-  line-height: 1.45;
-  margin-top: 3px;
+  line-height: 1.4;
+  margin-top: 2px;
+}
+
+/* BOTÃO DE EXPANDIR / RECOLHER ENTREGÁVEIS */
+.btnExpandir {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 6px;
+  padding: 8px 14px;
+  border-radius: 99px;
+  border: 1px solid rgba(34, 49, 47, 0.15);
+  background: rgba(34, 49, 47, 0.04);
+  color: var(--pub-green, #0C5446);
+  font-family: 'Hanken Grotesk', sans-serif;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  align-self: flex-start;
+}
+
+.btnExpandir:hover {
+  background: rgba(12, 84, 70, 0.08);
+  border-color: var(--pub-green, #0C5446);
+}
+
+.btnExpandirDark {
+  border-color: rgba(255, 156, 126, 0.3);
+  background: rgba(255, 255, 255, 0.08);
+  color: #FF9C7E;
+}
+
+.btnExpandirDark:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: #FF9C7E;
 }
 
 /* CORES TEXTOS PARA MODO DARK */
