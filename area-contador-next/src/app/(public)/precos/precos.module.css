@@ -125,8 +125,8 @@
 
 .passoCard {
   background: #FFFFFF;
-  border-radius: 24px;
-  padding: 28px 22px;
+  border-radius: 20px;
+  padding: 20px 18px;
   border: 1px solid rgba(34, 49, 47, 0.08);
   box-shadow: 0 10px 30px -10px rgba(34, 49, 47, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.9);
   transition: all 0.35s cubic-bezier(0.2, 0.8, 0.2, 1);
@@ -145,7 +145,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 14px;
+  margin-bottom: 12px;
 }
 
 .passoNumBadge {
@@ -157,7 +157,7 @@
   font-weight: 800;
   color: #FF9C7E;
   background: rgba(255, 156, 126, 0.12);
-  padding: 5px 12px;
+  padding: 4px 10px;
   border-radius: 99px;
   border: 1px solid rgba(255, 156, 126, 0.25);
 }
@@ -171,9 +171,9 @@
 }
 
 .passoIconWrap {
-  width: 42px;
-  height: 42px;
-  border-radius: 14px;
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
   background: rgba(12, 84, 70, 0.06);
   color: var(--pub-green, #0C5446);
   display: flex;
@@ -189,31 +189,13 @@
   transform: rotate(5deg) scale(1.08);
 }
 
-.passoTag {
-  font-size: 0.72rem;
-  font-weight: 800;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--pub-ink-soft, #5A6B69);
-  margin-bottom: 8px;
-  opacity: 0.85;
-}
-
 .passoTitulo {
   font-family: 'Bricolage Grotesque', sans-serif;
-  font-size: 1.15rem;
+  font-size: 1.05rem;
   font-weight: 800;
   color: var(--pub-ink, #22312F);
-  margin: 0 0 8px;
-  line-height: 1.3;
-}
-
-.passoDesc {
-  font-size: 0.9rem;
-  color: var(--pub-ink-soft, #5A6B69);
-  line-height: 1.5;
   margin: 0;
-  flex: 1;
+  line-height: 1.35;
 }
 
 .passoConnectorArrow {

@@ -64,11 +64,10 @@ export default async function PrecosPage() {
               <span>Planos e Preços</span>
             </div>
             <h1 className={styles.heroTitle}>
-              Problema com a Receita tem solução.<br />
-              <span className={styles.accent} style={{ color: '#FF9C7E' }}>E a solução tem preço fixo.</span>
+              Atendimento contábil com <span className={styles.accent} style={{ color: '#FF9C7E' }}>preço fixo</span>
             </h1>
             <p className={styles.heroSub}>
-              Você sabe quanto custa antes de começar e recebe tudo por escrito no fim — inclusive um relatório assinado por contador com registro CRC. Sem mensalidade, sem fidelidade, sem surpresa.
+              Sem mensalidade e sem fidelidade. Você sabe quanto custa antes de começar e recebe relatório oficial assinado por contador com CRC.
             </p>
           </div>
         </section>

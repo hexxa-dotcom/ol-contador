@@ -16,30 +16,22 @@ const PASSOS = [
   { 
     n: "01", 
     t: "Agende seu horário", 
-    d: "Escolha o dia e o horário que funcionam para você. Leva menos de um minuto.", 
     icon: CalendarCheck,
-    tag: "Rápido & Online"
   },
   { 
     n: "02", 
     t: "Conte o seu caso", 
-    d: "Com o horário garantido, escreva o que aconteceu com suas palavras e anexe os documentos.", 
     icon: MessageSquareText,
-    tag: "Sem Enrolação"
   },
   { 
     n: "03", 
     t: "Resolva no chat seguro", 
-    d: "No horário marcado, fale direto com o contador no chat seguro. Documentos entram e saem por ali.", 
     icon: Clock,
-    tag: "Contador ao Vivo"
   },
   { 
     n: "04", 
     t: "Receba o relatório", 
-    d: "No fim, um PDF assinado com CRC: o que aconteceu, o que foi feito e os próximos passos.", 
     icon: FileCheck,
-    tag: "Relatório Oficial CRC"
   },
 ];
 
@@ -74,7 +66,7 @@ export function PassosComoFunciona() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.4, delay: index * 0.12 }}
-                whileHover={{ y: -8, scale: 1.02 }}
+                whileHover={{ y: -6, scale: 1.02 }}
                 onMouseEnter={() => setActiveStep(index)}
                 onMouseLeave={() => setActiveStep(null)}
                 className={`${styles.passoCard} ${isActive ? styles.passoCardActive : ""}`}
@@ -90,10 +82,7 @@ export function PassosComoFunciona() {
                   </div>
                 </div>
 
-                <div className={styles.passoTag}>{p.tag}</div>
-
                 <h3 className={styles.passoTitulo}>{p.t}</h3>
-                <p className={styles.passoDesc}>{p.d}</p>
 
                 {/* Seta conectora entre passos (exceto no ultimo) */}
                 {index < PASSOS.length - 1 && (
