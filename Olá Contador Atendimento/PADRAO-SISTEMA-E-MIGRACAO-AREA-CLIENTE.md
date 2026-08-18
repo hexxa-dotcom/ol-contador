@@ -352,14 +352,15 @@ estruturas ou nos scripts SQL do projeto.
 - [x] Criar/editar agendamento e disponibilidade.
 - [x] Marcar notificações e Caixa Postal como lidas.
 - [x] Persistir preferências gerais do painel.
-- [ ] Criar e mover tarefas com histórico — hoje "tarefas internas"
-  (`src/components/views.tsx`, seção Tarefas) é um array JSON dentro de
-  `configuracoes` (chave `"tarefas"`), usado ativamente pela equipe todo
-  dia; só tem toggle concluído/reaberto e exclusão, sem histórico de
-  movimentação. Trocar isso por tabela própria é migração de dado de uma
-  feature em uso diário — não fiz sem avisar, porque um bug ali quebra o
-  que a equipe usa agora. Fica pendente de decisão explícita antes de
-  mexer.
+- [x] Criar e mover tarefas com histórico — concluído em 18/08/2026. Tabelas
+  `tarefas`/`tarefas_historico` no banco (RLS staff-only), as 5 tarefas que
+  existiam no JSON de `configuracoes` foram migradas. Novas actions
+  `createTask`/`toggleTask`/`reassignTask`/`deleteTask` (`src/app/auth/
+  actions.ts`), todas gravando evento em `tarefas_historico`. Exclusão é
+  soft-delete (coluna `excluida`) porque a FK do histórico é `ON DELETE
+  CASCADE` — apagar a tarefa de verdade apagaria o próprio registro de
+  auditoria da exclusão. `DashboardView` ganhou seletor de responsável por
+  tarefa (o "mover" que faltava).
 - [x] Completar perfil profissional.
 
 ### Fase 3 — comunicação e arquivos
@@ -378,15 +379,18 @@ estruturas ou nos scripts SQL do projeto.
 - [x] Migrar checkout, recorrência e créditos; webhook permanece no backend legado durante o rollback.
 - [x] Migrar o adaptador server-side e a seleção do Radar Fiscal; falta
   homologar consentimento e credenciais dos serviços pagos.
-- [ ] Implementar reprocessamento seguro e trilha de auditoria — auditoria
-  de 18/08/2026: não existe nada disso no Next ainda. A tabela
-  `webhook_eventos` existe no schema mas está órfã (nenhum arquivo em
-  `src` a referencia) — o processamento do webhook do Asaas continua só
-  no backend legado (item já registrado na seção "Independência do
-  backend legado"). Construir a rota de webhook + reprocessamento +
-  auditoria do zero, sem testar, mexendo em confirmação de pagamento, é
-  risco alto demais pra fazer por inércia — fica pendente de escopo e
-  decisão explícita, não é ajuste pequeno.
+- [x] Implementar reprocessamento seguro e trilha de auditoria — concluído
+  em 18/08/2026, com autorização explícita para mexer em fluxo financeiro.
+  `src/app/api/asaas/webhook/route.ts` (porte 1:1 do legado: claim
+  idempotente por `evento_id` único, reconsulta o Asaas antes de aplicar
+  qualquer mudança, nunca confia só no payload) e `src/app/api/webhooks/
+  reprocess/route.ts` (GET lista os últimos 100 eventos — a trilha de
+  auditoria, hoje só visível assim porque `webhook_eventos` é RLS
+  service_role-only —, POST reprocessa manualmente um evento `failed`).
+  `sincronizarCobrancaAsaas` já existia pronta em `pagamento.ts` (estava
+  morta, sem endpoint que a chamasse). **Continua desligado em produção**:
+  o Asaas real ainda aponta pro backend legado — isso é troca manual no
+  painel do Asaas, decisão do corte final, não alterada aqui.
 
 ### Fase 5 — Área do Cliente
 
