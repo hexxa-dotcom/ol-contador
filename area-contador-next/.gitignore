@@ -5,3 +5,6 @@ node_modules
 npm-debug.log*
 *.tsbuildinfo
 .vercel
+
+# Fontes de design brutas (não usadas em runtime)
+public/File/
