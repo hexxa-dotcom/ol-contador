@@ -1,5 +1,16 @@
 import Link from "next/link";
-import { Radar as RadarIcon, ShieldCheck, Inbox, FileText, HeartPulse, BellRing, CheckCircle2, ArrowRight } from "lucide-react";
+import { 
+  Radar as RadarIcon, 
+  ShieldCheck, 
+  Inbox, 
+  FileText, 
+  HeartPulse, 
+  BellRing, 
+  CheckCircle2, 
+  ArrowRight,
+  Lock,
+  Sparkles
+} from "lucide-react";
 import { SiteHeader, SiteFooter } from "@/components/site-shell";
 import { Reveal } from "../carrossel";
 import { TimelineSteps } from "../timeline-steps";
@@ -44,18 +55,18 @@ export default function RadarPage() {
       <SiteHeader active="radar" />
 
       <main className={styles.mainWrapper}>
-        {/* HERO PETRÓLEO */}
+        
+        {/* HERO LIGHT PAPER (IDÊNTICO À ABA PREÇOS) */}
         <section className={styles.hero}>
           <div className={styles.container}>
             <div className={styles.eyebrow}>
               <span className={styles.eyebrowDot} />
-              <RadarIcon size={16} />
               <span>Assinatura em validação — abre em breve</span>
             </div>
 
             <h1 className={styles.title}>
               Descubra o problema com a Receita<br />
-              <span className={styles.accent}>antes que ele vire multa</span>
+              <span className={styles.accent} style={{ color: '#FF9C7E' }}>antes que ele vire multa.</span>
             </h1>
 
             <p className={styles.sub}>
@@ -67,16 +78,17 @@ export default function RadarPage() {
                 <span>Ver planos e preços</span>
                 <ArrowRight size={18} />
               </a>
-              <a className={styles.btnHeroGlass} href={AVISE_ME}>
+              <a className={styles.btnHeroOutline} href={AVISE_ME}>
                 <span>Avise-me quando abrir</span>
               </a>
             </div>
           </div>
         </section>
 
-        {/* COMO FUNCIONA */}
-        <section className={styles.section}>
-          <div className={styles.container}>
+        <div className={styles.container}>
+          
+          {/* COMO FUNCIONA / PASSO A PASSO */}
+          <section className={styles.section}>
             <Reveal>
               <div className={styles.sectionHead}>
                 <span className={styles.sectionLabel}>Como funciona</span>
@@ -86,12 +98,10 @@ export default function RadarPage() {
             <Reveal>
               <TimelineSteps steps={PASSOS} />
             </Reveal>
-          </div>
-        </section>
+          </section>
 
-        {/* O QUE MONITORA */}
-        <section className={styles.section} style={{ paddingTop: 0 }}>
-          <div className={styles.container}>
+          {/* O QUE MONITORA (CHIPS 3D) */}
+          <section className={styles.section} style={{ paddingTop: 0 }}>
             <Reveal>
               <div className={styles.sectionHead}>
                 <span className={styles.sectionLabel}>Cobertura Total</span>
@@ -108,12 +118,10 @@ export default function RadarPage() {
                 ))}
               </div>
             </Reveal>
-          </div>
-        </section>
+          </section>
 
-        {/* PLANOS E PREÇOS 3D */}
-        <section className={styles.section} style={{ paddingTop: 0 }} id="planos">
-          <div className={styles.container}>
+          {/* PLANOS E PREÇOS (MESMO PADRÃO PREÇOS) */}
+          <section className={styles.section} style={{ paddingTop: 0 }} id="planos">
             <Reveal>
               <div className={styles.sectionHead}>
                 <span className={styles.sectionLabel}>Planos e Preços</span>
@@ -142,7 +150,7 @@ export default function RadarPage() {
                   </a>
                 </div>
 
-                {/* PLANO ANUAL (DESTAQUE DARK EMBOSSED) */}
+                {/* PLANO ANUAL (CARD DESTAQUE DARK EMBOSSED) */}
                 <div className={`${styles.plano} ${styles.planoDestaque}`}>
                   <div className={styles.planoTopo}>
                     <span className={styles.planoNome}>Anual</span>
@@ -169,45 +177,44 @@ export default function RadarPage() {
             <p className={styles.confiancaLinha}>
               Sem fidelidade no mensal · procuração revogável a qualquer momento · sigilo profissional garantido
             </p>
-          </div>
-        </section>
+          </section>
 
-        {/* FAQ ACCORDION */}
-        <section className={styles.section} style={{ paddingTop: 0 }}>
-          <div className={styles.container}>
-            <Reveal>
-              <div className={styles.sectionHead}>
-                <span className={styles.sectionLabel}>Tire suas dúvidas</span>
-                <h2 className={styles.sectionTitle}>Perguntas frequentes sobre o Radar Fiscal</h2>
-              </div>
-            </Reveal>
-            <Reveal>
-              <FaqAccordion faqList={FAQ} />
-            </Reveal>
+          {/* BOX DE GARANTIA E SEGURANÇA */}
+          <div className={styles.garantiaBox}>
+            <div className={styles.garantiaIconWrap}>
+              <Lock size={28} />
+            </div>
+            <div className={styles.garantiaText}>
+              <b>Procuração Eletrônica 100% Segura no e-CAC</b>
+              <span>A procuração eletrônica dá acesso exclusivamente de consulta à sua situação fiscal. Ela não permite realizar movimentações financeiras ou alterações cadastrais e pode ser revogada por você no e-CAC a qualquer momento.</span>
+            </div>
           </div>
-        </section>
 
-        {/* CTA FINAL */}
-        <section className={styles.section} style={{ paddingTop: 0, paddingBottom: 80 }}>
-          <div className={styles.container}>
-            <Reveal>
-              <div className={styles.ctaFinal}>
-                <h2>Não espere a Receita te avisar tarde demais</h2>
-                <p>Deixe seu e-mail e a gente avisa assim que o Radar Fiscal abrir para assinatura.</p>
-                <div style={{ marginTop: 28 }}>
-                  <a className={styles.btnHeroCoral} href={AVISE_ME}>
-                    <span>Avise-me quando abrir</span>
-                    <ArrowRight size={18} />
-                  </a>
-                </div>
-                <div style={{ marginTop: 20, fontSize: "0.95rem", color: "#DCEDE7" }}>
-                  ou <Link href="/precos" style={{ color: "#FF9C7E", fontWeight: 700, textDecoration: "underline" }}>veja os atendimentos de preço fixo disponíveis agora</Link>
-                </div>
-              </div>
-            </Reveal>
-          </div>
-        </section>
+          {/* FAQ */}
+          <section className={styles.faqSection}>
+            <div className={styles.faqHeader}>
+              <h2 className={styles.faqTitle}>Perguntas frequentes sobre o Radar Fiscal</h2>
+              <p className={styles.faqSub}>Entenda como funciona nosso monitoramento contínuo</p>
+            </div>
+            <FaqAccordion faqList={FAQ} />
+          </section>
 
+          {/* CTA FINAL */}
+          <section className={styles.ctaFinal}>
+            <h2>Não espere a Receita te avisar tarde demais</h2>
+            <p>Deixe seu e-mail e a gente avisa assim que o Radar Fiscal abrir para assinatura.</p>
+            <div style={{ marginTop: 28 }}>
+              <a className={styles.btnHeroCoral} href={AVISE_ME}>
+                <span>Avise-me quando abrir</span>
+                <ArrowRight size={18} />
+              </a>
+            </div>
+            <div style={{ marginTop: 20, fontSize: "0.95rem", color: "#DCEDE7" }}>
+              ou <Link href="/precos" style={{ color: "#FF9C7E", fontWeight: 700, textDecoration: "underline" }}>veja os atendimentos de preço fixo disponíveis agora</Link>
+            </div>
+          </section>
+
+        </div>
       </main>
 
       <SiteFooter />

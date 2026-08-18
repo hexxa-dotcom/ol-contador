@@ -1,19 +1,21 @@
-/* RADAR FISCAL - DESIGN 3D PREMIUM */
+/* RADAR FISCAL - IDENTICO AO PADRAO DA ABA DE PREÇOS */
 
 .mainWrapper {
   background: var(--pub-paper, #FAF7F2);
   min-height: 100vh;
+  padding-bottom: 48px;
 }
 
-/* HERO SUPERFÍCIE ESCURA PETRÓLEO */
+.container {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+/* HERO LIGHT PAPER (PADRÃO PREÇOS) */
 .hero {
-  background: var(--pub-green-deep, #07322A);
-  background-image: radial-gradient(circle at 50% -10%, rgba(159, 211, 196, 0.25), transparent 70%);
-  color: #F7F1E6;
-  padding: 80px 24px 72px;
+  padding: 64px 0 40px;
   text-align: center;
-  position: relative;
-  overflow: hidden;
 }
 
 .eyebrow {
@@ -41,12 +43,12 @@
 
 .title {
   font-family: 'Bricolage Grotesque', sans-serif;
-  font-size: clamp(2rem, 4.2vw, 3.2rem);
+  font-size: clamp(2.2rem, 4.5vw, 3.4rem);
   font-weight: 800;
+  line-height: 1.12;
   letter-spacing: -0.03em;
-  line-height: 1.15;
-  color: #FFFFFF;
-  max-width: 820px;
+  color: var(--pub-ink, #22312F);
+  max-width: 840px;
   margin: 0 auto 20px;
 }
 
@@ -55,9 +57,9 @@
 }
 
 .sub {
-  font-size: 1.1rem;
-  color: #DCEDE7;
-  max-width: 680px;
+  font-size: 1.15rem;
+  color: var(--pub-ink-soft, #5A6B69);
+  max-width: 720px;
   margin: 0 auto 32px;
   line-height: 1.6;
 }
@@ -82,54 +84,46 @@
   font-size: 1.05rem;
   font-weight: 800;
   text-decoration: none !important;
-  box-shadow: 0 8px 24px rgba(255, 106, 69, 0.5);
+  box-shadow: 0 8px 24px rgba(255, 106, 69, 0.4);
   transition: all 0.25s ease;
 }
 
 .btnHeroCoral:hover {
   background: #e04b2b;
   transform: translateY(-2px);
-  box-shadow: 0 12px 30px rgba(255, 106, 69, 0.6);
+  box-shadow: 0 12px 30px rgba(255, 106, 69, 0.5);
 }
 
-.btnHeroGlass {
+.btnHeroOutline {
   display: inline-flex;
   align-items: center;
   gap: 8px;
   padding: 16px 32px;
   border-radius: 99px;
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.25);
-  color: #FFFFFF !important;
+  background: transparent;
+  border: 1.5px solid var(--pub-green, #0C5446);
+  color: var(--pub-green, #0C5446) !important;
   font-family: 'Hanken Grotesk', sans-serif;
   font-size: 1.05rem;
   font-weight: 700;
   text-decoration: none !important;
-  backdrop-filter: blur(12px);
   transition: all 0.25s ease;
 }
 
-.btnHeroGlass:hover {
-  background: rgba(255, 255, 255, 0.18);
-  border-color: rgba(255, 255, 255, 0.4);
+.btnHeroOutline:hover {
+  background: rgba(12, 84, 70, 0.06);
   transform: translateY(-2px);
 }
 
 /* SEÇÕES */
 .section {
-  padding: 64px 0;
-}
-
-.container {
-  max-width: 1080px;
-  margin: 0 auto;
-  padding: 0 24px;
+  padding: 48px 0;
 }
 
 .sectionHead {
   text-align: center;
   max-width: 640px;
-  margin: 0 auto 40px;
+  margin: 0 auto 36px;
 }
 
 .sectionLabel {
@@ -162,7 +156,7 @@
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  gap: 14px;
+  gap: 12px;
   max-width: 880px;
   margin: 0 auto;
 }
@@ -193,12 +187,12 @@
   flex-shrink: 0;
 }
 
-/* PLANOS DE ASSINATURA 3D */
+/* PLANOS DE ASSINATURA 3D (MESMO PADRÃO PREÇOS) */
 .planos {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 32px;
-  max-width: 820px;
+  gap: 28px;
+  max-width: 840px;
   margin: 0 auto;
   align-items: stretch;
 }
@@ -220,7 +214,7 @@
   box-shadow: 0 24px 48px -18px rgba(34, 49, 47, 0.18);
 }
 
-/* CARD ANUAL DESTAQUE 3D */
+/* CARD ANUAL DESTAQUE 3D PETRÓLEO */
 .planoDestaque {
   background: var(--pub-green-deep, #07322A);
   background-image: radial-gradient(circle at 85% 0%, rgba(159, 211, 196, 0.18), transparent 65%);
@@ -309,7 +303,6 @@
   display: flex;
   gap: 10px;
   align-items: flex-start;
-
 }
 
 .lista svg {
@@ -336,16 +329,17 @@
   font-size: 1rem;
   text-decoration: none !important;
   transition: all 0.25s ease;
-  border: 1.5px solid var(--pub-green, #0C5446);
-  color: var(--pub-green, #0C5446);
+  background: var(--pub-green, #0C5446);
+  color: #FFFFFF !important;
+  box-shadow: 0 4px 14px rgba(12, 84, 70, 0.2);
 }
 
 .planoCta:hover {
-  background: rgba(12, 84, 70, 0.08);
+  background: var(--pub-green-deep, #07322A);
+  transform: translateY(-2px);
 }
 
 .planoDestaque .planoCta {
-  border: none;
   background: #FF6A45;
   color: #FFFFFF !important;
   box-shadow: 0 8px 24px rgba(255, 106, 69, 0.4);
@@ -373,7 +367,72 @@
   opacity: 0.85;
 }
 
-/* CTA FINAL */
+/* GARANTIA BOX (MESMO PADRÃO PREÇOS) */
+.garantiaBox {
+  background: #FFFFFF;
+  border: 1px solid rgba(34, 49, 47, 0.1);
+  border-radius: 24px;
+  padding: 32px 36px;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  margin-bottom: 64px;
+  box-shadow: 0 12px 32px -15px rgba(34, 49, 47, 0.08);
+}
+
+.garantiaIconWrap {
+  width: 56px;
+  height: 56px;
+  border-radius: 18px;
+  background: #FF6A45;
+  color: #FFFFFF;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 8px 20px rgba(255, 106, 69, 0.35);
+}
+
+.garantiaText b {
+  display: block;
+  font-family: 'Bricolage Grotesque', sans-serif;
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--pub-ink, #22312F);
+  margin-bottom: 4px;
+}
+
+.garantiaText span {
+  font-size: 1rem;
+  color: var(--pub-ink-soft, #5A6B69);
+  line-height: 1.5;
+}
+
+/* FAQ SECTION */
+.faqSection {
+  margin-bottom: 64px;
+}
+
+.faqHeader {
+  text-align: center;
+  max-width: 600px;
+  margin: 0 auto 40px;
+}
+
+.faqTitle {
+  font-family: 'Bricolage Grotesque', sans-serif;
+  font-size: clamp(1.8rem, 3vw, 2.4rem);
+  font-weight: 800;
+  color: var(--pub-ink, #22312F);
+  margin-bottom: 12px;
+}
+
+.faqSub {
+  font-size: 1.05rem;
+  color: var(--pub-ink-soft, #5A6B69);
+}
+
+/* CTA FINAL (MESMO PADRÃO PREÇOS) */
 .ctaFinal {
   background: var(--pub-green-deep, #07322A);
   color: #F7F1E6;
@@ -383,21 +442,22 @@
   position: relative;
   overflow: hidden;
   box-shadow: 0 24px 50px -20px rgba(7, 50, 42, 0.7);
+  margin-bottom: 64px;
 }
 
 .ctaFinal h2 {
   font-family: 'Bricolage Grotesque', sans-serif;
-  font-size: clamp(1.8rem, 3vw, 2.5rem);
+  font-size: clamp(1.8rem, 3.5vw, 2.6rem);
   font-weight: 800;
   color: #FFFFFF;
-  margin: 0 0 12px;
+  margin: 0 0 16px;
 }
 
 .ctaFinal p {
-  font-size: 1.08rem;
+  font-size: 1.1rem;
   color: #DCEDE7;
-  max-width: 520px;
-  margin: 0 auto;
+  max-width: 580px;
+  margin: 0 auto 32px;
   line-height: 1.6;
 }
 
@@ -405,5 +465,13 @@
   .planos {
     grid-template-columns: 1fr;
     max-width: 440px;
+  }
+  .garantiaBox {
+    flex-direction: column;
+    text-align: center;
+    padding: 28px 20px;
+  }
+  .ctaFinal {
+    padding: 48px 24px;
   }
 }
