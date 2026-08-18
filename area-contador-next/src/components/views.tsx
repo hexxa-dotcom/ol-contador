@@ -74,6 +74,7 @@ import {
 } from "@/lib/clients";
 import {
   emptyOperationsData,
+  type MailItem,
   type OperationsData,
   type ServicePlan,
 } from "@/lib/operations";
@@ -4020,6 +4021,36 @@ export function NotificacoesIntegralView({
     window.sessionStorage.removeItem("contador-open-client");
     setSelected(clientId);
     setTab("Mensagens");
+  }, []);
+  // Sem isso, um aviso novo na Caixa Postal só aparecia pro contador que
+  // estava com a tela aberta ao recarregar a página.
+  useEffect(() => {
+    const supabase = createBrowserClient();
+    if (!supabase) return;
+    const channel = supabase
+      .channel("contador-caixa-postal-next")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "caixa_postal" },
+        (payload) => {
+          const incoming = payload.new as MailItem;
+          setMail((items) =>
+            items.some((item) => item.id === incoming.id) ? items : [...items, incoming],
+          );
+        },
+      )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "caixa_postal" },
+        (payload) => {
+          const updated = payload.new as MailItem;
+          setMail((items) => items.map((item) => (item.id === updated.id ? { ...item, lida: updated.lida } : item)));
+        },
+      )
+      .subscribe();
+    return () => {
+      void supabase.removeChannel(channel);
+    };
   }, []);
   const ids = Array.from(
     new Set([

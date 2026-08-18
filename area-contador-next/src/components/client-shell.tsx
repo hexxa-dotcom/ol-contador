@@ -222,7 +222,7 @@ export function ClientShell({ data }: { data: PortalData }) {
             ) : active === "documentos" ? (
               <PortalDocumentosView clientId={data.client.id} documents={data.documents} reports={data.reports} />
             ) : active === "caixa-postal" ? (
-              <PortalCaixaPostalView mailbox={data.mailbox} />
+              <PortalCaixaPostalView clientId={data.client.id} mailbox={data.mailbox} />
             ) : active === "radar" ? (
               <PortalRadarView clientId={data.client.id} caixaPostalNovas={data.client.caixaPostalNovas} />
             ) : active === "historico" ? (

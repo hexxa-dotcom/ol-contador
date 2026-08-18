@@ -1863,8 +1863,33 @@ export function PortalDocumentosView({ clientId, documents: initialDocuments, re
 
 const ASSUNTO_SEM_CATEGORIA = "Outro assunto";
 
-export function PortalCaixaPostalView({ mailbox: initialMailbox }: { mailbox: PortalMailItem[] }) {
+export function PortalCaixaPostalView({ clientId, mailbox: initialMailbox }: { clientId: string; mailbox: PortalMailItem[] }) {
   const [mailbox, setMailbox] = useState(initialMailbox);
+
+  // Sem isso, um aviso novo do contador só aparecia pro cliente ao
+  // recarregar a página — igual já acontece no chat de atendimento.
+  useEffect(() => {
+    const supabase = createBrowserClient();
+    if (!supabase) return;
+    const channel = supabase
+      .channel(`oc-caixa-postal-${clientId}`)
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "caixa_postal", filter: `cliente_ref=eq.${clientId}` },
+        (payload) => {
+          const row = payload.new as { id: number; assunto: string | null; mensagem: string; remetente: string; lida: boolean; created_at: string };
+          setMailbox((items) =>
+            items.some((item) => item.id === row.id)
+              ? items
+              : [...items, { id: row.id, assunto: row.assunto, mensagem: row.mensagem, remetente: row.remetente, lida: row.lida, createdAt: row.created_at }],
+          );
+        },
+      )
+      .subscribe();
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [clientId]);
   const [modo, setModo] = useState<"inbox" | "thread" | "compose">("inbox");
   const [threadAtiva, setThreadAtiva] = useState<string | null>(null);
   const [assuntoNovo, setAssuntoNovo] = useState(ASSUNTO_SEM_CATEGORIA);
