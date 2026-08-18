@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { adminClient } from "@/lib/supabase/admin";
 import { cifrar, decifrar } from "@/lib/govbrVault";
+import { registrarErro } from "@/lib/observability";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/supabase/database.types";
 
@@ -177,10 +178,15 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "invalid_action" }, { status: 400, headers });
   } catch (e) {
     const err = e as Error;
-    console.error("[govbr-vault]", err.message);
-    return NextResponse.json(
-      { error: err.message === "vault_key_not_configured" ? "vault_unavailable" : "vault_failed" },
-      { status: 500, headers }
-    );
+    const codigo = err.message === "vault_key_not_configured" ? "vault_unavailable" : "vault_failed";
+    await registrarErro(admin, {
+      origem: "api/clients/vault",
+      codigo,
+      mensagem: err.message,
+      rota: "/api/clients/vault",
+      severidade: "critico",
+      contexto: { action },
+    });
+    return NextResponse.json({ error: codigo }, { status: 500, headers });
   }
 }

@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import { adminClient } from "@/lib/supabase/admin";
+import { registrarErro } from "@/lib/observability";
 
 // O envio de e-mail em si ainda vive no site legado (api/status.js), que já
 // resolve isso hoje em produção — proxy em vez de duplicar a lógica de envio.
@@ -23,7 +25,13 @@ export async function POST(request: Request) {
     });
     const text = await response.text();
     return new NextResponse(text, { status: response.status, headers: { "Content-Type": response.headers.get("content-type") || "application/json" } });
-  } catch {
+  } catch (error) {
+    await registrarErro(adminClient(), {
+      origem: "api/contact",
+      codigo: "contact_unavailable",
+      mensagem: error instanceof Error ? error.message : "Falha ao encaminhar contato",
+      rota: "/api/contact",
+    });
     return NextResponse.json({ error: "contact_unavailable" }, { status: 502 });
   } finally {
     clearTimeout(timeout);

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { adminClient } from "@/lib/supabase/admin";
 import * as asaas from "@/lib/asaas";
 import { confirmCobranca, gerarAutoLogin } from "@/lib/pagamento";
+import { registrarErro } from "@/lib/observability";
 
 export const runtime = "nodejs";
 
@@ -34,7 +35,14 @@ export async function GET(request: Request) {
     return NextResponse.json(resultado);
   } catch (e) {
     const err = e as Error;
-    console.error("checkout/status error:", err.message);
+    await registrarErro(admin, {
+      origem: "api/checkout/status",
+      codigo: "asaas_error",
+      mensagem: err.message,
+      rota: "/api/checkout/status",
+      severidade: "critico",
+      contexto: { cobrancaId: id },
+    });
     return NextResponse.json({ error: "asaas_error", detail: err.message }, { status: 502 });
   }
 }

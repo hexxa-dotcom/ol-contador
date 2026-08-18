@@ -5,6 +5,7 @@ import { checarRateLimit } from "@/lib/rateLimit";
 import { registrarEventoFunil } from "@/lib/metricas";
 import { enviarLinkDeAcesso, gerarAutoLogin, registrarAtendimentoExpress } from "@/lib/pagamento";
 import * as notify from "@/lib/notify";
+import { registrarErro } from "@/lib/observability";
 
 export const runtime = "nodejs";
 
@@ -234,7 +235,14 @@ export async function POST(request: Request) {
     });
   } catch (e) {
     const err = e as Error;
-    console.error("checkout/redeem error:", err.message);
+    await registrarErro(admin, {
+      origem: "api/checkout/redeem",
+      codigo: "resgate_failed",
+      mensagem: err.message,
+      rota: "/api/checkout/redeem",
+      severidade: "critico",
+      contexto: { codigo: body.codigo, servicoId: body.servicoId },
+    });
     return NextResponse.json({ error: "resgate_failed", detail: err.message }, { status: 500 });
   }
 }

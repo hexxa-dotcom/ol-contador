@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { adminClient } from "@/lib/supabase/admin";
 import { checarRateLimit } from "@/lib/rateLimit";
 import { registrarEventoFunil } from "@/lib/metricas";
+import { registrarErro } from "@/lib/observability";
 
 export const runtime = "nodejs";
 
@@ -61,7 +62,10 @@ export async function GET(request: Request) {
     admin.from("funil_eventos").select("evento,sessao_ref").gte("created_at", desde),
     admin.from("cobrancas").select("valor_cents,desconto_cents,status").gte("created_at", desde),
   ]);
-  if (error) return NextResponse.json({ error: "funnel_query_failed" }, { status: 500 });
+  if (error) {
+    await registrarErro(admin, { origem: "api/funnel-metrics", codigo: "funnel_query_failed", mensagem: error.message, rota: "/api/funnel-metrics" });
+    return NextResponse.json({ error: "funnel_query_failed" }, { status: 500 });
+  }
 
   const ev = eventos || [];
   const precosVisualizados = contarUnicos(ev, "precos_visualizados");

@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { adminClient } from "@/lib/supabase/admin";
+import { registrarErro } from "@/lib/observability";
 
 export const runtime = "nodejs";
 
@@ -37,7 +39,15 @@ export async function GET(
   const { data, error } = await supabase.storage
     .from("documentos")
     .createSignedUrl(document.storage_path, 60);
-  if (error || !data?.signedUrl)
+  if (error || !data?.signedUrl) {
+    await registrarErro(adminClient(), {
+      origem: "api/documents/[id]",
+      codigo: "signed_url_failed",
+      mensagem: error?.message || "URL assinada não retornada",
+      rota: "/api/documents/[id]",
+      contexto: { documentId },
+    });
     return NextResponse.json({ error: "signed_url_failed" }, { status: 502 });
+  }
   return NextResponse.redirect(data.signedUrl, 307);
 }

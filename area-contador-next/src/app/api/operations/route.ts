@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { adminClient } from "@/lib/supabase/admin";
 import * as notify from "@/lib/notify";
+import { registrarErro } from "@/lib/observability";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -53,7 +54,10 @@ export async function POST(request: Request) {
       .eq("id", id)
       .select("id,responsavel_id,responsavel_nome")
       .single();
-    if (error || !data) return NextResponse.json({ error: "assignment_failed" }, { status: 400 });
+    if (error || !data) {
+      await registrarErro(adminClient(), { origem: "api/operations", codigo: "assignment_failed", mensagem: error?.message || "Sem dados retornados", rota: "/api/operations", contexto: { action } });
+      return NextResponse.json({ error: "assignment_failed" }, { status: 400 });
+    }
     return NextResponse.json(data, { headers: { "Cache-Control": "private, no-store" } });
   }
 
@@ -72,7 +76,10 @@ export async function POST(request: Request) {
     const etapas = (linha?.valor && typeof linha.valor === "object" && !Array.isArray(linha.valor) ? linha.valor : {}) as Record<string, string>;
     etapas[clientId] = status;
     const { error } = await admin.from("configuracoes").upsert({ chave: "kanban_etapas", valor: etapas as never }, { onConflict: "chave" });
-    if (error) return NextResponse.json({ error: "kanban_update_failed" }, { status: 500 });
+    if (error) {
+      await registrarErro(admin, { origem: "api/operations", codigo: "kanban_update_failed", mensagem: error.message, rota: "/api/operations", contexto: { clientId, status } });
+      return NextResponse.json({ error: "kanban_update_failed" }, { status: 500 });
+    }
 
     const copy = KANBAN_EMAIL_POR_ETAPA[status];
     if (copy) {
@@ -114,7 +121,10 @@ export async function POST(request: Request) {
       .eq("id", id)
       .select("*")
       .single();
-    if (error) return NextResponse.json({ error: "express_update_failed", detail: error.message }, { status: 500 });
+    if (error) {
+      await registrarErro(admin, { origem: "api/operations", codigo: "express_update_failed", mensagem: error.message, rota: "/api/operations", contexto: { id, status } });
+      return NextResponse.json({ error: "express_update_failed", detail: error.message }, { status: 500 });
+    }
 
     if (atual.status !== status) {
       const { data: cliente } = await admin.from("clientes").select("*").eq("id", atual.cliente_ref).maybeSingle();
@@ -152,7 +162,9 @@ export async function POST(request: Request) {
     const text = await response.text();
     return new NextResponse(text, { status: response.status, headers: { "Content-Type": response.headers.get("content-type") || "application/json", "Cache-Control": "private, no-store" } });
   } catch (error) {
-    return NextResponse.json({ error: error instanceof Error && error.name === "AbortError" ? "operation_timeout" : "operation_unavailable" }, { status: 502 });
+    const codigo = error instanceof Error && error.name === "AbortError" ? "operation_timeout" : "operation_unavailable";
+    await registrarErro(adminClient(), { origem: "api/operations", codigo, mensagem: error instanceof Error ? error.message : String(error), rota: "/api/operations", contexto: { action } });
+    return NextResponse.json({ error: codigo }, { status: 502 });
   } finally {
     clearTimeout(timeout);
   }

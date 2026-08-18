@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { adminClient } from "@/lib/supabase/admin";
+import { registrarErro } from "@/lib/observability";
 
 export const runtime = "nodejs";
 
@@ -33,7 +34,12 @@ export async function GET() {
   ]);
 
   if (servicosRes.error) {
-    console.error("agendamento-opcoes erro:", servicosRes.error.message);
+    await registrarErro(admin, {
+      origem: "api/agendamento-opcoes",
+      codigo: "db_error",
+      mensagem: servicosRes.error.message,
+      rota: "/api/agendamento-opcoes",
+    });
     return NextResponse.json({ error: "db_error" }, { status: 502 });
   }
 
