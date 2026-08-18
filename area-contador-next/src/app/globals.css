@@ -960,7 +960,7 @@ td { font-size: 11px; }
 
 /* ==================== Site público (precos/agendar/checkout) ==================== */
 .public-nav-wrap { position: sticky; top: 0; z-index: 50; background: rgba(250, 247, 242, 0.92); backdrop-filter: blur(20px) saturate(1.8); -webkit-backdrop-filter: blur(20px) saturate(1.8); border-bottom: 1px solid rgba(34, 49, 47, 0.08); box-shadow: 0 4px 20px -8px rgba(34, 49, 47, 0.06); }
-.public-nav-container { display: flex; align-items: center; justify-content: space-between; max-width: 1280px; width: 100%; margin: 0 auto; padding: 14px 32px; }
+.public-nav-container { display: flex; align-items: center; justify-content: space-between; width: 100%; margin: 0 auto; padding: 14px 48px; }
 .public-brand { display: flex; align-items: center; gap: 10px; text-decoration: none; flex-shrink: 0; }
 .public-brand span { font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 21px; letter-spacing: -.02em; color: var(--pub-ink, #22312F); }
 .public-brand i { font-style: normal; color: #FF9C7E; }

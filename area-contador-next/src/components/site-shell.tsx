@@ -79,16 +79,7 @@ function EntrarMenu() {
         aria-expanded={aberto}
         onClick={() => setAberto((v) => !v)}
       >
-        <User size={15} />
         <span>Entrar</span>
-        <ChevronDown 
-          size={14} 
-          style={{ 
-            opacity: 0.8, 
-            transform: aberto ? "rotate(180deg)" : "none", 
-            transition: "transform 0.25s ease" 
-          }} 
-        />
       </button>
 
       {aberto && (
