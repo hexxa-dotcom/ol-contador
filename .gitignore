@@ -5,6 +5,7 @@ node_modules/
 # OS e Editor
 .DS_Store
 .vscode/
+.claude/
 
 # Logs e Ambientes
 npm-debug.log*

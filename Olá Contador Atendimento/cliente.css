@@ -427,9 +427,13 @@ body.pagina-cliente .app-sidebar-nav .nav-item i {
   width: 100% !important;
   height: 100% !important;
   min-height: 0 !important;
-  border-radius: 24px !important; /* Arredondamento cápsula 360 */
-  box-shadow: 0 12px 32px rgba(255, 106, 69, 0.16), 0 4px 16px rgba(10, 49, 33, 0.08) !important; 
-  border: 2px solid var(--color-coral) !important; /* Borda cápsula completa 360 */
+  /* A moldura coral de 2px + cantos de 24px saíram: era ela a "borda" que
+     sobrava em volta da conversa e impedia o chat de ocupar a janela toda.
+     No lugar, só uma linha neutra de 1px no desktop (no celular nem isso —
+     ver o bloco mobile, onde o chat é literalmente a tela). */
+  border-radius: 14px !important;
+  box-shadow: none !important;
+  border: 1px solid var(--color-border) !important;
   margin: 0 !important;
   overflow: hidden !important;
   background: var(--color-card) !important;
@@ -438,38 +442,94 @@ body.pagina-cliente .app-sidebar-nav .nav-item i {
 
 #section-chat .panel-header-desc { display: none; }
 
+/* Cabeçalho claro (referência: DM do Instagram). Só identidade: voltar,
+   avatar, nome + selo, presença. Nada de bloco verde ocupando o topo. */
 .chat-header {
-  padding: 16px 24px;
-  background: var(--color-pine);
-  color: white;
+  padding: 10px 16px;
+  background: var(--color-card);
+  color: var(--color-text-primary);
+  border-bottom: 1px solid var(--color-border);
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 12px;
+  flex-shrink: 0;
 }
 
 .chat-header-avatar {
-  width: 40px;
-  height: 40px;
+  width: 38px;
+  height: 38px;
   border-radius: 50%;
-  background: white;
-  color: var(--color-pine);
+  background: var(--color-pine);
+  color: #fff;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 18px;
+  font-size: 15px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.chat-header-info {
+  min-width: 0;
+  flex: 1 1 auto;
 }
 
 .chat-header-nome {
   display: flex;
   align-items: center;
   gap: 5px;
-  margin-bottom: 2px;
 }
 
 .chat-header-info h3 {
   font-size: 15px;
   font-weight: 600;
   margin: 0;
+  color: var(--color-text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Faixa do atendimento: uma linha discreta, abaixo do cabeçalho. */
+.chat-assunto-faixa {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 5px 16px;
+  background: var(--color-bg);
+  border-bottom: 1px solid var(--color-border);
+  font-size: 11px;
+  color: var(--color-text-secondary);
+  min-width: 0;
+  /* Trava de segurança: se por qualquer motivo o conteúdo não couber, ele é
+     cortado aqui em vez de empurrar a largura da tela inteira. Era isso que
+     acontecia — com justify-content:center, o excesso vazava para os DOIS
+     lados e alargava o chat para além da tela no iPhone. */
+  overflow: hidden;
+  max-width: 100%;
+}
+
+.chat-assunto-faixa strong {
+  font-weight: 600;
+  color: var(--color-pine);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.chat-assunto-faixa span {
+  font-family: monospace;
+  opacity: 0.75;
+  /* Antes era flex-shrink:0, ou seja, o protocolo NUNCA encolhia: com um
+     assunto comprido, a soma passava da largura da tela e não havia como
+     ceder. Agora ele também abrevia quando o espaço aperta. */
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* Selo inspirado no WhatsApp: aparece junto ao nome, sem competir com o CRC
@@ -479,11 +539,11 @@ body.pagina-cliente .app-sidebar-nav .nav-item i {
   position: relative;
   display: inline-grid;
   place-items: center;
-  color: #53bdeb;
+  color: #3897f0; /* azul de "verificado", agora sobre fundo claro */
   width: 14px;
   height: 14px;
   line-height: 1;
-  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.25));
+  flex-shrink: 0;
 }
 
 .chat-verificado-selo {
@@ -499,10 +559,23 @@ body.pagina-cliente .app-sidebar-nav .nav-item i {
 }
 
 .chat-header-info p {
-  font-size: 12px;
-  opacity: 0.8;
+  font-size: 11px;
   margin: 0;
+  color: var(--color-text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
+
+/* Presença: no cabeçalho claro ela herda o cinza secundário em vez do branco
+   translúcido que existia sobre o verde. */
+.chat-header .status-indicator {
+  font-size: 11px;
+  color: var(--color-text-secondary);
+  gap: 5px;
+}
+.chat-header .status-indicator .dot { font-size: 7px; color: inherit; }
+.chat-header .status-indicator.online { color: #1F8A5F; }
 
 #chat-locked-overlay.is-finished #chat-lock-icon { color: #1F8A5F; }
 #chat-locked-overlay.is-finished #chat-lock-schedule { display: none; }
@@ -519,14 +592,26 @@ body.pagina-cliente .app-sidebar-nav .nav-item i {
 
 .chat-history {
   flex: 1;
-  /* Mantém o mesmo encaixe próximo às bordas usado no chat do contador. */
-  padding: 12px 10px;
+  padding: 12px 12px;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  background: var(--color-bg);
+  /* gap zero de propósito: quem controla o respiro entre balões é a regra
+     .chat-bubble + .chat-bubble abaixo, que sabe diferenciar "mesma pessoa
+     falando de novo" de "a conversa trocou de lado". */
+  gap: 0;
+  /* Fundo branco liso, como na DM do Instagram: o que dá ritmo à tela são os
+     balões, não uma cor de papel de parede atrás deles. */
+  background: var(--color-card);
 }
+
+/* Ritmo da conversa: mensagens seguidas da MESMA pessoa ficam agrupadas
+   (coladas, 2px), e a folga maior só aparece quando a fala troca de lado.
+   Espaçamento igual entre tudo — que era o caso antes — deixa a tela sem
+   respiro e some com a noção de "turno" da conversa. */
+.chat-bubble + .chat-bubble { margin-top: 2px; }
+.chat-bubble.contador + .chat-bubble.cliente,
+.chat-bubble.cliente + .chat-bubble.contador { margin-top: 12px; }
 
 /* Com poucas mensagens elas ficavam grudadas no topo, sobrando meia tela vazia.
    A margem automática no primeiro item empurra tudo para baixo quando há folga
@@ -534,18 +619,14 @@ body.pagina-cliente .app-sidebar-nav .nav-item i {
    o início da conversa quando ela cresce e passa a rolar. */
 .chat-history > *:first-child { margin-top: auto; }
 
-/* Balão no padrão do WhatsApp — de propósito. Quem vai usar isto acabou de sair
-   de uma conversa no WhatsApp; quanto menos o chat exigir aprendizado, melhor.
-   O que faz a semelhança:
-   - largura maior (85%) e respiro menor: antes o texto quebrava cedo demais
-   - horário DENTRO do balão, no canto inferior direito, e não numa linha só dele
-   - canto "rabinho" (3px) do lado de quem falou
-   - cantos de 8px, próximos dos 7.5px do original */
+/* Balão no padrão da DM do Instagram: cápsula bem arredondada, sem borda e
+   sem "rabinho". A hora continua DENTRO do balão (canto inferior direito) —
+   é o que evita uma linha só pra ela e mantém a lista compacta. */
 .chat-bubble {
-  max-width: 85%;
+  max-width: 78%;
   min-width: 92px;
-  padding: 6px 9px 7px;
-  border-radius: 8px;
+  padding: 9px 14px 10px;
+  border-radius: 20px;
   font-size: 14.5px;
   line-height: 1.4;
   position: relative;
@@ -623,7 +704,7 @@ body.pagina-cliente .app-sidebar-nav .nav-item i {
   align-items: center;
   gap: 4px;
   padding: 8px 24px 4px;
-  background: var(--color-bg);
+  background: var(--color-card);
 }
 .chat-digitando.ativo { display: flex; }
 .chat-digitando em {
@@ -654,29 +735,30 @@ body.pagina-cliente .app-sidebar-nav .nav-item i {
   .chat-digitando .ponto { animation: none; }
 }
 
-/* O "rabinho" vai embaixo, do lado de quem falou — como no WhatsApp. Antes
-   ficava em cima, o que dava a leitura invertida de quem enviou. */
+/* Recebida: cinza claro sem borda. Enviada: verde da marca. Só o canto do
+   lado de quem falou é menos arredondado — é o que dá a direção da fala sem
+   precisar de "rabinho" desenhado. */
 .chat-bubble.contador {
-  background: white;
-  border: 1px solid var(--color-border);
+  background: #EFEFEF;
+  border: none;
   color: var(--color-text-primary);
   align-self: flex-start;
-  border-radius: 8px 8px 8px 2px;
+  border-radius: 20px 20px 20px 6px;
 }
 
 .chat-bubble.cliente {
   background: var(--color-pine);
   color: white;
   align-self: flex-end;
-  border-radius: 8px 8px 2px 8px;
+  border-radius: 20px 20px 6px 20px;
 }
 
 /* Ancorado no canto inferior direito, dentro do balão. */
 .chat-time {
   position: absolute;
-  right: 10px;
-  bottom: 6px;
-  font-size: 11px;
+  right: 13px;
+  bottom: 8px;
+  font-size: 10.5px;
   line-height: 1;
   white-space: nowrap;
   display: flex;
@@ -814,18 +896,22 @@ body.pagina-cliente .app-sidebar-nav .nav-item i {
 }
 
 .chat-input-area {
-  padding: 16px;
-  background: white;
+  padding: 10px 12px;
+  background: var(--color-card);
   border-top: 1px solid var(--color-border);
+  flex-shrink: 0;
 }
 
+/* Pílula de digitação no padrão do Instagram: contorno fino, bem arredondada,
+   ícone de anexo dentro dela e o botão de enviar na ponta. */
 .chat-form {
   display: flex;
-  gap: 12px;
-  background: var(--color-bg);
+  align-items: center;
+  gap: 8px;
+  background: var(--color-card);
   border: 1px solid var(--color-border);
-  border-radius: 24px;
-  padding: 6px 6px 6px 20px;
+  border-radius: 999px;
+  padding: 5px 6px 5px 14px;
 }
 
 .chat-form input {
@@ -833,6 +919,12 @@ body.pagina-cliente .app-sidebar-nav .nav-item i {
   border: none;
   background: transparent;
   outline: none;
+  /* outline:none sozinho não basta no Safari iOS — sem isso, ele mantém um
+     resquício do próprio realce nativo do campo (o "quadradinho" colorido
+     que aparece ao focar). appearance:none remove o estilo nativo por
+     completo, e a caixa some. */
+  -webkit-appearance: none;
+  appearance: none;
   font-family: inherit;
   font-size: 14px;
 }
@@ -861,10 +953,27 @@ body.pagina-cliente .app-sidebar-nav .nav-item i {
   color: var(--color-text-secondary);
   cursor: pointer;
   padding: 0 8px;
+  flex-shrink: 0;
 }
 
 .btn-attach:hover {
   color: var(--color-pine);
+}
+
+.client-report-attachments {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 16px 14px;
+}
+
+.client-report-attachments a.btn-attach {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  width: fit-content;
+  max-width: 100%;
+  overflow-wrap: anywhere;
 }
 
 /* Tracking Card — usado em quase toda seção do portal (dashboard, kanban,
@@ -1423,22 +1532,41 @@ body.pagina-cliente .app-sidebar-nav .nav-item i {
   border-bottom: 1px solid var(--color-border);
 }
 
+/* Filhos diretos do grid .docs-layout (upload-zone e o container da lista)
+   herdam min-width:auto por padrão — é o que impedia a coluna de encolher
+   abaixo da largura do nome de arquivo mais comprido, mesmo com o grid já
+   em 1 coluna no celular. */
+.docs-layout > * {
+  min-width: 0;
+}
+
+.doc-list-container,
+.doc-list-container > div {
+  min-width: 0;
+}
+
 .doc-list {
   display: flex;
   flex-direction: column;
   gap: 12px;
+  min-width: 0;
 }
 
 .doc-item {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 12px;
   padding: 12px 16px;
   background: white;
   border: 1px solid var(--color-border);
   border-radius: 8px;
   box-shadow: 0 2px 10px rgba(10, 49, 33, 0.05);
   transition: box-shadow 0.2s ease, transform 0.2s ease;
+  /* min-width:0 é o que deixa o filho encolher abaixo do próprio conteúdo —
+     sem isso, um nome de arquivo comprido empurrava a linha inteira pra
+     fora da tela no celular (era o que deixava "Meus Documentos" quebrado). */
+  min-width: 0;
 }
 .doc-item:hover {
   box-shadow: 0 6px 16px rgba(10, 49, 33, 0.08);
@@ -1449,17 +1577,25 @@ body.pagina-cliente .app-sidebar-nav .nav-item i {
   display: flex;
   align-items: center;
   gap: 12px;
+  min-width: 0;
+  flex: 1 1 auto;
 }
+
+.doc-info > div { min-width: 0; }
 
 .doc-info i {
   color: #E74C3C;
   font-size: 24px;
+  flex-shrink: 0;
 }
 
 .doc-name {
   font-size: 13px;
   font-weight: 600;
   color: var(--color-pine);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .doc-meta {
@@ -2030,6 +2166,16 @@ body.pagina-cliente .app-sidebar-nav .nav-item i {
    @media pelo mesmo motivo do .hdr-sair acima (especificidade/ordem). */
 .nav-liquid-indicator { display: none; }
 
+/* O hub de navegação (#section-menu) e os botões "Voltar ao menu" só fazem
+   sentido no celular — no desktop a sidebar já fica sempre visível. Fica
+   escondido por padrão e a media query (max-width:768px) abaixo é quem
+   revela — não pode ser "sempre oculto": no celular section-menu é a tela
+   inicial e precisa poder ganhar .active normalmente. */
+.btn-voltar-menu { display: none; }
+@media (min-width: 769px) {
+  #section-menu { display: none !important; }
+}
+
 @media (max-width: 768px) {
 
   :root {
@@ -2038,8 +2184,34 @@ body.pagina-cliente .app-sidebar-nav .nav-item i {
     --oc-safe-b: env(safe-area-inset-bottom, 0px);
   }
 
-  /* ---- Viewport real (evita salto em navegadores móveis) ---- */
-  html, body { height: 100vh; height: 100dvh; overflow: hidden; }
+  /* ---- Altura da tela no celular ----
+     CAUSA RAIZ do chat sumir ao abrir o teclado no iPhone, confirmada em
+     gravação de tela quadro a quadro:
+
+       1. o campo de digitar fica lá embaixo, num corpo de ~812px;
+       2. o teclado abre e a área visível cai pra ~380px;
+       3. o Safari DESLOCA a janela visível pra ~432px pra revelar o campo —
+          ele faz isso sozinho, antes de qualquer código nosso rodar;
+       4. só então o nosso JS encolhia o corpo pra 380px (era o --vvh);
+       5. resultado: a janela olhando pra 432–812 e o corpo terminando em
+          380 — ela caía inteira DEPOIS do fim da página. Tela branca.
+
+     Ou seja: encolher a altura era exatamente o que quebrava. O Safari já
+     resolve isso sozinho deslocando a janela; se o corpo continuar do
+     tamanho normal, o deslocamento cai em cima de conteúdo de verdade (as
+     últimas mensagens + o campo) e tudo aparece como deveria.
+
+     Por isso aqui é 100dvh puro, sem --vvh. No Chrome quem resolve é o
+     interactive-widget=resizes-content da meta viewport (cliente.html): lá
+     o próprio dvh encolhe junto com o teclado, sem precisar de deslocamento.
+     Cada navegador pelo caminho que ele já sabe fazer — nenhum dos dois
+     precisa da nossa ajuda, e era a "ajuda" que atrapalhava. */
+  html, body {
+    height: 100vh;
+    height: 100dvh;
+    overflow: hidden;
+    overscroll-behavior: none;
+  }
 
   /* ---- Cabeçalho compacto ---- */
   .app-header {
@@ -2109,36 +2281,19 @@ body.pagina-cliente .app-sidebar-nav .nav-item i {
   }
 
   /* ========================
-     BOTTOM TAB BAR — App-like
+     BOTTOM TAB BAR — desativada no celular
      ======================== */
+  /* A barra fixa saiu de circulação no celular: era ela que competia com o
+     teclado no chat (o input de mensagem ficava espremido/escondido atrás
+     dela quando o teclado subia). A navegação virou hub-and-spoke: a pessoa
+     entra pelo #section-menu (cliente.js define isso como tela inicial no
+     celular) e cada seção tem seu próprio botão "Voltar ao menu"
+     (.btn-voltar-menu) em vez de uma barra sempre presente. Continua
+     existindo e funcionando normalmente no desktop (sidebar). */
   .app-sidebar-nav,
   .app-sidebar-nav.collapsed,
   body.pagina-cliente .app-sidebar-nav {
-    position: fixed;
-    left: 14px;
-    right: 14px;
-    /* Flutua acima da borda da tela (e da faixa de gestos do iPhone), em vez
-       de ficar colada — a folga soma 14px ao que a área seguindo já reserva. */
-    bottom: calc(var(--oc-safe-b) + 14px);
-    z-index: 60;
-    width: auto;
-    height: var(--oc-nav-h);
-    margin: 0;
-    padding: 0;
-    flex-direction: row;
-    align-items: stretch;
-    border-right: none;
-    border-top: none;
-    border-radius: 999px;
-    box-shadow: 0 8px 32px rgba(10, 49, 33, 0.28);
-    /* Vidro líquido: o mesmo degradê diagonal do .app-header (pine claro ->
-       pine escuro), só que translúcido + desfocado por trás — textura
-       consistente entre as duas barras, em vez de uma cor chapada. */
-    background: linear-gradient(165deg, rgba(17, 112, 93, 0.88) 0%, rgba(12, 84, 70, 0.88) 55%);
-    backdrop-filter: blur(18px);
-    -webkit-backdrop-filter: blur(18px);
-    transition: none;
-    overflow: hidden;
+    display: none !important;
   }
 
   /* Título da seção e espaçador: não fazem sentido na barra horizontal */
@@ -2279,17 +2434,13 @@ body.pagina-cliente .app-sidebar-nav .nav-item i {
   .main-content-panels {
     display: flex;
     flex-direction: column;
-    /* +14px: a barra agora flutua com essa folga em vez de ficar colada
-       embaixo (ver .app-sidebar-nav) — o conteúdo precisa da mesma folga
-       pra não ficar escondido atrás dela. */
-    padding-bottom: calc(var(--oc-nav-h) + var(--oc-safe-b) + 14px);
-  }
-  body.oc-teste-on .main-content-panels {
-    padding-bottom: calc(var(--oc-nav-h) + var(--oc-safe-b) + 14px + 26px);
+    /* Sem barra fixa debaixo pra reservar espaço (ver .app-sidebar-nav) — só
+       a folga da área segura do aparelho. */
+    padding-bottom: var(--oc-safe-b);
   }
 
-  .content-panel { 
-    padding: 16px 14px 20px; 
+  .content-panel {
+    padding: 16px 14px 20px;
     flex: 1;
     min-height: 0;
     height: auto !important; /* sobrescreve height: 100% global para evitar bug de overflow no Safari */
@@ -2297,6 +2448,124 @@ body.pagina-cliente .app-sidebar-nav .nav-item i {
   .panel-header-desc { margin-bottom: 16px; }
   .panel-header-desc h2 { font-size: 20px; }
   .panel-header-desc p { font-size: 13px; }
+
+  /* ========================
+     BOTÃO "VOLTAR AO MENU"
+     Some no desktop (ver regra fora da media query) — só existe onde a
+     navegação hub-and-spoke se aplica, no celular.
+     ======================== */
+  .btn-voltar-menu {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--color-pine-ultra-light);
+    color: var(--color-pine);
+    border: none;
+    border-radius: var(--radius-pill);
+    padding: 7px 14px 7px 12px;
+    font-size: 12.5px;
+    font-weight: 600;
+    margin-bottom: 10px;
+    cursor: pointer;
+  }
+  .btn-voltar-menu i { font-size: 11px; }
+  .btn-voltar-menu:active { background: var(--color-border); }
+
+  /* Variante do cabeçalho do chat: só a setinha, sem fundo nem rótulo —
+     como na DM do Instagram. A cor é escura porque o cabeçalho virou claro;
+     enquanto era branca (herança do cabeçalho verde antigo) o botão existia
+     mas ficava invisível sobre o branco. */
+  .btn-voltar-menu-chat {
+    margin-bottom: 0;
+    padding: 4px 2px;
+    margin-left: -2px;
+    background: transparent;
+    color: var(--color-text-primary);
+    flex-shrink: 0;
+    font-size: 17px;
+    line-height: 1;
+  }
+  .btn-voltar-menu-chat i { font-size: 17px; }
+  .btn-voltar-menu-chat:active { background: transparent; opacity: 0.5; }
+
+  /* ========================
+     MENU HUB (#section-menu) — tela inicial no celular
+     ======================== */
+  .menu-hub-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .menu-hub-card {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    width: 100%;
+    /* Vidro líquido, mesmo espírito da barra/indicador que já existiam:
+       degradê translúcido + blur por trás em vez de um branco chapado. */
+    background: linear-gradient(165deg, rgba(255, 255, 255, 0.86) 0%, rgba(255, 255, 255, 0.58) 100%);
+    backdrop-filter: blur(16px) saturate(160%);
+    -webkit-backdrop-filter: blur(16px) saturate(160%);
+    border: 1px solid rgba(255, 255, 255, 0.7);
+    border-radius: var(--radius-lg);
+    padding: 18px;
+    text-align: left;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.8) inset, 0 10px 26px -14px rgba(10, 49, 33, 0.28);
+    /* Curva com "overshoot" — passa um pouco do alvo e volta, é o que dá a
+       sensação de líquido/ressalto no toque (mesma curva do indicador da
+       barra antiga). */
+    transition: transform 0.35s cubic-bezier(0.34, 1.4, 0.4, 1),
+                box-shadow 0.35s ease,
+                background 0.25s ease;
+  }
+  .menu-hub-card:active {
+    transform: scale(0.96);
+    background: linear-gradient(165deg, rgba(230, 239, 237, 0.92) 0%, rgba(255, 255, 255, 0.65) 100%);
+    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.8) inset, 0 4px 14px -8px rgba(10, 49, 33, 0.3);
+  }
+  .menu-hub-icon {
+    flex-shrink: 0;
+    width: 50px;
+    height: 50px;
+    background: transparent;
+    box-shadow: none;
+    color: var(--color-coral);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 26px;
+    transition: transform 0.35s cubic-bezier(0.34, 1.4, 0.4, 1);
+  }
+  .menu-hub-card:active .menu-hub-icon { transform: scale(1.08) rotate(-2deg); }
+  .menu-hub-texto {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .menu-hub-texto strong {
+    font-size: 15px;
+    color: var(--color-pine);
+    font-family: 'Sora', sans-serif;
+  }
+  .menu-hub-texto span {
+    font-size: 12.5px;
+    color: var(--color-text-secondary);
+  }
+  .menu-hub-seta {
+    flex-shrink: 0;
+    color: var(--color-text-secondary);
+    font-size: 13px;
+  }
+  .menu-hub-badge {
+    position: static;
+    flex-shrink: 0;
+    margin-right: 2px;
+  }
 
   /* ========================
      CHAT — tela cheia no mobile
@@ -2356,89 +2625,113 @@ body.pagina-cliente .app-sidebar-nav .nav-item i {
     margin: 0 !important;
   }
 
-  /* O topo do app (verde) some quando o chat está aberto — dois cabeçalhos
-     verdes empilhados (o do app + o do chat) ficavam pesados e repetitivos,
-     e o do chat já mostra tudo que importa (nome do contador + o atendimento).
-     A área de conteúdo ocupa esse espaço sozinha via flex, sem precisar de
-     ajuste de altura à parte. */
+  /* O topo do app some quando o chat está aberto — o cabeçalho do chat já
+     diz tudo que importa, e dois cabeçalhos empilhados desperdiçavam altura
+     justamente na tela onde o teclado mais aperta. */
   body:has(#section-chat.content-panel.active) .app-header {
     display: none !important;
   }
 
-  /* Header do chat: uma linha só, compacta — avatar+nome à esquerda, dados
-     do atendimento (assunto+protocolo) à direita, igual ao desktop, só que
-     em fonte menor. Duas linhas empilhadas (testado antes) deixava o verde
-     ainda mais pesado; e como o topo do app já some, sobra altura de sobra
-     nenhuma para desperdiçar aqui. */
+  /* Com o cabeçalho do app escondido, o container NÃO pode continuar
+     descontando a altura dele: sem esta regra sobrava uma faixa morta de
+     54px no rodapé (visível na gravação de tela do usuário), empurrando a
+     conversa pra cima e deixando a barra de digitação perto demais da barra
+     do navegador. */
+  body:has(#section-chat.content-panel.active) .dashboard-container {
+    height: 100vh;
+    height: 100dvh;
+  }
+
+  /* Cabeçalho do chat no celular: claro, uma linha, respirando. O recuo do
+     topo acompanha a área segura (notch), já que aqui o chat encosta na
+     borda de cima da tela. */
   .chat-header {
-    padding: 8px 12px;
-    gap: 8px;
+    padding: 8px 12px !important;
+    padding-top: calc(8px + env(safe-area-inset-top, 0px)) !important;
+    gap: 10px !important;
     flex-shrink: 0;
     flex-wrap: nowrap;
   }
-  .chat-header-avatar { width: 32px; height: 32px; font-size: 14px; }
-  .chat-header-info h3 { font-size: 13px; }
+  .chat-header-avatar { width: 34px; height: 34px; font-size: 13px; }
+  .chat-header-info { min-width: 0; }
+  .chat-header-info h3 { font-size: 14px; }
   .chat-header-info p { font-size: 10px; }
+  .chat-header .status-indicator { font-size: 10px; }
 
-  .chat-header-meta {
-    flex-shrink: 0;
-    max-width: 42vw;
+  .chat-assunto-faixa {
+    padding: 4px 12px;
+    font-size: 10px;
+    gap: 6px;
   }
-  /* O rótulo "Atendimento sobre:" some — a própria pílula com o assunto já
-     comunica isso sozinha, e sobra espaço pro protocolo por baixo. */
-  .chat-header-meta > span:first-child { display: none !important; }
-  #chat-header-assunto {
-    font-size: 10.5px !important;
-    padding: 2px 8px !important;
-    max-width: 100%;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-  #chat-header-codigo { font-size: 9px !important; }
+  #chat-header-codigo { font-size: 9px; }
 
-  /* Histórico de mensagens: ocupa toda a área entre o header e o input */
+  /* Histórico de mensagens: ocupa toda a área entre o header e o input.
+     O espaço entre balões vem da regra .chat-bubble + .chat-bubble (fora
+     desta media query), que agrupa mensagens seguidas da mesma pessoa. */
   .chat-history {
     flex: 1 !important;
     min-height: 0 !important;
     overflow-y: auto !important;
     -webkit-overflow-scrolling: touch;
-    padding: 10px 8px;
-    gap: 6px;
+    padding: 10px 10px;
+    gap: 0;
   }
 
-  /* Balão mais largo e legível */
   .chat-bubble {
-    max-width: 85%;
+    max-width: 80%;
     font-size: 15px;
-    padding: 7px 10px 8px;
+    padding: 9px 14px 10px;
     line-height: 1.45;
   }
 
-  /* Input fixo no rodapé, com safe area do iOS. Sem linha divisória: o fundo
-     é o mesmo tom do histórico de mensagens (--color-bg), então não sobra
-     nenhuma borda entre a conversa e o rodapé — só a pílula flutuando por
-     cima, com sombra em vez de contorno, fazendo a própria distinção. */
+  /* Rodapé de digitação. O recuo de baixo é generoso de propósito: no Safari
+     do iPhone a barra de endereço mora exatamente ali embaixo, e com pouca
+     folga o toque destinado ao campo acabava caindo na barra do navegador —
+     era isso que abria a barra de endereço em modo de edição no lugar do
+     teclado (confirmado na gravação de tela). */
   .chat-input-area {
     flex-shrink: 0;
-    padding: 10px 10px 8px;
-    padding-bottom: calc(8px + var(--oc-safe-b));
-    background: var(--color-bg);
-    border-top: none;
+    padding: 8px 10px;
+    padding-bottom: calc(14px + var(--oc-safe-b));
+    background: var(--color-card);
+    border-top: 1px solid var(--color-border);
   }
 
   /* 16px obrigatório — abaixo disso o iOS faz zoom ao focar */
   .chat-form {
-    gap: 6px;
-    padding: 5px 5px 5px 14px;
+    gap: 4px;
+    padding: 3px 3px 3px 16px;
     background: var(--color-card);
-    border: none;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+    border: 1px solid var(--color-border);
+    box-shadow: none;
   }
   .chat-form input { font-size: 16px; min-width: 0; }
 
-  .btn-send { width: 40px; height: 40px; flex-shrink: 0; }
-  .btn-attach { padding: 0 6px; font-size: 17px; }
+  /* O círculo laranja enchia a pílula e fazia o campo parecer espremido.
+     Não dá pra simplesmente encolher o botão: a regra de acessibilidade lá
+     embaixo (.content-panel button { min-height: 44px }, alvo de toque da
+     Apple HIG) o mantém em 44px — e é bom que mantenha. A saída é separar
+     as duas coisas: o BOTÃO continua 44x44 (área de toque), e o círculo
+     visível vira um pseudo-elemento de 32px centrado dentro dele. */
+  .btn-send {
+    width: 44px;
+    height: 44px;
+    flex-shrink: 0;
+    background: transparent;
+    position: relative;
+    font-size: 13px;
+  }
+  .btn-send::before {
+    content: '';
+    position: absolute;
+    inset: 6px;
+    background: var(--color-coral);
+    border-radius: 50%;
+  }
+  .btn-send i { position: relative; }
+  .btn-send:active::before { background: #ff6b33; }
+
+  .btn-attach { padding: 0 4px; font-size: 16px; }
 
   /* ========================
      CARTÕES E FORMULÁRIOS — coluna única
@@ -2985,6 +3278,372 @@ body.onboarding-bloqueio #section-triagem .triagem-titulo-onboarding { display: 
    aparecendo. Isso deixava o ícone do Radar Fiscal visível na barra mesmo com
    `hidden = true`. Esta regra devolve ao atributo o efeito esperado. */
 .app-sidebar-nav .nav-item[hidden],
-.content-panel[hidden] {
+.content-panel[hidden],
+/* Mesmo caso no hub do celular: .menu-hub-card tem display:flex e engoliria
+   o `hidden` do card do Radar Fiscal, mostrando o serviço pra quem não
+   assina. */
+.menu-hub-card[hidden] {
   display: none !important;
+}
+
+/* ==========================================================================
+   PADRÃO VISUAL ÚNICO DO PORTAL — extraído do chat (referência: DM do
+   Instagram) e aplicado às demais telas.
+
+   Antes deste bloco o portal tinha quatro tratamentos diferentes de campo
+   (6px no perfil, 8px na triagem, 30px + sombra dupla na busca do FAQ, e a
+   pílula do chat) e dezesseis raios de borda escritos na mão. O resultado é
+   que cada tela parecia de um sistema diferente.
+
+   As regras: superfície clara, contorno fino de 1px, sem sombra pesada,
+   cantos generosos, e a cor da marca só onde ela informa alguma coisa
+   (foco, ação primária) — nunca como moldura decorativa.
+
+   Escopado em body.pagina-cliente de propósito: o painel do contador tem o
+   próprio design system já aprovado e não deve ser arrastado junto.
+   ========================================================================== */
+
+/* ---- Superfícies: neutro, sem o creme esverdeado ----
+   O fundo era #EBEBDF, um creme que puxa pro verde, e a borda #C8BCAC, um
+   marrom quente. Juntos davam à tela um tom encardido que brigava com os
+   cartões brancos. Agora o portal usa UM cinza neutro — e não um cinza
+   qualquer: exatamente o mesmo #EFEFEF dos balões recebidos no chat, pra o
+   sistema ter um cinza só em vez de um por tela.
+
+   Os tokens são redefinidos aqui, no escopo do cliente, e não no styles.css:
+   aquele arquivo é compartilhado com o painel do contador, que tem o próprio
+   design (Nubank) já aprovado e leria a mudança junto. */
+body.pagina-cliente {
+  --color-bg: #EFEFEF;
+  --color-border: #E2E2E2;
+}
+
+/* O fundo da área de conteúdo era um gradiente radial com um creme fixo
+   (#F5F4E9) escrito na mão no styles.css — ele ignorava o token acima e
+   traria o tom antigo de volta. Aqui vira cor chapada. */
+body.pagina-cliente .main-content-panels {
+  background: var(--color-bg);
+}
+
+/* O botão "← Menu" usava um verde-menta de fundo. Num portal onde a cor da
+   marca agora só marca o que importa (ação primária, mensagem enviada), ele
+   virava um respingo de verde sem função. Neutro.
+
+   O :not() é essencial: a variante do chat é só a setinha, sem fundo nenhum.
+   Sem essa exclusão, esta regra (mais específica que a variante) pintava um
+   quadrado cinza atrás da seta no cabeçalho do chat. */
+body.pagina-cliente .btn-voltar-menu:not(.btn-voltar-menu-chat) {
+  background: rgba(20, 20, 20, 0.06);
+  color: var(--color-text-primary);
+}
+body.pagina-cliente .btn-voltar-menu:not(.btn-voltar-menu-chat):active {
+  background: rgba(20, 20, 20, 0.12);
+}
+body.pagina-cliente .btn-voltar-menu-chat {
+  background: transparent;
+}
+
+/* ---- Campos de formulário: um tratamento só ---- */
+body.pagina-cliente .form-input,
+body.pagina-cliente .form-select,
+body.pagina-cliente .form-textarea,
+body.pagina-cliente .triagem-input,
+body.pagina-cliente .triagem-textarea {
+  /* 16px e não 14px: o styles.css global já fixa var(--radius-md) com
+     !important nestes campos, então 14px aqui seria uma mentira no código —
+     nunca venceria. 16px é o mesmo raio dos cartões abaixo, então o
+     conjunto fica coerente de qualquer forma. */
+  border-radius: 16px;
+  border: 1px solid var(--color-border);
+  background: var(--color-card);
+  padding: 12px 14px;
+  font-family: inherit;
+  font-size: 14px;
+  color: var(--color-text-primary);
+  box-shadow: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+/* Foco: um anel fino no verde da marca. Sem deslocar nada — anel via
+   box-shadow em vez de borda mais grossa, que empurraria o layout 1px. */
+body.pagina-cliente .form-input:focus,
+body.pagina-cliente .form-select:focus,
+body.pagina-cliente .form-textarea:focus,
+body.pagina-cliente .triagem-input:focus,
+body.pagina-cliente .triagem-textarea:focus {
+  outline: none;
+  border-color: var(--color-pine);
+  box-shadow: 0 0 0 3px var(--color-pine-ultra-light);
+  background: var(--color-card);
+}
+
+/* ---- Busca: pílula, igual à barra de digitar do chat ---- */
+body.pagina-cliente .faq-busca input {
+  border-radius: 999px;
+  border: 1px solid var(--color-border);
+  /* A sombra dupla que existia aqui fazia o campo "flutuar" numa tela onde
+     nada mais flutua — o contorno fino já separa o campo do fundo. */
+  box-shadow: none;
+  padding: 12px 18px 12px 44px;
+  font-size: 14px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+body.pagina-cliente .faq-busca input:focus {
+  outline: none;
+  border-color: var(--color-pine);
+  box-shadow: 0 0 0 3px var(--color-pine-ultra-light);
+}
+
+/* ---- Cartões: mesma família de cantos do chat ---- */
+body.pagina-cliente .tracking-card,
+body.pagina-cliente .faq-item,
+body.pagina-cliente .doc-item,
+body.pagina-cliente .upload-zone {
+  border-radius: 16px;
+}
+
+@media (max-width: 768px) {
+  /* 16px em todo campo de texto: abaixo disso o Safari do iPhone dá zoom
+     sozinho ao focar, e a tela nunca mais volta ao lugar. Vale para todos,
+     não só para o chat — foi assim que o problema apareceu lá. */
+  body.pagina-cliente .form-input,
+  body.pagina-cliente .form-select,
+  body.pagina-cliente .form-textarea,
+  body.pagina-cliente .triagem-input,
+  body.pagina-cliente .triagem-textarea,
+  body.pagina-cliente .faq-busca input {
+    font-size: 16px;
+  }
+}
+
+/* ---- Chat colado no topo da tela, sem emenda ----
+   Existiam DUAS cópias do mesmo bloco "ROUNDED OVERRIDES" mais acima neste
+   arquivo, ambas com `.chat-container { border-radius: 24px !important }`.
+   Como elas vêm depois da media query do celular, empatavam em
+   especificidade com a regra mobile (`border-radius: 0 !important`) e
+   venciam por ordem de arquivo — por isso o chat continuava com cantos
+   redondos no celular mesmo com a regra certa escrita.
+
+   O efeito colateral era justamente a "divisão" no topo: com canto redondo
+   + overflow:hidden, o cinza do fundo aparecia nos recortes das quinas, e a
+   emenda lia como uma borda entre o chat e o topo do aparelho. */
+@media (max-width: 768px) {
+  body.pagina-cliente .chat-container {
+    border-radius: 0 !important;
+    border: none !important;
+  }
+
+  /* Com o chat aberto, tudo que fica atrás dele é branco — inclusive a faixa
+     da área segura (o recorte da câmera / barra de status). Assim a cor do
+     cabeçalho do chat e a do topo do aparelho são a mesma, e não existe
+     transição visível entre uma e outra. */
+  body.pagina-cliente:has(#section-chat.content-panel.active),
+  body.pagina-cliente:has(#section-chat.content-panel.active) .main-content-panels,
+  body.pagina-cliente:has(#section-chat.content-panel.active) .dashboard-container {
+    background: var(--color-card);
+  }
+}
+
+/* ---- Títulos que mudam conforme o contexto ----
+   No celular a pessoa entra pelo hub de Menu, que já a cumprimenta pelo
+   nome; repetir a saudação na tela seguinte é cumprimentar duas vezes na
+   mesma visita, e ainda gasta o espaço nobre do topo com algo que não
+   explica o que a tela faz. No desktop não existe o hub — o painel é a
+   porta de entrada — então lá a saudação continua no lugar dela. */
+.so-celular { display: none; }
+.so-desktop { display: block; }
+
+@media (max-width: 768px) {
+  .so-celular { display: block; }
+  .so-desktop { display: none; }
+}
+
+/* ---- Rodapé do hub de Menu: apoio, não destino ----
+   Ajuda e Histórico não são o que a pessoa vem fazer no app — são consulta
+   ocasional. Como cartão do mesmo tamanho dos outros, roubavam atenção de
+   quem realmente precisa falar com o contador ou ver o processo. Aqui viram
+   dois links discretos, sem moldura, ancorados no fim da lista. */
+.menu-hub-rodape { display: none; }
+
+@media (max-width: 768px) {
+  .menu-hub-rodape {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    margin-top: 22px;
+    padding-bottom: 8px;
+  }
+
+  .menu-hub-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    /* Sem fundo e sem borda de propósito — o peso visual tem que ser menor
+       que o dos cartões acima. O alvo de toque continua confortável pelo
+       padding, mesmo sem moldura desenhada. */
+    background: transparent;
+    border: none;
+    color: var(--color-text-secondary);
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 10px 14px;
+    cursor: pointer;
+    border-radius: 999px;
+  }
+  .menu-hub-link i { font-size: 13px; }
+  .menu-hub-link:active {
+    background: rgba(20, 20, 20, 0.06);
+    color: var(--color-text-primary);
+  }
+
+  /* Separador fino entre os dois, no lugar de uma borda em cada. */
+  .menu-hub-link + .menu-hub-link { position: relative; }
+  .menu-hub-link + .menu-hub-link::before {
+    content: '';
+    position: absolute;
+    left: -4px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 1px;
+    height: 14px;
+    background: var(--color-border);
+  }
+}
+
+/* ---- Nenhum realce nativo no campo do chat ----
+   Varri todas as folhas de estilo: nenhuma regra NOSSA desenha contorno,
+   sombra ou fundo ao focar esse campo. Logo, a moldura laranja quadrada que
+   aparece ao tocar pra digitar é desenhada pelo próprio navegador (anel de
+   foco padrão do <input>, que é retangular — por isso ela aparece "quadrada"
+   dentro da nossa pílula arredondada).
+   Estas regras zeram todas as formas pelas quais o navegador pode desenhar
+   isso. Não é perda de acessibilidade: quem está digitando já sabe onde está
+   o cursor, e o campo tem contorno próprio o tempo todo. */
+.chat-form input,
+.chat-form input:focus,
+.chat-form input:focus-visible,
+.chat-form input:active {
+  outline: none !important;
+  outline-offset: 0 !important;
+  box-shadow: none !important;
+  border: none !important;
+  background: transparent !important;
+  -webkit-tap-highlight-color: transparent;
+}
+.chat-form:focus-within {
+  outline: none !important;
+  box-shadow: none !important;
+}
+.chat-input-area:focus-within {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* ---- Chat encaixado na janela visível quando o teclado abre ----
+   Ver setupJanelaVisivelDoChat em cliente.js para os valores.
+
+   Só o CHAT é reposicionado, e apenas quando ele está aberto. O corpo da
+   página continua com 100dvh — é essa a diferença que impede a tela branca
+   de voltar: como o deslocamento do navegador (--vv-top) nunca ultrapassa o
+   fim do documento, a faixa [--vv-top, --vv-top + --vvh] cai sempre dentro
+   da página. Não existe valor que aponte pro vazio.
+
+   Os padrões abaixo (0px e 100dvh) fazem o layout ficar exatamente como está
+   hoje se o JS não rodar. */
+@media (max-width: 768px) {
+  :root {
+    --vv-top: 0px;
+    --vv-left: 0px;
+    --vvh: 100dvh;
+    --vvw: 100vw;
+  }
+
+  body:has(#section-chat.content-panel.active) .dashboard-container {
+    /* transform, e NÃO position:absolute. A primeira versão disto usava
+       absolute + left/right:0 e alargava o chat pra fora da tela no iPhone:
+       ao sair do fluxo, a largura passa a ser medida contra a janela de
+       LAYOUT, que quando o teclado abre não é a mesma que a pessoa enxerga.
+       Resultado: o chat ficava mais largo que a tela, "vazando" pra direita.
+
+       translateY move o bloco sem encostar na largura — ela continua vindo
+       do fluxo normal, ou seja, exatamente a largura da tela. Só a altura e
+       a posição vertical mudam, que é tudo o que precisamos. */
+    /* flex:none é obrigatório aqui. Este elemento é item flex do body com
+       flex:1 — e num container em coluna o flex-grow SUBSTITUI a altura
+       declarada, esticando o bloco para a altura toda do body e ignorando
+       o height abaixo. (Era por isso que a abordagem antiga parecia
+       funcionar: ela encolhia o body, e o flex seguia junto.) */
+    flex: none;
+    height: var(--vvh);
+    /* Largura: 100% do pai (que já é a largura da página) e, por cima disso,
+       um teto na largura REAL da tela medida. Os dois juntos de propósito —
+       o 100% não depende de medição nenhuma dar certo, e o teto garante que
+       nem um conteúdo comprido nem um erro de medida consigam empurrar a
+       caixa pra fora (no iPhone o chat chegou a 459px numa tela de 390). */
+    width: 100%;
+    max-width: var(--vvw);
+    overflow: hidden;
+    /* Desloca nos DOIS eixos. A versão anterior só compensava a vertical, e
+       era por isso que no iPhone o conteúdo aparecia todo empurrado pra
+       esquerda (seta de voltar cortada, balões saindo pela borda): a janela
+       visível também começa deslocada na horizontal quando o teclado abre. */
+    transform: translate(var(--vv-left), var(--vv-top));
+  }
+}
+
+/* ---- Chat sem cantos arredondados no celular ----
+   #section-chat carregava border-radius de 24px com overflow:hidden — eram
+   esses os cantos que ainda apareciam em volta da conversa. No celular o
+   chat É a tela, então não faz sentido ele ter moldura própria.
+   (A pílula do campo de digitar continua redonda de propósito.) */
+@media (max-width: 768px) {
+  body.pagina-cliente #section-chat,
+  body.pagina-cliente #section-chat.active,
+  body.pagina-cliente .cliente-chat-shell,
+  body.pagina-cliente .cliente-chat-main {
+    border-radius: 0 !important;
+  }
+}
+
+/* ---- Margem de segurança nas laterais do chat ----
+   No iPhone o conteúdo estava encostando (e cortando) nas bordas: a setinha
+   de voltar aparecia pela metade. Duas causas somadas — o recuo lateral era
+   apertado demais para uma tela sem moldura, e as bordas arredondadas do
+   aparelho comem alguns pixels de cada lado, que o env(safe-area-inset)
+   informa.
+
+   Aqui os dois viram um recuo só: um mínimo confortável de 14px, mais o que
+   o aparelho pedir. Em telas sem recorte o env vale 0 e ficam os 14px. */
+@media (max-width: 768px) {
+  :root {
+    --oc-margem-lateral: calc(14px + env(safe-area-inset-left, 0px));
+    --oc-margem-lateral-dir: calc(14px + env(safe-area-inset-right, 0px));
+  }
+
+  body.pagina-cliente .chat-header {
+    padding-left: var(--oc-margem-lateral) !important;
+    padding-right: var(--oc-margem-lateral-dir) !important;
+  }
+
+  body.pagina-cliente .chat-assunto-faixa {
+    padding-left: var(--oc-margem-lateral);
+    padding-right: var(--oc-margem-lateral-dir);
+  }
+
+  body.pagina-cliente .chat-history {
+    padding-left: var(--oc-margem-lateral);
+    padding-right: var(--oc-margem-lateral-dir);
+  }
+
+  body.pagina-cliente .chat-input-area {
+    padding-left: var(--oc-margem-lateral);
+    padding-right: var(--oc-margem-lateral-dir);
+  }
+
+  /* Os balões já eram limitados a 80% da largura; com o recuo maior nas
+     laterais, esse teto passa a ser calculado sobre uma área menor e eles
+     encolhem junto, sem precisar de número novo. */
 }

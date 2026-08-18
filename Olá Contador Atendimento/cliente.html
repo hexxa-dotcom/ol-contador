@@ -2,9 +2,21 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- interactive-widget=resizes-content: no Chrome/Android moderno, o
+       teclado virtual encolhe a viewport de layout em vez de sobrepor a
+       página — sem isso, o teclado ficava por cima do rodapé de digitação
+       do chat e a área de conteúdo não sabia que precisava encolher. -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content">
   <title>Portal do Cliente - Olá Contador</title>
   <meta name="robots" content="noindex" />
+
+  <!-- theme-color pinta a faixa do navegador no topo do celular (onde ficam
+       relógio, sinal e bateria). Sem ela, aquela faixa fica com a cor padrão
+       do navegador e aparece uma emenda entre o topo do aparelho e o topo do
+       app. O valor abaixo é o verde do cabeçalho; no chat, que tem cabeçalho
+       branco, o JS troca para branco (ver sincronizarCorDoTopo em cliente.js)
+       para que as duas superfícies leiam como uma coisa só. -->
+  <meta name="theme-color" id="oc-theme-color" content="#0C5446" />
 
   <!-- Fontes do app: Sora nos títulos, Inter no corpo. Antes o CSS já pedia
        'Outfit', mas nunca era carregada — o app inteiro rodava na fonte
@@ -13,8 +25,15 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
 
+  <!-- ATENÇÃO: sempre que mexer em styles.css, cliente.css ou cliente.js,
+       SUBA o ?v= correspondente aqui embaixo (e nos <script> no fim do
+       arquivo). Sem isso o Safari do iPhone continua servindo a cópia antiga
+       mesmo com o deploy feito — o cache-control do host manda revalidar, mas
+       o Safari não obedece de forma confiável em CSS/JS. Isso já custou uma
+       rodada inteira de depuração de um bug que na verdade já estava
+       corrigido no servidor. -->
   <link rel="stylesheet" href="styles.css?v=34">
-  <link rel="stylesheet" href="cliente.css?v=33">
+  <link rel="stylesheet" href="cliente.css?v=35">
 
   <!-- FontAwesome -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -60,7 +79,7 @@
 
   <!-- App Header -->
   <header class="app-header">
-    <div class="logo-container">
+    <div class="logo-container" onclick="irParaInicioCliente()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();irParaInicioCliente();}" role="button" tabindex="0" title="Ir para o início" style="cursor: pointer;">
       <!-- Logo oficial (mesmo SVG do painel do contador). Antes aqui havia um
            ícone genérico de calculadora: eram duas marcas diferentes para o
            mesmo produto. -->
@@ -94,12 +113,6 @@
         <div class="agent-profile-menu" id="agent-profile-menu" hidden>
           <button type="button" onclick="fecharAgentMenuEIr('section-perfil')">
             <i class="fa-solid fa-user-gear"></i> Meu Perfil
-          </button>
-          <button type="button" onclick="fecharAgentMenuEIr('section-agendamento')">
-            <i class="fa-solid fa-calendar-days"></i> Novo Agendamento
-          </button>
-          <button type="button" onclick="fecharAgentMenuEIr('section-triagem')">
-            <i class="fa-solid fa-clipboard-question"></i> Pré-atendimento
           </button>
           <button type="button" onclick="fecharAgentMenuEIr('section-historico')">
             <i class="fa-solid fa-clock-rotate-left"></i> Histórico
@@ -197,11 +210,111 @@
     <!-- Main Content Panels -->
     <main class="main-content-panels">
 
+      <!-- SECTION MENU: hub de navegação — só existe no celular (cliente.js
+           torna ela a tela inicial quando window.innerWidth <= 768). Existe
+           pra tirar a barra fixa debaixo em todas as outras telas: era ela
+           que atrapalhava o teclado subindo por cima do campo de digitação
+           no chat. Cada seção agora tem seu próprio botão de voltar pra cá,
+           em vez de uma barra sempre presente competindo com o teclado. -->
+      <section class="content-panel" id="section-menu">
+        <div class="panel-header-desc">
+          <h2 id="menu-boas-vindas">Olá!</h2>
+          <p id="menu-subtitulo">O que você precisa agora?</p>
+        </div>
+        <div class="menu-hub-grid">
+          <button type="button" class="menu-hub-card" onclick="abrirSecaoCliente('section-dashboard')">
+            <span class="menu-hub-icon"><i class="fa-solid fa-house"></i></span>
+            <span class="menu-hub-texto">
+              <strong>Como está meu processo</strong>
+              <span>Acompanhe o andamento do seu caso</span>
+            </span>
+            <i class="fa-solid fa-chevron-right menu-hub-seta" aria-hidden="true"></i>
+          </button>
+          <button type="button" class="menu-hub-card" onclick="abrirSecaoCliente('section-chat')">
+            <span class="menu-hub-icon"><i class="fa-solid fa-comments"></i></span>
+            <span class="menu-hub-texto">
+              <strong>Atendimento</strong>
+              <span>Converse com seu contador</span>
+            </span>
+            <span class="chat-unread-badge menu-hub-badge" id="badge-atendimentos-menu" style="display:none;">0</span>
+            <i class="fa-solid fa-chevron-right menu-hub-seta" aria-hidden="true"></i>
+          </button>
+          <button type="button" class="menu-hub-card" onclick="abrirSecaoCliente('section-triagem')">
+            <span class="menu-hub-icon"><i class="fa-solid fa-clipboard-question"></i></span>
+            <span class="menu-hub-texto">
+              <strong>Pré-atendimento</strong>
+              <span>Conte o que está acontecendo</span>
+            </span>
+            <i class="fa-solid fa-chevron-right menu-hub-seta" aria-hidden="true"></i>
+          </button>
+          <button type="button" class="menu-hub-card" onclick="abrirSecaoCliente('section-agendamento')">
+            <span class="menu-hub-icon"><i class="fa-solid fa-calendar-days"></i></span>
+            <span class="menu-hub-texto">
+              <strong>Agendamento</strong>
+              <span>Marque ou veja seu horário</span>
+            </span>
+            <i class="fa-solid fa-chevron-right menu-hub-seta" aria-hidden="true"></i>
+          </button>
+          <button type="button" class="menu-hub-card" onclick="abrirSecaoCliente('section-documentos')">
+            <span class="menu-hub-icon"><i class="fa-solid fa-folder-open"></i></span>
+            <span class="menu-hub-texto">
+              <strong>Meus documentos</strong>
+              <span>Envie e baixe seus arquivos</span>
+            </span>
+            <i class="fa-solid fa-chevron-right menu-hub-seta" aria-hidden="true"></i>
+          </button>
+          <button type="button" class="menu-hub-card" onclick="abrirSecaoCliente('section-caixa-postal')">
+            <span class="menu-hub-icon"><i class="fa-solid fa-envelope"></i></span>
+            <span class="menu-hub-texto">
+              <strong>Mensagens</strong>
+              <span>Recados fora do horário do chat</span>
+            </span>
+            <i class="fa-solid fa-chevron-right menu-hub-seta" aria-hidden="true"></i>
+          </button>
+          <!-- Radar Fiscal: nasce escondido e só aparece pra quem tem o
+               serviço (ver aplicarVisibilidadeRadarFiscal em cliente.js).
+               Precisa existir aqui porque a única outra porta de entrada é o
+               item da barra lateral, marcado como desktop-only — quem assina
+               o Radar simplesmente não conseguia abri-lo pelo celular desde
+               que a barra de baixo saiu de circulação. -->
+          <button type="button" class="menu-hub-card" data-radar-card onclick="abrirSecaoCliente('section-radar')" hidden>
+            <span class="menu-hub-icon"><i class="fa-solid fa-shield-halved"></i></span>
+            <span class="menu-hub-texto">
+              <strong>Radar Fiscal</strong>
+              <span>Sua situação com a Receita</span>
+            </span>
+            <i class="fa-solid fa-chevron-right menu-hub-seta" aria-hidden="true"></i>
+          </button>
+        </div>
+
+        <!-- Rodapé do hub: Ajuda e Histórico não são o que a pessoa vem fazer
+             aqui — são apoio, consultados de vez em quando. Como cartão do
+             mesmo tamanho dos outros, competiam visualmente com o que
+             importa. Aqui embaixo, discretos e sem moldura, continuam a um
+             toque de distância sem disputar atenção. -->
+        <div class="menu-hub-rodape">
+          <button type="button" class="menu-hub-link" onclick="abrirSecaoCliente('section-faq')">
+            <i class="fa-solid fa-circle-question" aria-hidden="true"></i> Ajuda
+          </button>
+          <button type="button" class="menu-hub-link" onclick="abrirSecaoCliente('section-historico')">
+            <i class="fa-solid fa-clock-rotate-left" aria-hidden="true"></i> Histórico
+          </button>
+        </div>
+      </section>
+
       <!-- SECTION 0: Dashboard (Início) -->
       <section class="content-panel active" id="section-dashboard">
         <div class="panel-header-desc">
-          <h2 id="dash-boas-vindas">Bem-vindo(a)</h2>
-          <p id="dash-subtitulo">Veja o que está acontecendo e o que você precisa fazer agora.</p>
+          <button type="button" class="btn-voltar-menu" onclick="abrirSecaoCliente('section-menu')"><i class="fa-solid fa-arrow-left"></i> Menu</button>
+          <!-- Dois títulos, um por contexto (CSS decide qual aparece):
+               No celular a pessoa chega aqui vinda do Menu, que já a saudou
+               pelo nome — repetir a saudação seria cumprimentar duas vezes na
+               mesma visita. Lá o título diz o que a tela é.
+               No desktop não existe o hub de Menu: esta é a tela de entrada,
+               então a saudação continua fazendo sentido. -->
+          <h2 id="dash-boas-vindas" class="so-desktop">Bem-vindo(a)</h2>
+          <h2 class="so-celular">Como está meu processo</h2>
+          <p id="dash-subtitulo">Por aqui você acompanha o andamento do seu atendimento: em que etapa ele está, o que já foi feito e o que precisa da sua parte agora.</p>
         </div>
 
         <div class="case-next-action-card" id="case-next-action-card">
@@ -369,35 +482,37 @@
                   <button type="button" class="btn-utility primary" id="chat-lock-action" hidden></button>
                 </div>
               </div>
-              <!-- Chat Header -->
-              <div class="chat-header" style="display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px 20px;">
-                <div style="display: flex; align-items: center; gap: 14px;">
-                  <div class="chat-header-avatar" id="oc-contador-avatar" aria-label="Avatar do contador">SC</div>
-                  <div class="chat-header-info">
-                    <div class="chat-header-nome">
-                      <h3 id="oc-contador-nome">Seu contador</h3>
-                      <span class="chat-verificado" role="img" aria-label="Contador verificado" title="Contador verificado">
-                        <i class="fa-solid fa-certificate chat-verificado-selo" aria-hidden="true"></i>
-                        <i class="fa-solid fa-check chat-verificado-check" aria-hidden="true"></i>
-                      </span>
-                    </div>
-                    <p id="oc-contador-crc" style="font-size: 11px; margin: 0; color: rgba(255,255,255,0.8);"></p>
-                    <div class="status-indicator offline" id="contador-status" style="margin-top: 4px; color: rgba(255,255,255,0.9);">
-                      <i class="fa-solid fa-circle dot" style="color: inherit;"></i> <span class="status-text">Offline</span>
-                    </div>
+              <!-- Chat Header — padrão minimalista, na referência da DM do
+                   Instagram: fundo claro, só "quem é a pessoa" (voltar, avatar,
+                   nome, selo, status). O verde pesado saiu daqui; a cor da marca
+                   agora aparece só nos balões enviados, que é onde ela informa
+                   alguma coisa. Os dados do atendimento (assunto + protocolo)
+                   desceram para a faixa fina abaixo — no cabeçalho eles
+                   disputavam espaço com o nome e viviam estourando a linha. -->
+              <div class="chat-header">
+                <button type="button" class="btn-voltar-menu btn-voltar-menu-chat" onclick="abrirSecaoCliente('section-menu')" aria-label="Voltar ao menu"><i class="fa-solid fa-arrow-left"></i></button>
+                <div class="chat-header-avatar" id="oc-contador-avatar" aria-label="Avatar do contador">SC</div>
+                <div class="chat-header-info">
+                  <div class="chat-header-nome">
+                    <h3 id="oc-contador-nome">Seu contador</h3>
+                    <span class="chat-verificado" role="img" aria-label="Contador verificado" title="Contador verificado">
+                      <i class="fa-solid fa-certificate chat-verificado-selo" aria-hidden="true"></i>
+                      <i class="fa-solid fa-check chat-verificado-check" aria-hidden="true"></i>
+                    </span>
+                  </div>
+                  <p id="oc-contador-crc"></p>
+                  <div class="status-indicator offline" id="contador-status">
+                    <i class="fa-solid fa-circle dot"></i> <span class="status-text">Offline</span>
                   </div>
                 </div>
+              </div>
 
-                <!-- Canto Direito: Assunto do Atendimento & Protocolo -->
-                <div class="chat-header-meta" style="text-align: right; display: flex; flex-direction: column; align-items: flex-end; justify-content: center; gap: 3px; shrink: 0;">
-                  <span style="font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.6px; font-weight: 700; color: rgba(255,255,255,0.75);">Atendimento sobre:</span>
-                  <strong id="chat-header-assunto" style="font-size: 12.5px; font-weight: 700; color: #FFFFFF; max-width: 220px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; background: rgba(255,255,255,0.15); padding: 3px 10px; border-radius: 999px; border: 1px solid rgba(255,255,255,0.25);">
-                    Atendimento Geral
-                  </strong>
-                  <span id="chat-header-codigo" style="font-size: 10px; color: rgba(255,255,255,0.75); font-family: monospace; font-weight: 600; margin-top: 1px;">
-                    Protocolo: #OC-2026
-                  </span>
-                </div>
+              <!-- Faixa do atendimento: discreta, uma linha, sem competir com o
+                   cabeçalho. Continua sendo a resposta pra "de qual caso é esta
+                   conversa?", que some se o chat virar só uma lista de balões. -->
+              <div class="chat-assunto-faixa">
+                <strong id="chat-header-assunto">Atendimento Geral</strong>
+                <span id="chat-header-codigo">Protocolo: #OC-2026</span>
               </div>
 
               <!-- Chat History (preenchido dinamicamente por cliente.js a partir do banco) -->
@@ -406,9 +521,12 @@
 
               <!-- Chat Input -->
               <div class="chat-input-area">
+                <!-- Sem clipe de anexo aqui: ele não anexava nada, só levava
+                     pra aba Documentos — que já é onde se envia arquivo, e já
+                     está no menu. Dois caminhos pro mesmo lugar, sendo que
+                     este parecia prometer anexar dentro da conversa. -->
                 <form class="chat-form" id="client-chat-form">
-                  <button type="button" class="btn-attach" title="Anexar Arquivo" onclick="document.querySelector('[data-target=\'section-documentos\']').click()"><i class="fa-solid fa-paperclip"></i></button>
-                  <input type="text" id="client-chat-input" aria-label="Mensagem para o contador" placeholder="Digite sua mensagem..." autocomplete="off">
+                  <input type="text" id="client-chat-input" aria-label="Mensagem para o contador" placeholder="Mensagem..." autocomplete="off">
                   <button type="submit" class="btn-send" aria-label="Enviar mensagem"><i class="fa-solid fa-paper-plane"></i></button>
                 </form>
               </div>
@@ -426,6 +544,7 @@
       <section class="content-panel" id="section-caixa-postal">
         <div class="panel-header-desc" style="display:flex; justify-content:space-between; align-items:flex-start; gap:16px; flex-wrap:wrap;">
           <div>
+            <button type="button" class="btn-voltar-menu" onclick="abrirSecaoCliente('section-menu')"><i class="fa-solid fa-arrow-left"></i> Menu</button>
             <button type="button" id="btn-voltar-caixa-postal" class="btn-utility" style="display:none; margin-bottom:12px;">
               <i class="fa-solid fa-arrow-left"></i> Voltar
             </button>
@@ -473,6 +592,7 @@
       <!-- SECTION: Triagem / pré-atendimento (montada por triagem.js a partir do catálogo) -->
       <section class="content-panel" id="section-triagem">
         <div class="panel-header-desc">
+          <button type="button" class="btn-voltar-menu" onclick="abrirSecaoCliente('section-menu')"><i class="fa-solid fa-arrow-left"></i> Menu</button>
           <h2>
             <span class="triagem-titulo-padrao">Antes do atendimento</span>
             <span class="triagem-titulo-onboarding">Seu atendimento já começou</span>
@@ -563,8 +683,9 @@
       <!-- SECTION 2: Agendamento -->
       <section class="content-panel" id="section-agendamento">
         <div class="panel-header-desc">
+          <button type="button" class="btn-voltar-menu" onclick="abrirSecaoCliente('section-menu')"><i class="fa-solid fa-arrow-left"></i> Menu</button>
           <h2>Agendar Atendimento</h2>
-          <p>Escolha o serviço, veja os horários disponíveis e confirme seu atendimento com o contador.</p>
+          <p>Aqui você marca a conversa com o contador: escolha o serviço, veja os horários livres e confirme. Depois é só aparecer no chat na hora combinada.</p>
         </div>
 
         <!-- ETAPA 1+2: escolha do serviço e horário — dois cards flutuantes
@@ -663,8 +784,9 @@
            Situação fiscal só aparece quando vem do Serpro, datada. -->
       <section class="content-panel" id="section-radar" hidden>
         <div class="panel-header-desc">
+          <button type="button" class="btn-voltar-menu" onclick="abrirSecaoCliente('section-menu')"><i class="fa-solid fa-arrow-left"></i> Menu</button>
           <h2><i class="fa-solid fa-shield-halved" style="color: var(--color-coral); margin-right: 8px;"></i> Radar Fiscal</h2>
-          <p>Acompanhamento da sua Caixa Postal do e-CAC e da sua situação junto à Receita Federal.</p>
+          <p>Aqui a gente fica de olho na sua Caixa Postal do e-CAC e na sua situação com a Receita Federal — se aparecer alguma cobrança ou intimação, você fica sabendo por aqui antes de virar problema.</p>
         </div>
 
         <!-- Tela de venda (quem ainda não assina) -->
@@ -695,8 +817,9 @@
 
       <section class="content-panel" id="section-documentos">
         <div class="panel-header-desc">
+          <button type="button" class="btn-voltar-menu" onclick="abrirSecaoCliente('section-menu')"><i class="fa-solid fa-arrow-left"></i> Menu</button>
           <h2>Seus Documentos</h2>
-          <p>Faça upload de recibos, RGs e baixe as guias enviadas pelo contador.</p>
+          <p>Aqui ficam os arquivos do seu atendimento: envie o que o contador pediu (foto ou PDF serve) e baixe as guias e relatórios que ele preparou pra você.</p>
         </div>
 
         <div class="docs-layout">
@@ -735,6 +858,7 @@
       <!-- SECTION 4: Histórico -->
       <section class="content-panel" id="section-historico">
         <div class="panel-header-desc">
+          <button type="button" class="btn-voltar-menu" onclick="abrirSecaoCliente('section-menu')"><i class="fa-solid fa-arrow-left"></i> Menu</button>
           <h2>Histórico de Atendimentos</h2>
           <p>Consulte serviços anteriores realizados com o escritório.</p>
         </div>
@@ -751,6 +875,7 @@
            verdade, não este texto. -->
       <section class="content-panel" id="section-faq">
         <div class="panel-header-desc">
+          <button type="button" class="btn-voltar-menu" onclick="abrirSecaoCliente('section-menu')"><i class="fa-solid fa-arrow-left"></i> Menu</button>
           <h2>Ajuda e Dúvidas Frequentes</h2>
           <p>As dúvidas mais comuns sobre a conta gov.br e sobre como usar a plataforma.</p>
         </div>
@@ -1091,6 +1216,7 @@
       <!-- SECTION 5: Perfil do Cliente -->
       <section class="content-panel" id="section-perfil">
         <div class="panel-header-desc">
+          <button type="button" class="btn-voltar-menu" onclick="abrirSecaoCliente('section-menu')"><i class="fa-solid fa-arrow-left"></i> Menu</button>
           <h2>Meu Perfil</h2>
           <p>Dados cadastrais, preferências de contato e preparação segura para serviços no gov.br.</p>
         </div>
@@ -1353,6 +1479,6 @@
   <script src="triagem-catalogo.js"></script>
   <script src="triagem.js?v=4"></script>
   <script src="relatorio-pdf.js?v=7"></script>
-  <script src="cliente.js?v=25"></script>
+  <script src="cliente.js?v=27"></script>
 </body>
 </html>

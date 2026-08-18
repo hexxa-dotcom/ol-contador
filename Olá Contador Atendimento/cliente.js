@@ -8,6 +8,142 @@ let ultimoDiaDesenhado = null;
 let clienteLogado = null; // Guardará as configs e dados do cliente
 let onboardingAtivo = false; // true entre o pagamento e a triagem obrigatória ser enviada
 
+// NÃO existe mais um ajuste de altura por JS aqui — e isso é intencional.
+//
+// Havia uma função que encolhia html/body para window.visualViewport.height
+// quando o teclado abria. A intenção era boa (deixar o campo de digitar
+// sempre acima do teclado), mas era justamente ela que fazia o chat sumir no
+// iPhone. A gravação de tela do usuário mostrou a sequência quadro a quadro:
+//
+//   1. o Safari abre o teclado e desloca a janela visível pra baixo, sozinho,
+//      pra revelar o campo focado — isso acontece ANTES do nosso código rodar;
+//   2. em seguida o nosso JS encolhia o corpo da página;
+//   3. a janela ficava apontando para uma região que agora estava depois do
+//      fim da página → tela inteiramente branca.
+//
+// Sem esse encolhimento, o deslocamento do Safari cai sobre conteúdo real e
+// tudo funciona. Quem cuida do caso no Chrome é o interactive-widget da meta
+// viewport, no cliente.html. Se algum dia isso voltar a incomodar, a saída
+// NÃO é reintroduzir o encolhimento: use ?vp=1 (painel abaixo) para ver os
+// números reais do aparelho antes de mudar qualquer coisa.
+
+// O que existe agora é diferente e não pode causar a tela branca: em vez de
+// encolher a PÁGINA, medimos onde está a janela visível e encaixamos só o
+// CHAT exatamente em cima dela.
+//
+//   --vv-top  = onde começa a janela visível, medido a partir do topo do
+//               DOCUMENTO (visualViewport.pageTop)
+//   --vvh     = altura da janela visível  (visualViewport.height)
+//
+// pageTop e não offsetTop — e essa distinção é a diferença entre funcionar no
+// Safari ou não. Para revelar o campo focado, o navegador pode fazer duas
+// coisas diferentes: deslocar a janela visual (aparece em offsetTop) OU rolar
+// o documento (aparece em scrollY). O Chrome não precisa de nenhuma das duas,
+// porque o interactive-widget encolhe a viewport. O Safari usa uma delas — e
+// olhando só para offsetTop, o caso "rolou o documento" passava batido, o
+// chat ficava fora de lugar e dava a impressão de estar expandindo.
+// pageTop já é offsetTop + scrollY, então cobre os dois caminhos de uma vez.
+//
+// O CSS usa esses dois para posicionar o chat em [--vv-top, --vv-top + --vvh].
+// A diferença crucial para a tentativa que falhou: o corpo da página continua
+// com 100dvh, do tamanho normal. Como o deslocamento nunca passa do fim do
+// documento, a faixa [--vv-top, --vv-top + --vvh] sempre cai DENTRO da página
+// — não existe combinação de valores que deixe a janela apontando pro vazio.
+// Sem JS (ou em navegador antigo) os valores padrão do CSS deixam o chat como
+// está hoje, ocupando a tela inteira.
+(function setupJanelaVisivelDoChat() {
+  const vv = window.visualViewport;
+  if (!vv) return;
+  const raiz = document.documentElement;
+  let frame = null;
+  const aplicar = () => {
+    frame = null;
+    raiz.style.setProperty('--vvh', `${Math.round(vv.height)}px`);
+    // A largura também vem medida. No iPhone o chat estava ficando 69px mais
+    // largo que a tela (459 num aparelho de 390) — travar na largura real
+    // impede que qualquer conteúdo comprido empurre o layout pra fora.
+    raiz.style.setProperty('--vvw', `${Math.round(vv.width)}px`);
+    // pageTop = offsetTop + scrollY. Nem todo navegador expõe pageTop, então
+    // a soma manual fica como reserva.
+    const topo = (typeof vv.pageTop === 'number')
+      ? vv.pageTop
+      : vv.offsetTop + (window.scrollY || 0);
+    raiz.style.setProperty('--vv-top', `${Math.round(topo)}px`);
+    // O mesmo no eixo horizontal. Faltava isto: com o teclado aberto no
+    // iPhone, a janela visível também começava deslocada na horizontal, e
+    // como o chat estava ancorado no zero do documento, TODO o conteúdo
+    // aparecia empurrado pra esquerda — a seta de voltar saía cortada e os
+    // balões encostavam fora da tela. Compensar aqui alinha a borda esquerda
+    // do chat com a borda esquerda do que a pessoa realmente vê.
+    const esq = (typeof vv.pageLeft === 'number')
+      ? vv.pageLeft
+      : vv.offsetLeft + (window.scrollX || 0);
+    raiz.style.setProperty('--vv-left', `${Math.round(esq)}px`);
+  };
+  const agendar = () => {
+    if (frame) return;
+    frame = requestAnimationFrame(aplicar);
+  };
+  aplicar();
+  // Três fontes, porque cada navegador avisa por um caminho: 'resize' quando
+  // o teclado abre/fecha, 'scroll' do visualViewport quando a janela visual é
+  // deslocada, e o scroll da janela quando quem se mexeu foi o documento.
+  vv.addEventListener('resize', agendar);
+  window.addEventListener('scroll', agendar, { passive: true });
+  // O Safari só reposiciona a tela DEPOIS de abrir o teclado, e nem sempre
+  // dispara um evento no fim da animação. Estas remedidas cobrem esse rastro
+  // sem ficar rodando o tempo todo.
+  document.addEventListener('focusin', (e) => {
+    if (!e.target.closest || !e.target.closest('.chat-form')) return;
+    [60, 180, 360, 600].forEach(ms => setTimeout(agendar, ms));
+  });
+  vv.addEventListener('scroll', agendar);
+})();
+
+// Diagnóstico de viewport: abra qualquer tela com ?vp=1 na URL para ver, em
+// tempo real, os números que o navegador está realmente reportando. Existe
+// porque este bug (chat "esticando" ao abrir o teclado) só se manifesta em
+// aparelho real — com o painel ligado, uma gravação de tela mostra os valores
+// e dispensa adivinhação. Não custa nada quando o parâmetro não está presente.
+(function setupPainelViewport() {
+  if (new URLSearchParams(location.search).get('vp') !== '1') return;
+  const vv = window.visualViewport;
+  const painel = document.createElement('div');
+  // absolute DENTRO do bloco do chat, e não fixed na janela: com o teclado
+  // aberto o Safari desloca a área visível, e um elemento preso à janela de
+  // layout sai de vista justamente na hora em que precisamos ler os números.
+  // Ancorado no bloco do chat, ele acompanha o que estamos medindo.
+  painel.style.cssText = 'position:absolute;top:0;left:0;z-index:99999;background:rgba(0,0,0,.85);' +
+    'color:#0f0;font:11px/1.45 monospace;padding:6px 8px;pointer-events:none;white-space:pre;';
+  const desenhar = () => {
+    painel.textContent =
+      `vv    ${vv ? Math.round(vv.height) : '-'} x ${vv ? Math.round(vv.width) : '-'}\n` +
+      `off   top ${vv ? Math.round(vv.offsetTop) : '-'} left ${vv ? Math.round(vv.offsetLeft) : '-'}\n` +
+      `page  top ${vv && typeof vv.pageTop === 'number' ? Math.round(vv.pageTop) : '-'} ` +
+      `left ${vv && typeof vv.pageLeft === 'number' ? Math.round(vv.pageLeft) : '-'}\n` +
+      `scale ${vv ? vv.scale.toFixed(2) : '-'}\n` +
+      `inner ${window.innerHeight}x${window.innerWidth}\n` +
+      `scroll Y ${Math.round(window.scrollY)} X ${Math.round(window.scrollX)}\n` +
+      `docW  ${document.documentElement.scrollWidth}\n` +
+      `--vv  h${getComputedStyle(document.documentElement).getPropertyValue('--vvh').trim()} ` +
+      `t${getComputedStyle(document.documentElement).getPropertyValue('--vv-top').trim()} ` +
+      `l${getComputedStyle(document.documentElement).getPropertyValue('--vv-left').trim()}\n` +
+      `chat  ${(() => { const c = document.querySelector('.dashboard-container'); if (!c) return '-'; const b = c.getBoundingClientRect(); return `${Math.round(b.top)}→${Math.round(b.bottom)} w${Math.round(b.width)}`; })()}`;
+  };
+  const agendar = () => requestAnimationFrame(desenhar);
+  document.addEventListener('DOMContentLoaded', () => {
+    const casa = document.querySelector('.dashboard-container') || document.body;
+    casa.appendChild(painel);
+    desenhar();
+  });
+  if (vv) {
+    vv.addEventListener('resize', agendar);
+    vv.addEventListener('scroll', agendar);
+  }
+  window.addEventListener('scroll', agendar, { passive: true });
+  setInterval(desenhar, 400);
+})();
+
 document.addEventListener('DOMContentLoaded', async () => {
   // Exige login de cliente; redireciona pro login se não autorizado.
   const ctx = await OCAuth.guard('cliente');
@@ -15,6 +151,14 @@ document.addEventListener('DOMContentLoaded', async () => {
   CLIENT_ID = ctx.clientId;
 
   setupNavigation();
+  sincronizarCorDoTopo();
+  // No celular a pessoa cai no hub de navegação (Menu) em vez de entrar
+  // direto no painel — é o que permite tirar a barra fixa debaixo das
+  // outras telas (ver cliente.css), que era o que atrapalhava o teclado
+  // subindo por cima do campo de digitação no chat.
+  if (window.innerWidth <= 768) {
+    abrirSecaoCliente('section-menu');
+  }
   // A configuração opcional de senha não pode aparecer antes do próprio
   // caso. Quem acabou de pagar quer saber o andamento e a próxima ação;
   // por isso ela fica abaixo da linha do tempo, em segundo plano.
@@ -478,6 +622,13 @@ function formatarCPF(cpf) {
   return cpf.startsWith('CPF:') ? cpf : `CPF: ${cpf}`;
 }
 
+// Clique na logo/nome do escritório no cabeçalho: leva pro início, igual
+// qualquer app — no celular o início é o hub de menu, no desktop é o painel.
+function irParaInicioCliente() {
+  abrirSecaoCliente(window.innerWidth <= 768 ? 'section-menu' : 'section-dashboard');
+}
+window.irParaInicioCliente = irParaInicioCliente;
+
 function abrirSecaoCliente(id) {
   window.abrirSecaoCliente = abrirSecaoCliente;
   const nav = document.querySelector(`[data-target="${id}"]`);
@@ -489,6 +640,34 @@ function abrirSecaoCliente(id) {
     const targetPanel = document.getElementById(id);
     if (targetPanel) targetPanel.classList.add('active');
   }
+}
+
+// A faixa do navegador no topo do celular (onde ficam relógio e bateria)
+// segue a meta theme-color. Como o chat tem cabeçalho branco e o resto do app
+// tem cabeçalho verde, um valor fixo sempre deixaria uma das duas telas com
+// uma emenda visível no topo. Aqui a cor acompanha a tela aberta.
+//
+// Um MutationObserver, e não uma chamada dentro de abrirSecaoCliente(), porque
+// a seção também muda por clique direto nos itens de navegação — observar a
+// classe .active cobre todos os caminhos de uma vez, inclusive os futuros.
+function sincronizarCorDoTopo() {
+  const meta = document.getElementById('oc-theme-color');
+  const chat = document.getElementById('section-chat');
+  if (!meta || !chat) return;
+
+  const VERDE_DO_CABECALHO = '#0C5446';
+  const BRANCO_DO_CHAT = '#FFFFFF';
+
+  const aplicar = () => {
+    const noChat = chat.classList.contains('active');
+    meta.setAttribute('content', noChat ? BRANCO_DO_CHAT : VERDE_DO_CABECALHO);
+  };
+
+  aplicar();
+  new MutationObserver(aplicar).observe(chat, {
+    attributes: true,
+    attributeFilter: ['class']
+  });
 }
 
 // Clique no avatar do header: abre o menu com Meu Perfil + Sair juntos, em
@@ -2045,6 +2224,10 @@ let radarClienteEstado = null;
 
 function aplicarVisibilidadeRadarFiscal(habilitado) {
   document.querySelectorAll('[data-target="section-radar"]').forEach(el => { el.hidden = !habilitado; });
+  // O card do hub de Menu (celular) segue a mesma regra. Ele não usa
+  // data-target — se usasse, abrirSecaoCliente() poderia encontrá-lo em vez
+  // do item da barra lateral e o clique não acionaria a navegação real.
+  document.querySelectorAll('[data-radar-card]').forEach(el => { el.hidden = !habilitado; });
 
   const secao = document.getElementById('section-radar');
   if (secao) {
@@ -2457,6 +2640,13 @@ async function loadClientHistory() {
     if (dashBoasVindasEl) {
       const primeiroNome = primeiroNomeCliente();
       dashBoasVindasEl.textContent = primeiroNome ? `Olá, ${primeiroNome}!` : 'Bem-vindo(a) ao Olá, Contador';
+    }
+    // Mesma saudação no hub de menu do celular — é a primeira tela que a
+    // pessoa vê ao entrar, merece o mesmo cuidado pessoal do painel.
+    const menuBoasVindasEl = document.getElementById('menu-boas-vindas');
+    if (menuBoasVindasEl) {
+      const primeiroNome = primeiroNomeCliente();
+      menuBoasVindasEl.textContent = primeiroNome ? `Olá, ${primeiroNome}!` : 'Olá!';
     }
 
     populaPerfilCliente(client);
@@ -3102,21 +3292,22 @@ let originalClienteTitle = document.title;
 
 function incrementClienteBadge() {
   clienteUnreadCount++;
-  const badge = document.getElementById('badge-atendimentos-cliente');
-  if (badge) {
+  // Dois badges: um na barra lateral (desktop) e um no card do hub de menu
+  // (celular) — o mesmo contador em dois lugares porque a barra some no
+  // celular (ver cliente.css) e o hub precisa continuar avisando.
+  document.querySelectorAll('#badge-atendimentos-cliente, #badge-atendimentos-menu').forEach(badge => {
     badge.textContent = clienteUnreadCount;
     badge.style.display = 'block';
-  }
+  });
   document.title = `(${clienteUnreadCount}) Nova mensagem - Área do Cliente`;
 }
 
 function clearClienteBadge() {
   clienteUnreadCount = 0;
-  const badge = document.getElementById('badge-atendimentos-cliente');
-  if (badge) {
+  document.querySelectorAll('#badge-atendimentos-cliente, #badge-atendimentos-menu').forEach(badge => {
     badge.style.display = 'none';
     badge.textContent = '0';
-  }
+  });
   document.title = originalClienteTitle;
 }
 
