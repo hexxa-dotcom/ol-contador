@@ -6014,9 +6014,37 @@ export function AcompanhamentoIntegralView({
                   {expressItems.length + legacyItems.length}
                 </Badge>
               </div>
-              <div className="kanban-items">
+              <div
+                className="kanban-items"
+                onDragOver={(event) => event.preventDefault()}
+                onDrop={(event) => {
+                  event.preventDefault();
+                  let payload: { kind?: string; id?: number; clientId?: string };
+                  try {
+                    payload = JSON.parse(
+                      event.dataTransfer.getData("text/plain") || "{}",
+                    );
+                  } catch {
+                    return;
+                  }
+                  if (payload.kind === "express" && stage.express && payload.id)
+                    void moveExpress(payload.id, stage.express);
+                  else if (payload.kind === "legacy" && stage.legacy && payload.clientId)
+                    void moveLegacy(payload.clientId, stage.legacy);
+                }}
+              >
                 {expressItems.map((item) => (
-                  <Card className="kanban-item" key={`e-${item.id}`}>
+                  <Card
+                    className="kanban-item"
+                    key={`e-${item.id}`}
+                    draggable
+                    onDragStart={(event) =>
+                      event.dataTransfer.setData(
+                        "text/plain",
+                        JSON.stringify({ kind: "express", id: item.id }),
+                      )
+                    }
+                  >
                     <strong>
                       {item.assunto || item.servico_id || `Express #${item.id}`}
                     </strong>
@@ -6065,7 +6093,17 @@ export function AcompanhamentoIntegralView({
                   </Card>
                 ))}
                 {legacyItems.map(([clientId]) => (
-                  <Card className="kanban-item" key={`l-${clientId}`}>
+                  <Card
+                    className="kanban-item"
+                    key={`l-${clientId}`}
+                    draggable
+                    onDragStart={(event) =>
+                      event.dataTransfer.setData(
+                        "text/plain",
+                        JSON.stringify({ kind: "legacy", clientId }),
+                      )
+                    }
+                  >
                     <strong>Acompanhamento</strong>
                     <span>{clientName(clientId)}</span>
                     <small>Fluxo originado no atendimento</small>
