@@ -338,12 +338,24 @@ estruturas ou nos scripts SQL do projeto.
 
 ### Fase 5 — Área do Cliente
 
-- [ ] Reaplicar os tokens e componentes descritos neste documento.
-- [ ] Implementar autenticação e vínculo seguro com `clientes.user_id`.
-- [ ] Exibir somente registros pertencentes ao cliente autenticado.
-- [ ] Migrar triagem, agenda, mensagens, documentos, pagamentos, relatórios,
-  avaliações e Radar Fiscal.
-- [ ] Adaptar a densidade: menos opções simultâneas e foco na próxima ação.
+- [x] Reaplicar os tokens e componentes descritos neste documento
+  (`client-shell.tsx`/`client-views.tsx`).
+- [x] Implementar autenticação e vínculo seguro com `clientes.user_id`
+  (`src/app/portal/page.tsx` resolve `auth.getClaims()` → `clientes.user_id`;
+  `/painel` distingue staff de cliente e redireciona).
+- [x] Exibir somente registros pertencentes ao cliente autenticado —
+  confirmado em 18/08/2026 lendo `pg_policies` no banco de produção: RLS
+  ativo em `mensagens`, `documentos`, `triagens`, `caixa_postal`,
+  `avaliacoes` e `agendamentos`, todas restritas a `cliente_ref =
+  my_client_id()` (ou staff), com `is_staff()`/`my_client_id()`
+  `SECURITY DEFINER` sobre `auth.uid()`. Nessa auditoria também foi corrigido
+  um resquício: `anon` ainda tinha `GRANT` de tabela (sem policy
+  correspondente, então já era bloqueado na prática) em 5 dessas tabelas —
+  revogado, ficando igual ao padrão que `caixa_postal` já tinha.
+- [x] Migrar triagem, agenda, mensagens, documentos, pagamentos, relatórios,
+  avaliações e Radar Fiscal (`src/lib/portal.ts`, `src/app/portal/actions.ts`).
+- [x] Adaptar a densidade: menos opções simultâneas e foco na próxima ação
+  (onboarding obrigatório por triagem, hub por seção em vez de tudo junto).
 - [ ] Testar os mesmos eventos aparecendo de forma consistente nas duas áreas.
 
 ### Fase 6 — homologação e corte
