@@ -3,8 +3,8 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { LockKeyhole, Mail } from "lucide-react";
-import { Button, Input } from "@/components/ui/primitives";
 import { createClient } from "@/lib/supabase/client";
+import styles from "./login.module.css";
 
 export function LoginForm() {
   const router = useRouter();
@@ -81,17 +81,49 @@ export function LoginForm() {
       return;
     }
 
-    router.replace("/");
+    router.replace("/painel");
     router.refresh();
   }
 
-  return <form className="login-form" onSubmit={submit}>
-    {mode !== "recovery" && <label><span>E-mail profissional</span><div className="login-field"><Mail size={16}/><Input name="email" type="email" autoComplete="email" value={email} onChange={(event)=>setEmail(event.target.value)} placeholder="seuemail@empresa.com" required/></div></label>}
-    {mode !== "request" && <label><span>{mode === "recovery" ? "Nova senha" : "Senha"}</span><div className="login-field"><LockKeyhole size={16}/><Input name="password" type="password" autoComplete={mode === "recovery" ? "new-password" : "current-password"} minLength={mode === "recovery" ? 8 : undefined} value={password} onChange={(event)=>setPassword(event.target.value)} placeholder={mode === "recovery" ? "Mínimo de 8 caracteres" : "Digite sua senha"} required/></div></label>}
-    {mode === "recovery" && <label><span>Confirmar nova senha</span><div className="login-field"><LockKeyhole size={16}/><Input type="password" autoComplete="new-password" minLength={8} value={confirmation} onChange={(event)=>setConfirmation(event.target.value)} placeholder="Repita a nova senha" required/></div></label>}
-    {error && <div className="login-error" role="alert">{error}</div>}
-    {success && <div className="login-success" role="status">{success}</div>}
-    <Button className="full" type="submit" disabled={loading}>{loading ? "Processando…" : mode === "request" ? "Enviar link seguro" : mode === "recovery" ? "Salvar nova senha" : "Entrar"}</Button>
-    {mode === "login" ? <button className="login-link" type="button" onClick={()=>{setError("");setSuccess("");setMode("request");}}>Esqueci minha senha</button> : <button className="login-link" type="button" onClick={()=>{setError("");setSuccess("");setMode("login");}}>Voltar para o login</button>}
-  </form>;
+  return (
+    <form className={styles.form} onSubmit={submit}>
+      {mode !== "recovery" && (
+        <div>
+          <label htmlFor="login-email">E-mail</label>
+          <div className={styles.field}>
+            <Mail size={16} />
+            <input id="login-email" className={styles.input} name="email" type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="voce@email.com" required />
+          </div>
+        </div>
+      )}
+      {mode !== "request" && (
+        <div>
+          <label htmlFor="login-password">{mode === "recovery" ? "Nova senha" : "Senha"}</label>
+          <div className={styles.field}>
+            <LockKeyhole size={16} />
+            <input id="login-password" className={styles.input} name="password" type="password" autoComplete={mode === "recovery" ? "new-password" : "current-password"} minLength={mode === "recovery" ? 8 : undefined} value={password} onChange={(event) => setPassword(event.target.value)} placeholder={mode === "recovery" ? "Mínimo de 8 caracteres" : "Digite sua senha"} required />
+          </div>
+        </div>
+      )}
+      {mode === "recovery" && (
+        <div>
+          <label htmlFor="login-confirm">Confirmar nova senha</label>
+          <div className={styles.field}>
+            <LockKeyhole size={16} />
+            <input id="login-confirm" className={styles.input} type="password" autoComplete="new-password" minLength={8} value={confirmation} onChange={(event) => setConfirmation(event.target.value)} placeholder="Repita a nova senha" required />
+          </div>
+        </div>
+      )}
+      {error && <div className={`${styles.msg} ${styles.msgErr}`} role="alert">{error}</div>}
+      {success && <div className={`${styles.msg} ${styles.msgOk}`} role="status">{success}</div>}
+      <button className={styles.button} type="submit" disabled={loading}>
+        {loading ? "Processando…" : mode === "request" ? "Enviar link seguro" : mode === "recovery" ? "Salvar nova senha" : "Entrar"}
+      </button>
+      {mode === "login" ? (
+        <button className={styles.link} type="button" onClick={() => { setError(""); setSuccess(""); setMode("request"); }}>Esqueci minha senha</button>
+      ) : (
+        <button className={styles.link} type="button" onClick={() => { setError(""); setSuccess(""); setMode("login"); }}>Voltar para o login</button>
+      )}
+    </form>
+  );
 }

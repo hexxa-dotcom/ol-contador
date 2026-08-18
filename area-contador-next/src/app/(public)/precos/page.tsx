@@ -73,7 +73,7 @@ export default async function PrecosPage() {
             </Link>
           </div>
 
-          <div className="public-plano public-plano-destaque">
+          <div className="public-plano">
             <div className="public-plano-nome">Pessoa Jurídica</div>
             <div className="public-plano-desc">Para MEI, Simples Nacional ou Ltda — qualquer porte de empresa que precise de alguém cuidando das guias, dos prazos e das pendências.</div>
             <div className="public-plano-preco">
@@ -88,8 +88,8 @@ export default async function PrecosPage() {
                 </span>
               ))}
             </div>
-            <Link className="public-btn-full" href="/agendar?plano=pj">
-              Escolher Pessoa Jurídica
+            <Link href="/agendar?plano=pj" className="public-btn-full">
+              Resolver meu caso agora
             </Link>
           </div>
 
@@ -118,8 +118,8 @@ export default async function PrecosPage() {
         <div className="public-garantia">
           <span>🛡️</span>
           <div>
-            <b>Não resolveu, não paga.</b>
-            <span>Se o contador avaliar seu caso e concluir que não temos como ajudar, você recebe 100% de volta. Sem discussão.</span>
+            <b>Garantia de reembolso.</b>
+            <span>Você paga na contratação. Se o contador avaliar seu caso e concluir que não temos como ajudar, devolvemos 100% do valor. Sem discussão.</span>
           </div>
         </div>
 

@@ -1,0 +1,226 @@
+.wrap {
+  display: grid;
+  grid-template-columns: 1fr 1.3fr;
+  gap: 48px;
+  align-items: center;
+  margin-top: 48px;
+}
+
+@media (max-width: 900px) {
+  .wrap {
+    grid-template-columns: 1fr;
+    gap: 32px;
+  }
+}
+
+.menu {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.tab {
+  text-align: left;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  padding: 20px 24px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.tab:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.tab.active {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.2);
+  box-shadow: 0 12px 32px -12px rgba(0, 0, 0, 0.3);
+}
+
+.tab.active::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: var(--pub-coral);
+}
+
+.tabContent {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.tabNum {
+  font-family: 'Bricolage Grotesque', sans-serif;
+  font-weight: 800;
+  font-size: 1.2rem;
+  color: rgba(255, 255, 255, 0.3);
+}
+
+.tab.active .tabNum {
+  color: var(--pub-coral);
+}
+
+.tab h3 {
+  font-family: 'Hanken Grotesk', sans-serif;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.6);
+  margin: 0;
+  transition: color 0.2s ease;
+}
+
+.tab.active h3 {
+  color: #fff;
+}
+
+.tabHint {
+  font-size: 0.85rem;
+  color: var(--pub-mint-glow);
+  margin: 8px 0 0 38px;
+  font-weight: 600;
+}
+
+/* Visor / Ticket Card */
+.viewer {
+  perspective: 1200px;
+}
+
+.ticketCard {
+  background: rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 24px;
+  padding: 36px 40px;
+  box-shadow: 
+    0 24px 64px -20px rgba(0, 0, 0, 0.4),
+    inset 0 2px 4px rgba(255, 255, 255, 0.05);
+  transform: rotateY(-2deg) rotateX(2deg);
+  transition: transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.ticketCard:hover {
+  transform: rotateY(0deg) rotateX(0deg) translateY(-4px);
+}
+
+.ticketHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  padding-bottom: 24px;
+  border-bottom: 1px dashed rgba(255, 255, 255, 0.15);
+}
+
+.ticketStatus {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(47, 122, 84, 0.3);
+  color: var(--pub-mint-glow);
+  padding: 8px 16px;
+  border-radius: 99px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.ticketId {
+  font-family: monospace;
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.ticketTitle {
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: #fff;
+  margin: 0 0 32px;
+  line-height: 1.2;
+  text-wrap: balance;
+}
+
+.ticketBody {
+  display: flex;
+  flex-direction: column;
+}
+
+.ticketStep {
+  display: flex;
+  gap: 20px;
+}
+
+.stepIcon {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 0.9rem;
+  flex-shrink: 0;
+}
+
+.stepIconSuccess {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--pub-coral);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 4px 12px rgba(242, 122, 98, 0.4);
+}
+
+.stepInfo {
+  flex: 1;
+}
+
+.stepLabel {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: rgba(255, 255, 255, 0.4);
+  margin-bottom: 6px;
+}
+
+.stepInfo p {
+  font-size: 1.05rem;
+  color: rgba(255, 255, 255, 0.8);
+  line-height: 1.5;
+  margin: 0;
+}
+
+.stepInfo .stepHighlight {
+  color: #fff;
+  font-weight: 600;
+}
+
+.ticketConnector {
+  width: 2px;
+  height: 28px;
+  background: rgba(255, 255, 255, 0.1);
+  margin: 8px 0 8px 15px;
+}
+
+@media (max-width: 760px) {
+  .ticketCard {
+    padding: 24px;
+    transform: none;
+  }
+}

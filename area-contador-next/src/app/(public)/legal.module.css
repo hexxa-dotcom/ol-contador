@@ -1,0 +1,77 @@
+.wrap {
+  line-height: 1.65;
+}
+.wrap h1 {
+  font-size: 36px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  margin: 0 0 10px;
+}
+.wrap h2 {
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin: 36px 0 10px;
+}
+.wrap h3 {
+  font-size: 15px;
+  font-weight: 700;
+  margin: 20px 0 6px;
+}
+.wrap p,
+.wrap li {
+  font-size: 15.5px;
+  color: var(--foreground);
+}
+.wrap ul {
+  padding-left: 20px;
+}
+.wrap li {
+  margin-bottom: 7px;
+}
+.atualizado {
+  font-size: 13.5px;
+  color: var(--muted-foreground);
+  margin-bottom: 28px;
+}
+.box {
+  background: var(--pub-paper-card, #fff);
+  border: 1px solid var(--pub-border, var(--border));
+  border-radius: 16px;
+  padding: 18px 22px;
+  margin: 18px 0;
+}
+.box p {
+  margin: 0;
+}
+.tabelaWrap {
+  overflow-x: auto;
+  margin: 14px 0;
+}
+.wrap table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+.wrap th,
+.wrap td {
+  text-align: left;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--pub-line, var(--border));
+  vertical-align: top;
+}
+.wrap th {
+  font-weight: 700;
+}
+.rodape {
+  border-top: 1px solid var(--pub-line, var(--border));
+  margin-top: 44px;
+  padding-top: 20px;
+  font-size: 13.5px;
+  color: var(--muted-foreground);
+}
+.rodape a {
+  color: inherit;
+  text-decoration: underline;
+}
