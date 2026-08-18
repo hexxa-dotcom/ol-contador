@@ -191,7 +191,7 @@ function toISODate(d: Date) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
-function proximosVencimentos(
+export function proximosVencimentos(
   obrigacoes: { id: string; title: string; description: string | null; active: boolean | null; recurrence: string; day_of_month: number; month: number | null; keywords: string[] | null; reminder_days: number | null }[],
   taxType: string | null,
   from = new Date(),

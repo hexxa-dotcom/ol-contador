@@ -137,6 +137,35 @@ export function AccountantShell({ dashboardData, clientsData, operationsData, us
     };
   }, [systemSoundsEnabled]);
 
+  // Alerta de sistema operacional quando um cliente novo cai na triagem
+  // (ex.: pagou o Pix). Porte 1:1 de notifyNewLead em app.js do legado.
+  useEffect(() => {
+    if ("Notification" in window) void Notification.requestPermission();
+  }, []);
+  useEffect(() => {
+    const supabase = createBrowserClient();
+    if (!supabase) return;
+    const channel = supabase
+      .channel("contador-novo-lead-next")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "clientes" },
+        (payload) => {
+          if ("Notification" in window && Notification.permission === "granted") {
+            const nome = (payload.new as { name?: string }).name || "Desconhecido";
+            new Notification("Novo Cliente na Triagem!", {
+              body: `O cliente ${nome} pagou o PIX e está aguardando atendimento.`,
+              icon: "https://olacontador.com.br/favicon.ico",
+            });
+          }
+        },
+      )
+      .subscribe();
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, []);
+
   useEffect(() => {
     if (!accountMenuOpen) return;
     const closeOnOutsideClick = (event: MouseEvent) => {

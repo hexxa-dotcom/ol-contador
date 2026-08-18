@@ -15,7 +15,7 @@ type Cliente = Database["public"]["Tables"]["clientes"]["Row"];
 const SITE_URL = process.env.SITE_URL || "https://ola-contador.vercel.app";
 const LIMITE_RESUMO = 150;
 
-function nowTime(): string {
+export function nowTime(): string {
   return new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
 }
 
