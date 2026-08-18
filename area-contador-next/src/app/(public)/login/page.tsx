@@ -50,12 +50,6 @@ export default async function LoginPage({
             </Link>
           </div>
 
-          {papel && (
-            <div className={`${styles.roleBadge} ${papel === "contador" ? styles.roleContador : ""}`}>
-              {papel === "cliente" ? "Área do Cliente" : "Área do Contador"}
-            </div>
-          )}
-
           <h2 className={styles.tituloForm}>{textos.titulo}</h2>
           <p className={styles.sub}>{textos.sub}</p>
 

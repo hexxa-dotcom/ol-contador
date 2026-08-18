@@ -103,29 +103,6 @@
   color: #FF9C7E; 
 }
 
-/* BADGE DO PAPEL DE LOGIN */
-.roleBadge {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 0.78rem;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  padding: 5px 14px;
-  border-radius: 99px;
-  background: rgba(12, 84, 70, 0.08);
-  color: var(--pub-green, #0C5446);
-  border: 1px solid rgba(12, 84, 70, 0.15);
-  margin-bottom: 16px;
-}
-
-.roleContador {
-  background: rgba(255, 106, 69, 0.1);
-  color: #FF6A45;
-  border-color: rgba(255, 106, 69, 0.25);
-}
-
 .tituloForm { 
   font-family: 'Bricolage Grotesque', sans-serif;
   font-size: 28px; 

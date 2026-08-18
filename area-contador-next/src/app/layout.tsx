@@ -21,10 +21,32 @@ const plusJakarta = Plus_Jakarta_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "Área do Contador | Olá, Contador",
-  description: "Atendimento contábil sob demanda com preço fixo e contador com CRC ativo.",
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://olacontador.com.br"),
+  title: {
+    default: "Olá, Contador — Atendimento contábil sob demanda",
+    template: "%s | Olá, Contador",
+  },
+  description: "Preço fixo por atendimento com contador de CRC ativo. Sem mensalidade, sem surpresas. Acompanhamento pelo chat seguro e relatório assinado.",
+  keywords: ["contador online", "contabilidade sob demanda", "preço fixo contador", "radar fiscal", "regularizar mei", "imposto de renda", "abrir empresa"],
+  authors: [{ name: "Olá, Contador" }],
   icons: { icon: "/logo.svg", shortcut: "/logo.svg", apple: "/logo.svg" },
-  robots: { index: true, follow: true },
+  openGraph: {
+    type: "website",
+    locale: "pt_BR",
+    url: "https://olacontador.com.br",
+    siteName: "Olá, Contador",
+    title: "Olá, Contador — Atendimento contábil sob demanda com preço fixo",
+    description: "Fale direto com um contador de registro CRC ativo no chat seguro. Sem mensalidade, com relatório assinado.",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Olá, Contador — Atendimento contábil sob demanda",
+    description: "Preço fixo por atendimento, combinado antes. Chat seguro com contador e relatório assinado com CRC.",
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
