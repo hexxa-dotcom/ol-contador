@@ -115,6 +115,7 @@ import {
   type ClientDossierInput,
 } from "@/app/auth/actions";
 import { createClient as createBrowserClient } from "@/lib/supabase/client";
+import type { RealtimeChannel } from "@supabase/supabase-js";
 
 export type NotificationItem = {
   id: number;
@@ -815,11 +816,65 @@ export function AtendimentoView({
           );
         },
       )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "mensagens" },
+        (payload) => {
+          const updated = payload.new as ClientMessage;
+          setMessages((items) =>
+            items.map((item) => (item.id === updated.id ? { ...item, read_at: updated.read_at } : item)),
+          );
+        },
+      )
       .subscribe();
     return () => {
       void supabase.removeChannel(channel);
     };
   }, []);
+  // Contraparte de useContadorPresence no portal do cliente: sem isso, o
+  // "Online"/"Visto há X min" no chat do cliente nunca acende porque
+  // ninguém do lado do contador publica no canal oc-presence.
+  useEffect(() => {
+    const supabase = createBrowserClient();
+    if (!supabase) return;
+    const channel = supabase.channel("oc-presence", { config: { broadcast: { self: false } } });
+    channel.subscribe();
+    const pingInterval = setInterval(() => {
+      if (document.visibilityState === "visible") {
+        channel.send({ type: "broadcast", event: "ping", payload: { role: "contador" } });
+      }
+    }, 5000);
+    return () => {
+      clearInterval(pingInterval);
+      void supabase.removeChannel(channel);
+    };
+  }, []);
+  // Contraparte de useTypingIndicator no portal do cliente (que só escuta
+  // from: "agent"): sem publicar aqui, o indicador de "contador digitando"
+  // no chat do cliente nunca acende.
+  const typingChannelRef = useRef<RealtimeChannel | null>(null);
+  const lastTypingSentRef = useRef(0);
+  useEffect(() => {
+    if (!selectedClientId) {
+      typingChannelRef.current = null;
+      return;
+    }
+    const supabase = createBrowserClient();
+    if (!supabase) return;
+    const channel = supabase.channel(`oc-typing-${selectedClientId}`, { config: { broadcast: { self: false } } });
+    channel.subscribe();
+    typingChannelRef.current = channel;
+    return () => {
+      typingChannelRef.current = null;
+      void supabase.removeChannel(channel);
+    };
+  }, [selectedClientId]);
+  function notifyClientTyping() {
+    const now = Date.now();
+    if (now - lastTypingSentRef.current < 2000) return;
+    lastTypingSentRef.current = now;
+    typingChannelRef.current?.send({ type: "broadcast", event: "typing", payload: { from: "agent" } });
+  }
   useEffect(() => {
     const requestedClient = window.sessionStorage.getItem(
       "contador-open-client",
@@ -1643,7 +1698,10 @@ export function AtendimentoView({
           </Button>
           <Input
             value={messageText}
-            onChange={(event) => setMessageText(event.target.value)}
+            onChange={(event) => {
+              setMessageText(event.target.value);
+              if (event.target.value.trim()) notifyClientTyping();
+            }}
             onKeyDown={(event) => {
               if (event.key === "Enter" && !event.shiftKey) {
                 event.preventDefault();
