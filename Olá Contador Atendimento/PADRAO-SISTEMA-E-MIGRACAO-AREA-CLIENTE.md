@@ -311,7 +311,14 @@ estruturas ou nos scripts SQL do projeto.
   `public`, sem `GRANT` correspondente hoje (também não explorável agora),
   mas foi travada para exigir `is_staff()` e restrita a `authenticated`,
   já que só é acessada pelo backend com `service_role`.
-- [ ] Confirmar que nenhuma chave privilegiada chega ao bundle do navegador.
+- [x] Confirmar que nenhuma chave privilegiada chega ao bundle do navegador —
+  verificado em 18/08/2026: todos os arquivos que importam `asaas.ts`,
+  `serpro.ts`, `cnd.ts`, `dividaAtiva.ts`, `govbrVault.ts`, `ia.ts` e
+  `supabase/admin.ts` (service role) são Route Handlers/Server Actions ou
+  Server Components sem `"use client"`; nenhum arquivo `"use client"`
+  importa essas libs, direta ou indiretamente. Só `NEXT_PUBLIC_SUPABASE_URL`
+  e `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` (a chave pública/anon, que é
+  segura por design) chegam ao bundle.
 - [ ] Definir papéis oficiais e uma matriz de permissões.
 - [ ] Padronizar validação, erros, logs e identificador de correlação.
 - [ ] Gerar novamente os tipos do banco após qualquer alteração de schema.
