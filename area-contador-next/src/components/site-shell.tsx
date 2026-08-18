@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { User, ChevronDown, UserCheck, Building2 } from "lucide-react";
 
 const CHAVE_SESSAO = "oc_funil_sessao";
 
@@ -37,12 +38,15 @@ export function SiteHeader({ active }: { active?: "home" | "precos" | "radar" })
     <header className="public-nav-wrap">
       <div className="public-nav-container">
         <Link className="public-brand" href="/" aria-label="Voltar para a página inicial">
-          <Image src="/logo.svg" alt="" width={32} height={33} />
+          <Image src="/logo.svg" alt="Olá, Contador" width={34} height={35} priority />
           <span>
             Olá<i>,</i> Contador<i>.</i>
           </span>
         </Link>
         <nav className="public-nav-links" aria-label="Navegação principal">
+          <Link className="public-lk" href="/" aria-current={active === "home" ? "page" : undefined}>
+            Início
+          </Link>
           <Link className="public-lk" href="/precos" aria-current={active === "precos" ? "page" : undefined}>
             Preços
           </Link>
@@ -70,21 +74,23 @@ function EntrarMenu() {
     <div style={{ position: "relative" }} onClick={(event) => event.stopPropagation()}>
       <button
         type="button"
-        className="public-lk"
+        className="public-btn-entrar"
         aria-haspopup="true"
         aria-expanded={aberto}
         onClick={() => setAberto((v) => !v)}
-        style={{ display: "inline-flex", alignItems: "center", gap: "6px", background: "none", border: "none", cursor: "pointer", font: "inherit", padding: 0 }}
       >
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-          <polyline points="14 2 14 8 20 8"></polyline>
-          <line x1="16" y1="13" x2="8" y2="13"></line>
-          <line x1="16" y1="17" x2="8" y2="17"></line>
-          <polyline points="10 9 9 9 8 9"></polyline>
-        </svg>
-        Entrar
+        <User size={15} />
+        <span>Entrar</span>
+        <ChevronDown 
+          size={14} 
+          style={{ 
+            opacity: 0.8, 
+            transform: aberto ? "rotate(180deg)" : "none", 
+            transition: "transform 0.25s ease" 
+          }} 
+        />
       </button>
+
       {aberto && (
         <div
           role="menu"
@@ -92,36 +98,54 @@ function EntrarMenu() {
             position: "absolute",
             top: "calc(100% + 10px)",
             right: 0,
-            minWidth: "180px",
-            background: "var(--background)",
-            border: "1px solid rgba(0,0,0,0.08)",
-            borderRadius: "12px",
-            boxShadow: "0 12px 32px rgba(0,0,0,0.14)",
-            padding: "6px",
-            zIndex: 50,
+            minWidth: "200px",
+            background: "#FFFFFF",
+            border: "1px solid rgba(34, 49, 47, 0.12)",
+            borderRadius: "16px",
+            boxShadow: "0 16px 40px -10px rgba(7, 50, 42, 0.18)",
+            padding: "8px",
+            zIndex: 100,
           }}
         >
           <Link
             role="menuitem"
             href="/login?role=cliente"
-            style={{ display: "flex", alignItems: "center", gap: "10px", padding: "10px 12px", borderRadius: "8px", color: "var(--foreground)", textDecoration: "none", fontSize: "14.5px" }}
+            style={{ 
+              display: "flex", 
+              alignItems: "center", 
+              gap: "10px", 
+              padding: "12px 14px", 
+              borderRadius: "10px", 
+              color: "var(--pub-ink, #22312F)", 
+              textDecoration: "none", 
+              fontSize: "14px",
+              fontWeight: "600",
+              transition: "background 0.2s ease"
+            }}
+            className="public-menu-item"
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
-              <circle cx="12" cy="8" r="3.4" />
-              <path d="M5.5 20a6.5 6.5 0 0 1 13 0" />
-            </svg>
-            Sou cliente
+            <UserCheck size={18} style={{ color: "var(--pub-green, #0C5446)" }} />
+            <span>Sou cliente</span>
           </Link>
           <Link
             role="menuitem"
             href="/login?role=contador"
-            style={{ display: "flex", alignItems: "center", gap: "10px", padding: "10px 12px", borderRadius: "8px", color: "var(--foreground)", textDecoration: "none", fontSize: "14.5px" }}
+            style={{ 
+              display: "flex", 
+              alignItems: "center", 
+              gap: "10px", 
+              padding: "12px 14px", 
+              borderRadius: "10px", 
+              color: "var(--pub-ink, #22312F)", 
+              textDecoration: "none", 
+              fontSize: "14px",
+              fontWeight: "600",
+              transition: "background 0.2s ease"
+            }}
+            className="public-menu-item"
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
-              <rect x="5" y="3" width="14" height="18" rx="2.5" />
-              <path d="M8.6 7.6h6.8M8.6 12h.01M12 12h.01M15.4 12h.01M8.6 16h.01M12 16h.01M15.4 16h.01" />
-            </svg>
-            Sou contador
+            <Building2 size={18} style={{ color: "#FF9C7E" }} />
+            <span>Sou contador</span>
           </Link>
         </div>
       )}
@@ -131,46 +155,47 @@ function EntrarMenu() {
 
 export function SiteFooter() {
   return (
-    <footer className="public-footer-dark" style={{ background: "var(--pub-ink)", color: "rgba(255,255,255,0.7)" }}>
+    <footer className="public-footer-dark">
       <div className="public-rodape-grid">
         <div>
-          <div style={{ display: "flex", alignItems: "center", gap: "11px", marginBottom: "16px" }}>
-            <span style={{ fontFamily: "'Bricolage Grotesque', sans-serif", fontWeight: 800, fontSize: "19px", color: "#fff" }}>
-              Olá<span style={{ color: "var(--pub-coral)" }}>,</span> Contador<span style={{ color: "var(--pub-coral)" }}>.</span>
+          <div className="public-brand" style={{ marginBottom: "16px" }}>
+            <Image src="/logo.svg" alt="Olá, Contador" width={32} height={33} />
+            <span style={{ color: "#FFFFFF" }}>
+              Olá<i>,</i> Contador<i>.</i>
             </span>
           </div>
-          <p style={{ fontSize: "15px", lineHeight: 1.55, maxWidth: "280px", margin: 0 }}>
-            Um contador a um clique, pra você resolver a vida com a Receita sem sair de casa.
+          <p style={{ fontSize: "14px", lineHeight: "1.6", color: "rgba(255,255,255,0.75)", maxWidth: "340px" }}>
+            Atendimento contábil sob demanda com contador de registro CRC ativo. Sem mensalidade, sem surpresas.
           </p>
         </div>
         <div>
-          <div style={{ color: "#fff", fontWeight: 700, fontSize: "14px", marginBottom: "14px" }}>Serviços</div>
-          <div style={{ display: "flex", flexDirection: "column", gap: "10px", fontSize: "15px" }}>
-            <Link href="/#como-funciona" className="lk">Como funciona</Link>
-            <Link href="/#pra-que-serve" className="lk">Pra que serve</Link>
-            <Link href="/precos" className="lk">Preços</Link>
-          </div>
+          <h4 style={{ color: "#FFFFFF", fontSize: "15px", fontWeight: "700", marginBottom: "16px" }}>Serviços</h4>
+          <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: "10px", fontSize: "14px" }}>
+            <li><Link href="/precos">Pessoa Física (R$ 199)</Link></li>
+            <li><Link href="/precos">Pessoa Jurídica (R$ 399)</Link></li>
+            <li><Link href="/radar">Radar Fiscal</Link></li>
+          </ul>
         </div>
         <div>
-          <div style={{ color: "#fff", fontWeight: 700, fontSize: "14px", marginBottom: "14px" }}>Empresa</div>
-          <div style={{ display: "flex", flexDirection: "column", gap: "10px", fontSize: "15px" }}>
-            <a href="mailto:ola@olacontador.com.br?subject=Quero%20atender%20na%20plataforma%20(sou%20contador)" className="lk">É contador? Atenda com a gente</a>
-            <Link href="/login?role=contador" className="lk">Área do contador</Link>
-          </div>
+          <h4 style={{ color: "#FFFFFF", fontSize: "15px", fontWeight: "700", marginBottom: "16px" }}>Institucional</h4>
+          <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: "10px", fontSize: "14px" }}>
+            <li><Link href="/termos">Termos de Uso</Link></li>
+            <li><Link href="/privacidade">Política de Privacidade</Link></li>
+            <li><Link href="/login">Área do Cliente</Link></li>
+          </ul>
         </div>
         <div>
-          <div style={{ color: "#fff", fontWeight: 700, fontSize: "14px", marginBottom: "14px" }}>Contato</div>
-          <div style={{ display: "flex", flexDirection: "column", gap: "10px", fontSize: "15px" }}>
-            <a href="mailto:ola@olacontador.com.br" className="lk">ola@olacontador.com.br</a>
-            <Link href="/#duvidas" className="lk">Dúvidas frequentes</Link>
-          </div>
+          <h4 style={{ color: "#FFFFFF", fontSize: "15px", fontWeight: "700", marginBottom: "16px" }}>Contato</h4>
+          <p style={{ fontSize: "14px", color: "rgba(255,255,255,0.75)", margin: 0 }}>
+            ola@olacontador.com.br<br />
+            Atendimento 100% online em todo o Brasil
+          </p>
         </div>
       </div>
-      <div style={{ borderTop: "1px solid rgba(255, 255, 255, 0.08)", marginTop: "40px" }}>
-        <div className="public-rodape-base">
-          <span>© {new Date().getFullYear()} Olá, Contador · HEXX SERVIÇOS DIGITAIS LTDA · CNPJ 62.414.421/0001-16</span>
-          <span>Feito com carinho no Brasil 🇧🇷</span>
-        </div>
+
+      <div className="public-rodape-base">
+        <span>© {new Date().getFullYear()} Olá, Contador. Todos os direitos reservados.</span>
+        <span>CRC Ativo · Atendimento com garantia</span>
       </div>
     </footer>
   );
