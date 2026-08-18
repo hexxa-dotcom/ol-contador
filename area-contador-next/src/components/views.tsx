@@ -28,6 +28,7 @@ import {
   FileText,
   Filter,
   Landmark,
+  Link as LinkIcon,
   ListChecks,
   LockKeyhole,
   Mail,
@@ -6755,6 +6756,76 @@ export function RelatoriosIntegralView({
               <EmptyState>
                 Nenhum documento foi enviado para este cliente.
               </EmptyState>
+            )}
+            {form.reportId && (
+              <div className="report-manual-attachments">
+                {attachments
+                  .filter(
+                    (item) =>
+                      item.relatorio_id === form.reportId &&
+                      !item.documento_id,
+                  )
+                  .map((item) => (
+                    <div className="report-manual-attachment-row" key={item.id}>
+                      <LinkIcon size={15} />
+                      <span>
+                        <strong>{item.titulo}</strong>
+                        <small>{item.tipo}</small>
+                      </span>
+                      <Button
+                        className="icon ghost"
+                        disabled={pending}
+                        onClick={() => removeManualAttachment(item.id)}
+                      >
+                        <X size={14} />
+                      </Button>
+                    </div>
+                  ))}
+                <div className="inline-form">
+                  <Input
+                    placeholder="Título (ex: Guia DAS, Protocolo e-CAC)"
+                    value={manualAttachment.titulo}
+                    onChange={(event) =>
+                      setManualAttachment((value) => ({
+                        ...value,
+                        titulo: event.target.value,
+                      }))
+                    }
+                  />
+                  <Input
+                    placeholder="Link (URL)"
+                    value={manualAttachment.url}
+                    onChange={(event) =>
+                      setManualAttachment((value) => ({
+                        ...value,
+                        url: event.target.value,
+                      }))
+                    }
+                  />
+                  <select
+                    value={manualAttachment.tipo}
+                    onChange={(event) =>
+                      setManualAttachment((value) => ({
+                        ...value,
+                        tipo: event.target.value as typeof value.tipo,
+                      }))
+                    }
+                  >
+                    <option value="link">Link</option>
+                    <option value="guia">Guia</option>
+                    <option value="protocolo">Protocolo</option>
+                    <option value="comprovante">Comprovante</option>
+                    <option value="outro">Outro</option>
+                  </select>
+                  <Button
+                    className="secondary compact"
+                    disabled={pending}
+                    onClick={addManualAttachment}
+                  >
+                    <Paperclip size={14} /> Adicionar
+                  </Button>
+                </div>
+              </div>
             )}
           </Card>
           {message && (
