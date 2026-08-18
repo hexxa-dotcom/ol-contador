@@ -651,6 +651,15 @@ export function AtendimentoView({
     avisarCliente: timerStored.avisarCliente ?? timerStored.notifyClient ?? true,
     avisoSonoro: timerStored.avisoSonoro ?? timerStored.sound ?? true,
   };
+  const panelPreferencesValue = operationsData.settings.find(
+    (item) => item.chave === "painel_preferencias",
+  )?.valor;
+  const systemSoundsEnabled = !(
+    panelPreferencesValue &&
+    typeof panelPreferencesValue === "object" &&
+    !Array.isArray(panelPreferencesValue) &&
+    (panelPreferencesValue as Record<string, unknown>).systemSounds === false
+  );
   const appearanceValue = operationsData.settings.find((item) => item.chave === "chat_appearance")?.valor;
   const appearanceStored = appearanceValue && typeof appearanceValue === "object" && !Array.isArray(appearanceValue)
     ? appearanceValue as Record<string, unknown> : {};
@@ -831,6 +840,22 @@ export function AtendimentoView({
               ? items
               : [...items, incoming],
           );
+          if (incoming.sender === "client" && systemSoundsEnabled) {
+            try {
+              const context = new AudioContext();
+              const oscillator = context.createOscillator();
+              const gain = context.createGain();
+              oscillator.type = "sine";
+              oscillator.frequency.setValueAtTime(523.25, context.currentTime);
+              oscillator.frequency.setValueAtTime(659.25, context.currentTime + 0.1);
+              gain.gain.setValueAtTime(0.001, context.currentTime);
+              gain.gain.linearRampToValueAtTime(0.08, context.currentTime + 0.04);
+              gain.gain.exponentialRampToValueAtTime(0.001, context.currentTime + 0.38);
+              oscillator.connect(gain).connect(context.destination);
+              oscillator.start();
+              oscillator.stop(context.currentTime + 0.4);
+            } catch { /* alguns navegadores exigem interação antes do áudio */ }
+          }
         },
       )
       .on(
@@ -847,7 +872,7 @@ export function AtendimentoView({
     return () => {
       void supabase.removeChannel(channel);
     };
-  }, []);
+  }, [systemSoundsEnabled]);
   // Contraparte de useContadorPresence no portal do cliente: sem isso, o
   // "Online"/"Visto há X min" no chat do cliente nunca acende porque
   // ninguém do lado do contador publica no canal oc-presence.

@@ -77,6 +77,7 @@ export function AccountantShell({ dashboardData, clientsData, operationsData, us
         : storedProfessionalName || user.name,
   });
   const [currentNotifications, setCurrentNotifications] = useState(notifications);
+  const [unreadMessagesCount, setUnreadMessagesCount] = useState(dashboardData.unreadMessages);
   const [collapsed, setCollapsed] = useState(true);
   const [mobile, setMobile] = useState(false);
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
@@ -94,6 +95,41 @@ export function AccountantShell({ dashboardData, clientsData, operationsData, us
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  useEffect(() => {
+    const supabase = createBrowserClient();
+    if (!supabase) return;
+    let refreshTimer: number | undefined;
+    function refreshUnreadCount() {
+      window.clearTimeout(refreshTimer);
+      refreshTimer = window.setTimeout(() => {
+        void supabase!
+          .from("mensagens")
+          .select("id", { count: "exact", head: true })
+          .eq("sender", "client")
+          .is("read_at", null)
+          .then(({ count }) => {
+            if (typeof count === "number") setUnreadMessagesCount(count);
+          });
+      }, 300);
+    }
+    const channel = supabase
+      .channel("contador-badge-mensagens-next")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "mensagens" },
+        refreshUnreadCount,
+      )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "mensagens" },
+        refreshUnreadCount,
+      )
+      .subscribe();
+    return () => {
+      window.clearTimeout(refreshTimer);
+      void supabase.removeChannel(channel);
+    };
+  }, []);
   useEffect(() => {
     const supabase = createBrowserClient();
     if (!supabase) return;
@@ -238,7 +274,7 @@ export function AccountantShell({ dashboardData, clientsData, operationsData, us
     {mobile && <button className="mobile-overlay" aria-label="Fechar menu" onClick={() => setMobile(false)}/>} 
     <aside className={`sidebar ${collapsed ? "collapsed" : ""} ${mobile ? "mobile-open" : ""}`}>
       <div className="brand"><button className="brand-mark" aria-label={collapsed?"Expandir menu lateral":"Recolher menu lateral"} onClick={() => setCollapsed(value=>!value)}><Image src="/logo.svg" alt="Símbolo Olá, Contador" width={29} height={30} priority/></button>{(!collapsed || mobile) && <div><strong>Olá, Contador</strong><small>Área profissional</small></div>}<Button aria-label="Fechar menu" className="icon ghost mobile-close" onClick={() => setMobile(false)}><X size={18}/></Button></div>
-      <nav><span className="nav-indicator" aria-hidden="true" style={{ opacity: activeNavIndex < 0 ? 0 : 1, transform: `translateY(${Math.max(activeNavIndex, 0) * 53}px)` }}/>{visibleNavItems.map(({id,label,icon:Icon,badge}) => { const count = id === "notificacoes" ? unreadCount : id === "atendimento" ? dashboardData.unreadMessages : badge; return <button className={active===id?"active":""} key={id} onClick={() => navigate(id)} title={label} data-tooltip={label} aria-label={collapsed&&!mobile?label:undefined} aria-current={active===id?"page":undefined}><Icon size={21} strokeWidth={1.9}/>{(!collapsed || mobile) && <span>{label}</span>}{typeof count === "number" && count>0 && <Badge className="nav-count">{count > 99 ? "99+" : count}</Badge>}</button>; })}</nav>
+      <nav><span className="nav-indicator" aria-hidden="true" style={{ opacity: activeNavIndex < 0 ? 0 : 1, transform: `translateY(${Math.max(activeNavIndex, 0) * 53}px)` }}/>{visibleNavItems.map(({id,label,icon:Icon,badge}) => { const count = id === "notificacoes" ? unreadCount : id === "atendimento" ? unreadMessagesCount : badge; return <button className={active===id?"active":""} key={id} onClick={() => navigate(id)} title={label} data-tooltip={label} aria-label={collapsed&&!mobile?label:undefined} aria-current={active===id?"page":undefined}><Icon size={21} strokeWidth={1.9}/>{(!collapsed || mobile) && <span>{label}</span>}{typeof count === "number" && count>0 && <Badge className="nav-count">{count > 99 ? "99+" : count}</Badge>}</button>; })}</nav>
     </aside>
     <main className="workspace"><header className="topbar"><Button aria-label="Abrir menu" className="icon ghost mobile-menu" onClick={() => setMobile(true)}><Menu size={20}/></Button><div className="topbar-actions"><div className="notification-wrap" ref={notificationRef}><Button aria-label="Abrir notificações" aria-expanded={notificationOpen} className={`icon floating-notification notification-button ${notificationOpen ? "is-open" : ""}`} onClick={() => { setNotificationOpen(value=>!value); setAccountMenuOpen(false); }}><Bell size={20}/>{unreadCount > 0 && <span className="top-notification-count">{unreadCount > 99 ? "99+" : unreadCount}</span>}</Button>{notificationOpen && <div className="notification-popover" role="dialog" aria-label="Notificações recentes"><div className="popover-title"><div><strong>Notificações</strong><small>{unreadCount ? `${unreadCount} não lida${unreadCount === 1 ? "" : "s"}` : "Tudo em dia"}</small></div><Badge>{currentNotifications.length}</Badge></div><div className="notification-list">{currentNotifications.length ? currentNotifications.slice(0,5).map(item => <button key={item.id} onClick={() => navigate(item.cliente_ref ? "atendimento" : "notificacoes", item.cliente_ref)} className={item.unread ? "unread" : ""}><span className="notification-dot"/><span><strong>{item.text}</strong><small>{item.time || (item.created_at ? new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" }).format(new Date(item.created_at)) : "Agora")}</small></span></button>) : <div className="notification-empty">Nenhuma notificação por aqui.</div>}</div><button className="popover-footer" onClick={() => navigate("notificacoes")}>Ver todas as notificações <ChevronDown size={15}/></button></div>}</div><div className="account-menu-wrap" ref={accountMenuRef}><button className="account-glass" onClick={() => { setAccountMenuOpen(value=>!value); setNotificationOpen(false); }} aria-label={`Abrir menu de ${currentUser.name}`} aria-expanded={accountMenuOpen} aria-controls="account-popover"><div className="avatar">{initials}</div><div className="account-copy"><strong>{currentUser.name}</strong><small>{currentUser.role}</small></div><ChevronDown className={accountMenuOpen?"rotated":""} size={15}/></button>{accountMenuOpen && <div className="account-popover" id="account-popover" role="menu"><div className="account-popover-head"><strong>{currentUser.name}</strong><small>{currentUser.email}</small></div><button role="menuitem" onClick={() => navigate("perfil")}><UserRound size={16}/><span>Meu perfil</span></button>{!isPartner && <button role="menuitem" onClick={() => navigate("configuracoes")}><Settings size={16}/><span>Configurações</span></button>}<div className="account-menu-separator"/><form action={signOut}><button className="danger" role="menuitem" type="submit"><LogOut size={16}/><span>Sair com segurança</span></button></form></div>}</div></div></header><div className="workspace-scroll"><div className="view-transition" key={active}>{active === "dashboard" ? <DashboardView data={dashboardData} onNavigate={navigate}/> : active === "clientes" ? <ClientesView data={clientsData} operationsData={operationsData}/> : active === "atendimento" ? <AtendimentoView clientsData={clientsData} operationsData={operationsData}/> : active === "acompanhamento" ? <AcompanhamentoView data={operationsData} clientsData={clientsData}/> : active === "relatorios" ? (isPartner ? <DashboardView data={dashboardData} onNavigate={navigate}/> : <RelatoriosView data={operationsData}/>) : active === "agendamentos" ? <AgendamentosView data={operationsData}/> : active === "financeiro" ? (isPartner ? <DashboardView data={dashboardData} onNavigate={navigate}/> : <FinanceiroView data={operationsData}/>) : active === "radar" ? <RadarView data={operationsData}/> : active === "insights" ? <InsightsView data={operationsData} clientsData={clientsData}/> : active === "configuracoes" ? (isPartner ? <DashboardView data={dashboardData} onNavigate={navigate}/> : <ConfiguracoesView data={operationsData}/>) : active === "perfil" ? <PerfilView user={currentUser} data={operationsData} clientsData={clientsData} onUpdated={(name) => setCurrentUser(value => ({...value, name}))}/> : active === "notificacoes" ? <NotificacoesView notifications={currentNotifications} data={operationsData} clientsData={clientsData} onNotificationsChanged={setCurrentNotifications} onNavigate={navigate}/> : <DashboardView data={dashboardData} onNavigate={navigate}/>}</div></div></main>
     {feedback && <div className="action-toast" role="status"><CheckCircle2 size={17}/><span>{feedback}</span><button aria-label="Fechar aviso" onClick={()=>setFeedback("")}><X size={15}/></button></div>}
