@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { User, ChevronDown, UserCheck, Building2 } from "lucide-react";
+import { User, ChevronDown, UserCheck, Building2, Menu, X } from "lucide-react";
 
 const CHAVE_SESSAO = "oc_funil_sessao";
 
@@ -34,15 +34,30 @@ export async function registrarEventoFunil(sessaoRef: string, evento: string, ex
 }
 
 export function SiteHeader({ active }: { active?: "home" | "precos" | "radar" }) {
+  const [menuMobileAberto, setMenuMobileAberto] = useState(false);
+
+  // Fecha o menu móvel ao redimensionar para desktop
+  useEffect(() => {
+    const onResize = () => {
+      if (window.innerWidth > 768) {
+        setMenuMobileAberto(false);
+      }
+    };
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+
   return (
     <header className="public-nav-wrap">
       <div className="public-nav-container">
-        <Link className="public-brand" href="/" aria-label="Voltar para a página inicial">
+        <Link className="public-brand" href="/" aria-label="Voltar para a página inicial" onClick={() => setMenuMobileAberto(false)}>
           <Image src="/logo.svg" alt="Olá, Contador" width={34} height={35} priority />
           <span>
             Olá<i>,</i> Contador<i>.</i>
           </span>
         </Link>
+
+        {/* NAVEGAÇÃO DESKTOP */}
         <nav className="public-nav-links" aria-label="Navegação principal">
           <Link className="public-lk" href="/" aria-current={active === "home" ? "page" : undefined}>
             Início
@@ -55,7 +70,71 @@ export function SiteHeader({ active }: { active?: "home" | "precos" | "radar" })
           </Link>
           <EntrarMenu />
         </nav>
+
+        {/* BOTÃO TOGGLE MOBILE */}
+        <button
+          type="button"
+          className="public-mobile-toggle"
+          aria-label={menuMobileAberto ? "Fechar menu" : "Abrir menu"}
+          aria-expanded={menuMobileAberto}
+          onClick={() => setMenuMobileAberto((v) => !v)}
+        >
+          {menuMobileAberto ? <X size={22} /> : <Menu size={22} />}
+        </button>
       </div>
+
+      {/* MENU DRAWER MOBILE */}
+      {menuMobileAberto && (
+        <div className="public-mobile-menu-overlay" onClick={() => setMenuMobileAberto(false)}>
+          <div className="public-mobile-menu-drawer" onClick={(e) => e.stopPropagation()}>
+            <div className="public-mobile-menu-links">
+              <Link 
+                className={`public-mobile-lk ${active === "home" ? "active" : ""}`} 
+                href="/" 
+                onClick={() => setMenuMobileAberto(false)}
+              >
+                Início
+              </Link>
+              <Link 
+                className={`public-mobile-lk ${active === "precos" ? "active" : ""}`} 
+                href="/precos" 
+                onClick={() => setMenuMobileAberto(false)}
+              >
+                Preços
+              </Link>
+              <Link 
+                className={`public-mobile-lk ${active === "radar" ? "active" : ""}`} 
+                href="/radar" 
+                onClick={() => setMenuMobileAberto(false)}
+              >
+                Radar Fiscal
+              </Link>
+            </div>
+
+            <div className="public-mobile-menu-divider" />
+
+            <div className="public-mobile-auth-section">
+              <span className="public-mobile-auth-title">Acesso ao Sistema</span>
+              <Link 
+                className="public-mobile-auth-btn client" 
+                href="/login?role=cliente" 
+                onClick={() => setMenuMobileAberto(false)}
+              >
+                <UserCheck size={18} />
+                <span>Sou cliente</span>
+              </Link>
+              <Link 
+                className="public-mobile-auth-btn accountant" 
+                href="/login?role=contador" 
+                onClick={() => setMenuMobileAberto(false)}
+              >
+                <Building2 size={18} />
+                <span>Sou contador</span>
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
     </header>
   );
 }
