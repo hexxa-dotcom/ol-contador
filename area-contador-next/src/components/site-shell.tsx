@@ -74,12 +74,21 @@ function EntrarMenu() {
     <div style={{ position: "relative" }} onClick={(event) => event.stopPropagation()}>
       <button
         type="button"
-        className="public-btn-entrar"
+        className="public-lk"
         aria-haspopup="true"
         aria-expanded={aberto}
         onClick={() => setAberto((v) => !v)}
+        style={{ display: "inline-flex", alignItems: "center", gap: "4px", background: "none", border: "none", cursor: "pointer", font: "inherit", padding: 0 }}
       >
         <span>Entrar</span>
+        <ChevronDown 
+          size={14} 
+          style={{ 
+            opacity: 0.8, 
+            transform: aberto ? "rotate(180deg)" : "none", 
+            transition: "transform 0.2s ease" 
+          }} 
+        />
       </button>
 
       {aberto && (

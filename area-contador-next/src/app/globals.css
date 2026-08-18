@@ -972,29 +972,6 @@ td { font-size: 11px; }
 .public-lk[aria-current="page"] { opacity: 1; color: var(--pub-green, #0C5446); font-weight: 800; }
 .public-lk[aria-current="page"]::after { transform: scaleX(1); background: #FF9C7E; }
 
-.public-btn-entrar {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  background: var(--pub-green, #0C5446);
-  color: #FFFFFF !important;
-  border: none;
-  border-radius: 99px;
-  padding: 9px 20px;
-  font-family: 'Hanken Grotesk', sans-serif;
-  font-size: 0.9rem;
-  font-weight: 700;
-  cursor: pointer;
-  box-shadow: 0 4px 14px rgba(12, 84, 70, 0.2);
-  transition: all 0.25s ease;
-}
-
-.public-btn-entrar:hover {
-  background: var(--pub-green-deep, #07322A);
-  transform: translateY(-1px);
-  box-shadow: 0 6px 18px rgba(12, 84, 70, 0.3);
-}
-
 .public-menu-item:hover {
   background: rgba(12, 84, 70, 0.06);
 }
