@@ -89,13 +89,16 @@ import {
   createReport,
   createReportRevision,
   createServiceCredit,
+  createTask,
   deleteNotification,
   deleteAppointment,
   deleteServicePlan,
+  deleteTask,
   markClientMessagesRead,
   markMonthlyGuideGenerated,
   markMailThreadRead,
   markNotificationsRead,
+  reassignTask,
   saveAgendaAvailability,
   saveClientDossier,
   sendChatTimerWarning,
@@ -110,6 +113,7 @@ import {
   sendMessage,
   setReportDocument,
   setChatLocked as persistChatLocked,
+  toggleTask,
   updateAppointmentStatus,
   updateClient,
   updateProfile,
@@ -296,18 +300,6 @@ export function DashboardView({
       destination: "acompanhamento",
     },
   ];
-  function persistTasks(
-    next: DashboardData["tasks"],
-    successMessage: string,
-  ) {
-    const previous = tasks;
-    setTasks(next);
-    startTaskTransition(async () => {
-      const result = await saveSystemSetting({ key: "tarefas", value: next });
-      if (!result.ok) setTasks(previous);
-      feedback(result.ok ? successMessage : result.message);
-    });
-  }
   function addTask() {
     const texto = taskForm.texto.trim();
     if (!texto || !taskForm.dataInicial || !taskForm.dataFinal) return;
@@ -315,19 +307,44 @@ export function DashboardView({
       feedback("O prazo final não pode ser anterior à data inicial.");
       return;
     }
-    const next = [
-      {
-        id: crypto.randomUUID(),
-        texto: texto.slice(0, 240),
-        feita: false,
-        dataInicial: new Date(`${taskForm.dataInicial}T12:00:00-03:00`).toISOString(),
-        dataFinal: new Date(`${taskForm.dataFinal}T12:00:00-03:00`).toISOString(),
-      },
-      ...tasks,
-    ];
-    persistTasks(next, "Tarefa criada.");
+    const dataInicial = new Date(`${taskForm.dataInicial}T12:00:00-03:00`).toISOString();
+    const dataFinal = new Date(`${taskForm.dataFinal}T12:00:00-03:00`).toISOString();
     setTaskOpen(false);
     setTaskForm((value) => ({ ...value, texto: "" }));
+    startTaskTransition(async () => {
+      const result = await createTask({ texto, dataInicial, dataFinal });
+      if (result.ok)
+        setTasks((items) => [
+          { id: crypto.randomUUID(), texto: texto.slice(0, 240), feita: false, dataInicial, dataFinal, responsavelId: null },
+          ...items,
+        ]);
+      feedback(result.message);
+    });
+  }
+  function toggleTaskDone(id: string, feita: boolean) {
+    setTasks((items) => items.map((item) => (item.id === id ? { ...item, feita } : item)));
+    startTaskTransition(async () => {
+      const result = await toggleTask(id, feita);
+      if (!result.ok) setTasks((items) => items.map((item) => (item.id === id ? { ...item, feita: !feita } : item)));
+      feedback(result.message);
+    });
+  }
+  function moveTask(id: string, responsavelId: string) {
+    const value = responsavelId || null;
+    setTasks((items) => items.map((item) => (item.id === id ? { ...item, responsavelId: value } : item)));
+    startTaskTransition(async () => {
+      const result = await reassignTask(id, value);
+      feedback(result.message);
+    });
+  }
+  function removeTask(id: string) {
+    const previous = tasks;
+    setTasks((items) => items.filter((item) => item.id !== id));
+    startTaskTransition(async () => {
+      const result = await deleteTask(id);
+      if (!result.ok) setTasks(previous);
+      feedback(result.message);
+    });
   }
   function completeGuide(id: number) {
     startTaskTransition(async () => {
@@ -473,16 +490,7 @@ export function DashboardView({
                   aria-label={`Concluir ${task.texto}`}
                   checked={task.feita}
                   disabled={taskPending}
-                  onChange={(event) =>
-                    persistTasks(
-                      tasks.map((item) =>
-                        item.id === task.id
-                          ? { ...item, feita: event.target.checked }
-                          : item,
-                      ),
-                      event.target.checked ? "Tarefa concluída." : "Tarefa reaberta.",
-                    )
-                  }
+                  onChange={(event) => toggleTaskDone(task.id, event.target.checked)}
                 />
                 <span>
                   <strong>{task.texto}</strong>
@@ -496,15 +504,22 @@ export function DashboardView({
                       : "Sem prazo"}
                   </small>
                 </span>
+                <select
+                  className="input compact"
+                  aria-label={`Responsável por ${task.texto}`}
+                  value={task.responsavelId || ""}
+                  disabled={taskPending}
+                  onChange={(event) => moveTask(task.id, event.target.value)}
+                >
+                  <option value="">Sem responsável</option>
+                  {data.staffList.map((member) => (
+                    <option key={member.id} value={member.id}>{member.nome}</option>
+                  ))}
+                </select>
                 <button
                   aria-label={`Excluir ${task.texto}`}
                   disabled={taskPending}
-                  onClick={() =>
-                    persistTasks(
-                      tasks.filter((item) => item.id !== task.id),
-                      "Tarefa excluída.",
-                    )
-                  }
+                  onClick={() => removeTask(task.id)}
                 >
                   <X size={15} />
                 </button>

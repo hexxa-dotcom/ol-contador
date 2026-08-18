@@ -15,7 +15,9 @@ export type DashboardData = {
     feita: boolean;
     dataInicial: string | null;
     dataFinal: string | null;
+    responsavelId: string | null;
   }>;
+  staffList: Array<{ id: string; nome: string }>;
   monthlyGuides: Array<{
     id: number;
     clienteRef: string;
@@ -37,6 +39,7 @@ export const emptyDashboardData: DashboardData = {
   completedThisMonth: 0,
   pendingTasks: 0,
   tasks: [],
+  staffList: [],
   monthlyGuides: [],
   loadedAt: new Date(0).toISOString(),
 };
@@ -70,47 +73,34 @@ export async function loadDashboardData(supabase: SupabaseClient<Database>): Pro
   const weekStart = startOfWeek(today);
   const weekEnd = addDays(weekStart, 6);
 
-  const [paymentsResult, appointmentsResult, expressResult, messagesResult, historyResult, tasksResult, guidesResult, guideClientsResult] = await Promise.all([
+  const [paymentsResult, appointmentsResult, expressResult, messagesResult, historyResult, tasksResult, staffResult, guidesResult, guideClientsResult] = await Promise.all([
     supabase.from("cobrancas").select("valor_cents,paid_at").eq("status", "paid").gte("paid_at", `${monthStart}T00:00:00-03:00`),
     supabase.from("agendamentos").select("date,status").gte("date", weekStart).lte("date", weekEnd),
     supabase.from("atendimentos_express").select("id", { count: "exact", head: true }).neq("status", "concluido"),
     supabase.from("mensagens").select("id", { count: "exact", head: true }).eq("sender", "client").is("read_at", null),
     supabase.from("atendimentos_historico").select("id", { count: "exact", head: true }).gte("finalizado_em", `${monthStart}T00:00:00-03:00`),
-    supabase.from("configuracoes").select("valor").eq("chave", "tarefas").maybeSingle(),
+    supabase.from("tarefas").select("id,texto,feita,data_inicial,data_final,responsavel_id").eq("excluida", false).order("created_at", { ascending: false }).limit(200),
+    supabase.from("staff").select("id,name,nome").not("id", "is", null),
     supabase.from("guias_mensais").select("id,cliente_ref,competencia,observacao,status").order("competencia", { ascending: false }).limit(300),
     supabase.from("clientes").select("id,name").limit(500),
   ]);
 
-  const firstError = [paymentsResult.error, appointmentsResult.error, expressResult.error, messagesResult.error, historyResult.error, tasksResult.error, guidesResult.error, guideClientsResult.error].find(Boolean);
+  const firstError = [paymentsResult.error, appointmentsResult.error, expressResult.error, messagesResult.error, historyResult.error, tasksResult.error, staffResult.error, guidesResult.error, guideClientsResult.error].find(Boolean);
   if (firstError) throw firstError;
 
   const paid = paymentsResult.data ?? [];
   const appointments = appointmentsResult.data ?? [];
-  const rawTasks = Array.isArray(tasksResult.data?.valor) ? tasksResult.data.valor : [];
-  const tasks = rawTasks
-    .filter(
-      (item) => Boolean(item && typeof item === "object" && !Array.isArray(item)),
-    )
-    .map((value, index) => {
-      const item = value as { [key: string]: unknown };
-      return {
-        id: String(item.id || `legacy-${index}`),
-        texto: String(item.texto || "Tarefa sem título").slice(0, 240),
-        feita: item.feita === true,
-        dataInicial:
-          typeof item.dataInicial === "string"
-            ? item.dataInicial
-            : typeof item.createdAt === "string"
-              ? item.createdAt
-              : null,
-        dataFinal:
-          typeof item.dataFinal === "string"
-            ? item.dataFinal
-            : typeof item.deadline === "string"
-              ? item.deadline
-              : null,
-      };
-    });
+  const tasks = (tasksResult.data ?? []).map((item) => ({
+    id: item.id,
+    texto: item.texto,
+    feita: item.feita,
+    dataInicial: item.data_inicial,
+    dataFinal: item.data_final,
+    responsavelId: item.responsavel_id,
+  }));
+  const staffList = (staffResult.data ?? [])
+    .filter((item): item is typeof item & { id: string } => Boolean(item.id))
+    .map((item) => ({ id: item.id, nome: item.nome || item.name || item.id }));
   const pendingTasks = tasks.filter((item) => !item.feita).length;
   const guideClientNames = new Map((guideClientsResult.data ?? []).map((item) => [item.id, item.name]));
   const monthlyGuides = (guidesResult.data ?? []).map((item) => ({
@@ -139,6 +129,7 @@ export async function loadDashboardData(supabase: SupabaseClient<Database>): Pro
     completedThisMonth: historyResult.count ?? 0,
     pendingTasks,
     tasks,
+    staffList,
     monthlyGuides,
     loadedAt: new Date().toISOString(),
   };

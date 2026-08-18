@@ -1425,6 +1425,119 @@ export type Database = {
         }
         Relationships: []
       }
+      tarefas: {
+        Row: {
+          created_at: string
+          criado_por: string | null
+          data_final: string | null
+          data_inicial: string | null
+          excluida: boolean
+          feita: boolean
+          id: string
+          responsavel_id: string | null
+          texto: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          criado_por?: string | null
+          data_final?: string | null
+          data_inicial?: string | null
+          excluida?: boolean
+          feita?: boolean
+          id?: string
+          responsavel_id?: string | null
+          texto: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          criado_por?: string | null
+          data_final?: string | null
+          data_inicial?: string | null
+          excluida?: boolean
+          feita?: boolean
+          id?: string
+          responsavel_id?: string | null
+          texto?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tarefas_criado_por_fkey"
+            columns: ["criado_por"]
+            isOneToOne: false
+            referencedRelation: "staff"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tarefas_responsavel_id_fkey"
+            columns: ["responsavel_id"]
+            isOneToOne: false
+            referencedRelation: "staff"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tarefas_historico: {
+        Row: {
+          ator_id: string | null
+          criado_em: string
+          de_responsavel_id: string | null
+          evento: string
+          id: number
+          para_responsavel_id: string | null
+          tarefa_id: string
+        }
+        Insert: {
+          ator_id?: string | null
+          criado_em?: string
+          de_responsavel_id?: string | null
+          evento: string
+          id?: number
+          para_responsavel_id?: string | null
+          tarefa_id: string
+        }
+        Update: {
+          ator_id?: string | null
+          criado_em?: string
+          de_responsavel_id?: string | null
+          evento?: string
+          id?: number
+          para_responsavel_id?: string | null
+          tarefa_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tarefas_historico_ator_id_fkey"
+            columns: ["ator_id"]
+            isOneToOne: false
+            referencedRelation: "staff"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tarefas_historico_de_responsavel_id_fkey"
+            columns: ["de_responsavel_id"]
+            isOneToOne: false
+            referencedRelation: "staff"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tarefas_historico_para_responsavel_id_fkey"
+            columns: ["para_responsavel_id"]
+            isOneToOne: false
+            referencedRelation: "staff"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tarefas_historico_tarefa_id_fkey"
+            columns: ["tarefa_id"]
+            isOneToOne: false
+            referencedRelation: "tarefas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       triagens: {
         Row: {
           assunto: string | null

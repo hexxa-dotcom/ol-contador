@@ -313,3 +313,74 @@ export async function markMonthlyGuideGenerated(id: number) {
     message: data ? "Guia marcada como gerada." : "A guia já estava concluída.",
   };
 }
+
+async function staffContext() {
+  const supabase = await createClient();
+  if (!supabase) return { error: { ok: false as const, message: "Conexão indisponível." } };
+  const { data: claims } = await supabase.auth.getClaims();
+  const userId = claims?.claims?.sub;
+  if (!userId) return { error: { ok: false as const, message: "Sessão expirada." } };
+  const { data: staff } = await supabase.from("staff").select("id").eq("id", userId).maybeSingle();
+  if (!staff) return { error: { ok: false as const, message: "Ação não autorizada." } };
+  return { supabase, userId };
+}
+
+export async function createTask(input: { texto: string; dataInicial: string; dataFinal: string }) {
+  const texto = input.texto.trim().slice(0, 240);
+  if (!texto || !input.dataInicial || !input.dataFinal)
+    return { ok: false as const, message: "Preencha o texto e as datas da tarefa." };
+  const ctx = await staffContext();
+  if (ctx.error) return ctx.error;
+  const { data, error } = await ctx.supabase
+    .from("tarefas")
+    .insert({ texto, data_inicial: input.dataInicial, data_final: input.dataFinal, criado_por: ctx.userId })
+    .select("id")
+    .single();
+  if (error || !data) return { ok: false as const, message: "Não foi possível criar a tarefa." };
+  await ctx.supabase.from("tarefas_historico").insert({ tarefa_id: data.id, ator_id: ctx.userId, evento: "criada" });
+  revalidatePath("/");
+  return { ok: true as const, message: "Tarefa criada." };
+}
+
+export async function toggleTask(id: string, feita: boolean) {
+  if (!id) return { ok: false as const, message: "Tarefa inválida." };
+  const ctx = await staffContext();
+  if (ctx.error) return ctx.error;
+  const { error } = await ctx.supabase.from("tarefas").update({ feita, updated_at: new Date().toISOString() }).eq("id", id);
+  if (error) return { ok: false as const, message: "Não foi possível atualizar a tarefa." };
+  await ctx.supabase.from("tarefas_historico").insert({ tarefa_id: id, ator_id: ctx.userId, evento: feita ? "concluida" : "reaberta" });
+  revalidatePath("/");
+  return { ok: true as const, message: feita ? "Tarefa concluída." : "Tarefa reaberta." };
+}
+
+export async function reassignTask(id: string, responsavelId: string | null) {
+  if (!id) return { ok: false as const, message: "Tarefa inválida." };
+  const ctx = await staffContext();
+  if (ctx.error) return ctx.error;
+  const { data: atual } = await ctx.supabase.from("tarefas").select("responsavel_id").eq("id", id).maybeSingle();
+  const { error } = await ctx.supabase.from("tarefas").update({ responsavel_id: responsavelId, updated_at: new Date().toISOString() }).eq("id", id);
+  if (error) return { ok: false as const, message: "Não foi possível mover a tarefa." };
+  await ctx.supabase.from("tarefas_historico").insert({
+    tarefa_id: id,
+    ator_id: ctx.userId,
+    evento: "reatribuida",
+    de_responsavel_id: atual?.responsavel_id ?? null,
+    para_responsavel_id: responsavelId,
+  });
+  revalidatePath("/");
+  return { ok: true as const, message: "Tarefa movida." };
+}
+
+// Soft-delete: a linha continua existindo (só marcada excluida=true), porque
+// tarefas_historico referencia tarefa_id com ON DELETE CASCADE — apagar a
+// tarefa de verdade apagaria o próprio registro de auditoria da exclusão.
+export async function deleteTask(id: string) {
+  if (!id) return { ok: false as const, message: "Tarefa inválida." };
+  const ctx = await staffContext();
+  if (ctx.error) return ctx.error;
+  const { error } = await ctx.supabase.from("tarefas").update({ excluida: true, updated_at: new Date().toISOString() }).eq("id", id);
+  if (error) return { ok: false as const, message: "Não foi possível excluir a tarefa." };
+  await ctx.supabase.from("tarefas_historico").insert({ tarefa_id: id, ator_id: ctx.userId, evento: "excluida" });
+  revalidatePath("/");
+  return { ok: true as const, message: "Tarefa excluída." };
+}
