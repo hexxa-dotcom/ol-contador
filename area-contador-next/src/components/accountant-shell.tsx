@@ -98,11 +98,13 @@ export function AccountantShell({ dashboardData, clientsData, operationsData, us
   useEffect(() => {
     const supabase = createBrowserClient();
     if (!supabase) return;
-    let refreshTimer: number | undefined;
+    const client = supabase;
+    let refreshTimer: ReturnType<typeof setTimeout> | undefined;
     function refreshUnreadCount() {
-      window.clearTimeout(refreshTimer);
-      refreshTimer = window.setTimeout(() => {
-        void supabase!
+      if (refreshTimer) clearTimeout(refreshTimer);
+      refreshTimer = setTimeout(() => {
+        if (!client) return;
+        void client
           .from("mensagens")
           .select("id", { count: "exact", head: true })
           .eq("sender", "client")

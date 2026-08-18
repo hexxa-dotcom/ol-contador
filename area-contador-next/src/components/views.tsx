@@ -6129,6 +6129,7 @@ export function RelatoriosIntegralView({
     chat: false,
   });
   const [message, setMessage] = useState("");
+  const [reviewOpen, setReviewOpen] = useState(false);
   const [attachments, setAttachments] = useState(data.reportAttachments);
   const [aiReportPending, setAiReportPending] = useState(false);
   const [pending, startTransition] = useTransition();
@@ -6329,12 +6330,7 @@ export function RelatoriosIntegralView({
   }
   async function deliver() {
     if (!form.reportId) return;
-    if (
-      !window.confirm(
-        "Entregar este relatório na Área do Cliente e concluir o caso correspondente?",
-      )
-    )
-      return;
+    setReviewOpen(false);
     setMessage("");
     const selected = [];
     if (channels.email) selected.push("email");
@@ -6731,11 +6727,68 @@ export function RelatoriosIntegralView({
                 <FileCheck2 size={15} /> Validar entrega
               </Button>
             ) : (
-              <Button disabled={pending} onClick={() => void deliver()}>
+              <Button disabled={pending} onClick={() => setReviewOpen(true)}>
                 <Send size={15} /> Confirmar envio e encerrar
               </Button>
             )}
           </div>
+          {reviewOpen && (
+            <div className="dialog-overlay" role="dialog" aria-label="Revisar entrega">
+              <Card className="report-review-card">
+                <strong>Revisar antes de entregar</strong>
+                <div className="client-detail-grid">
+                  <section>
+                    <span>Cliente</span>
+                    <strong>
+                      {data.reports.find((item) => item.id === form.reportId)
+                        ?.cliente_nome || "—"}
+                    </strong>
+                  </section>
+                  <section>
+                    <span>Título</span>
+                    <strong>{form.title || "Sem título"}</strong>
+                  </section>
+                  <section>
+                    <span>Formato</span>
+                    <strong>
+                      {form.format === "essencial" ? "Essencial" : "Completo"}
+                    </strong>
+                  </section>
+                  <section>
+                    <span>Tipo</span>
+                    <strong>
+                      {form.type === "pendencias"
+                        ? "Pendências"
+                        : "Atendimento"}
+                    </strong>
+                  </section>
+                </div>
+                <p>
+                  Canais de entrega:{" "}
+                  {[
+                    channels.email && "E-mail",
+                    channels.caixa && "Caixa Postal",
+                    channels.chat && "Chat",
+                  ]
+                    .filter(Boolean)
+                    .join(", ") || "Nenhum canal selecionado"}
+                </p>
+                <p>
+                  {form.type === "pendencias"
+                    ? "O caso será mantido em aberto por haver pendências."
+                    : "O caso será concluído após esta entrega."}
+                </p>
+                <div className="dialog-actions">
+                  <Button className="ghost" onClick={() => setReviewOpen(false)}>
+                    Voltar e revisar
+                  </Button>
+                  <Button disabled={pending} onClick={() => void deliver()}>
+                    <Send size={15} /> Confirmar entrega
+                  </Button>
+                </div>
+              </Card>
+            </div>
+          )}
         </Card>
       ) : (
         <Card>
