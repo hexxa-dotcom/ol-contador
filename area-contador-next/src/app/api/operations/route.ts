@@ -2,7 +2,9 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { adminClient } from "@/lib/supabase/admin";
 import * as notify from "@/lib/notify";
+import * as asaas from "@/lib/asaas";
 import { registrarErro } from "@/lib/observability";
+import { registrarEventoFunil } from "@/lib/metricas";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -86,6 +88,49 @@ export async function POST(request: Request) {
       const { data: cliente } = await admin.from("clientes").select("*").eq("id", clientId).single();
       if (cliente) void notify.notifyCliente(cliente, copy.titulo, copy.corpo);
     }
+
+    // Segundo gatilho de recorrência (o primeiro é o botão "Ativar" manual na
+    // aba Recorrência do dossiê): mover o card para "Recorrência" já ativa o
+    // acompanhamento mensal sozinho — porte 1:1 de moverParaRecorrencia (app.js).
+    if (status === "recorrencia") {
+      const { data: cliente } = await admin.from("clientes").select("*").eq("id", clientId).single();
+      if (cliente && !cliente.recorrente) {
+        const valor = Number(cliente.honorarios) || 0;
+        if (valor <= 0) {
+          return NextResponse.json({ ok: true, status, recurrenceActivated: false, recurrenceMessage: 'Cliente movido para Recorrência. Defina o valor mensal em Clientes → aba "Clientes Recorrentes" para ativar a cobrança.' });
+        }
+        if (!asaas.isConfigured()) {
+          return NextResponse.json({ ok: true, status, recurrenceActivated: false, recurrenceMessage: "Cliente movido para Recorrência. Cadastre a chave do Asaas para ativar a cobrança automaticamente." });
+        }
+        try {
+          const customerId = await asaas.createCustomer({
+            name: cliente.name,
+            cpfCnpj: cliente.cpf || cliente.id,
+            email: cliente.email || undefined,
+            postalCode: cliente.cep || undefined,
+            address: cliente.endereco || undefined,
+            addressNumber: cliente.numero || undefined,
+            province: cliente.bairro || undefined,
+          });
+          const diaVenc = 10;
+          const hoje = new Date();
+          let ano = hoje.getFullYear();
+          let mes = hoje.getMonth();
+          if (hoje.getDate() >= diaVenc) { mes += 1; if (mes > 11) { mes = 0; ano += 1; } }
+          const nextDueDate = new Date(ano, mes, diaVenc).toISOString().slice(0, 10);
+          const subscription = await asaas.createSubscription({ customerId, value: valor, description: `Acompanhamento mensal — ${cliente.name}`, nextDueDate });
+          await admin.from("clientes").update({ recorrente: true, recorrente_tipo: "Acompanhamento mensal", recorrente_dia_venc: diaVenc, asaas_subscription_id: subscription.id }).eq("id", clientId);
+          await admin.from("assinaturas_historico").insert({ cliente_ref: clientId, tipo: "Acompanhamento mensal", valor_cents: Math.round(valor * 100), dia_vencimento: diaVenc, asaas_subscription_id: subscription.id, status: "ativa", created_by: userId });
+          await registrarEventoFunil(admin, "assinatura_ativada", { clienteRef: clientId, origem: "painel_contador_kanban", metadata: { valorCents: Math.round(valor * 100), tipo: "Acompanhamento mensal" } });
+          return NextResponse.json({ ok: true, status, recurrenceActivated: true, recurrenceMessage: "Cliente movido para Recorrência e cobrança mensal ativada." });
+        } catch (e) {
+          const err = e as { message?: string };
+          await registrarErro(admin, { origem: "api/operations", codigo: "kanban_recurrence_activation_failed", mensagem: err.message || "erro desconhecido", rota: "/api/operations", contexto: { clientId } });
+          return NextResponse.json({ ok: true, status, recurrenceActivated: false, recurrenceMessage: 'Cliente movido para Recorrência. Não foi possível ativar a cobrança automática — ative manualmente em Clientes → aba "Clientes Recorrentes".' });
+        }
+      }
+    }
+
     return NextResponse.json({ ok: true, status });
   }
 

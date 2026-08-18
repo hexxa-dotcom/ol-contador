@@ -1801,7 +1801,7 @@ export function ClientesIntegralView({
   const [selected, setSelected] = useState<ClientRecord | null>(null);
   const [dossier, setDossier] = useState<ClientDossierInput | null>(null);
   const [section, setSection] = useState<
-    "cadastro" | "prontuario" | "historico" | "recorrencia"
+    "cadastro" | "prontuario" | "historico" | "pagamentos" | "recorrencia"
   >("cadastro");
   const [pending, startTransition] = useTransition();
   const [newChecklist, setNewChecklist] = useState("");
@@ -1831,15 +1831,51 @@ export function ClientesIntegralView({
     diaVenc: 10,
     valor: 0,
   });
+  const [finishedFilter, setFinishedFilter] = useState<
+    "todos" | "hoje" | "semana" | "mes"
+  >("todos");
+  function finishedInWindow(client: ClientRecord) {
+    if (finishedFilter === "todos") return true;
+    if (
+      !["done", "locked"].includes(client.status || "") ||
+      !client.ultimo_atendimento_finalizado_em
+    )
+      return false;
+    const finalizado = new Date(client.ultimo_atendimento_finalizado_em);
+    if (Number.isNaN(finalizado.getTime())) return false;
+    const agora = new Date();
+    if (finishedFilter === "hoje")
+      return finalizado.toDateString() === agora.toDateString();
+    if (finishedFilter === "semana") {
+      const start = new Date(agora);
+      start.setDate(agora.getDate() - agora.getDay());
+      start.setHours(0, 0, 0, 0);
+      const end = new Date(start);
+      end.setDate(start.getDate() + 7);
+      return finalizado >= start && finalizado < end;
+    }
+    return (
+      finalizado.getFullYear() === agora.getFullYear() &&
+      finalizado.getMonth() === agora.getMonth()
+    );
+  }
   const normalized = query.trim().toLocaleLowerCase("pt-BR");
-  const visible = clients.filter(
-    (client) =>
-      (tab !== "Clientes Recorrentes" || client.recorrente) &&
-      (!normalized ||
-        [client.name, client.cpf, client.email, client.phone].some((value) =>
-          value?.toLocaleLowerCase("pt-BR").includes(normalized),
-        )),
-  );
+  const visible = clients
+    .filter(
+      (client) =>
+        (tab !== "Clientes Recorrentes" || client.recorrente) &&
+        finishedInWindow(client) &&
+        (!normalized ||
+          [client.name, client.cpf, client.email, client.phone].some((value) =>
+            value?.toLocaleLowerCase("pt-BR").includes(normalized),
+          )),
+    )
+    .sort((a, b) =>
+      finishedFilter === "todos"
+        ? 0
+        : new Date(b.ultimo_atendimento_finalizado_em || 0).getTime() -
+          new Date(a.ultimo_atendimento_finalizado_em || 0).getTime(),
+    );
   const initials = (name: string) =>
     name
       .split(/\s+/)
@@ -1860,6 +1896,9 @@ export function ClientesIntegralView({
     : [];
   const selectedTriages = selected
     ? data.triages.filter((item) => item.cliente_ref === selected.id)
+    : [];
+  const selectedCharges = selected
+    ? operationsData.charges.filter((item) => item.cliente_ref === selected.id)
     : [];
   const latestTriage = selectedTriages.find((item) => item.status !== "arquivada") || selectedTriages[0];
   const triageCatalogValue = operationsData.settings.find(
@@ -2276,6 +2315,26 @@ export function ClientesIntegralView({
               placeholder="Buscar por nome, CPF/CNPJ, telefone ou e-mail"
             />
           </div>
+          <div className="tabs" role="tablist">
+            {(
+              [
+                ["todos", "Todos"],
+                ["hoje", "Hoje"],
+                ["semana", "Semana"],
+                ["mes", "Mês"],
+              ] as const
+            ).map(([value, label]) => (
+              <button
+                key={value}
+                role="tab"
+                aria-selected={finishedFilter === value}
+                className={finishedFilter === value ? "active" : ""}
+                onClick={() => setFinishedFilter(value)}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
           <Badge>{visible.length} resultados</Badge>
         </div>
         <div className="table-wrap">
@@ -2382,7 +2441,13 @@ export function ClientesIntegralView({
             </div>
             <div className="dossier-tabs">
               {(
-                ["cadastro", "prontuario", "historico", "recorrencia"] as const
+                [
+                  "cadastro",
+                  "prontuario",
+                  "historico",
+                  "pagamentos",
+                  "recorrencia",
+                ] as const
               ).map((item) => (
                 <button
                   key={item}
@@ -2846,6 +2911,65 @@ export function ClientesIntegralView({
                     <EmptyState>Nenhum atendimento finalizado.</EmptyState>
                   )}
                 </div>
+              </div>
+            )}
+            {section === "pagamentos" && (
+              <div className="dossier-body">
+                <div className="client-detail-grid">
+                  <section>
+                    <span>Cobranças</span>
+                    <strong>{selectedCharges.length}</strong>
+                  </section>
+                  <section>
+                    <span>Pagas</span>
+                    <strong>
+                      {money(
+                        selectedCharges
+                          .filter((item) => item.status === "paid")
+                          .reduce((total, item) => total + (item.valor_cents || 0), 0) / 100,
+                      )}
+                    </strong>
+                  </section>
+                </div>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Data</th>
+                      <th>Serviço</th>
+                      <th>Valor</th>
+                      <th>Status</th>
+                      <th>Pago em</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {selectedCharges.map((item) => (
+                      <tr key={item.id}>
+                        <td>
+                          {item.created_at
+                            ? new Date(item.created_at).toLocaleDateString("pt-BR")
+                            : "—"}
+                        </td>
+                        <td>{item.servico_id || item.modalidade || "—"}</td>
+                        <td>{money((item.valor_cents || 0) / 100)}</td>
+                        <td>
+                          <Badge
+                            className={item.status === "paid" ? "success" : ""}
+                          >
+                            {item.status}
+                          </Badge>
+                        </td>
+                        <td>
+                          {item.paid_at
+                            ? new Date(item.paid_at).toLocaleDateString("pt-BR")
+                            : "—"}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                {!selectedCharges.length && (
+                  <EmptyState>Nenhuma cobrança para este cliente.</EmptyState>
+                )}
               </div>
             )}
             {section === "recorrencia" && (
@@ -5727,6 +5851,9 @@ const integralStages = [
   },
   { label: "Pronto para Envio", express: "pronto_envio", legacy: "ready" },
   { label: "Concluído", express: "concluido", legacy: "done" },
+  // Segundo gatilho de recorrência — só existe para casos "legado" (Express
+  // é atendimento avulso, não tem conceito de mensalidade).
+  { label: "Recorrência", express: null, legacy: "recorrencia" },
 ] as const;
 export function AcompanhamentoIntegralView({
   data = emptyOperationsData,
@@ -5793,10 +5920,13 @@ export function AcompanhamentoIntegralView({
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ action: "kanban-stage", clientId, status }),
     });
+    const result = (await response.json().catch(() => ({}))) as {
+      recurrenceMessage?: string;
+    };
     setMoving(null);
     feedback(
       response.ok
-        ? "Etapa atualizada e cliente notificado."
+        ? result.recurrenceMessage || "Etapa atualizada e cliente notificado."
         : "Não foi possível mover este caso.",
     );
     if (response.ok) window.location.reload();
@@ -5892,11 +6022,16 @@ export function AcompanhamentoIntegralView({
                         void moveExpress(item.id, event.target.value)
                       }
                     >
-                      {integralStages.map((option) => (
-                        <option key={option.express} value={option.express}>
-                          {option.label}
-                        </option>
-                      ))}
+                      {integralStages
+                        .filter(
+                          (option): option is typeof option & { express: string } =>
+                            Boolean(option.express),
+                        )
+                        .map((option) => (
+                          <option key={option.express} value={option.express}>
+                            {option.label}
+                          </option>
+                        ))}
                       <option value="cancelado">Cancelado</option>
                     </select>
                   </Card>
