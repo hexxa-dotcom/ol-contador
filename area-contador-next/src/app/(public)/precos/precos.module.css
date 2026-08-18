@@ -23,9 +23,9 @@
   gap: 8px;
   font-size: 0.85rem;
   font-weight: 700;
-  color: #FF9C7E;
-  background: rgba(255, 156, 126, 0.12);
-  border: 1px solid rgba(255, 156, 126, 0.3);
+  color: #FF9C7E !important;
+  background: rgba(255, 156, 126, 0.12) !important;
+  border: 1px solid rgba(255, 156, 126, 0.3) !important;
   padding: 8px 18px;
   border-radius: 99px;
   margin-bottom: 24px;
@@ -36,8 +36,8 @@
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: #FF9C7E;
-  box-shadow: 0 0 10px #FF9C7E;
+  background: #FF9C7E !important;
+  box-shadow: 0 0 10px #FF9C7E !important;
 }
 
 .heroTitle {
@@ -52,7 +52,7 @@
 }
 
 .accent {
-  color: #FF9C7E;
+  color: #FF9C7E !important;
 }
 
 .heroSub {

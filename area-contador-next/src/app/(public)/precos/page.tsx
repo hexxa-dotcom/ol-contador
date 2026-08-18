@@ -63,7 +63,7 @@ export default async function PrecosPage() {
             </div>
             <h1 className={styles.heroTitle}>
               Problema com a Receita tem solução.<br />
-              <span className={styles.accent}>E a solução tem preço fixo.</span>
+              <span className={styles.accent} style={{ color: '#FF9C7E' }}>E a solução tem preço fixo.</span>
             </h1>
             <p className={styles.heroSub}>
               Você sabe quanto custa antes de começar e recebe tudo por escrito no fim — inclusive um relatório assinado por contador com registro CRC. Sem mensalidade, sem fidelidade, sem surpresa.
