@@ -113,6 +113,8 @@ import {
   sendMailMessage,
   sendMessage,
   setReportDocument,
+  addManualReportAttachment,
+  removeManualReportAttachment,
   setChatLocked as persistChatLocked,
   toggleTask,
   updateAppointmentStatus,
@@ -6114,6 +6116,33 @@ const blankCompleteReport = {
   deliverables: "",
   status: "rascunho" as "rascunho" | "entrega_pendente" | "arquivado_interno",
 };
+// Textos-base por tipo de caso — porte 1:1 de MODELOS_RELATORIO (app.js).
+const REPORT_TEMPLATES = {
+  geral: {
+    problem: "Descreva de forma objetiva a situação apresentada pelo cliente.",
+    solution: "Informe o resultado obtido e deixe claro o que foi concluído.",
+    workDone: "• Análise das informações e documentos recebidos\n• Execução do serviço contratado",
+    howDone: "• Confira o resultado e guarde este relatório\n• Acompanhe abaixo somente os passos que ainda estiverem pendentes",
+  },
+  pf: {
+    problem: "Descreva a demanda da pessoa física, os períodos envolvidos e eventual dificuldade de acesso ao gov.br.",
+    solution: "Informe o que foi regularizado, consultado, transmitido ou orientado e o resultado atual.",
+    workDone: "• Conferência cadastral e fiscal\n• Consulta dos serviços necessários\n• Execução e conferência do resultado",
+    howDone: "• Guarde protocolos e comprovantes\n• Reative a autenticação em duas etapas do gov.br, caso ela tenha sido desativada\n• Exclua o acesso compartilhado quando o serviço terminar",
+  },
+  pj: {
+    problem: "Descreva a demanda da empresa, CNPJ, competências e obrigações envolvidas.",
+    solution: "Informe a situação final da empresa e o que foi efetivamente entregue.",
+    workDone: "• Conferência cadastral e tributária\n• Análise das obrigações e pendências\n• Execução do serviço e validação dos comprovantes",
+    howDone: "• Arquive guias, recibos e protocolos\n• Observe os próximos vencimentos informados neste relatório",
+  },
+  regularizacao: {
+    problem: "Descreva as pendências, débitos, inscrições e competências localizadas.",
+    solution: "Informe o que foi regularizado e a situação de cada débito ou parcelamento.",
+    workDone: "• Levantamento da situação fiscal\n• Conferência de dívida ativa e parcelamentos\n• Emissão de guias, protocolos e comprovantes aplicáveis",
+    howDone: "• Pague as parcelas até o vencimento\n• Acompanhe a consolidação e eventual baixa nos órgãos responsáveis",
+  },
+} as const;
 export function RelatoriosIntegralView({
   data = emptyOperationsData,
 }: {
@@ -6130,6 +6159,13 @@ export function RelatoriosIntegralView({
   });
   const [message, setMessage] = useState("");
   const [reviewOpen, setReviewOpen] = useState(false);
+  const [reportTemplate, setReportTemplate] =
+    useState<keyof typeof REPORT_TEMPLATES>("geral");
+  const [manualAttachment, setManualAttachment] = useState({
+    titulo: "",
+    url: "",
+    tipo: "link" as "link" | "guia" | "protocolo" | "comprovante" | "outro",
+  });
   const [attachments, setAttachments] = useState(data.reportAttachments);
   const [aiReportPending, setAiReportPending] = useState(false);
   const [pending, startTransition] = useTransition();
@@ -6153,6 +6189,25 @@ export function RelatoriosIntegralView({
         value?.toLowerCase().includes(query.toLowerCase()),
       ),
   );
+  function applyReportTemplate() {
+    const template = REPORT_TEMPLATES[reportTemplate];
+    const hasText = [form.problem, form.solution, form.workDone, form.howDone].some(
+      (value) => value.trim(),
+    );
+    if (
+      hasText &&
+      !window.confirm(
+        "Aplicar o modelo vai substituir os textos desses campos. Continuar?",
+      )
+    )
+      return;
+    setForm((value) => ({
+      ...value,
+      ...template,
+      type: reportTemplate === "regularizacao" ? "pendencias" : "atendimento",
+    }));
+    feedback("Modelo aplicado. Personalize o texto antes de entregar.");
+  }
   function draftKey(reportId?: number) {
     return `oc-relatorio-rascunho-${reportId ?? "novo"}`;
   }
@@ -6286,6 +6341,36 @@ export function RelatoriosIntegralView({
             ),
           );
       }
+    });
+  }
+  function addManualAttachment() {
+    if (!form.reportId) {
+      feedback("Salve o rascunho antes de adicionar anexos.");
+      return;
+    }
+    startTransition(async () => {
+      const result = await addManualReportAttachment({
+        reportId: form.reportId!,
+        titulo: manualAttachment.titulo,
+        url: manualAttachment.url,
+        tipo: manualAttachment.tipo,
+        visibleToClient: true,
+      });
+      feedback(result.message);
+      if (result.ok) {
+        setAttachments((items) => [...items, result.data]);
+        setManualAttachment({ titulo: "", url: "", tipo: "link" });
+      }
+    });
+  }
+  function removeManualAttachment(attachmentId: number) {
+    startTransition(async () => {
+      const result = await removeManualReportAttachment(attachmentId);
+      feedback(result.message);
+      if (result.ok)
+        setAttachments((items) =>
+          items.filter((item) => item.id !== attachmentId),
+        );
     });
   }
   async function fillReportWithAI() {
@@ -6506,6 +6591,26 @@ export function RelatoriosIntegralView({
                 <option value="essencial">Essencial</option>
               </select>
             </label>
+            <label>
+              Modelo
+              <select
+                value={reportTemplate}
+                onChange={(event) =>
+                  setReportTemplate(event.target.value as keyof typeof REPORT_TEMPLATES)
+                }
+              >
+                <option value="geral">Geral</option>
+                <option value="pf">Pessoa Física</option>
+                <option value="pj">Pessoa Jurídica</option>
+                <option value="regularizacao">Regularização</option>
+              </select>
+            </label>
+            <div className="full inline-form">
+              <Button className="secondary compact" onClick={applyReportTemplate}>
+                <Sparkles size={14} /> Aplicar modelo
+              </Button>
+              <small>Preenche problema, solução e providências com um texto-base — revise antes de entregar.</small>
+            </div>
             <label className="full">
               Título
               <Input
