@@ -55,25 +55,7 @@ export default async function PrecosPage() {
     <>
       <SiteHeader active="precos" />
       <main className={styles.mainWrapper}>
-        
-        {/* HERO */}
-        <section className={styles.hero}>
-          <div className={styles.container}>
-            <div className={styles.eyebrow}>
-              <span className={styles.eyebrowDot} />
-              <span>Planos e Preços</span>
-            </div>
-            <h1 className={styles.heroTitle}>
-              Atendimento contábil com <span className={styles.accent} style={{ color: '#FF9C7E' }}>preço fixo</span>
-            </h1>
-            <p className={styles.heroSub}>
-              Sem mensalidade e sem fidelidade. Você sabe quanto custa antes de começar e recebe relatório oficial assinado por contador com CRC.
-            </p>
-          </div>
-        </section>
-
         <div className={styles.container}>
-          
           {/* PASSOS COMO FUNCIONA INTERATIVO */}
           <PassosComoFunciona />
 
