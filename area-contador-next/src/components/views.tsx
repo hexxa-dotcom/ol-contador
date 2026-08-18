@@ -101,6 +101,7 @@ import {
   reassignTask,
   saveAgendaAvailability,
   saveClientDossier,
+  persistClientChecklist,
   sendChatTimerWarning,
   sendAudioMessage,
   sendChatShortcut,
@@ -2122,17 +2123,12 @@ export function ClientesIntegralView({
   }
   function addChecklist() {
     if (!dossier || !newChecklist.trim()) return;
-    setDossier((value) =>
-      value
-        ? {
-            ...value,
-            checklist: {
-              ...value.checklist,
-              [newChecklist.trim().slice(0, 120)]: false,
-            },
-          }
-        : value,
-    );
+    const next = {
+      ...dossier.checklist,
+      [newChecklist.trim().slice(0, 120)]: false,
+    };
+    setDossier({ ...dossier, checklist: next });
+    void persistClientChecklist({ clientId: dossier.id, checklist: next });
     setNewChecklist("");
   }
   function addEvidence() {
@@ -2662,15 +2658,17 @@ export function ClientesIntegralView({
                             <input
                               type="checkbox"
                               checked={checked}
-                              onChange={() =>
-                                setDossier({
-                                  ...dossier,
-                                  checklist: {
-                                    ...dossier.checklist,
-                                    [label]: !checked,
-                                  },
-                                })
-                              }
+                              onChange={() => {
+                                const next = {
+                                  ...dossier.checklist,
+                                  [label]: !checked,
+                                };
+                                setDossier({ ...dossier, checklist: next });
+                                void persistClientChecklist({
+                                  clientId: dossier.id,
+                                  checklist: next,
+                                });
+                              }}
                             />
                             <span>{label}</span>
                             <button
@@ -2678,6 +2676,10 @@ export function ClientesIntegralView({
                                 const next = { ...dossier.checklist };
                                 delete next[label];
                                 setDossier({ ...dossier, checklist: next });
+                                void persistClientChecklist({
+                                  clientId: dossier.id,
+                                  checklist: next,
+                                });
                               }}
                             >
                               <X size={12} />
@@ -5990,39 +5992,92 @@ export function RelatoriosIntegralView({
         value?.toLowerCase().includes(query.toLowerCase()),
       ),
   );
+  function draftKey(reportId?: number) {
+    return `oc-relatorio-rascunho-${reportId ?? "novo"}`;
+  }
   function openEditor(report?: OperationsData["reports"][number]) {
-    if (!report) setForm(blankCompleteReport);
-    else
-      setForm({
-        reportId: report.id,
-        clientId: report.cliente_ref,
-        title: report.titulo || "",
-        type:
-          report.tipo_relatorio === "pendencias" ? "pendencias" : "atendimento",
-        format: report.formato === "essencial" ? "essencial" : "completo",
-        problem: report.problema || "",
-        solution: report.solucao || "",
-        workDone: report.oque_feito || "",
-        howDone: report.como_feito || "",
-        pendingIssues: report.pendencias || "",
-        deliverables: report.entregas || "",
-        status: ["rascunho", "entrega_pendente", "arquivado_interno"].includes(
-          report.status,
-        )
-          ? (report.status as
-              | "rascunho"
-              | "entrega_pendente"
-              | "arquivado_interno")
-          : "rascunho",
-      });
-    setMessage("");
+    const base = !report
+      ? blankCompleteReport
+      : {
+          reportId: report.id,
+          clientId: report.cliente_ref,
+          title: report.titulo || "",
+          type:
+            report.tipo_relatorio === "pendencias"
+              ? ("pendencias" as const)
+              : ("atendimento" as const),
+          format:
+            report.formato === "essencial"
+              ? ("essencial" as const)
+              : ("completo" as const),
+          problem: report.problema || "",
+          solution: report.solucao || "",
+          workDone: report.oque_feito || "",
+          howDone: report.como_feito || "",
+          pendingIssues: report.pendencias || "",
+          deliverables: report.entregas || "",
+          status: [
+            "rascunho",
+            "entrega_pendente",
+            "arquivado_interno",
+          ].includes(report.status)
+            ? (report.status as
+                | "rascunho"
+                | "entrega_pendente"
+                | "arquivado_interno")
+            : "rascunho",
+        };
+    let restored = false;
+    try {
+      const raw = window.localStorage.getItem(draftKey(report?.id));
+      if (raw) {
+        const saved = JSON.parse(raw) as { savedAt: number; form: typeof base };
+        if (Date.now() - saved.savedAt < 24 * 60 * 60 * 1000) {
+          setForm(saved.form);
+          restored = true;
+        } else window.localStorage.removeItem(draftKey(report?.id));
+      }
+    } catch {
+      /* rascunho local corrompido, ignora */
+    }
+    if (!restored) setForm(base);
+    setMessage(restored ? "Rascunho não salvo recuperado desta sessão." : "");
     setEditor(true);
   }
+  useEffect(() => {
+    if (!editor) return;
+    const timer = window.setTimeout(() => {
+      try {
+        window.localStorage.setItem(
+          draftKey(form.reportId),
+          JSON.stringify({ form, savedAt: Date.now() }),
+        );
+      } catch {
+        /* localStorage indisponível, autosave apenas em memória */
+      }
+    }, 450);
+    return () => window.clearTimeout(timer);
+  }, [editor, form]);
+  useEffect(() => {
+    if (!editor) return;
+    function handleBeforeUnload(event: BeforeUnloadEvent) {
+      event.preventDefault();
+      event.returnValue = "";
+    }
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [editor]);
   function save(status: "rascunho" | "entrega_pendente" | "arquivado_interno") {
     startTransition(async () => {
       const result = await saveCompleteReport({ ...form, status });
       setMessage(result.message);
       if (result.ok) {
+        try {
+          window.localStorage.removeItem(draftKey(form.reportId));
+          window.localStorage.removeItem(draftKey(undefined));
+        } catch {
+          /* ignora */
+        }
         setForm((value) => ({
           ...value,
           reportId: result.data.id,
