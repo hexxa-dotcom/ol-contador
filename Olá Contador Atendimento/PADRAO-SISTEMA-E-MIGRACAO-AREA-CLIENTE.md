@@ -361,6 +361,16 @@ estruturas ou nos scripts SQL do projeto.
   CASCADE` — apagar a tarefa de verdade apagaria o próprio registro de
   auditoria da exclusão. `DashboardView` ganhou seletor de responsável por
   tarefa (o "mover" que faltava).
+  - Correção de convergência (mesmo dia): a criação automática de tarefa de
+    SLA ao confirmar pagamento Express (`registrarAtendimentoExpress`) e a
+    conclusão automática ao entregar relatório (`finalizarPosAtendimento`)
+    ainda miravam o JSON antigo — corrigido em `src/lib/pagamento.ts` (Next)
+    e em `api/_lib/pagamento.js`/`api/status.js` (legado, mesmas funções).
+    Tabela ganhou `cliente_ref`/`caso_ref` (índice único parcial em
+    `caso_ref`) para manter o casamento por caso que o JSON fazia. A UI
+    manual de tarefas do painel antigo (`setupTarefas` em `app.js`) não foi
+    tocada — chama `/api/config`, que devolve 404 em produção (testado),
+    ou seja já estava inativa antes desta sessão.
 - [x] Completar perfil profissional.
 
 ### Fase 3 — comunicação e arquivos
