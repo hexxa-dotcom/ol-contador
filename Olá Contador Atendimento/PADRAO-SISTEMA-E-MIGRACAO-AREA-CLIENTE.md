@@ -294,8 +294,23 @@ estruturas ou nos scripts SQL do projeto.
 - [x] Restringir a atualização de `staff` ao próprio registro e somente às
   colunas de nome; `role`, e-mail e ID permanecem sem privilégio de atualização.
 - [x] Alinhar a política de upload de `documentos` entre equipe e cliente.
-- [ ] Confirmar políticas separadas para contador, equipe e cliente.
-- [ ] Garantir `USING` e `WITH CHECK` nas políticas de atualização.
+- [x] Confirmar políticas separadas para contador, equipe e cliente —
+  auditoria de 18/08/2026 no banco de produção: todas as policies usam
+  `is_staff()`/`my_client_id()` (SECURITY DEFINER sobre `auth.uid()`), sem
+  nenhuma baseada em `user_metadata`.
+- [x] Garantir `USING` e `WITH CHECK` nas políticas de atualização —
+  conferido: nenhuma policy de `UPDATE` em `public` está sem `WITH CHECK`.
+- [x] Revogado acesso residual do papel `anon` (não autenticado) em 17
+  tabelas que ainda tinham `GRANT` de tabela sem policy correspondente
+  (mensagens, documentos, triagens, avaliacoes, agendamentos, clientes,
+  staff, cobrancas, configuracoes, creditos, guias_mensais,
+  lembretes_enviados, notificacoes, obrigacoes, relatorios, servicos,
+  atendimentos_historico) — na prática já estava bloqueado pela RLS, mas
+  era uma rede de segurança a menos. `skills_embeddings` (base do
+  Copiloto/RAG) tinha uma policy de leitura `USING (true)` para o papel
+  `public`, sem `GRANT` correspondente hoje (também não explorável agora),
+  mas foi travada para exigir `is_staff()` e restrita a `authenticated`,
+  já que só é acessada pelo backend com `service_role`.
 - [ ] Confirmar que nenhuma chave privilegiada chega ao bundle do navegador.
 - [ ] Definir papéis oficiais e uma matriz de permissões.
 - [ ] Padronizar validação, erros, logs e identificador de correlação.
