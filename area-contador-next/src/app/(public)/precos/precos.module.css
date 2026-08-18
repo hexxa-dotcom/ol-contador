@@ -63,67 +63,184 @@
   line-height: 1.6;
 }
 
-/* ---------- Passos ---------- */
+/* ---------- Passos Interativos ---------- */
 .passosSection {
-  margin: 32px 0 56px;
+  margin: 48px 0 64px;
+  position: relative;
+}
+
+.passosHeaderWrapper {
+  text-align: center;
+  margin-bottom: 36px;
+}
+
+.passosEyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.8rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--pub-green, #0C5446);
+  background: rgba(12, 84, 70, 0.06);
+  padding: 6px 16px;
+  border-radius: 99px;
+  margin-bottom: 12px;
+  border: 1px solid rgba(12, 84, 70, 0.1);
+}
+
+.passosMainTitle {
+  font-family: 'Bricolage Grotesque', sans-serif;
+  font-size: clamp(1.6rem, 3.2vw, 2.3rem);
+  font-weight: 800;
+  color: var(--pub-ink, #22312F);
+  margin: 0;
+  line-height: 1.2;
+}
+
+.passosGridContainer {
+  position: relative;
+}
+
+.passosTrackLine {
+  position: absolute;
+  top: 50%;
+  left: 60px;
+  right: 60px;
+  height: 2px;
+  background: linear-gradient(90deg, rgba(255,156,126,0.3) 0%, rgba(12,84,70,0.15) 100%);
+  z-index: 0;
+  transform: translateY(-50%);
+  pointer-events: none;
 }
 
 .passosGrid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 20px;
+  position: relative;
+  z-index: 1;
 }
 
 .passoCard {
   background: #FFFFFF;
-  border-radius: 20px;
-  padding: 24px;
+  border-radius: 24px;
+  padding: 28px 22px;
   border: 1px solid rgba(34, 49, 47, 0.08);
-  box-shadow: 0 6px 20px -8px rgba(34, 49, 47, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.9);
-  transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+  box-shadow: 0 10px 30px -10px rgba(34, 49, 47, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  transition: all 0.35s cubic-bezier(0.2, 0.8, 0.2, 1);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  cursor: default;
 }
 
-.passoCard:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 14px 28px -10px rgba(34, 49, 47, 0.12);
-  border-color: rgba(255, 106, 69, 0.3);
+.passoCardActive {
+  border-color: rgba(255, 156, 126, 0.6) !important;
+  box-shadow: 0 20px 40px -12px rgba(255, 156, 126, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.9) !important;
 }
 
 .passoHeader {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 16px;
+  margin-bottom: 14px;
 }
 
-.passoNum {
+.passoNumBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   font-family: 'Bricolage Grotesque', sans-serif;
-  font-size: 1.1rem;
+  font-size: 0.85rem;
   font-weight: 800;
   color: #FF9C7E;
-  background: rgba(255, 156, 126, 0.15);
-  padding: 4px 12px;
-  border-radius: 12px;
+  background: rgba(255, 156, 126, 0.12);
+  padding: 5px 12px;
+  border-radius: 99px;
+  border: 1px solid rgba(255, 156, 126, 0.25);
 }
 
-.passoIcon {
+.passoDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #FF9C7E;
+  box-shadow: 0 0 8px #FF9C7E;
+}
+
+.passoIconWrap {
+  width: 42px;
+  height: 42px;
+  border-radius: 14px;
+  background: rgba(12, 84, 70, 0.06);
   color: var(--pub-green, #0C5446);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+}
+
+.passoIconActive {
+  background: linear-gradient(135deg, #FF9C7E 0%, #EE5F3A 100%);
+  color: #FFFFFF;
+  box-shadow: 0 6px 16px rgba(255, 156, 126, 0.4);
+  transform: rotate(5deg) scale(1.08);
+}
+
+.passoTag {
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--pub-ink-soft, #5A6B69);
+  margin-bottom: 8px;
   opacity: 0.85;
 }
 
 .passoTitulo {
-  font-family: 'Hanken Grotesk', sans-serif;
-  font-size: 1.1rem;
+  font-family: 'Bricolage Grotesque', sans-serif;
+  font-size: 1.15rem;
   font-weight: 800;
   color: var(--pub-ink, #22312F);
   margin: 0 0 8px;
+  line-height: 1.3;
 }
 
 .passoDesc {
-  font-size: 0.92rem;
+  font-size: 0.9rem;
   color: var(--pub-ink-soft, #5A6B69);
   line-height: 1.5;
   margin: 0;
+  flex: 1;
+}
+
+.passoConnectorArrow {
+  position: absolute;
+  right: -14px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #FFFFFF;
+  border: 1px solid rgba(34, 49, 47, 0.12);
+  color: var(--pub-green, #0C5446);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 5;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.06);
+}
+
+@media (max-width: 960px) {
+  .passosConnectorArrow {
+    display: none;
+  }
+  .passosTrackLine {
+    display: none;
+  }
 }
 
 /* ---------- Grid de Planos & Seletor ---------- */

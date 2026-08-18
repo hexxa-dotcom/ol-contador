@@ -3,6 +3,7 @@ import { adminClient } from "@/lib/supabase/admin";
 import { SiteHeader, SiteFooter } from "@/components/site-shell";
 import { FaqAccordion } from "../faq-accordion";
 import { PricingGrid } from "./pricing-grid";
+import { PassosComoFunciona } from "./passos-como-funciona";
 import { 
   ShieldCheck, 
   ArrowRight, 
@@ -73,24 +74,8 @@ export default async function PrecosPage() {
 
         <div className={styles.container}>
           
-          {/* PASSOS COMO FUNCIONA */}
-          <section className={styles.passosSection}>
-            <div className={styles.passosGrid}>
-              {PASSOS.map((p) => {
-                const Icon = p.icon;
-                return (
-                  <div key={p.n} className={styles.passoCard}>
-                    <div className={styles.passoHeader}>
-                      <span className={styles.passoNum}>{p.n}</span>
-                      <Icon size={20} className={styles.passoIcon} />
-                    </div>
-                    <h3 className={styles.passoTitulo}>{p.t}</h3>
-                    <p className={styles.passoDesc}>{p.d}</p>
-                  </div>
-                );
-              })}
-            </div>
-          </section>
+          {/* PASSOS COMO FUNCIONA INTERATIVO */}
+          <PassosComoFunciona />
 
           {/* GRID INTERATIVO DE PLANOS 3D */}
           <PricingGrid pfCents={pf} pjCents={pj} consultaCents={consulta} />
