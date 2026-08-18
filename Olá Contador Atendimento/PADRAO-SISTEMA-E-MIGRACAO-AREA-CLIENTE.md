@@ -319,9 +319,24 @@ estruturas ou nos scripts SQL do projeto.
   importa essas libs, direta ou indiretamente. Só `NEXT_PUBLIC_SUPABASE_URL`
   e `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` (a chave pública/anon, que é
   segura por design) chegam ao bundle.
-- [ ] Definir papéis oficiais e uma matriz de permissões.
-- [ ] Padronizar validação, erros, logs e identificador de correlação.
-- [ ] Gerar novamente os tipos do banco após qualquer alteração de schema.
+- [ ] Definir papéis oficiais e uma matriz de permissões — auditoria de
+  18/08/2026 achou hoje só um gate binário staff/não-staff na maior parte do
+  código; `staff.role` (`admin`/`parceiro`) só é checado em
+  `src/app/api/team/route.ts` (gestão de equipe) e `operations/route.ts`
+  (reatribuir Express). "Parceiro" existe como rótulo mas não tem nenhuma
+  restrição própria aplicada em nenhum outro lugar — é decisão de produto
+  em aberto, não dá pra inventar a matriz sem definir o que cada papel
+  deveria poder fazer.
+- [x] Padronizar validação, erros, logs — `registrarErro()`
+  (`src/lib/observability.ts`) já existia com dedupe/fingerprint em
+  `app_erros`; estava em 9 rotas, faltava em outras 9. Completado em
+  18/08/2026. Identificador de correlação entre requisições **não**
+  foi implementado (não existe `correlationId`/`requestId` em lugar
+  nenhum) — falta decidir o desenho antes de espalhar pelo código.
+- [ ] Gerar novamente os tipos do banco após qualquer alteração de schema —
+  isso é uma prática contínua, não uma tarefa única; nenhuma alteração de
+  schema (coluna/tabela) foi feita nesta sessão, só grants/policies/
+  publicação, então `database.types.ts` continua em sincronia.
 
 ### Fase 1 — leitura operacional real
 
@@ -337,7 +352,14 @@ estruturas ou nos scripts SQL do projeto.
 - [x] Criar/editar agendamento e disponibilidade.
 - [x] Marcar notificações e Caixa Postal como lidas.
 - [x] Persistir preferências gerais do painel.
-- [ ] Criar e mover tarefas com histórico.
+- [ ] Criar e mover tarefas com histórico — hoje "tarefas internas"
+  (`src/components/views.tsx`, seção Tarefas) é um array JSON dentro de
+  `configuracoes` (chave `"tarefas"`), usado ativamente pela equipe todo
+  dia; só tem toggle concluído/reaberto e exclusão, sem histórico de
+  movimentação. Trocar isso por tabela própria é migração de dado de uma
+  feature em uso diário — não fiz sem avisar, porque um bug ali quebra o
+  que a equipe usa agora. Fica pendente de decisão explícita antes de
+  mexer.
 - [x] Completar perfil profissional.
 
 ### Fase 3 — comunicação e arquivos
@@ -356,7 +378,15 @@ estruturas ou nos scripts SQL do projeto.
 - [x] Migrar checkout, recorrência e créditos; webhook permanece no backend legado durante o rollback.
 - [x] Migrar o adaptador server-side e a seleção do Radar Fiscal; falta
   homologar consentimento e credenciais dos serviços pagos.
-- [ ] Implementar reprocessamento seguro e trilha de auditoria.
+- [ ] Implementar reprocessamento seguro e trilha de auditoria — auditoria
+  de 18/08/2026: não existe nada disso no Next ainda. A tabela
+  `webhook_eventos` existe no schema mas está órfã (nenhum arquivo em
+  `src` a referencia) — o processamento do webhook do Asaas continua só
+  no backend legado (item já registrado na seção "Independência do
+  backend legado"). Construir a rota de webhook + reprocessamento +
+  auditoria do zero, sem testar, mexendo em confirmação de pagamento, é
+  risco alto demais pra fazer por inércia — fica pendente de escopo e
+  decisão explícita, não é ajuste pequeno.
 
 ### Fase 5 — Área do Cliente
 
