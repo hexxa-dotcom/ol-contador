@@ -1427,6 +1427,8 @@ export type Database = {
       }
       tarefas: {
         Row: {
+          caso_ref: string | null
+          cliente_ref: string | null
           created_at: string
           criado_por: string | null
           data_final: string | null
@@ -1439,6 +1441,8 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          caso_ref?: string | null
+          cliente_ref?: string | null
           created_at?: string
           criado_por?: string | null
           data_final?: string | null
@@ -1451,6 +1455,8 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          caso_ref?: string | null
+          cliente_ref?: string | null
           created_at?: string
           criado_por?: string | null
           data_final?: string | null
@@ -1463,6 +1469,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "tarefas_cliente_ref_fkey"
+            columns: ["cliente_ref"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "tarefas_criado_por_fkey"
             columns: ["criado_por"]

@@ -49,16 +49,21 @@ async function registrarAtendimentoExpress(admin, dados) {
   const { data: atendimento } = await admin.from('atendimentos_express').select('id')
     .eq('cobranca_id', dados.cobrancaId).maybeSingle();
   if (atendimento) {
+    // Desde 18/08/2026, tarefas vivem na tabela `tarefas` (com histórico em
+    // `tarefas_historico`), não mais em configuracoes.tarefas — o painel
+    // novo (area-contador-next) só lê da tabela. Ver
+    // PADRAO-SISTEMA-E-MIGRACAO-AREA-CLIENTE.md.
     const caseRef = `express:${atendimento.id}`;
-    const { data: linha } = await admin.from('configuracoes').select('valor').eq('chave', 'tarefas').maybeSingle();
-    const tarefas = Array.isArray(linha && linha.valor) ? linha.valor : [];
-    if (!tarefas.some(tarefa => tarefa.caseRef === caseRef)) {
-      tarefas.unshift({
-        id: `task_express_${atendimento.id}`, texto: `Executar e entregar ${payload.assunto}`,
-        feita: false, clientId: dados.clienteRef, caseRef, tipo: 'atendimento_express',
-        dataInicial: contratadoEm.toISOString(), dataFinal: prazoConclusao, deadline: prazoConclusao
+    const { data: existente } = await admin.from('tarefas').select('id').eq('caso_ref', caseRef).maybeSingle();
+    if (!existente) {
+      await admin.from('tarefas').insert({
+        texto: `Executar e entregar ${payload.assunto}`,
+        feita: false,
+        cliente_ref: dados.clienteRef,
+        caso_ref: caseRef,
+        data_inicial: contratadoEm.toISOString(),
+        data_final: prazoConclusao
       });
-      await admin.from('configuracoes').upsert({ chave: 'tarefas', valor: tarefas }, { onConflict: 'chave' });
     }
   }
   return true;

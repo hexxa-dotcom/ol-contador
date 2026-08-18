@@ -18,7 +18,8 @@ export const metadata = {
   title: "Planos e preços — Olá, Contador",
   description: "Preço fixo por atendimento, combinado antes. Chat seguro com contador, relatório assinado com CRC e área do cliente para acompanhar tudo. PF R$ 199, PJ R$ 399.",
 };
-export const dynamic = "force-dynamic";
+
+export const revalidate = 600; // Cache ISR com revalidação em segundo plano a cada 10 minutos
 
 const PASSOS = [
   { n: "1", t: "Agende seu horário", d: "Escolha o dia e o horário que funcionam para você. Leva menos de um minuto.", icon: CalendarCheck },

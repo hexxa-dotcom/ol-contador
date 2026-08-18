@@ -56,21 +56,16 @@ export async function registrarAtendimentoExpress(
   const { data: atendimento } = await admin.from("atendimentos_express").select("id").eq("cobranca_id", dados.cobrancaId).maybeSingle();
   if (atendimento) {
     const caseRef = `express:${atendimento.id}`;
-    const { data: linha } = await admin.from("configuracoes").select("valor").eq("chave", "tarefas").maybeSingle();
-    const tarefas = Array.isArray(linha?.valor) ? (linha.valor as Array<Record<string, unknown>>) : [];
-    if (!tarefas.some((tarefa) => tarefa.caseRef === caseRef)) {
-      tarefas.unshift({
-        id: `task_express_${atendimento.id}`,
+    const { data: existente } = await admin.from("tarefas").select("id").eq("caso_ref", caseRef).maybeSingle();
+    if (!existente) {
+      await admin.from("tarefas").insert({
         texto: `Executar e entregar ${payload.assunto}`,
         feita: false,
-        clientId: dados.clienteRef,
-        caseRef,
-        tipo: "atendimento_express",
-        dataInicial: contratadoEm.toISOString(),
-        dataFinal: prazoConclusao,
-        deadline: prazoConclusao,
+        cliente_ref: dados.clienteRef,
+        caso_ref: caseRef,
+        data_inicial: contratadoEm.toISOString(),
+        data_final: prazoConclusao,
       });
-      await admin.from("configuracoes").upsert({ chave: "tarefas", valor: tarefas as never }, { onConflict: "chave" });
     }
   }
   return true;

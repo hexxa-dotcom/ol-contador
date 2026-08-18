@@ -616,22 +616,19 @@ async function finalizarPosAtendimento(req, res) {
     }, { onConflict: 'id', ignoreDuplicates: true });
   }
 
-  // Conclui e deduplica tarefas operacionais ligadas ao mesmo caso/cliente.
-  const { data: linhaTarefas } = await admin.from('configuracoes').select('valor').eq('chave', 'tarefas').maybeSingle();
-  const tarefas = Array.isArray(linhaTarefas && linhaTarefas.valor) ? linhaTarefas.valor : [];
-  const vistos = new Set();
-  const tarefasAtualizadas = tarefas.filter(tarefa => {
-    const chave = tarefa.caseRef || `${tarefa.clientId || ''}:${String(tarefa.texto || '').toLowerCase()}`;
-    if (vistos.has(chave) && !tarefa.feita) return false;
-    vistos.add(chave);
-    if (tarefa.caseRef === casoRef || (!tarefa.caseRef && tarefa.clientId === cliente.id && /concluir serviço|relatório/i.test(tarefa.texto || ''))) {
-      tarefa.feita = true;
-      tarefa.concluidaEm = new Date().toISOString();
-      tarefa.caseRef = casoRef;
-    }
-    return true;
-  });
-  await admin.from('configuracoes').upsert({ chave: 'tarefas', valor: tarefasAtualizadas }, { onConflict: 'chave' });
+  // Conclui tarefas operacionais ligadas ao mesmo caso/cliente. Desde
+  // 18/08/2026, tarefas vivem na tabela `tarefas` (histórico em
+  // `tarefas_historico`), não mais em configuracoes.tarefas — o painel novo
+  // (area-contador-next) só lê da tabela. Ver
+  // PADRAO-SISTEMA-E-MIGRACAO-AREA-CLIENTE.md.
+  const { data: tarefasAbertas } = await admin.from('tarefas').select('id, caso_ref, cliente_ref, texto')
+    .eq('feita', false).eq('excluida', false)
+    .or(`caso_ref.eq.${casoRef},and(caso_ref.is.null,cliente_ref.eq.${cliente.id})`);
+  for (const tarefa of (tarefasAbertas || [])) {
+    if (tarefa.caso_ref !== casoRef && !/concluir serviço|relatório/i.test(tarefa.texto || '')) continue;
+    await admin.from('tarefas').update({ feita: true, caso_ref: casoRef, updated_at: new Date().toISOString() }).eq('id', tarefa.id);
+    await admin.from('tarefas_historico').insert({ tarefa_id: tarefa.id, ator_id: null, evento: 'concluida' });
+  }
 
   res.json({ ok: true, reportId, caseRef: casoRef, channels: canaisEntregues, warnings: falhas });
 }
