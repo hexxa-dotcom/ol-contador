@@ -651,6 +651,22 @@ A próxima fatia é **fechamento transacional e testes ponta a ponta**:
 5. executar os fluxos E2E e homologar com usuário real;
 6. somente então iniciar a Área do Cliente com os mesmos tokens e componentes.
 
+## 14.1. Auditoria de paridade legado x Next (18/08/2026)
+
+Comparação função a função do backend legado (`api/*.js`, `app.js`, `cliente.js`)
+contra `area-contador-next`. Resultado: praticamente tudo já tem equivalente
+(Radar Fiscal, Financeiro, Kanban, Copiloto IA, Cofre GovBR, Caixa Postal,
+NFS-e, recorrência, resgate de crédito). Achadas e tratadas duas lacunas reais:
+
+- [x] Cron de lembretes (`api/agenda-fiscal/run-reminders.js`) — portado 1:1
+  para `src/app/api/cron/reminders/route.ts` + `vercel.json`. Precisa de
+  `CRON_SECRET` cadastrado na Vercel (mesma pendência de credenciais da
+  seção 1).
+- [x] Alerta de novo lead (`notifyNewLead` em `app.js`) — portado para
+  `accountant-shell.tsx` via Notification API + realtime em `clientes`.
+- Webhook do Asaas: **não migrado, deliberadamente** — já registrado na
+  seção 1 como decisão de manter no legado até o corte final.
+
 ## 15. Decisões pendentes antes do corte
 
 - A aplicação será de um único escritório ou multiempresa?
