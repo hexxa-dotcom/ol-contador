@@ -52,7 +52,7 @@ export default async function PrecosPage() {
   return (
     <>
       <SiteHeader active="precos" />
-      <main style={{ background: "#F4EEE1", minHeight: "100vh", paddingBottom: "40px" }}>
+      <main className={styles.mainWrapper}>
         
         {/* HERO */}
         <section className={styles.hero}>
