@@ -2229,7 +2229,7 @@ export function PortalTriagemView({
           </div>
           {onNavigate && (
             <div className="triagem-mode-switch-actions">
-              <Button className="secondary compact" onClick={() => onNavigate("agenda")}>
+              <Button className="secondary compact" onClick={() => onNavigate("agendamento")}>
                 <CalendarClock size={14} />
                 <span>Ver Agenda de Horários</span>
               </Button>
