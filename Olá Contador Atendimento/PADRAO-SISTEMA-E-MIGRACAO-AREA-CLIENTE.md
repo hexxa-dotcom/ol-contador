@@ -717,12 +717,15 @@ não de existência — e todos foram corrigidos no mesmo dia:
   com autosave, em vez de textarea puro.
 - [x] Skills do Copiloto e atalhos (chat/Copiloto) ganharam formulário
   com campos e exclusão por item, em vez de textarea de JSON cru.
-- [x] PDF do relatório ganhou logo do contador e protocolo
-  (`OC-R{id}-V{versao}`); criada `/validar-relatorio` (página pública) +
+- [x] PDF do relatório: criada `/validar-relatorio` (página pública) +
   `/api/validar-relatorio`, porte 1:1 de `validarRelatorioPublico`
-  (confirma autenticidade sem expor o conteúdo do relatório). Não portado:
-  a geração do QR code em si (dependia de lib client-side do legado) — o
-  link de validação cobre a mesma função, só sem o código escaneável.
+  (confirma autenticidade sem expor o conteúdo do relatório). Depois,
+  a pedido, a geração do PDF foi totalmente reescrita como porte 1:1 de
+  `relatorio-pdf.js` (`src/lib/reportPdf.ts`, `qrcode-generator` +
+  `html2pdf.js` como dependências npm): QR code real, logo institucional,
+  protocolo (`OC-R{id}-V{versao}`) e rodapé com "Página X de Y" desenhado
+  em cada página via jsPDF — substituiu de vez a impressão via
+  `window.print()` (removido `reportPrint.ts`).
 
 Também corrigidos de passagem: grid do Kanban fixo em 6 colunas (ficou
 desalinhado com a coluna nova de Recorrência) e o tipo do parâmetro
@@ -730,9 +733,6 @@ desalinhado com a coluna nova de Recorrência) e o tipo do parâmetro
 "pagamentos". Confirmado que bloqueio manual do chat (`setChatLocked`)
 e presença online (`oc-presence`) já existiam — a reauditoria os marcou
 como "não confirmado" só por não terem sido lidos, não por ausência real.
-
-Não corrigido, fora de escopo: paginação de rodapé por página no PDF
-("Página X de Y") e o QR code escaneável em si.
 
 ## 15. Decisões pendentes antes do corte
 
