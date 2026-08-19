@@ -14,7 +14,7 @@ import { getDocumentDownloadUrl, markMailRead, markPortalMessagesRead, saveTriag
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import { createClient as createBrowserClient } from "@/lib/supabase/client";
 import { acharAssunto, completude, type TriagemAssunto, type TriagemPergunta, type TriagemRegras } from "@/lib/triagemCatalogo";
-import { abrirImpressaoRelatorio } from "@/lib/reportPrint";
+import { baixarRelatorioPdf } from "@/lib/reportPdf";
 
 const PRESENCE_CHANNEL = "oc-presence";
 const PRESENCE_TIMEOUT_MS = 15000;
@@ -1736,26 +1736,28 @@ function ReportList({ reports }: { reports: PortalReport[] }) {
               type="button"
               className="secondary compact"
               onClick={() =>
-                abrirImpressaoRelatorio({
+                void baixarRelatorioPdf({
                   id: report.id,
                   versao: report.versao,
-                  contador_logo: report.contadorLogo,
+                  tipoRelatorio: report.tipoRelatorio,
                   titulo: report.titulo,
-                  cliente_nome: report.clienteNome,
-                  cliente_cpf: report.clienteCpf,
+                  clienteNome: report.clienteNome,
+                  clienteCpf: report.clienteCpf,
                   problema: report.problema,
                   solucao: report.solucao,
-                  oque_feito: report.oqueFeito,
-                  como_feito: report.comoFeito,
+                  oqueFeito: report.oqueFeito,
+                  comoFeito: report.comoFeito,
                   pendencias: report.pendencias,
-                  contador_assinatura: report.contadorAssinatura,
-                  contador_nome: report.contadorNome,
-                  contador_crc: report.contadorCrc,
-                  codigo_validacao: report.codigoValidacao,
+                  contadorAssinatura: report.contadorAssinatura,
+                  contadorNome: report.contadorNome,
+                  contadorCrc: report.contadorCrc,
+                  codigoValidacao: report.codigoValidacao,
+                  entregueEm: report.entregueEm,
+                  createdAt: report.createdAt,
                 })
               }
             >
-              Ver relatório
+              Baixar relatório
             </button>
           </article>
         ))}

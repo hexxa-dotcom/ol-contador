@@ -75,7 +75,6 @@ export type PortalReport = {
   contadorAssinatura: string | null;
   contadorNome: string | null;
   contadorCrc: string | null;
-  contadorLogo: string | null;
   versao: number;
   prazoProximoPasso: string | null;
   anexos: PortalReportAnexo[];
@@ -220,7 +219,7 @@ export async function loadPortalData(supabase: SupabaseClient<Database>, clientI
     supabase.from("caixa_postal").select("id,assunto,mensagem,remetente,lida,created_at").eq("cliente_ref", clientId).order("created_at", { ascending: false }).limit(100),
     supabase
       .from("relatorios")
-      .select("id,titulo,status,tipo_relatorio,entregue_em,created_at,codigo_validacao,caso_ref,cliente_nome,cliente_cpf,problema,solucao,oque_feito,como_feito,pendencias,contador_assinatura,contador_nome,contador_crc,contador_logo,versao,prazo_proximo_passo")
+      .select("id,titulo,status,tipo_relatorio,entregue_em,created_at,codigo_validacao,caso_ref,cliente_nome,cliente_cpf,problema,solucao,oque_feito,como_feito,pendencias,contador_assinatura,contador_nome,contador_crc,versao,prazo_proximo_passo")
       .eq("cliente_ref", clientId)
       .in("status", ["entregue", "arquivado_interno"])
       .order("created_at", { ascending: false })
@@ -347,7 +346,6 @@ export async function loadPortalData(supabase: SupabaseClient<Database>, clientI
       contadorAssinatura: r.contador_assinatura,
       contadorNome: r.contador_nome,
       contadorCrc: r.contador_crc,
-      contadorLogo: r.contador_logo,
       versao: r.versao,
       prazoProximoPasso: r.prazo_proximo_passo,
       anexos: (anexosResult.data ?? []).filter((a) => a.relatorio_id === r.id).map((a) => ({ id: a.id, titulo: a.titulo, url: a.url, tipo: a.tipo })),

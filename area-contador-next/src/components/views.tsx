@@ -66,7 +66,7 @@ import {
   Input,
 } from "@/components/ui/primitives";
 import { emptyDashboardData, type DashboardData } from "@/lib/dashboard";
-import { abrirImpressaoRelatorio } from "@/lib/reportPrint";
+import { baixarRelatorioPdf } from "@/lib/reportPdf";
 import {
   emptyClientsData,
   type ClientMessage,
@@ -6871,7 +6871,27 @@ export function RelatoriosIntegralView({
     if (response.ok) window.location.reload();
   }
   function printReport(report: OperationsData["reports"][number]) {
-    abrirImpressaoRelatorio(report);
+    void baixarRelatorioPdf({
+      id: report.id,
+      versao: report.versao,
+      tipoRelatorio: report.tipo_relatorio,
+      titulo: report.titulo,
+      clienteNome: report.cliente_nome,
+      clienteCpf: report.cliente_cpf,
+      problema: report.problema,
+      solucao: report.solucao,
+      oqueFeito: report.oque_feito,
+      comoFeito: report.como_feito,
+      pendencias: report.pendencias,
+      contadorAssinatura: report.contador_assinatura,
+      contadorNome: report.contador_nome,
+      contadorCrc: report.contador_crc,
+      codigoValidacao: report.codigo_validacao,
+      entregueEm: report.entregue_em,
+      createdAt: report.created_at,
+    }).then((ok) => {
+      if (!ok) feedback("Não foi possível gerar o PDF agora. Tente novamente.");
+    });
   }
   return (
     <div className="view-stack">

@@ -1,5 +1,9 @@
 import { adminClient } from "@/lib/supabase/admin";
-import { protocoloRelatorio } from "@/lib/reportPrint";
+
+// Mesmo formato do protocolo do legado (relatorio-pdf.js): OC-R{id}-V{versao}.
+function protocoloRelatorio(report: { id: number; versao: number }): string {
+  return `OC-R${String(report.id).padStart(6, "0")}-V${report.versao || 1}`;
+}
 
 // Porte 1:1 de validarRelatorioPublico (api/status.js do legado) — só
 // confirma autenticidade; nunca devolve o conteúdo do relatório.
