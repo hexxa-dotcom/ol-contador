@@ -1737,6 +1737,9 @@ function ReportList({ reports }: { reports: PortalReport[] }) {
               className="secondary compact"
               onClick={() =>
                 abrirImpressaoRelatorio({
+                  id: report.id,
+                  versao: report.versao,
+                  contador_logo: report.contadorLogo,
                   titulo: report.titulo,
                   cliente_nome: report.clienteNome,
                   cliente_cpf: report.clienteCpf,
