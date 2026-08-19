@@ -184,6 +184,7 @@ const tabsByView: Record<string, string[]> = {
     "Integracoes",
     "Inteligência Artificial (AIA)",
     "Aparência do Chat",
+    "Log do Sistema",
   ],
 };
 
@@ -4755,6 +4756,11 @@ const settingsContent: Record<string, [string, string, string[]]> = {
       "Atalhos do Copiloto IA",
     ],
   ],
+  "Log do Sistema": [
+    "Log do Sistema",
+    "Erros e eventos de integrações — pra detectar problemas antes do cliente reclamar.",
+    ["Erros registrados", "Eventos de webhook"],
+  ],
 };
 type TeamMember = {
   id: string | null;
@@ -4950,6 +4956,78 @@ export function ConfiguracoesIntegralView({
     filaRestrita: false,
     acessoInsightsRadar: true,
   });
+  const [systemErrors, setSystemErrors] = useState<Array<{
+    id: number;
+    origem: string;
+    codigo: string | null;
+    mensagem: string;
+    severidade: string;
+    ocorrencias: number;
+    primeiro_em: string;
+    ultimo_em: string;
+    rota: string | null;
+  }>>([]);
+  const [systemErrorsLoaded, setSystemErrorsLoaded] = useState(false);
+  const [webhookEvents, setWebhookEvents] = useState<Array<{
+    id: number;
+    provedor: string;
+    tipo: string | null;
+    status: string;
+    erro: string | null;
+    recebido_em: string;
+    processado_em: string | null;
+  }>>([]);
+  const [webhookEventsLoaded, setWebhookEventsLoaded] = useState(false);
+  const [logAction, setLogAction] = useState<number | null>(null);
+  async function carregarLogSistema() {
+    setSystemErrorsLoaded(false);
+    setWebhookEventsLoaded(false);
+    const [errosRes, webhooksRes] = await Promise.all([
+      fetch("/api/operational-errors").then((r) => (r.ok ? r.json() : { erros: [] })).catch(() => ({ erros: [] })),
+      fetch("/api/webhooks/reprocess").then((r) => (r.ok ? r.json() : { eventos: [] })).catch(() => ({ eventos: [] })),
+    ]);
+    setSystemErrors(errosRes.erros || []);
+    setSystemErrorsLoaded(true);
+    setWebhookEvents(webhooksRes.eventos || []);
+    setWebhookEventsLoaded(true);
+  }
+  async function resolverErro(id: number) {
+    setLogAction(id);
+    try {
+      const response = await fetch("/api/operational-errors", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id }),
+      });
+      if (response.ok) {
+        setSystemErrors((items) => items.filter((item) => item.id !== id));
+        feedback("Erro marcado como resolvido.");
+      } else {
+        feedback("Não foi possível marcar como resolvido.");
+      }
+    } finally {
+      setLogAction(null);
+    }
+  }
+  async function reprocessarWebhook(id: number) {
+    setLogAction(id);
+    try {
+      const response = await fetch("/api/webhooks/reprocess", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id }),
+      });
+      const result = await response.json().catch(() => ({}));
+      feedback(response.ok ? `Reprocessado: ${result.status}.` : result.error === "ja_processado" ? "Esse evento já tinha sido processado." : "Falha ao reprocessar — confira os detalhes do erro.");
+      if (response.ok) {
+        setWebhookEvents((items) =>
+          items.map((item) => (item.id === id ? { ...item, status: result.status || "processed", erro: null } : item)),
+        );
+      }
+    } finally {
+      setLogAction(null);
+    }
+  }
   function save(key: string, value: unknown, visible = false) {
     startTransition(async () => {
       const result = await saveSystemSetting({
@@ -5057,6 +5135,10 @@ export function ConfiguracoesIntegralView({
   useEffect(() => {
     if (tab === "Acessos e Equipe" && !teamLoaded) void teamAction("listar");
   }, [tab, teamLoaded]);
+  useEffect(() => {
+    if (tab === "Log do Sistema" && !systemErrorsLoaded && !webhookEventsLoaded) void carregarLogSistema();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tab]);
   const footer = (key: string, value: unknown, visible = false) => (
     <div className="form-actions">
       <small>As alterações valem para o sistema publicado.</small>
@@ -5904,6 +5986,70 @@ export function ConfiguracoesIntegralView({
                   Salvar atalhos do Copiloto
                 </Button>
               </div>
+            </>
+          )}
+          {tab === "Log do Sistema" && (
+            <>
+              <div className="card-heading">
+                <div>
+                  <AlertTriangle size={18} />
+                  <strong>Erros registrados</strong>
+                </div>
+                <Button className="secondary compact" disabled={!systemErrorsLoaded} onClick={() => void carregarLogSistema()}>
+                  <RotateCcw size={14} /> {!systemErrorsLoaded ? "Atualizando…" : "Atualizar"}
+                </Button>
+              </div>
+              {!systemErrorsLoaded ? (
+                <EmptyState>Carregando erros…</EmptyState>
+              ) : systemErrors.length ? (
+                <div className="records-list">
+                  {systemErrors.map((error) => (
+                    <article key={error.id}>
+                      <div className="record-icon"><AlertTriangle size={16} /></div>
+                      <div>
+                        <strong>{error.codigo || "Erro"} · {error.origem}</strong>
+                        <span>{error.mensagem}{error.rota ? ` · ${error.rota}` : ""}</span>
+                        <small>{error.ocorrencias || 1} ocorrência(s) · {error.severidade} · desde {new Date(error.primeiro_em).toLocaleString("pt-BR")} · último em {new Date(error.ultimo_em).toLocaleString("pt-BR")}</small>
+                      </div>
+                      <Button className="secondary compact" disabled={logAction === error.id} onClick={() => void resolverErro(error.id)}>
+                        <Check size={14} /> {logAction === error.id ? "Salvando…" : "Resolvido"}
+                      </Button>
+                    </article>
+                  ))}
+                </div>
+              ) : (
+                <EmptyState>Nenhum erro aberto nos últimos 30 dias.</EmptyState>
+              )}
+
+              <div className="card-heading" style={{ marginTop: 24 }}>
+                <div>
+                  <AlertTriangle size={18} />
+                  <strong>Eventos de webhook</strong>
+                </div>
+              </div>
+              {!webhookEventsLoaded ? (
+                <EmptyState>Carregando eventos…</EmptyState>
+              ) : webhookEvents.length ? (
+                <div className="records-list">
+                  {webhookEvents.map((evento) => (
+                    <article key={evento.id}>
+                      <div className="record-icon"><AlertTriangle size={16} /></div>
+                      <div>
+                        <strong>{evento.provedor} · {evento.tipo || "evento"} · {evento.status}</strong>
+                        <span>{evento.erro || "—"}</span>
+                        <small>Recebido em {new Date(evento.recebido_em).toLocaleString("pt-BR")}{evento.processado_em ? ` · processado em ${new Date(evento.processado_em).toLocaleString("pt-BR")}` : ""}</small>
+                      </div>
+                      {evento.status === "failed" && (
+                        <Button className="secondary compact" disabled={logAction === evento.id} onClick={() => void reprocessarWebhook(evento.id)}>
+                          <RotateCcw size={14} /> {logAction === evento.id ? "Reprocessando…" : "Reprocessar"}
+                        </Button>
+                      )}
+                    </article>
+                  ))}
+                </div>
+              ) : (
+                <EmptyState>Nenhum evento de webhook registrado ainda.</EmptyState>
+              )}
             </>
           )}
         </Card>
