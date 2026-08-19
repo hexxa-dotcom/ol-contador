@@ -22,8 +22,15 @@ export async function GET() {
   return NextResponse.json(data || [], { headers: { "Cache-Control": "private, no-store" } });
 }
 
-type TeamAction = "listar" | "convidar" | "remover";
-type TeamPayload = { id?: string; nome?: string; email?: string; role?: string };
+type TeamAction = "listar" | "convidar" | "remover" | "atualizar";
+type TeamPayload = {
+  id?: string;
+  nome?: string;
+  email?: string;
+  role?: string;
+  filaRestrita?: boolean;
+  acessoInsightsRadar?: boolean;
+};
 
 export async function POST(request: Request) {
   const supabase = await createClient();
@@ -42,7 +49,7 @@ export async function POST(request: Request) {
     action?: TeamAction;
     payload?: TeamPayload;
   } | null;
-  if (!body?.action || !["listar", "convidar", "remover"].includes(body.action)) {
+  if (!body?.action || !["listar", "convidar", "remover", "atualizar"].includes(body.action)) {
     return NextResponse.json({ error: "invalid_action" }, { status: 400 });
   }
   if (
@@ -56,6 +63,9 @@ export async function POST(request: Request) {
   if (body.action === "remover" && (!body.payload?.id || body.payload.id === userId)) {
     return NextResponse.json({ error: "Você não pode remover o próprio acesso." }, { status: 400 });
   }
+  if (body.action === "atualizar" && !body.payload?.id) {
+    return NextResponse.json({ error: "invalid_params" }, { status: 400 });
+  }
 
   const admin = adminClient();
   if (!admin) return NextResponse.json({ error: "service_role_not_configured" }, { status: 503 });
@@ -68,7 +78,7 @@ export async function POST(request: Request) {
     }
 
     if (body.action === "convidar") {
-      const { nome, email, role } = body.payload!;
+      const { nome, email, role, filaRestrita, acessoInsightsRadar } = body.payload!;
       const { data: inviteData, error: inviteError } = await admin.auth.admin.inviteUserByEmail(email!, {
         data: { name: nome },
       });
@@ -78,10 +88,25 @@ export async function POST(request: Request) {
         }
         throw inviteError;
       }
-      const { error: insertError } = await admin
-        .from("staff")
-        .insert({ id: inviteData.user.id, email: email!, nome, role });
+      const { error: insertError } = await admin.from("staff").insert({
+        id: inviteData.user.id,
+        email: email!,
+        nome,
+        role,
+        fila_restrita: Boolean(filaRestrita),
+        acesso_insights_radar: acessoInsightsRadar !== false,
+      });
       if (insertError) throw insertError;
+      return NextResponse.json({ ok: true });
+    }
+
+    if (body.action === "atualizar") {
+      const { id, filaRestrita, acessoInsightsRadar } = body.payload!;
+      const patch: { fila_restrita?: boolean; acesso_insights_radar?: boolean } = {};
+      if (typeof filaRestrita === "boolean") patch.fila_restrita = filaRestrita;
+      if (typeof acessoInsightsRadar === "boolean") patch.acesso_insights_radar = acessoInsightsRadar;
+      const { error: updateError } = await admin.from("staff").update(patch).eq("id", id!);
+      if (updateError) throw updateError;
       return NextResponse.json({ ok: true });
     }
 

@@ -47,6 +47,18 @@ export function SiteHeader({ active }: { active?: "home" | "precos" | "radar" })
     return () => window.removeEventListener("resize", onResize);
   }, []);
 
+  // Previne scroll no body quando o menu mobile está aberto
+  useEffect(() => {
+    if (menuMobileAberto) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [menuMobileAberto]);
+
   return (
     <header className="public-nav-wrap">
       <div className="public-nav-container">
@@ -74,7 +86,7 @@ export function SiteHeader({ active }: { active?: "home" | "precos" | "radar" })
         {/* BOTÃO TOGGLE MOBILE */}
         <button
           type="button"
-          className="public-mobile-toggle"
+          className={`public-mobile-toggle ${menuMobileAberto ? "is-active" : ""}`}
           aria-label={menuMobileAberto ? "Fechar menu" : "Abrir menu"}
           aria-expanded={menuMobileAberto}
           onClick={() => setMenuMobileAberto((v) => !v)}
@@ -83,58 +95,60 @@ export function SiteHeader({ active }: { active?: "home" | "precos" | "radar" })
         </button>
       </div>
 
-      {/* MENU DRAWER MOBILE */}
-      {menuMobileAberto && (
-        <div className="public-mobile-menu-overlay" onClick={() => setMenuMobileAberto(false)}>
-          <div className="public-mobile-menu-drawer" onClick={(e) => e.stopPropagation()}>
-            <div className="public-mobile-menu-links">
-              <Link 
-                className={`public-mobile-lk ${active === "home" ? "active" : ""}`} 
-                href="/" 
-                onClick={() => setMenuMobileAberto(false)}
-              >
-                Início
-              </Link>
-              <Link 
-                className={`public-mobile-lk ${active === "precos" ? "active" : ""}`} 
-                href="/precos" 
-                onClick={() => setMenuMobileAberto(false)}
-              >
-                Preços
-              </Link>
-              <Link 
-                className={`public-mobile-lk ${active === "radar" ? "active" : ""}`} 
-                href="/radar" 
-                onClick={() => setMenuMobileAberto(false)}
-              >
-                Radar Fiscal
-              </Link>
-            </div>
+      {/* MENU DRAWER MOBILE COM ANIMAÇÃO SUAVE */}
+      <div 
+        className={`public-mobile-menu-overlay ${menuMobileAberto ? "is-open" : ""}`} 
+        onClick={() => setMenuMobileAberto(false)}
+        aria-hidden={!menuMobileAberto}
+      >
+        <div className="public-mobile-menu-drawer" onClick={(e) => e.stopPropagation()}>
+          <div className="public-mobile-menu-links">
+            <Link 
+              className={`public-mobile-lk ${active === "home" ? "active" : ""}`} 
+              href="/" 
+              onClick={() => setMenuMobileAberto(false)}
+            >
+              <span>Início</span>
+            </Link>
+            <Link 
+              className={`public-mobile-lk ${active === "precos" ? "active" : ""}`} 
+              href="/precos" 
+              onClick={() => setMenuMobileAberto(false)}
+            >
+              <span>Preços</span>
+            </Link>
+            <Link 
+              className={`public-mobile-lk ${active === "radar" ? "active" : ""}`} 
+              href="/radar" 
+              onClick={() => setMenuMobileAberto(false)}
+            >
+              <span>Radar Fiscal</span>
+            </Link>
+          </div>
 
-            <div className="public-mobile-menu-divider" />
+          <div className="public-mobile-menu-divider" />
 
-            <div className="public-mobile-auth-section">
-              <span className="public-mobile-auth-title">Acesso ao Sistema</span>
-              <Link 
-                className="public-mobile-auth-btn client" 
-                href="/login?role=cliente" 
-                onClick={() => setMenuMobileAberto(false)}
-              >
-                <UserCheck size={18} />
-                <span>Sou cliente</span>
-              </Link>
-              <Link 
-                className="public-mobile-auth-btn accountant" 
-                href="/login?role=contador" 
-                onClick={() => setMenuMobileAberto(false)}
-              >
-                <Building2 size={18} />
-                <span>Sou contador</span>
-              </Link>
-            </div>
+          <div className="public-mobile-auth-section">
+            <span className="public-mobile-auth-title">Acesso ao Sistema</span>
+            <Link 
+              className="public-mobile-auth-btn client" 
+              href="/login?role=cliente" 
+              onClick={() => setMenuMobileAberto(false)}
+            >
+              <UserCheck size={18} />
+              <span>Sou cliente</span>
+            </Link>
+            <Link 
+              className="public-mobile-auth-btn accountant" 
+              href="/login?role=contador" 
+              onClick={() => setMenuMobileAberto(false)}
+            >
+              <Building2 size={18} />
+              <span>Sou contador</span>
+            </Link>
           </div>
         </div>
-      )}
+      </div>
     </header>
   );
 }

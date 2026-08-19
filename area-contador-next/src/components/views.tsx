@@ -104,6 +104,7 @@ import {
   saveClientDossier,
   persistClientChecklist,
   persistClientNotes,
+  assignClientResponsavel,
   sendChatTimerWarning,
   sendAudioMessage,
   sendChatShortcut,
@@ -602,9 +603,13 @@ export function DashboardView({
 export function AtendimentoView({
   clientsData = emptyClientsData,
   operationsData = emptyOperationsData,
+  currentStaffId,
+  filaRestrita = false,
 }: {
   clientsData?: ClientsData;
   operationsData?: OperationsData;
+  currentStaffId?: string;
+  filaRestrita?: boolean;
 }) {
   const [queue, setQueue] = useState<"Chats" | "Agenda do dia">("Chats");
   const [tool, setTool] = useState<"fila" | "copilot">("fila");
@@ -720,6 +725,12 @@ export function AtendimentoView({
         [client.name, client.cpf, client.email].some((value) =>
           value?.toLowerCase().includes(queueQuery.trim().toLowerCase()),
         ),
+    )
+    .filter(
+      (client) =>
+        !filaRestrita ||
+        !client.responsavel_id ||
+        client.responsavel_id === currentStaffId,
     )
     .sort((a, b) => {
       const unread = (clientId: string) =>
@@ -1819,9 +1830,13 @@ const emptyDossier = (client: ClientRecord): ClientDossierInput => ({
 export function ClientesIntegralView({
   data = emptyClientsData,
   operationsData = emptyOperationsData,
+  currentStaffId,
+  filaRestrita = false,
 }: {
   data?: ClientsData;
   operationsData?: OperationsData;
+  currentStaffId?: string;
+  filaRestrita?: boolean;
 }) {
   const [tab, setTab] = useState(tabsByView.clientes[0]);
   const [clients, setClients] = useState(data.clients);
@@ -1853,6 +1868,34 @@ export function ClientesIntegralView({
   const [documentAnalysis, setDocumentAnalysis] = useState<
     Record<number, Record<string, unknown>>
   >({});
+  const [assignees, setAssignees] = useState<Array<{ id: string; name: string }>>([]);
+  useEffect(() => {
+    void fetch("/api/team", { cache: "no-store" })
+      .then(async (response) => (response.ok ? response.json() : []))
+      .then((items: Array<{ id?: string | null; name?: string | null; nome?: string | null; email?: string | null }>) =>
+        setAssignees(
+          items
+            .filter((item) => item.id)
+            .map((item) => ({ id: String(item.id), name: item.nome || item.name || item.email || "Equipe" })),
+        ),
+      )
+      .catch(() => setAssignees([]));
+  }, []);
+  function assignResponsavel(clientId: string, responsavelId: string) {
+    startTransition(async () => {
+      const result = await assignClientResponsavel({
+        clientId,
+        responsavelId: responsavelId || null,
+      });
+      feedback(result.message);
+      if (result.ok)
+        setClients((items) =>
+          items.map((item) =>
+            item.id === clientId ? { ...item, responsavel_id: responsavelId || null } : item,
+          ),
+        );
+    });
+  }
   const [analyzingDocument, setAnalyzingDocument] = useState<number | null>(null);
   const [aiDossierPending, setAiDossierPending] = useState(false);
   const [recurrence, setRecurrence] = useState({
@@ -1894,6 +1937,9 @@ export function ClientesIntegralView({
       (client) =>
         (tab !== "Clientes Recorrentes" || client.recorrente) &&
         finishedInWindow(client) &&
+        (!filaRestrita ||
+          !client.responsavel_id ||
+          client.responsavel_id === currentStaffId) &&
         (!normalized ||
           [client.name, client.cpf, client.email, client.phone].some((value) =>
             value?.toLocaleLowerCase("pt-BR").includes(normalized),
@@ -2527,6 +2573,22 @@ export function ClientesIntegralView({
             </div>
             {section === "cadastro" && (
               <div className="profile-form dossier-body">
+                <label>
+                  Responsável pelo atendimento
+                  <select
+                    value={selected.responsavel_id || ""}
+                    onChange={(event) =>
+                      assignResponsavel(selected.id, event.target.value)
+                    }
+                  >
+                    <option value="">Sem responsável (fila geral)</option>
+                    {assignees.map((member) => (
+                      <option key={member.id} value={member.id}>
+                        {member.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
                 <Card className="gov-readiness-card">
                   <div className="card-heading">
                     <div>
@@ -5238,6 +5300,36 @@ export function ConfiguracoesIntegralView({
                         : "Contador parceiro"}
                     </Badge>
                     {member.id && (
+                      <div className="team-member-toggles">
+                        <label className="inline-checkbox">
+                          <input
+                            type="checkbox"
+                            checked={Boolean(member.fila_restrita)}
+                            onChange={(event) =>
+                              void teamAction("atualizar", {
+                                id: member.id!,
+                                filaRestrita: event.target.checked,
+                              })
+                            }
+                          />
+                          Fila restrita
+                        </label>
+                        <label className="inline-checkbox">
+                          <input
+                            type="checkbox"
+                            checked={member.acesso_insights_radar !== false}
+                            onChange={(event) =>
+                              void teamAction("atualizar", {
+                                id: member.id!,
+                                acessoInsightsRadar: event.target.checked,
+                              })
+                            }
+                          />
+                          Insights/Radar
+                        </label>
+                      </div>
+                    )}
+                    {member.id && (
                       <Button
                         className="icon ghost danger-text"
                         onClick={() => {
@@ -5289,6 +5381,28 @@ export function ConfiguracoesIntegralView({
                       <option value="parceiro">Contador parceiro</option>
                       <option value="admin">Administrador</option>
                     </select>
+                  </label>
+                </div>
+                <div className="settings-item-row">
+                  <label className="inline-checkbox">
+                    <input
+                      type="checkbox"
+                      checked={invite.filaRestrita}
+                      onChange={(event) =>
+                        setInvite({ ...invite, filaRestrita: event.target.checked })
+                      }
+                    />
+                    Fila restrita (só vê os próprios casos)
+                  </label>
+                  <label className="inline-checkbox">
+                    <input
+                      type="checkbox"
+                      checked={invite.acessoInsightsRadar}
+                      onChange={(event) =>
+                        setInvite({ ...invite, acessoInsightsRadar: event.target.checked })
+                      }
+                    />
+                    Acesso a Insights/Radar Fiscal
                   </label>
                 </div>
                 <Button

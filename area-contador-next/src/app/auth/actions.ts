@@ -283,6 +283,17 @@ export async function persistClientChecklist(input:{clientId:string;checklist:Re
   return {ok:true as const,message:"Checklist salvo."};
 }
 
+export async function assignClientResponsavel(input:{clientId:string;responsavelId:string|null}){
+  if(!input.clientId)return {ok:false as const,message:"Cliente inválido."};
+  const supabase=await createClient();if(!supabase)return {ok:false as const,message:"Conexão indisponível."};
+  const {data:claims}=await supabase.auth.getClaims();const userId=claims?.claims?.sub;if(!userId)return {ok:false as const,message:"Sessão expirada."};
+  const {data:staff}=await supabase.from("staff").select("id").eq("id",userId).maybeSingle();if(!staff)return {ok:false as const,message:"Ação não autorizada."};
+  const {error}=await supabase.from("clientes").update({responsavel_id:input.responsavelId}).eq("id",input.clientId);
+  if(error)return {ok:false as const,message:"Não foi possível atribuir o responsável."};
+  revalidatePath("/");
+  return {ok:true as const,message:input.responsavelId?"Cliente atribuído.":"Responsável removido."};
+}
+
 export async function persistClientNotes(input:{clientId:string;notas:string}){
   if(!input.clientId)return {ok:false as const,message:"Cliente inválido."};
   const supabase=await createClient();if(!supabase)return {ok:false as const,message:"Conexão indisponível."};

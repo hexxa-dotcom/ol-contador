@@ -15,7 +15,7 @@ export default async function Page() {
   const userId = claimsData?.claims?.sub;
   if (claimsError || !userId) redirect("/login");
 
-  const { data: staff, error: staffError } = await supabase.from("staff").select("id,email,name,nome,role").eq("id", userId).maybeSingle();
+  const { data: staff, error: staffError } = await supabase.from("staff").select("id,email,name,nome,role,fila_restrita,acesso_insights_radar").eq("id", userId).maybeSingle();
   if (staffError || !staff) {
     const { data: client } = await supabase.from("clientes").select("id").eq("user_id", userId).maybeSingle();
     if (client) redirect("/portal");
@@ -30,8 +30,11 @@ export default async function Page() {
   ]);
 
   return <AccountantShell dashboardData={dashboardData} clientsData={clientsData} operationsData={operationsData} notifications={notificationsResult.data ?? []} user={{
+    id: staff.id || userId,
     name: staff.name || staff.nome || "Contador",
     email: staff.email,
     role: staff.role || "Equipe",
+    filaRestrita: Boolean(staff.fila_restrita),
+    acessoInsightsRadar: staff.acesso_insights_radar !== false,
   }}/>;
 }
