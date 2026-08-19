@@ -125,6 +125,24 @@ export async function confirmCobranca(admin: Admin, cob: Cobranca): Promise<{ st
   const payment = await asaas.getPayment(cob.asaas_payment_id || "");
   if (!asaas.PAID_STATUSES.includes(payment.status)) return { status: "pending", appointmentId: null };
 
+  // Trava atômica: o polling da tela de checkout e o webhook do Asaas podem
+  // chegar quase juntos, os dois vendo cob.status ainda como "pending". Sem
+  // isso, os dois rodariam o bloco inteiro abaixo (criação de cliente, nota
+  // fiscal, notificações) em duplicidade. Só quem conseguir virar o status
+  // pra "paid" primeiro processa; o outro herda o resultado já pronto.
+  const confirmadoEm = new Date();
+  const { data: claimed } = await admin
+    .from("cobrancas")
+    .update({ status: "paid", paid_at: confirmadoEm.toISOString() })
+    .eq("id", cob.id)
+    .neq("status", "paid")
+    .select("appointment_id")
+    .maybeSingle();
+  if (!claimed) {
+    const { data: fresh } = await admin.from("cobrancas").select("appointment_id").eq("id", cob.id).maybeSingle();
+    return { status: "paid", appointmentId: fresh?.appointment_id ?? null };
+  }
+
   let appointmentId = cob.appointment_id;
   if (!appointmentId) {
     const { data: servico } = await admin.from("servicos").select("*").eq("id", cob.servico_id || "").single();
@@ -264,8 +282,7 @@ export async function confirmCobranca(admin: Admin, cob: Cobranca): Promise<{ st
       }
     }
 
-    const confirmadoEm = new Date();
-    await admin.from("cobrancas").update({ status: "paid", paid_at: confirmadoEm.toISOString(), appointment_id: appointmentId }).eq("id", cob.id);
+    if (appointmentId) await admin.from("cobrancas").update({ appointment_id: appointmentId }).eq("id", cob.id);
     await registrarEventoFunil(admin, "pagamento_confirmado", {
       cobrancaId: cob.id,
       clienteRef: cob.cliente_ref || undefined,

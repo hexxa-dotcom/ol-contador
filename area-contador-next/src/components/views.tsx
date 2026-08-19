@@ -142,6 +142,18 @@ function feedback(message: string) {
   window.dispatchEvent(new CustomEvent("app-feedback", { detail: message }));
 }
 
+// Mapeia a aba visível do Radar Fiscal pros prefixos reais de id_sistema
+// gravados em serpro_consultas (ver src/app/api/radar-fiscal/route.ts). Os
+// nomes das abas nunca bateram com os códigos técnicos do SERPRO (SITFIS,
+// PARCSN/PARCMEI, PGFN-SIDA), então o histórico ficava sempre vazio nelas.
+const radarSistemasPorAba: Record<string, string[]> = {
+  "Caixa Postal": ["CAIXAPOSTAL"],
+  "Situação Fiscal": ["SITFIS"],
+  Parcelamentos: ["PARCSN", "PARCMEI"],
+  "Dívida Ativa": ["PGFN-SIDA"],
+  CND: ["CND"],
+};
+
 const tabsByView: Record<string, string[]> = {
   clientes: ["Visão Geral", "Clientes Recorrentes"],
   relatorios: [
@@ -3689,10 +3701,9 @@ export function RadarFiscalView({
   const related = data.serproQueries.filter(
     (item) =>
       (!selectedId || item.cliente_ref === selectedId) &&
-      (tab === "Caixa Postal" ||
-        `${item.id_sistema} ${item.id_servico}`
-          .toLowerCase()
-          .includes(tab.toLowerCase().split(" ")[0])),
+      (radarSistemasPorAba[tab] || []).some((prefixo) =>
+        item.id_sistema.startsWith(prefixo),
+      ),
   );
   async function callRadar(action: string, extra: RadarPayload = {}) {
     const response = await fetch("/api/radar-fiscal", {
@@ -6615,7 +6626,11 @@ export function AcompanhamentoIntegralView({
                     >
                       {Array.from(
                         new Map(
-                          integralStages.map((item) => [
+                          // "Em Análise Fiscal" e "Em Execução" compartilham o
+                          // mesmo código legado ("active") — mantém a
+                          // primeira ocorrência (Em Análise Fiscal) pra não
+                          // sobrescrever o rótulo certo com o da segunda.
+                          [...integralStages].reverse().map((item) => [
                             item.legacy,
                             item.label,
                           ]),
