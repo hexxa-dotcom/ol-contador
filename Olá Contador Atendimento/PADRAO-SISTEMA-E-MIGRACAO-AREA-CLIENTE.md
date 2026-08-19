@@ -319,14 +319,27 @@ estruturas ou nos scripts SQL do projeto.
   importa essas libs, direta ou indiretamente. Só `NEXT_PUBLIC_SUPABASE_URL`
   e `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` (a chave pública/anon, que é
   segura por design) chegam ao bundle.
-- [ ] Definir papéis oficiais e uma matriz de permissões — auditoria de
-  18/08/2026 achou hoje só um gate binário staff/não-staff na maior parte do
-  código; `staff.role` (`admin`/`parceiro`) só é checado em
-  `src/app/api/team/route.ts` (gestão de equipe) e `operations/route.ts`
-  (reatribuir Express). "Parceiro" existe como rótulo mas não tem nenhuma
-  restrição própria aplicada em nenhum outro lugar — é decisão de produto
-  em aberto, não dá pra inventar a matriz sem definir o que cada papel
-  deveria poder fazer.
+- [x] Definir papéis oficiais e uma matriz de permissões — decisão tomada em
+  19/08/2026: continuam só `admin`/`parceiro` (sem papel novo), mas em vez de
+  regra fixa por papel, dois toggles configuráveis por pessoa na tela
+  Equipe (`ConfiguracoesIntegralView`, aba "Acessos e Equipe"):
+  - `staff.fila_restrita` (padrão `false`): quando ligado, esse membro só vê
+    em Clientes e na Fila de Atendimento os casos atribuídos a ele ou ainda
+    sem responsável — uma fila pessoal, não a fila inteira. Precisou de
+    `clientes.responsavel_id` (novo, FK pra `staff`) e de um seletor
+    "Responsável pelo atendimento" no cadastro do cliente
+    (`assignClientResponsavel` em `auth/actions.ts`).
+  - `staff.acesso_insights_radar` (padrão `true`): liga/desliga Insights e
+    Radar Fiscal por pessoa, independente do papel.
+  Continua fixo por papel (`role === 'parceiro'`, não configurável): sem
+  acesso a Financeiro, Configurações, Relatórios e gestão de Equipe — isso
+  já vinha do legado (`app.js:175-182`) e não foi pedido pra virar toggle.
+  As 3 colunas novas (`staff.fila_restrita`, `staff.acesso_insights_radar`,
+  `clientes.responsavel_id`) foram aplicadas direto no banco de produção via
+  `supabase db query --linked` (login interativo do usuário, sem senha em
+  texto puro desta vez) e os tipos foram regerados com sucesso via
+  `supabase gen types typescript --linked` — funcionou nesta sessão, ao
+  contrário de tentativas anteriores.
 - [x] Padronizar validação, erros, logs — `registrarErro()`
   (`src/lib/observability.ts`) já existia com dedupe/fingerprint em
   `app_erros`; estava em 9 rotas, faltava em outras 9. Completado em
