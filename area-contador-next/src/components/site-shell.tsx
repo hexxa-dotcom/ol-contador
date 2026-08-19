@@ -236,7 +236,7 @@ export function SiteFooter() {
   return (
     <footer className="public-footer-dark">
       <div className="public-rodape-grid">
-        <div>
+        <div className="public-rodape-brand-col">
           <div className="public-brand" style={{ marginBottom: "16px" }}>
             <Image src="/logo.svg" alt="Olá, Contador" width={32} height={33} />
             <span style={{ color: "#FFFFFF" }}>
@@ -247,7 +247,7 @@ export function SiteFooter() {
             Atendimento contábil sob demanda com contador de registro CRC ativo. Sem mensalidade, sem surpresas.
           </p>
         </div>
-        <div>
+        <div className="public-rodape-col-servicos">
           <h4 style={{ color: "#FFFFFF", fontSize: "15px", fontWeight: "700", marginBottom: "16px" }}>Serviços</h4>
           <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: "10px", fontSize: "14px" }}>
             <li><Link href="/precos">Pessoa Física (R$ 199)</Link></li>
@@ -255,7 +255,7 @@ export function SiteFooter() {
             <li><Link href="/radar">Radar Fiscal</Link></li>
           </ul>
         </div>
-        <div>
+        <div className="public-rodape-col-institucional">
           <h4 style={{ color: "#FFFFFF", fontSize: "15px", fontWeight: "700", marginBottom: "16px" }}>Institucional</h4>
           <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: "10px", fontSize: "14px" }}>
             <li><Link href="/termos">Termos de Uso</Link></li>
@@ -263,9 +263,9 @@ export function SiteFooter() {
             <li><Link href="/login">Área do Cliente</Link></li>
           </ul>
         </div>
-        <div>
+        <div className="public-rodape-col-contato">
           <h4 style={{ color: "#FFFFFF", fontSize: "15px", fontWeight: "700", marginBottom: "16px" }}>Contato</h4>
-          <p style={{ fontSize: "14px", color: "rgba(255,255,255,0.75)", margin: 0 }}>
+          <p style={{ fontSize: "14px", color: "rgba(255,255,255,0.75)", margin: 0, lineHeight: "1.6" }}>
             ola@olacontador.com.br<br />
             Atendimento 100% online em todo o Brasil
           </p>
