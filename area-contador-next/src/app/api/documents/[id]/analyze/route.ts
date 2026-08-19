@@ -16,7 +16,9 @@ export async function POST(_request: Request, context: { params: Promise<{ id: s
   const { data: staff } = await supabase.from("staff").select("id").eq("id", userId).maybeSingle();
   if (!staff) return NextResponse.json({ error: "forbidden" }, { status: 403 });
 
-  if (!ia.isConfigured()) return NextResponse.json({ error: "ia_not_configured" }, { status: 503 });
+  const admin = adminClient();
+  if (!admin) return NextResponse.json({ error: "service_role_not_configured" }, { status: 503 });
+  if (!(await ia.isConfigured(admin))) return NextResponse.json({ error: "ia_not_configured" }, { status: 503 });
 
   const { id } = await context.params;
   if (!/^\d+$/.test(id)) return NextResponse.json({ error: "invalid_document" }, { status: 400 });
@@ -31,7 +33,7 @@ export async function POST(_request: Request, context: { params: Promise<{ id: s
     if (downloadError) throw downloadError;
     const buffer = Buffer.from(await file.arrayBuffer());
 
-    const extracted = await ia.analisarDocumento(buffer, doc.mime);
+    const extracted = await ia.analisarDocumento(admin, buffer, doc.mime);
     await supabase.from("documentos").update({ ai_extracted: extracted as never }).eq("id", doc.id);
 
     const { data: signed } = await supabase.storage.from("documentos").createSignedUrl(doc.storage_path, 3600);

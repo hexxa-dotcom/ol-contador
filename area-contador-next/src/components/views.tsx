@@ -184,6 +184,7 @@ const tabsByView: Record<string, string[]> = {
     "Inteligência Artificial (AIA)",
     "Aparência do Chat",
     "Log do Sistema",
+    "Chaves de API",
   ],
 };
 
@@ -4755,6 +4756,11 @@ const settingsContent: Record<string, [string, string, string[]]> = {
     "Erros e eventos de integrações — pra detectar problemas antes do cliente reclamar.",
     ["Erros registrados", "Eventos de webhook"],
   ],
+  "Chaves de API": [
+    "Chaves de API",
+    "Credenciais de integrações editáveis por aqui — trocam na hora, sem depender de redeploy.",
+    ["Inteligência Artificial"],
+  ],
 };
 type TeamMember = {
   id: string | null;
@@ -5013,6 +5019,52 @@ export function ConfiguracoesIntegralView({
       setLogAction(null);
     }
   }
+  const [systemSecrets, setSystemSecrets] = useState<Array<{ chave: string; label: string; grupo: string }>>([]);
+  const [systemSecretsStatus, setSystemSecretsStatus] = useState<Record<string, { origem: "banco" | "ambiente" | "nenhuma"; atualizadoEm: string | null }>>({});
+  const [systemSecretsLoaded, setSystemSecretsLoaded] = useState(false);
+  const [secretDrafts, setSecretDrafts] = useState<Record<string, string>>({});
+  const [secretAction, setSecretAction] = useState<string | null>(null);
+  async function carregarChavesSistema() {
+    const response = await fetch("/api/system-secrets");
+    const result = await response.json().catch(() => ({ chaves: [], status: {} }));
+    setSystemSecrets(result.chaves || []);
+    setSystemSecretsStatus(result.status || {});
+    setSystemSecretsLoaded(true);
+  }
+  async function salvarChaveSistema(chave: string) {
+    const valor = (secretDrafts[chave] || "").trim();
+    if (!valor) return;
+    setSecretAction(chave);
+    try {
+      const response = await fetch("/api/system-secrets", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ chave, valor, acao: "salvar" }),
+      });
+      feedback(response.ok ? "Chave salva — já vale para a próxima chamada." : "Não foi possível salvar essa chave.");
+      if (response.ok) {
+        setSecretDrafts((items) => ({ ...items, [chave]: "" }));
+        await carregarChavesSistema();
+      }
+    } finally {
+      setSecretAction(null);
+    }
+  }
+  async function limparChaveSistema(chave: string) {
+    if (!window.confirm("Remover essa chave do banco? O sistema volta a usar a variável de ambiente da Vercel, se houver.")) return;
+    setSecretAction(chave);
+    try {
+      const response = await fetch("/api/system-secrets", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ chave, acao: "limpar" }),
+      });
+      feedback(response.ok ? "Chave removida do banco." : "Não foi possível remover.");
+      if (response.ok) await carregarChavesSistema();
+    } finally {
+      setSecretAction(null);
+    }
+  }
   function save(key: string, value: unknown, visible = false) {
     startTransition(async () => {
       const result = await saveSystemSetting({
@@ -5089,6 +5141,7 @@ export function ConfiguracoesIntegralView({
   }
   useEffect(() => {
     if (tab === "Log do Sistema" && !systemErrorsLoaded && !webhookEventsLoaded) void carregarLogSistema();
+    if (tab === "Chaves de API" && !systemSecretsLoaded) void carregarChavesSistema();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab]);
   const footer = (key: string, value: unknown, visible = false) => (
@@ -5865,6 +5918,64 @@ export function ConfiguracoesIntegralView({
                 </div>
               ) : (
                 <EmptyState>Nenhum evento de webhook registrado ainda.</EmptyState>
+              )}
+            </>
+          )}
+          {tab === "Chaves de API" && (
+            <>
+              <p className="muted">
+                Chaves salvas aqui ficam criptografadas no banco e valem na hora, sem precisar de redeploy. Fora dessa
+                lista, as demais integrações (Asaas, SERPRO, Resend) continuam configuradas só por variável de
+                ambiente na Vercel.
+              </p>
+              {!systemSecretsLoaded ? (
+                <EmptyState>Carregando chaves…</EmptyState>
+              ) : (
+                Object.entries(
+                  systemSecrets.reduce<Record<string, typeof systemSecrets>>((acc, item) => {
+                    (acc[item.grupo] ||= []).push(item);
+                    return acc;
+                  }, {}),
+                ).map(([grupo, itens]) => (
+                  <div key={grupo} className="settings-item-list">
+                    <strong>{grupo}</strong>
+                    {itens.map((item) => {
+                      const status = systemSecretsStatus[item.chave];
+                      return (
+                        <div className="settings-item-row" key={item.chave}>
+                          <div>
+                            <strong>{item.label}</strong>
+                            <small>
+                              {status?.origem === "banco"
+                                ? `Configurada aqui${status.atualizadoEm ? ` · atualizada em ${new Date(status.atualizadoEm).toLocaleString("pt-BR")}` : ""}`
+                                : status?.origem === "ambiente"
+                                  ? "Configurada só na Vercel (variável de ambiente)"
+                                  : "Não configurada"}
+                            </small>
+                          </div>
+                          <Input
+                            type="password"
+                            placeholder="Colar nova chave…"
+                            value={secretDrafts[item.chave] || ""}
+                            onChange={(event) => setSecretDrafts((prev) => ({ ...prev, [item.chave]: event.target.value }))}
+                          />
+                          <Button
+                            className="secondary compact"
+                            disabled={secretAction === item.chave || !(secretDrafts[item.chave] || "").trim()}
+                            onClick={() => void salvarChaveSistema(item.chave)}
+                          >
+                            {secretAction === item.chave ? "Salvando…" : "Salvar"}
+                          </Button>
+                          {status?.origem === "banco" && (
+                            <Button className="icon ghost danger-text" disabled={secretAction === item.chave} onClick={() => void limparChaveSistema(item.chave)}>
+                              <X size={15} />
+                            </Button>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                ))
               )}
             </>
           )}

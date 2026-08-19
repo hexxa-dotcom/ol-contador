@@ -46,13 +46,16 @@ export async function POST(request: Request) {
     messages: messages || [],
   };
 
+  const admin = adminClient();
+  if (!admin) return NextResponse.json({ error: "service_role_not_configured" }, { status: 503 });
+
   if (mode === "diagnostico" || mode === "relatorio") {
-    if (!ia.isConfigured()) return NextResponse.json({ error: "ia_not_configured" }, { status: 503 });
+    if (!(await ia.isConfigured(admin))) return NextResponse.json({ error: "ia_not_configured" }, { status: 503 });
     try {
       const result =
         mode === "diagnostico"
-          ? await ia.sugerirDiagnostico(clienteContexto)
-          : await ia.gerarRelatorioCliente(clienteContexto, {
+          ? await ia.sugerirDiagnostico(admin, clienteContexto)
+          : await ia.gerarRelatorioCliente(admin, clienteContexto, {
               tipoRelatorio: body?.tipoRelatorio === "pendencias" ? "pendencias" : "atendimento",
             });
       return NextResponse.json(result);
@@ -62,7 +65,7 @@ export async function POST(request: Request) {
       if (err.name === "TimeoutError" || err.name === "AbortError") {
         return NextResponse.json({ error: "ia_timeout" }, { status: 502 });
       }
-      await registrarErro(adminClient(), {
+      await registrarErro(admin, {
         origem: "copilot_route",
         codigo: err.code || "ia_error",
         mensagem: err.message,
@@ -74,12 +77,7 @@ export async function POST(request: Request) {
     }
   }
 
-  const provider = process.env.IA_PROVIDER || (process.env.GROQ_API_KEY ? "groq" : "openrouter");
-  const groq = provider === "groq";
-  const apiKey = groq ? process.env.GROQ_API_KEY : process.env.OPENROUTER_API_KEY;
-  const model = groq ? process.env.GROQ_MODEL || "llama-3.3-70b-versatile" : process.env.OPENROUTER_MODEL || "anthropic/claude-3.5-sonnet";
-  const endpoint = groq ? "https://api.groq.com/openai/v1/chat/completions" : "https://openrouter.ai/api/v1/chat/completions";
-  if (!apiKey) return NextResponse.json({ error: "ia_not_configured" }, { status: 503 });
+  if (!(await ia.isConfigured(admin))) return NextResponse.json({ error: "ia_not_configured" }, { status: 503 });
 
   const history = (messages ?? [])
     .filter((item) => item.text)
@@ -96,11 +94,8 @@ export async function POST(request: Request) {
   // só entra em jogo pro rascunho de resposta — mesmo comportamento do
   // rascunharResposta do legado.
   if (mode === "rascunho" && !skillContext && client.tax_type) {
-    const admin = adminClient();
-    if (admin) {
-      const ragContext = await ia.getRagContext(client.tax_type, prompt || "Qual a orientação geral?", admin);
-      if (ragContext) skillContext = `\n\nBase especializada (${client.tax_type}):\n${ragContext.slice(0, 12000)}`;
-    }
+    const ragContext = await ia.getRagContext(client.tax_type, prompt || "Qual a orientação geral?", admin);
+    if (ragContext) skillContext = `\n\nBase especializada (${client.tax_type}):\n${ragContext.slice(0, 12000)}`;
   }
   const instructions: Record<Exclude<CopilotMode, "diagnostico" | "relatorio">, string> = {
     resumo: "Resuma o caso em até quatro pontos objetivos para o contador.",
@@ -108,29 +103,20 @@ export async function POST(request: Request) {
     pergunta: `Responda à pergunta do contador com objetividade: ${prompt || "Analise o contexto e indique a melhor orientação."}`,
     pendencias: "Liste somente as pendências identificáveis no contexto. Separe fatos de hipóteses e não invente prazos ou valores.",
   };
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 25000);
   try {
-    const response = await fetch(endpoint, {
-      method: "POST",
-      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json", "X-Title": "Ola Contador" },
-      body: JSON.stringify({
-        model,
-        temperature: 0.25,
-        max_tokens: 650,
-        messages: [
-          { role: "system", content: "Você auxilia um contador brasileiro. Seja técnico, prudente e claro. Não execute ações, não invente legislação, valores ou prazos e sinalize quando algo exigir confirmação profissional." },
-          { role: "user", content: `${instructions[mode]}${skillContext}\n\nCliente: ${client.name}\nAssunto: ${client.tax_type || "não informado"}\nDiagnóstico atual: ${client.diagnosis || "não informado"}\nTratamento atual: ${client.treatment || "não informado"}\n\nHistórico:\n${history || "Sem mensagens."}` },
-        ],
-      }),
-      signal: controller.signal,
-    });
-    const result = (await response.json().catch(() => null)) as { choices?: Array<{ message?: { content?: string } }>; error?: { message?: string } } | null;
-    if (!response.ok) return NextResponse.json({ error: "ia_error", detail: result?.error?.message || "Falha no provedor." }, { status: 502 });
-    return NextResponse.json({ text: result?.choices?.[0]?.message?.content?.trim() || "Não foi possível gerar uma resposta." });
-  } catch (error) {
-    return NextResponse.json({ error: error instanceof Error && error.name === "AbortError" ? "ia_timeout" : "ia_error" }, { status: 502 });
-  } finally {
-    clearTimeout(timeout);
+    const text = await ia.chatCompletion(
+      admin,
+      [
+        { role: "system", content: "Você auxilia um contador brasileiro. Seja técnico, prudente e claro. Não execute ações, não invente legislação, valores ou prazos e sinalize quando algo exigir confirmação profissional." },
+        { role: "user", content: `${instructions[mode]}${skillContext}\n\nCliente: ${client.name}\nAssunto: ${client.tax_type || "não informado"}\nDiagnóstico atual: ${client.diagnosis || "não informado"}\nTratamento atual: ${client.treatment || "não informado"}\n\nHistórico:\n${history || "Sem mensagens."}` },
+      ],
+      { temperature: 0.25, maxTokens: 650 },
+    );
+    return NextResponse.json({ text: text.trim() || "Não foi possível gerar uma resposta." });
+  } catch (e) {
+    const err = e as { code?: string; name?: string; message: string };
+    if (err.code === "ia_not_configured") return NextResponse.json({ error: "ia_not_configured" }, { status: 503 });
+    if (err.name === "TimeoutError" || err.name === "AbortError") return NextResponse.json({ error: "ia_timeout" }, { status: 502 });
+    return NextResponse.json({ error: "ia_error", detail: err.message }, { status: 502 });
   }
 }

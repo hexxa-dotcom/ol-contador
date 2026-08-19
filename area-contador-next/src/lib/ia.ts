@@ -1,32 +1,43 @@
 // Integração de IA — porte 1:1 de api/_lib/ia.js. A chave nunca vai pro
 // navegador; toda chamada roda no servidor.
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { getSystemSecret } from "@/lib/systemSecrets";
 
-const PROVIDER = process.env.IA_PROVIDER || (process.env.GROQ_API_KEY ? "groq" : "openrouter");
+type Admin = SupabaseClient;
 
-const PROVIDERS = {
-  groq: {
-    baseURL: "https://api.groq.com/openai/v1",
-    key: process.env.GROQ_API_KEY || "",
-    model: process.env.GROQ_MODEL || "llama-3.3-70b-versatile",
-    visionModel: process.env.GROQ_VISION_MODEL || "llama-3.2-90b-vision-preview",
-  },
-  openrouter: {
-    baseURL: "https://openrouter.ai/api/v1",
-    key: process.env.OPENROUTER_API_KEY || "",
-    model: process.env.OPENROUTER_MODEL || "anthropic/claude-3.5-sonnet",
-    visionModel: process.env.OPENROUTER_MODEL || "anthropic/claude-3.5-sonnet",
-  },
-} as const;
+// Resolve a chave/modelo ativos a cada chamada: banco primeiro (editável na
+// tela de Configurações), variável de ambiente como fallback. Sem cache em
+// memória de propósito — trocar a chave na UI precisa valer na próxima
+// chamada, não depois de um redeploy.
+async function resolveProvider(admin: Admin) {
+  const [groqKey, groqModel, groqVisionModel, openrouterKey, openrouterModel] = await Promise.all([
+    getSystemSecret(admin, "GROQ_API_KEY"),
+    getSystemSecret(admin, "GROQ_MODEL"),
+    getSystemSecret(admin, "GROQ_VISION_MODEL"),
+    getSystemSecret(admin, "OPENROUTER_API_KEY"),
+    getSystemSecret(admin, "OPENROUTER_MODEL"),
+  ]);
+  const provider = process.env.IA_PROVIDER || (groqKey ? "groq" : "openrouter");
+  const providers = {
+    groq: {
+      baseURL: "https://api.groq.com/openai/v1",
+      key: groqKey || "",
+      model: groqModel || "llama-3.3-70b-versatile",
+      visionModel: groqVisionModel || "llama-3.2-90b-vision-preview",
+    },
+    openrouter: {
+      baseURL: "https://openrouter.ai/api/v1",
+      key: openrouterKey || "",
+      model: openrouterModel || "anthropic/claude-3.5-sonnet",
+      visionModel: openrouterModel || "anthropic/claude-3.5-sonnet",
+    },
+  } as const;
+  return providers[provider as keyof typeof providers] || providers.openrouter;
+}
 
-const ACTIVE = PROVIDERS[PROVIDER as keyof typeof PROVIDERS] || PROVIDERS.openrouter;
-const BASE_URL = ACTIVE.baseURL;
-const API_KEY = ACTIVE.key;
-const MODEL = ACTIVE.model;
-const VISION_MODEL = ACTIVE.visionModel;
-
-export function isConfigured(): boolean {
-  return !!API_KEY;
+export async function isConfigured(admin: Admin): Promise<boolean> {
+  const active = await resolveProvider(admin);
+  return !!active.key;
 }
 
 class IaError extends Error {
@@ -44,18 +55,20 @@ export type ClienteContexto = {
 };
 
 export async function chatCompletion(
+  admin: Admin,
   messages: ChatMessage[],
   { temperature = 0.3, maxTokens = 700 }: { temperature?: number; maxTokens?: number } = {}
 ): Promise<string> {
-  if (!isConfigured()) {
+  const active = await resolveProvider(admin);
+  if (!active.key) {
     const err = new IaError("ia_not_configured");
     err.code = "ia_not_configured";
     throw err;
   }
-  const res = await fetch(BASE_URL + "/chat/completions", {
+  const res = await fetch(active.baseURL + "/chat/completions", {
     method: "POST",
-    headers: { Authorization: `Bearer ${API_KEY}`, "Content-Type": "application/json", "X-Title": "Ola Contador" },
-    body: JSON.stringify({ model: MODEL, messages, temperature, max_tokens: maxTokens }),
+    headers: { Authorization: `Bearer ${active.key}`, "Content-Type": "application/json", "X-Title": "Ola Contador" },
+    body: JSON.stringify({ model: active.model, messages, temperature, max_tokens: maxTokens }),
     signal: AbortSignal.timeout(25000),
   });
   const data = await res.json().catch(() => ({}));
@@ -92,8 +105,9 @@ function extrairJson<T>(raw: string, fallback: T): T {
 
 export type SugestaoDiagnostico = { diagnosis: string; treatment: string };
 
-export async function sugerirDiagnostico(cliente: ClienteContexto): Promise<SugestaoDiagnostico> {
+export async function sugerirDiagnostico(admin: Admin, cliente: ClienteContexto): Promise<SugestaoDiagnostico> {
   const raw = await chatCompletion(
+    admin,
     [
       { role: "system", content: PERSONA },
       {
@@ -124,6 +138,7 @@ export type RelatorioCliente = {
 };
 
 export async function gerarRelatorioCliente(
+  admin: Admin,
   cliente: ClienteContexto,
   { tipoRelatorio = "atendimento" }: { tipoRelatorio?: "atendimento" | "pendencias" } = {}
 ): Promise<RelatorioCliente> {
@@ -132,6 +147,7 @@ export async function gerarRelatorioCliente(
     ? `Produza um RELATÓRIO DE PENDÊNCIAS conciso. Declare que a análise se baseia no Relatório de Pendências da Receita Federal e nas demais evidências levantadas. Liste somente pendências efetivamente identificadas, as evidências analisadas, a conclusão técnica e orientações de regularização. Não atribua responsabilidade nem invente prazos.`
     : `Produza um RELATÓRIO DE ATENDIMENTO de uma única página, destinado a atestar o que ocorreu e como o caso foi resolvido. Limite-se à descrição objetiva do caso, às providências realizadas e à resolução. Não mencione pendências, responsáveis, prazos, próximos passos ou arquivos entregues.`;
   const raw = await chatCompletion(
+    admin,
     [
       { role: "system", content: PERSONA },
       {
@@ -173,20 +189,22 @@ export async function gerarRelatorioCliente(
 }
 
 export async function chatVision(
+  admin: Admin,
   promptText: string,
   imageDataUrl: string,
   { maxTokens = 700 }: { maxTokens?: number } = {}
 ): Promise<string> {
-  if (!isConfigured()) {
+  const active = await resolveProvider(admin);
+  if (!active.key) {
     const err = new IaError("ia_not_configured");
     err.code = "ia_not_configured";
     throw err;
   }
-  const res = await fetch(BASE_URL + "/chat/completions", {
+  const res = await fetch(active.baseURL + "/chat/completions", {
     method: "POST",
-    headers: { Authorization: `Bearer ${API_KEY}`, "Content-Type": "application/json", "X-Title": "Ola Contador" },
+    headers: { Authorization: `Bearer ${active.key}`, "Content-Type": "application/json", "X-Title": "Ola Contador" },
     body: JSON.stringify({
-      model: VISION_MODEL,
+      model: active.visionModel,
       max_tokens: maxTokens,
       messages: [
         { role: "system", content: PERSONA },
@@ -224,11 +242,11 @@ export async function extrairTextoPDF(buffer: Buffer): Promise<string> {
 
 export type AnaliseDocumento = { tipo: string; resumo: string; diagnostico: string; dados: string };
 
-export async function analisarDocumento(buffer: Buffer, mime: string | null): Promise<AnaliseDocumento> {
+export async function analisarDocumento(admin: Admin, buffer: Buffer, mime: string | null): Promise<AnaliseDocumento> {
   let raw: string;
   if (mime && mime.startsWith("image/")) {
     const dataUrl = `data:${mime};base64,${buffer.toString("base64")}`;
-    raw = await chatVision(PROMPT_DOC, dataUrl, { maxTokens: 600 });
+    raw = await chatVision(admin, PROMPT_DOC, dataUrl, { maxTokens: 600 });
   } else if (mime === "application/pdf") {
     let texto = "";
     try {
@@ -237,6 +255,7 @@ export async function analisarDocumento(buffer: Buffer, mime: string | null): Pr
       return { tipo: "PDF", resumo: "Não consegui extrair o texto deste PDF automaticamente.", diagnostico: "", dados: "" };
     }
     raw = await chatCompletion(
+      admin,
       [
         { role: "system", content: PERSONA },
         { role: "user", content: `${PROMPT_DOC}\n\nConteúdo extraído do PDF:\n${texto}` },
@@ -258,7 +277,7 @@ export async function uploadSkillPDF(
   base64: string
 ): Promise<{ success: true; chunksProcessed: number }> {
   if (!skillName || !base64) throw new Error("Faltam parâmetros.");
-  const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+  const OPENAI_API_KEY = await getSystemSecret(admin, "OPENAI_API_KEY");
   if (!OPENAI_API_KEY) {
     const e = new IaError("OPENAI_API_KEY_MISSING");
     e.code = "ia_not_configured";
@@ -299,8 +318,8 @@ export async function uploadSkillPDF(
   return { success: true, chunksProcessed: successCount };
 }
 
-async function generateEmbeddingForQuery(text: string): Promise<number[] | null> {
-  const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+async function generateEmbeddingForQuery(admin: Admin, text: string): Promise<number[] | null> {
+  const OPENAI_API_KEY = await getSystemSecret(admin, "OPENAI_API_KEY");
   if (!OPENAI_API_KEY) return null;
   try {
     const res = await fetch("https://api.openai.com/v1/embeddings", {
@@ -321,7 +340,7 @@ async function generateEmbeddingForQuery(text: string): Promise<number[] | null>
 // filtra pela mesma categoria usada no upload (ex.: o taxType do cliente).
 export async function getRagContext(skillName: string | null | undefined, query: string, admin: SupabaseClient): Promise<string> {
   if (!skillName) return "";
-  const embedding = await generateEmbeddingForQuery(query);
+  const embedding = await generateEmbeddingForQuery(admin, query);
   if (!embedding) return "";
 
   const { data, error } = await admin.rpc("match_skills", {

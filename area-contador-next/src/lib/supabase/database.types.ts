@@ -385,6 +385,41 @@ export type Database = {
           },
         ]
       }
+      chaves_sistema: {
+        Row: {
+          atualizado_em: string
+          atualizado_por: string | null
+          auth_tag: string | null
+          chave: string
+          ciphertext: string | null
+          iv: string | null
+        }
+        Insert: {
+          atualizado_em?: string
+          atualizado_por?: string | null
+          auth_tag?: string | null
+          chave: string
+          ciphertext?: string | null
+          iv?: string | null
+        }
+        Update: {
+          atualizado_em?: string
+          atualizado_por?: string | null
+          auth_tag?: string | null
+          chave?: string
+          ciphertext?: string | null
+          iv?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chaves_sistema_atualizado_por_fkey"
+            columns: ["atualizado_por"]
+            isOneToOne: false
+            referencedRelation: "staff"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clientes: {
         Row: {
           arquivado_em: string | null
