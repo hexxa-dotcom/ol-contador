@@ -4660,6 +4660,59 @@ function configObject(data: OperationsData, key: string) {
     ? (value as Record<string, unknown>)
     : {};
 }
+type SkillItem = {
+  id: string;
+  name: string;
+  tema: string;
+  content: string;
+  active: boolean;
+};
+function normalizeSkillItem(item: unknown, index: number): SkillItem {
+  const value =
+    item && typeof item === "object" && !Array.isArray(item)
+      ? (item as Record<string, unknown>)
+      : {};
+  return {
+    id: String(value.id || `skill-${index}`),
+    name: String(value.name || ""),
+    tema: String(value.tema || ""),
+    content: String(value.content || ""),
+    active: value.active !== false,
+  };
+}
+type ChatShortcutItem = {
+  id: string;
+  action: "reply" | "doc";
+  text: string;
+  label: string;
+  enabled: boolean;
+};
+function normalizeChatShortcutItem(item: unknown, index: number): ChatShortcutItem {
+  const value =
+    item && typeof item === "object" && !Array.isArray(item)
+      ? (item as Record<string, unknown>)
+      : {};
+  return {
+    id: String(value.id || `cs-${index}`),
+    action: value.action === "doc" ? "doc" : "reply",
+    text: String(value.text || ""),
+    label: String(value.label || value.text || ""),
+    enabled: value.enabled !== false,
+  };
+}
+type CopilotShortcutItem = { id: string; label: string; prompt: string; enabled: boolean };
+function normalizeCopilotShortcutItem(item: unknown, index: number): CopilotShortcutItem {
+  const value =
+    item && typeof item === "object" && !Array.isArray(item)
+      ? (item as Record<string, unknown>)
+      : {};
+  return {
+    id: String(value.id || `cp-${index}`),
+    label: String(value.label || ""),
+    prompt: String(value.prompt || ""),
+    enabled: value.enabled !== false,
+  };
+}
 export function ConfiguracoesIntegralView({
   data = emptyOperationsData,
 }: {
@@ -4745,8 +4798,10 @@ export function ConfiguracoesIntegralView({
   const initialSkills = data.settings.find(
     (item) => item.chave === "ia_skills",
   )?.valor;
-  const [skills, setSkills] = useState(
-    JSON.stringify(Array.isArray(initialSkills) ? initialSkills : [], null, 2),
+  const [skills, setSkills] = useState<SkillItem[]>(
+    Array.isArray(initialSkills)
+      ? initialSkills.map(normalizeSkillItem)
+      : [],
   );
   const [municipalServices, setMunicipalServices] = useState<Array<{
     id: string | number;
@@ -4760,22 +4815,20 @@ export function ConfiguracoesIntegralView({
   const initialShortcuts = data.settings.find(
     (item) => item.chave === "chat_shortcuts",
   )?.valor;
-  const [shortcuts, setShortcuts] = useState(
-    JSON.stringify(
-      Array.isArray(initialShortcuts) ? initialShortcuts : [],
-      null,
-      2,
-    ),
+  const [shortcuts, setShortcuts] = useState<ChatShortcutItem[]>(
+    Array.isArray(initialShortcuts)
+      ? initialShortcuts.map(normalizeChatShortcutItem)
+      : [],
   );
   const initialCopilotShortcuts = data.settings.find(
     (item) => item.chave === "copilot_shortcuts",
   )?.valor;
-  const [copilotShortcutsConfig, setCopilotShortcutsConfig] = useState(
-    JSON.stringify(
-      Array.isArray(initialCopilotShortcuts) ? initialCopilotShortcuts : [],
-      null,
-      2,
-    ),
+  const [copilotShortcutsConfig, setCopilotShortcutsConfig] = useState<
+    CopilotShortcutItem[]
+  >(
+    Array.isArray(initialCopilotShortcuts)
+      ? initialCopilotShortcuts.map(normalizeCopilotShortcutItem)
+      : [],
   );
   const [team, setTeam] = useState<TeamMember[]>([]);
   const [teamLoaded, setTeamLoaded] = useState(false);
@@ -5367,33 +5420,104 @@ export function ConfiguracoesIntegralView({
                   <Upload size={15} /> {skillUploading ? "Vetorizando PDF…" : "Enviar e indexar PDF"}
                 </Button>
               </Card>
-              <div className="form-message">
-                Edite a lista JSON de skills. Cada item pode conter id, name,
-                content e active. O conteúdo é enviado ao copiloto somente no
-                contexto autorizado.
+              <div className="settings-item-list">
+                {skills.map((skill, index) => (
+                  <Card className="settings-item-card" key={skill.id}>
+                    <div className="form-grid">
+                      <label>
+                        Nome
+                        <Input
+                          value={skill.name}
+                          onChange={(event) =>
+                            setSkills((items) =>
+                              items.map((item, itemIndex) =>
+                                itemIndex === index
+                                  ? { ...item, name: event.target.value }
+                                  : item,
+                              ),
+                            )
+                          }
+                        />
+                      </label>
+                      <label>
+                        Tema
+                        <Input
+                          value={skill.tema}
+                          onChange={(event) =>
+                            setSkills((items) =>
+                              items.map((item, itemIndex) =>
+                                itemIndex === index
+                                  ? { ...item, tema: event.target.value }
+                                  : item,
+                              ),
+                            )
+                          }
+                        />
+                      </label>
+                    </div>
+                    <label>
+                      Conteúdo
+                      <textarea
+                        rows={4}
+                        value={skill.content}
+                        onChange={(event) =>
+                          setSkills((items) =>
+                            items.map((item, itemIndex) =>
+                              itemIndex === index
+                                ? { ...item, content: event.target.value }
+                                : item,
+                            ),
+                          )
+                        }
+                      />
+                    </label>
+                    <div className="settings-item-row">
+                      <label className="inline-checkbox">
+                        <input
+                          type="checkbox"
+                          checked={skill.active}
+                          onChange={(event) =>
+                            setSkills((items) =>
+                              items.map((item, itemIndex) =>
+                                itemIndex === index
+                                  ? { ...item, active: event.target.checked }
+                                  : item,
+                              ),
+                            )
+                          }
+                        />
+                        Ativa
+                      </label>
+                      <Button
+                        className="icon ghost"
+                        onClick={() =>
+                          setSkills((items) =>
+                            items.filter((_, itemIndex) => itemIndex !== index),
+                          )
+                        }
+                      >
+                        <Trash2 size={14} />
+                      </Button>
+                    </div>
+                  </Card>
+                ))}
+                {!skills.length && (
+                  <EmptyState>Nenhuma skill cadastrada.</EmptyState>
+                )}
               </div>
-              <label className="code-editor-label">
-                Skills do Copiloto
-                <textarea
-                  className="code-editor"
-                  rows={18}
-                  value={skills}
-                  onChange={(event) => setSkills(event.target.value)}
-                />
-              </label>
               <div className="form-actions">
-                <small>JSON validado antes de salvar.</small>
                 <Button
-                  onClick={() => {
-                    try {
-                      const parsed = JSON.parse(skills);
-                      if (!Array.isArray(parsed)) throw new Error();
-                      save("ia_skills", parsed);
-                    } catch {
-                      feedback("O JSON das skills não é válido.");
-                    }
-                  }}
+                  className="secondary"
+                  onClick={() =>
+                    setSkills((items) => [
+                      ...items,
+                      normalizeSkillItem({}, items.length),
+                    ])
+                  }
                 >
+                  <Plus size={15} /> Nova skill
+                </Button>
+                <Button onClick={() => save("ia_skills", skills)}>
                   <Save size={15} /> Salvar skills
                 </Button>
               </div>
@@ -5434,52 +5558,181 @@ export function ConfiguracoesIntegralView({
                 ))}
               </div>
               {footer("chat_appearance", appearance, true)}
-              <label className="code-editor-label">
-                Atalhos rápidos (JSON)
-                <textarea
-                  className="code-editor"
-                  rows={10}
-                  value={shortcuts}
-                  onChange={(event) => setShortcuts(event.target.value)}
-                />
-              </label>
-              <Button
-                className="secondary"
-                onClick={() => {
-                  try {
-                    const parsed = JSON.parse(shortcuts);
-                    if (!Array.isArray(parsed)) throw new Error();
-                    save("chat_shortcuts", parsed, true);
-                  } catch {
-                    feedback("O JSON dos atalhos não é válido.");
+              <strong>Atalhos rápidos do chat</strong>
+              <div className="settings-item-list">
+                {shortcuts.map((shortcut, index) => (
+                  <div className="settings-item-row" key={shortcut.id}>
+                    <select
+                      value={shortcut.action}
+                      onChange={(event) =>
+                        setShortcuts((items) =>
+                          items.map((item, itemIndex) =>
+                            itemIndex === index
+                              ? { ...item, action: event.target.value as "reply" | "doc" }
+                              : item,
+                          ),
+                        )
+                      }
+                    >
+                      <option value="reply">Resposta</option>
+                      <option value="doc">Pedir documento</option>
+                    </select>
+                    <Input
+                      placeholder="Rótulo"
+                      value={shortcut.label}
+                      onChange={(event) =>
+                        setShortcuts((items) =>
+                          items.map((item, itemIndex) =>
+                            itemIndex === index
+                              ? { ...item, label: event.target.value }
+                              : item,
+                          ),
+                        )
+                      }
+                    />
+                    <Input
+                      placeholder="Texto"
+                      value={shortcut.text}
+                      onChange={(event) =>
+                        setShortcuts((items) =>
+                          items.map((item, itemIndex) =>
+                            itemIndex === index
+                              ? { ...item, text: event.target.value }
+                              : item,
+                          ),
+                        )
+                      }
+                    />
+                    <label className="inline-checkbox">
+                      <input
+                        type="checkbox"
+                        checked={shortcut.enabled}
+                        onChange={(event) =>
+                          setShortcuts((items) =>
+                            items.map((item, itemIndex) =>
+                              itemIndex === index
+                                ? { ...item, enabled: event.target.checked }
+                                : item,
+                            ),
+                          )
+                        }
+                      />
+                      Ativo
+                    </label>
+                    <Button
+                      className="icon ghost"
+                      onClick={() =>
+                        setShortcuts((items) =>
+                          items.filter((_, itemIndex) => itemIndex !== index),
+                        )
+                      }
+                    >
+                      <Trash2 size={14} />
+                    </Button>
+                  </div>
+                ))}
+                {!shortcuts.length && (
+                  <EmptyState>Nenhum atalho cadastrado.</EmptyState>
+                )}
+              </div>
+              <div className="form-actions">
+                <Button
+                  className="secondary"
+                  onClick={() =>
+                    setShortcuts((items) => [
+                      ...items,
+                      normalizeChatShortcutItem({}, items.length),
+                    ])
                   }
-                }}
-              >
-                Salvar atalhos
-              </Button>
-              <label className="code-editor-label">
-                Atalhos do Copiloto (JSON)
-                <textarea
-                  className="code-editor"
-                  rows={10}
-                  value={copilotShortcutsConfig}
-                  onChange={(event) => setCopilotShortcutsConfig(event.target.value)}
-                />
-              </label>
-              <Button
-                className="secondary"
-                onClick={() => {
-                  try {
-                    const parsed = JSON.parse(copilotShortcutsConfig);
-                    if (!Array.isArray(parsed)) throw new Error();
-                    save("copilot_shortcuts", parsed);
-                  } catch {
-                    feedback("O JSON dos atalhos do Copiloto não é válido.");
+                >
+                  <Plus size={15} /> Novo atalho
+                </Button>
+                <Button onClick={() => save("chat_shortcuts", shortcuts, true)}>
+                  Salvar atalhos
+                </Button>
+              </div>
+              <strong>Atalhos do Copiloto</strong>
+              <div className="settings-item-list">
+                {copilotShortcutsConfig.map((shortcut, index) => (
+                  <div className="settings-item-row" key={shortcut.id}>
+                    <Input
+                      placeholder="Rótulo"
+                      value={shortcut.label}
+                      onChange={(event) =>
+                        setCopilotShortcutsConfig((items) =>
+                          items.map((item, itemIndex) =>
+                            itemIndex === index
+                              ? { ...item, label: event.target.value }
+                              : item,
+                          ),
+                        )
+                      }
+                    />
+                    <Input
+                      placeholder="Prompt"
+                      value={shortcut.prompt}
+                      onChange={(event) =>
+                        setCopilotShortcutsConfig((items) =>
+                          items.map((item, itemIndex) =>
+                            itemIndex === index
+                              ? { ...item, prompt: event.target.value }
+                              : item,
+                          ),
+                        )
+                      }
+                    />
+                    <label className="inline-checkbox">
+                      <input
+                        type="checkbox"
+                        checked={shortcut.enabled}
+                        onChange={(event) =>
+                          setCopilotShortcutsConfig((items) =>
+                            items.map((item, itemIndex) =>
+                              itemIndex === index
+                                ? { ...item, enabled: event.target.checked }
+                                : item,
+                            ),
+                          )
+                        }
+                      />
+                      Ativo
+                    </label>
+                    <Button
+                      className="icon ghost"
+                      onClick={() =>
+                        setCopilotShortcutsConfig((items) =>
+                          items.filter((_, itemIndex) => itemIndex !== index),
+                        )
+                      }
+                    >
+                      <Trash2 size={14} />
+                    </Button>
+                  </div>
+                ))}
+                {!copilotShortcutsConfig.length && (
+                  <EmptyState>Nenhum atalho do Copiloto cadastrado.</EmptyState>
+                )}
+              </div>
+              <div className="form-actions">
+                <Button
+                  className="secondary"
+                  onClick={() =>
+                    setCopilotShortcutsConfig((items) => [
+                      ...items,
+                      normalizeCopilotShortcutItem({}, items.length),
+                    ])
                   }
-                }}
-              >
-                Salvar atalhos do Copiloto
-              </Button>
+                >
+                  <Plus size={15} /> Novo atalho
+                </Button>
+                <Button
+                  onClick={() =>
+                    save("copilot_shortcuts", copilotShortcutsConfig)
+                  }
+                >
+                  Salvar atalhos do Copiloto
+                </Button>
+              </div>
             </>
           )}
         </Card>

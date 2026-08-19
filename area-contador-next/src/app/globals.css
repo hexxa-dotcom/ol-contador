@@ -657,6 +657,12 @@ td { font-size: 11px; }
 .kanban-item > span { color: #475569; font-size: 9px; }
 .kanban-item > small { color: var(--muted-foreground); font-size: 8px; }
 .settings-list { margin-top: 18px; border: 1px solid var(--border); border-radius: var(--radius-card); overflow: hidden; }
+.settings-item-list { display: flex; flex-direction: column; gap: 10px; margin: 10px 0; }
+.settings-item-card { display: flex; flex-direction: column; gap: 10px; }
+.settings-item-row { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border: 1px solid var(--border); border-radius: var(--radius-control); background: rgba(255,255,255,.5); flex-wrap: wrap; }
+.settings-item-row select { min-width: 140px; }
+.settings-item-row input[type="text"], .settings-item-row input:not([type]) { flex: 1; min-width: 120px; }
+.inline-checkbox { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; font-size: 10px; color: #475569; }
 .setting-row { min-height: 70px; padding: 13px 15px; display: flex; align-items: center; justify-content: space-between; gap: 16px; border-bottom: 1px solid var(--border); }
 .setting-row:last-child { border: 0; }
 .setting-row > div { display: flex; flex-direction: column; gap: 4px; }
