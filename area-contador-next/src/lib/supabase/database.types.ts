@@ -417,6 +417,7 @@ export type Database = {
           recorrente_tipo: string | null
           regime_detectado_em: string | null
           regime_tributario: string | null
+          responsavel_id: string | null
           scheduled_time: string | null
           sem_agendamento_recebido_em: string | null
           sexo: string | null
@@ -457,6 +458,7 @@ export type Database = {
           recorrente_tipo?: string | null
           regime_detectado_em?: string | null
           regime_tributario?: string | null
+          responsavel_id?: string | null
           scheduled_time?: string | null
           sem_agendamento_recebido_em?: string | null
           sexo?: string | null
@@ -497,6 +499,7 @@ export type Database = {
           recorrente_tipo?: string | null
           regime_detectado_em?: string | null
           regime_tributario?: string | null
+          responsavel_id?: string | null
           scheduled_time?: string | null
           sem_agendamento_recebido_em?: string | null
           sexo?: string | null
@@ -506,7 +509,15 @@ export type Database = {
           ultimo_atendimento_finalizado_em?: string | null
           user_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "clientes_responsavel_id_fkey"
+            columns: ["responsavel_id"]
+            isOneToOne: false
+            referencedRelation: "staff"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       cobrancas: {
         Row: {
@@ -1371,6 +1382,7 @@ export type Database = {
           itens: Json
           name: string
           prazo_express_dias_uteis: number
+          price_agendado_cents: number | null
           price_cents: number
           recurrence: string | null
         }
@@ -1382,6 +1394,7 @@ export type Database = {
           itens?: Json
           name: string
           prazo_express_dias_uteis?: number
+          price_agendado_cents?: number | null
           price_cents: number
           recurrence?: string | null
         }
@@ -1393,31 +1406,62 @@ export type Database = {
           itens?: Json
           name?: string
           prazo_express_dias_uteis?: number
+          price_agendado_cents?: number | null
           price_cents?: number
           recurrence?: string | null
         }
         Relationships: []
       }
+      skills_embeddings: {
+        Row: {
+          chunk_text: string
+          created_at: string
+          embedding: string | null
+          id: string
+          skill_name: string
+        }
+        Insert: {
+          chunk_text: string
+          created_at?: string
+          embedding?: string | null
+          id?: string
+          skill_name: string
+        }
+        Update: {
+          chunk_text?: string
+          created_at?: string
+          embedding?: string | null
+          id?: string
+          skill_name?: string
+        }
+        Relationships: []
+      }
       staff: {
         Row: {
+          acesso_insights_radar: boolean
           created_at: string | null
           email: string
+          fila_restrita: boolean
           id: string | null
           name: string | null
           nome: string | null
           role: string | null
         }
         Insert: {
+          acesso_insights_radar?: boolean
           created_at?: string | null
           email: string
+          fila_restrita?: boolean
           id?: string | null
           name?: string | null
           nome?: string | null
           role?: string | null
         }
         Update: {
+          acesso_insights_radar?: boolean
           created_at?: string | null
           email?: string
+          fila_restrita?: boolean
           id?: string | null
           name?: string | null
           nome?: string | null
@@ -1659,6 +1703,20 @@ export type Database = {
       }
       is_staff: { Args: never; Returns: boolean }
       marcar_lidas: { Args: { p_cliente_id: string }; Returns: number }
+      match_skills: {
+        Args: {
+          match_count: number
+          match_threshold: number
+          query_embedding: string
+          skill_filter: string
+        }
+        Returns: {
+          chunk_text: string
+          id: string
+          similarity: number
+          skill_name: string
+        }[]
+      }
       my_client_id: { Args: never; Returns: string }
       my_role: { Args: never; Returns: string }
     }
@@ -1793,4 +1851,3 @@ export const Constants = {
     Enums: {},
   },
 } as const
-

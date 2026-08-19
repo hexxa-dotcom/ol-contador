@@ -4653,6 +4653,8 @@ type TeamMember = {
   name: string | null;
   nome: string | null;
   role: string | null;
+  fila_restrita?: boolean;
+  acesso_insights_radar?: boolean;
 };
 function configObject(data: OperationsData, key: string) {
   const value = data.settings.find((item) => item.chave === key)?.valor;
@@ -4836,6 +4838,8 @@ export function ConfiguracoesIntegralView({
     nome: "",
     email: "",
     role: "parceiro",
+    filaRestrita: false,
+    acessoInsightsRadar: true,
   });
   function save(key: string, value: unknown, visible = false) {
     startTransition(async () => {
@@ -4864,8 +4868,8 @@ export function ConfiguracoesIntegralView({
     });
   }
   async function teamAction(
-    action: "listar" | "convidar" | "remover",
-    payload?: Record<string, string>,
+    action: "listar" | "convidar" | "remover" | "atualizar",
+    payload?: Record<string, string | boolean>,
   ) {
     const response = await fetch("/api/team", {
       method: "POST",
@@ -4883,7 +4887,13 @@ export function ConfiguracoesIntegralView({
       setTeam(result);
       setTeamLoaded(true);
     } else {
-      feedback(action === "convidar" ? "Convite enviado." : "Acesso revogado.");
+      feedback(
+        action === "convidar"
+          ? "Convite enviado."
+          : action === "atualizar"
+            ? "Permissões atualizadas."
+            : "Acesso revogado.",
+      );
       await teamAction("listar");
     }
   }
