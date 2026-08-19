@@ -103,6 +103,7 @@ import {
   saveAgendaAvailability,
   saveClientDossier,
   persistClientChecklist,
+  persistClientNotes,
   sendChatTimerWarning,
   sendAudioMessage,
   sendChatShortcut,
@@ -2075,9 +2076,41 @@ export function ClientesIntegralView({
     });
     feedback("Triagem aplicada ao dossiê. Revise e salve as alterações.");
   }
+  const notesEditorRef = useRef<HTMLDivElement>(null);
+  const notesSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [notesStatus, setNotesStatus] = useState("");
+  function scheduleSaveNotes(clientId: string, html: string) {
+    setNotesStatus("Salvando…");
+    if (notesSaveTimerRef.current) clearTimeout(notesSaveTimerRef.current);
+    notesSaveTimerRef.current = setTimeout(
+      () => void saveNotesNow(clientId, html),
+      800,
+    );
+  }
+  async function saveNotesNow(clientId: string, html: string) {
+    if (notesSaveTimerRef.current) clearTimeout(notesSaveTimerRef.current);
+    const result = await persistClientNotes({ clientId, notas: html });
+    setNotesStatus(result.ok ? "Anotações salvas." : result.message);
+  }
+  function execNotesCommand(command: string, value?: string) {
+    notesEditorRef.current?.focus();
+    if (command === "hiliteColor" && value) {
+      if (!document.execCommand("hiliteColor", false, value))
+        document.execCommand("backColor", false, value);
+    } else {
+      document.execCommand(command, false, value);
+    }
+    if (selected && notesEditorRef.current)
+      scheduleSaveNotes(selected.id, notesEditorRef.current.innerHTML);
+  }
   function open(
     client: ClientRecord,
-    next: "cadastro" | "prontuario" | "historico" | "recorrencia" = "cadastro",
+    next:
+      | "cadastro"
+      | "prontuario"
+      | "historico"
+      | "pagamentos"
+      | "recorrencia" = "cadastro",
   ) {
     setSelected(client);
     setDossier(emptyDossier(client));
@@ -2091,6 +2124,12 @@ export function ClientesIntegralView({
     setVault({ status: "loading" });
     void loadVault(client.id);
   }
+  useEffect(() => {
+    if (section !== "prontuario" || !notesEditorRef.current || !dossier) return;
+    notesEditorRef.current.innerHTML = dossier.notas || "";
+    setNotesStatus("");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selected?.id, section]);
   useEffect(() => {
     const requestedClient = window.sessionStorage.getItem("contador-open-client");
     if (!requestedClient) return;
@@ -2731,13 +2770,60 @@ export function ClientesIntegralView({
                     />
                   </label>
                   <label>
-                    Notas internas
-                    <textarea
-                      rows={6}
-                      value={dossier.notas}
-                      onChange={(event) =>
-                        setDossier({ ...dossier, notas: event.target.value })
-                      }
+                    <span className="notes-label-row">
+                      Notas internas
+                      <small>{notesStatus}</small>
+                    </span>
+                    <div className="notes-toolbar">
+                      <button
+                        type="button"
+                        onClick={() => execNotesCommand("bold")}
+                        title="Negrito"
+                      >
+                        <b>N</b>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => execNotesCommand("insertUnorderedList")}
+                        title="Lista"
+                      >
+                        <ListChecks size={14} />
+                      </button>
+                      {["#fef08a", "#bbf7d0", "#bfdbfe"].map((color) => (
+                        <button
+                          key={color}
+                          type="button"
+                          className="notes-color-swatch"
+                          style={{ backgroundColor: color }}
+                          title="Destacar"
+                          onClick={() => execNotesCommand("hiliteColor", color)}
+                        />
+                      ))}
+                    </div>
+                    <div
+                      ref={notesEditorRef}
+                      className="notes-editor"
+                      contentEditable
+                      suppressContentEditableWarning
+                      onInput={(event) => {
+                        if (!selected) return;
+                        scheduleSaveNotes(
+                          selected.id,
+                          event.currentTarget.innerHTML,
+                        );
+                        setDossier((value) =>
+                          value
+                            ? { ...value, notas: event.currentTarget.innerHTML }
+                            : value,
+                        );
+                      }}
+                      onBlur={(event) => {
+                        if (!selected) return;
+                        void saveNotesNow(
+                          selected.id,
+                          event.currentTarget.innerHTML,
+                        );
+                      }}
                     />
                   </label>
                 </div>

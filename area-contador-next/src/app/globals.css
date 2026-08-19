@@ -819,6 +819,13 @@ td { font-size: 11px; }
 .availability-pills.blocked button { color: #b91c1c; background: rgba(239,68,68,.09); }
 .inline-form { display: flex; gap: 8px; align-items: center; }
 .report-manual-attachments { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); }
+.notes-label-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.notes-label-row small { font-weight: 400; color: var(--muted-foreground); text-transform: none; }
+.notes-toolbar { display: flex; align-items: center; gap: 6px; margin: 6px 0; }
+.notes-toolbar button { display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; padding: 0; border: 1px solid var(--border); border-radius: 7px; background: rgba(255,255,255,.7); cursor: pointer; }
+.notes-color-swatch { border: 1px solid rgba(15,23,42,.15) !important; }
+.notes-editor { min-height: 140px; padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius-control); background: rgba(255,255,255,.7); font-size: 12px; line-height: 1.6; overflow-y: auto; }
+.notes-editor:focus { outline: 2px solid rgba(249,115,22,.35); outline-offset: 1px; }
 .report-manual-attachment-row { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border: 1px solid var(--border); border-radius: var(--radius-control); background: rgba(255,255,255,.5); }
 .report-manual-attachment-row span { flex: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .report-manual-attachment-row small { color: var(--muted-foreground); text-transform: capitalize; }
