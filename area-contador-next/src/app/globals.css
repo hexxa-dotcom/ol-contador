@@ -1300,42 +1300,238 @@ td { font-size: 11px; }
   min-height: 100vh;
 }
 
+/* ==================== RODAPÉ PÚBLICO ULTRA-PREMIUM ==================== */
 .public-footer-dark { 
-  background: var(--pub-ink); 
-  padding: 56px 32px 40px; 
-  color: rgba(255,255,255,.7); 
+  position: relative;
+  background: linear-gradient(180deg, #07322A 0%, #031713 100%); 
+  padding: 64px 32px 36px; 
+  color: rgba(255, 255, 255, 0.75); 
+  border-top: 1px solid rgba(255, 156, 126, 0.2);
+  overflow: hidden;
 }
+
+.public-footer-glow {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 700px;
+  height: 180px;
+  background: radial-gradient(ellipse at center top, rgba(255, 156, 126, 0.15) 0%, rgba(12, 84, 70, 0.25) 45%, transparent 75%);
+  pointer-events: none;
+  z-index: 0;
+}
+
 .public-rodape-grid { 
+  position: relative;
+  z-index: 1;
   max-width: 1200px; 
   margin: 0 auto; 
   display: grid; 
-  grid-template-columns: 1.4fr 1fr 1fr 1fr; 
-  gap: 32px; 
+  grid-template-columns: 1.4fr 1fr 1fr 1.25fr; 
+  gap: 40px; 
 }
-.public-rodape-grid a { 
-  color: inherit; 
-  text-decoration: none; 
-  transition: color 0.15s ease;
+
+.public-rodape-desc {
+  font-size: 14px;
+  line-height: 1.65;
+  color: rgba(255, 255, 255, 0.72);
+  max-width: 330px;
+  margin: 0 0 16px 0;
 }
-.public-rodape-grid a:hover { 
-  color: var(--pub-coral-light); 
+
+.public-rodape-badge-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 99px;
+  font-size: 12px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(8px);
 }
+
+.public-rodape-pulse-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #4ADE80;
+  box-shadow: 0 0 8px #4ADE80;
+  animation: pulseGlow 2.5s infinite ease-in-out;
+}
+
+@keyframes pulseGlow {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(0.85); }
+}
+
+.public-rodape-heading {
+  color: #FFFFFF;
+  font-family: var(--font-bricolage), sans-serif;
+  font-size: 13.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin: 0 0 18px 0;
+}
+
+.public-rodape-links {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.public-rodape-link-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.75);
+  text-decoration: none;
+  padding: 4px 0;
+  transition: all 0.2s ease;
+}
+
+.public-rodape-link-item:hover {
+  color: #FFFFFF;
+  transform: translateX(3px);
+}
+
+.public-rodape-link-icon {
+  color: rgba(255, 255, 255, 0.4);
+  transition: all 0.2s ease;
+}
+
+.public-rodape-link-item:hover .public-rodape-link-icon {
+  color: #FF9C7E;
+  transform: translate(2px, -2px);
+}
+
+.public-rodape-tag-price {
+  font-size: 11px;
+  font-weight: 700;
+  color: #FF9C7E;
+  background: rgba(255, 156, 126, 0.12);
+  border: 1px solid rgba(255, 156, 126, 0.28);
+  padding: 2px 8px;
+  border-radius: 6px;
+}
+
+.public-rodape-tag-radar {
+  font-size: 11px;
+  font-weight: 700;
+  color: #9FD3C4;
+  background: rgba(159, 211, 196, 0.12);
+  border: 1px solid rgba(159, 211, 196, 0.28);
+  padding: 2px 8px;
+  border-radius: 6px;
+}
+
+.public-rodape-contact-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 14px;
+  text-decoration: none;
+  transition: all 0.25s ease;
+}
+
+.public-rodape-contact-card:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 156, 126, 0.4);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+}
+
+.public-rodape-contact-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: rgba(255, 156, 126, 0.15);
+  color: #FF9C7E;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.public-rodape-contact-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  overflow: hidden;
+}
+
+.public-rodape-contact-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.5);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.public-rodape-contact-val {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #FFFFFF;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+
+.public-rodape-trust-tag {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.6);
+  margin-top: 12px;
+}
+
+.public-rodape-trust-tag svg {
+  color: #9FD3C4;
+  flex-shrink: 0;
+}
+
 .public-rodape-base { 
+  position: relative;
+  z-index: 1;
   max-width: 1200px; 
-  margin: 0 auto; 
+  margin: 48px auto 0; 
   padding: 24px 0 0; 
-  margin-top: 32px;
   border-top: 1px solid rgba(255, 255, 255, 0.08);
   display: flex; 
+  align-items: center;
   justify-content: space-between; 
   font-size: 13px; 
   color: rgba(255, 255, 255, 0.55);
 }
 
-@media (max-width: 900px) {
+.public-rodape-trust-items {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 12.5px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.public-rodape-sep {
+  color: rgba(255, 255, 255, 0.25);
+}
+
+@media (max-width: 992px) {
   .public-rodape-grid { 
     grid-template-columns: 1fr 1fr; 
-    gap: 32px 24px; 
+    gap: 36px 28px; 
   }
   .public-rodape-brand-col { 
     grid-column: 1 / -1; 
@@ -1344,7 +1540,7 @@ td { font-size: 11px; }
 
 @media (max-width: 768px) {
   .public-footer-dark { 
-    padding: 32px 20px 24px; 
+    padding: 36px 20px 24px; 
   }
   .public-rodape-col-servicos,
   .public-rodape-col-institucional { 
@@ -1352,15 +1548,26 @@ td { font-size: 11px; }
   }
   .public-rodape-grid { 
     grid-template-columns: 1fr; 
-    gap: 20px; 
+    gap: 22px; 
+  }
+  .public-rodape-desc {
+    max-width: 100%;
+    font-size: 13.5px;
   }
   .public-rodape-base { 
     flex-direction: column; 
-    gap: 8px; 
+    gap: 14px; 
     text-align: center; 
-    padding-top: 16px; 
-    margin-top: 20px; 
+    padding-top: 20px; 
+    margin-top: 28px; 
     font-size: 12px; 
   }
+  .public-rodape-trust-items {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+    font-size: 11.5px;
+  }
 }
+
 

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { User, ChevronDown, UserCheck, Building2, Menu, X } from "lucide-react";
+import { User, ChevronDown, UserCheck, Building2, Menu, X, Mail, ShieldCheck, ArrowUpRight } from "lucide-react";
 
 const CHAVE_SESSAO = "oc_funil_sessao";
 
@@ -235,46 +235,105 @@ function EntrarMenu() {
 export function SiteFooter() {
   return (
     <footer className="public-footer-dark">
+      <div className="public-footer-glow" />
+
       <div className="public-rodape-grid">
+        {/* COLUNA 1: MARCA & STATUS */}
         <div className="public-rodape-brand-col">
-          <div className="public-brand" style={{ marginBottom: "16px" }}>
+          <div className="public-brand" style={{ marginBottom: "14px" }}>
             <Image src="/logo.svg" alt="Olá, Contador" width={32} height={33} />
             <span style={{ color: "#FFFFFF" }}>
               Olá<i>,</i> Contador<i>.</i>
             </span>
           </div>
-          <p style={{ fontSize: "14px", lineHeight: "1.6", color: "rgba(255,255,255,0.75)", maxWidth: "340px" }}>
+          <p className="public-rodape-desc">
             Atendimento contábil sob demanda com contador de registro CRC ativo. Sem mensalidade, sem surpresas.
           </p>
+          <div className="public-rodape-badge-status">
+            <span className="public-rodape-pulse-dot" />
+            <span>CRC Ativo · Atendimento 100% Online</span>
+          </div>
         </div>
+
+        {/* COLUNA 2: SERVIÇOS */}
         <div className="public-rodape-col-servicos">
-          <h4 style={{ color: "#FFFFFF", fontSize: "15px", fontWeight: "700", marginBottom: "16px" }}>Serviços</h4>
-          <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: "10px", fontSize: "14px" }}>
-            <li><Link href="/precos">Pessoa Física (R$ 199)</Link></li>
-            <li><Link href="/precos">Pessoa Jurídica (R$ 399)</Link></li>
-            <li><Link href="/radar">Radar Fiscal</Link></li>
+          <h4 className="public-rodape-heading">Serviços</h4>
+          <ul className="public-rodape-links">
+            <li>
+              <Link href="/precos" className="public-rodape-link-item">
+                <span>Pessoa Física</span>
+                <span className="public-rodape-tag-price">R$ 199</span>
+              </Link>
+            </li>
+            <li>
+              <Link href="/precos" className="public-rodape-link-item">
+                <span>Pessoa Jurídica</span>
+                <span className="public-rodape-tag-price">R$ 399</span>
+              </Link>
+            </li>
+            <li>
+              <Link href="/radar" className="public-rodape-link-item">
+                <span>Radar Fiscal</span>
+                <span className="public-rodape-tag-radar">Diagnóstico</span>
+              </Link>
+            </li>
           </ul>
         </div>
+
+        {/* COLUNA 3: INSTITUCIONAL */}
         <div className="public-rodape-col-institucional">
-          <h4 style={{ color: "#FFFFFF", fontSize: "15px", fontWeight: "700", marginBottom: "16px" }}>Institucional</h4>
-          <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: "10px", fontSize: "14px" }}>
-            <li><Link href="/termos">Termos de Uso</Link></li>
-            <li><Link href="/privacidade">Política de Privacidade</Link></li>
-            <li><Link href="/login">Área do Cliente</Link></li>
+          <h4 className="public-rodape-heading">Institucional</h4>
+          <ul className="public-rodape-links">
+            <li>
+              <Link href="/termos" className="public-rodape-link-item">
+                <span>Termos de Uso</span>
+              </Link>
+            </li>
+            <li>
+              <Link href="/privacidade" className="public-rodape-link-item">
+                <span>Política de Privacidade</span>
+              </Link>
+            </li>
+            <li>
+              <Link href="/login" className="public-rodape-link-item">
+                <span>Área do Cliente</span>
+                <ArrowUpRight size={14} className="public-rodape-link-icon" />
+              </Link>
+            </li>
           </ul>
         </div>
+
+        {/* COLUNA 4: CONTATO */}
         <div className="public-rodape-col-contato">
-          <h4 style={{ color: "#FFFFFF", fontSize: "15px", fontWeight: "700", marginBottom: "16px" }}>Contato</h4>
-          <p style={{ fontSize: "14px", color: "rgba(255,255,255,0.75)", margin: 0, lineHeight: "1.6" }}>
-            ola@olacontador.com.br<br />
-            Atendimento 100% online em todo o Brasil
-          </p>
+          <h4 className="public-rodape-heading">Contato Seguro</h4>
+          <a href="mailto:ola@olacontador.com.br" className="public-rodape-contact-card">
+            <div className="public-rodape-contact-icon">
+              <Mail size={17} />
+            </div>
+            <div className="public-rodape-contact-info">
+              <span className="public-rodape-contact-label">Canal Oficial</span>
+              <span className="public-rodape-contact-val">ola@olacontador.com.br</span>
+            </div>
+          </a>
+          <div className="public-rodape-trust-tag">
+            <ShieldCheck size={14} />
+            <span>Atendimento em todo o território nacional</span>
+          </div>
         </div>
       </div>
 
+      {/* LINHA BASE */}
       <div className="public-rodape-base">
-        <span>© {new Date().getFullYear()} Olá, Contador. Todos os direitos reservados.</span>
-        <span>CRC Ativo · Atendimento com garantia</span>
+        <span className="public-rodape-copy">
+          © {new Date().getFullYear()} Olá, Contador. Todos os direitos reservados.
+        </span>
+        <div className="public-rodape-trust-items">
+          <span>🔒 Conexão Criptografada</span>
+          <span className="public-rodape-sep">·</span>
+          <span>📜 Relatórios com CRC</span>
+          <span className="public-rodape-sep">·</span>
+          <span>🛡️ Garantia de Atendimento</span>
+        </div>
       </div>
     </footer>
   );
