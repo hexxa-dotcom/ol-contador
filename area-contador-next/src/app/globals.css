@@ -393,7 +393,7 @@ select { width: auto; min-width: 160px; }
 .chat-tool-spacer { flex: 1; }
 .chat-tool-rail .collapse-tool { min-height: 42px; }
 .chat-tool-rail .collapse-tool span { display: none; }
-.chat-side-panel { min-width: 0; display: flex; flex-direction: column; overflow: hidden; border-right: 1px solid #cbd5e1; background: rgba(255,255,255,.92); opacity: 1; transition: opacity .14s; }
+.chat-side-panel { min-width: 0; min-height: 0; display: flex; flex-direction: column; overflow: hidden; border-right: 1px solid #cbd5e1; background: rgba(255,255,255,.92); opacity: 1; transition: opacity .14s; }
 .queue-collapsed .chat-side-panel { visibility: hidden; opacity: 0; }
 .side-panel-heading { min-height: 67px; padding: 13px 14px; display: flex; align-items: center; justify-content: space-between; gap: 10px; border-bottom: 1px solid #e2e8f0; }
 .side-panel-heading > div { display: flex; min-width: 0; flex-direction: column; gap: 3px; }
@@ -426,7 +426,7 @@ select { width: auto; min-width: 160px; }
 .copilot-chips { padding: 8px 10px; display: flex; gap: 5px; overflow-x: auto; border-top: 1px solid #e2e8f0; background: white; }
 .copilot-chips button { min-height: 27px; padding: 0 9px; flex: 0 0 auto; border: 1px solid #d7dee7; border-radius: 999px; background: #f8fafc; color: #475569; font-size: 8px; font-weight: 650; }
 .copilot-composer { padding: 9px 10px; display: flex; gap: 6px; border-top: 1px solid #e2e8f0; background: white; }
-.chat-main { min-width: 0; display: flex; flex-direction: column; background: rgba(255,255,255,.9); }
+.chat-main { min-width: 0; min-height: 0; display: flex; flex-direction: column; background: rgba(255,255,255,.9); }
 .chat-messages { min-height: 0; padding: 18px; flex: 1; display: flex; flex-direction: column; gap: 9px; overflow-y: auto; background: radial-gradient(circle at 100% 0,rgba(249,115,22,.045),transparent 32%), var(--custom-chat-bg,rgba(241,245,249,.62)); }
 .chat-message { display: flex; animation: message-in .2s ease-out; }
 .chat-message.agent { justify-content: flex-end; }
