@@ -180,7 +180,6 @@ const tabsByView: Record<string, string[]> = {
     "Geral & Notificações",
     "Área do Cliente",
     "Radar Fiscal",
-    "Acessos e Equipe",
     "Integracoes",
     "Inteligência Artificial (AIA)",
     "Aparência do Chat",
@@ -4727,11 +4726,6 @@ const settingsContent: Record<string, [string, string, string[]]> = {
       "Emissao de DAS",
     ],
   ],
-  "Acessos e Equipe": [
-    "Gerenciamento de Acessos",
-    "Membros, papeis e permissoes da equipe.",
-    ["Contador responsavel", "Membros da equipe", "Convites pendentes"],
-  ],
   Integracoes: [
     "Integracoes",
     "Serviços conectados ao Ola, Contador.",
@@ -4947,15 +4941,6 @@ export function ConfiguracoesIntegralView({
       ? initialCopilotShortcuts.map(normalizeCopilotShortcutItem)
       : [],
   );
-  const [team, setTeam] = useState<TeamMember[]>([]);
-  const [teamLoaded, setTeamLoaded] = useState(false);
-  const [invite, setInvite] = useState({
-    nome: "",
-    email: "",
-    role: "parceiro",
-    filaRestrita: false,
-    acessoInsightsRadar: true,
-  });
   const [systemErrors, setSystemErrors] = useState<Array<{
     id: number;
     origem: string;
@@ -5054,36 +5039,6 @@ export function ConfiguracoesIntegralView({
       feedback("Configurações salvas e sincronizadas.");
     });
   }
-  async function teamAction(
-    action: "listar" | "convidar" | "remover" | "atualizar",
-    payload?: Record<string, string | boolean>,
-  ) {
-    const response = await fetch("/api/team", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action, payload }),
-    });
-    const result = await response
-      .json()
-      .catch(() => ({ error: "Resposta inválida" }));
-    if (!response.ok) {
-      feedback(result.error || "Não foi possível gerenciar a equipe.");
-      return;
-    }
-    if (action === "listar") {
-      setTeam(result);
-      setTeamLoaded(true);
-    } else {
-      feedback(
-        action === "convidar"
-          ? "Convite enviado."
-          : action === "atualizar"
-            ? "Permissões atualizadas."
-            : "Acesso revogado.",
-      );
-      await teamAction("listar");
-    }
-  }
   async function loadMunicipalServices() {
     setMunicipalLoading(true);
     try {
@@ -5132,9 +5087,6 @@ export function ConfiguracoesIntegralView({
       setSkillUploading(false);
     }
   }
-  useEffect(() => {
-    if (tab === "Acessos e Equipe" && !teamLoaded) void teamAction("listar");
-  }, [tab, teamLoaded]);
   useEffect(() => {
     if (tab === "Log do Sistema" && !systemErrorsLoaded && !webhookEventsLoaded) void carregarLogSistema();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -5405,142 +5357,6 @@ export function ConfiguracoesIntegralView({
                   <Save size={15} /> {pending ? "Salvando…" : "Salvar Radar Fiscal"}
                 </Button>
               </div>
-            </>
-          )}
-          {tab === "Acessos e Equipe" && (
-            <>
-              <div className="team-integral-list">
-                {team.map((member) => (
-                  <div key={member.id || member.email}>
-                    <div className="avatar small">
-                      {(member.nome || member.name || member.email)
-                        .slice(0, 2)
-                        .toUpperCase()}
-                    </div>
-                    <span>
-                      <strong>
-                        {member.nome || member.name || "Sem nome"}
-                      </strong>
-                      <small>{member.email}</small>
-                    </span>
-                    <Badge>
-                      {member.role === "admin"
-                        ? "Administrador"
-                        : "Contador parceiro"}
-                    </Badge>
-                    {member.id && (
-                      <div className="team-member-toggles">
-                        <label className="inline-checkbox">
-                          <input
-                            type="checkbox"
-                            checked={Boolean(member.fila_restrita)}
-                            onChange={(event) =>
-                              void teamAction("atualizar", {
-                                id: member.id!,
-                                filaRestrita: event.target.checked,
-                              })
-                            }
-                          />
-                          Fila restrita
-                        </label>
-                        <label className="inline-checkbox">
-                          <input
-                            type="checkbox"
-                            checked={member.acesso_insights_radar !== false}
-                            onChange={(event) =>
-                              void teamAction("atualizar", {
-                                id: member.id!,
-                                acessoInsightsRadar: event.target.checked,
-                              })
-                            }
-                          />
-                          Insights/Radar
-                        </label>
-                      </div>
-                    )}
-                    {member.id && (
-                      <Button
-                        className="icon ghost danger-text"
-                        onClick={() => {
-                          if (
-                            window.confirm(
-                              `Revogar o acesso de ${member.email}?`,
-                            )
-                          )
-                            void teamAction("remover", { id: member.id! });
-                        }}
-                      >
-                        <X size={15} />
-                      </Button>
-                    )}
-                  </div>
-                ))}
-                {!teamLoaded && <EmptyState>Carregando equipe…</EmptyState>}
-              </div>
-              <Card className="team-invite">
-                <strong>Convidar membro</strong>
-                <div className="form-grid">
-                  <label>
-                    Nome
-                    <Input
-                      value={invite.nome}
-                      onChange={(event) =>
-                        setInvite({ ...invite, nome: event.target.value })
-                      }
-                    />
-                  </label>
-                  <label>
-                    E-mail
-                    <Input
-                      type="email"
-                      value={invite.email}
-                      onChange={(event) =>
-                        setInvite({ ...invite, email: event.target.value })
-                      }
-                    />
-                  </label>
-                  <label>
-                    Nível de acesso
-                    <select
-                      value={invite.role}
-                      onChange={(event) =>
-                        setInvite({ ...invite, role: event.target.value })
-                      }
-                    >
-                      <option value="parceiro">Contador parceiro</option>
-                      <option value="admin">Administrador</option>
-                    </select>
-                  </label>
-                </div>
-                <div className="settings-item-row">
-                  <label className="inline-checkbox">
-                    <input
-                      type="checkbox"
-                      checked={invite.filaRestrita}
-                      onChange={(event) =>
-                        setInvite({ ...invite, filaRestrita: event.target.checked })
-                      }
-                    />
-                    Fila restrita (só vê os próprios casos)
-                  </label>
-                  <label className="inline-checkbox">
-                    <input
-                      type="checkbox"
-                      checked={invite.acessoInsightsRadar}
-                      onChange={(event) =>
-                        setInvite({ ...invite, acessoInsightsRadar: event.target.checked })
-                      }
-                    />
-                    Acesso a Insights/Radar Fiscal
-                  </label>
-                </div>
-                <Button
-                  disabled={!invite.nome.trim() || !invite.email.includes("@")}
-                  onClick={() => void teamAction("convidar", invite)}
-                >
-                  <Plus size={15} /> Enviar convite
-                </Button>
-              </Card>
             </>
           )}
           {tab === "Integracoes" && (
@@ -6054,6 +5870,200 @@ export function ConfiguracoesIntegralView({
           )}
         </Card>
       </div>
+    </div>
+  );
+}
+export function EquipeIntegralView({ currentStaffId }: { currentStaffId?: string }) {
+  const [team, setTeam] = useState<Array<TeamMember & { last_sign_in_at?: string | null }>>([]);
+  const [teamLoaded, setTeamLoaded] = useState(false);
+  const [actionId, setActionId] = useState<string | null>(null);
+  const [resetInfo, setResetInfo] = useState<{ id: string; senha: string } | null>(null);
+  const [invite, setInvite] = useState({
+    nome: "",
+    email: "",
+    role: "parceiro",
+    filaRestrita: false,
+    acessoInsightsRadar: true,
+  });
+
+  async function teamAction(
+    action: "listar" | "convidar" | "remover" | "atualizar" | "resetar-senha",
+    payload?: Record<string, string | boolean>,
+  ) {
+    if (payload?.id) setActionId(String(payload.id));
+    const response = await fetch("/api/team", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action, payload }),
+    });
+    const result = await response.json().catch(() => ({ error: "Resposta inválida" }));
+    setActionId(null);
+    if (!response.ok) {
+      feedback(result.error || "Não foi possível gerenciar a equipe.");
+      return;
+    }
+    if (action === "listar") {
+      setTeam(result);
+      setTeamLoaded(true);
+      return;
+    }
+    if (action === "resetar-senha" && result.senhaTemporaria) {
+      setResetInfo({ id: String(payload?.id), senha: result.senhaTemporaria });
+    } else {
+      feedback(
+        action === "convidar"
+          ? "Convite enviado."
+          : action === "atualizar"
+            ? "Atualizado."
+            : "Acesso revogado.",
+      );
+    }
+    if (action === "convidar") setInvite({ nome: "", email: "", role: "parceiro", filaRestrita: false, acessoInsightsRadar: true });
+    await teamAction("listar");
+  }
+
+  useEffect(() => {
+    if (!teamLoaded) void teamAction("listar");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  return (
+    <div className="view-stack">
+      <PageTitle
+        title="Equipe"
+        description="Membros, papéis, permissões e acesso da sua equipe."
+      />
+      <Card>
+        <div className="team-integral-list">
+          {team.map((member) => (
+            <div key={member.id || member.email}>
+              <div className="avatar small">
+                {(member.nome || member.name || member.email).slice(0, 2).toUpperCase()}
+              </div>
+              <span>
+                <strong>{member.nome || member.name || "Sem nome"}</strong>
+                <small>{member.email}</small>
+                <small>
+                  {member.last_sign_in_at
+                    ? `Último acesso: ${new Date(member.last_sign_in_at).toLocaleString("pt-BR")}`
+                    : "Ainda não acessou o sistema"}
+                </small>
+              </span>
+              {member.id && member.id !== currentStaffId ? (
+                <select
+                  value={member.role || "parceiro"}
+                  onChange={(event) =>
+                    void teamAction("atualizar", { id: member.id!, role: event.target.value })
+                  }
+                >
+                  <option value="parceiro">Contador parceiro</option>
+                  <option value="admin">Administrador</option>
+                </select>
+              ) : (
+                <Badge>{member.role === "admin" ? "Administrador" : "Contador parceiro"}</Badge>
+              )}
+              {member.id && (
+                <div className="team-member-toggles">
+                  <label className="inline-checkbox">
+                    <input
+                      type="checkbox"
+                      checked={Boolean(member.fila_restrita)}
+                      onChange={(event) =>
+                        void teamAction("atualizar", { id: member.id!, filaRestrita: event.target.checked })
+                      }
+                    />
+                    Fila restrita
+                  </label>
+                  <label className="inline-checkbox">
+                    <input
+                      type="checkbox"
+                      checked={member.acesso_insights_radar !== false}
+                      onChange={(event) =>
+                        void teamAction("atualizar", { id: member.id!, acessoInsightsRadar: event.target.checked })
+                      }
+                    />
+                    Insights/Radar
+                  </label>
+                </div>
+              )}
+              {member.id && (
+                <Button
+                  className="secondary compact"
+                  disabled={actionId === member.id}
+                  onClick={() => {
+                    if (window.confirm(`Gerar uma senha temporária nova para ${member.email}? A senha atual deixa de funcionar.`))
+                      void teamAction("resetar-senha", { id: member.id! });
+                  }}
+                >
+                  {actionId === member.id ? "Gerando…" : "Resetar senha"}
+                </Button>
+              )}
+              {member.id && (
+                <Button
+                  className="icon ghost danger-text"
+                  onClick={() => {
+                    if (window.confirm(`Revogar o acesso de ${member.email}?`))
+                      void teamAction("remover", { id: member.id! });
+                  }}
+                >
+                  <X size={15} />
+                </Button>
+              )}
+            </div>
+          ))}
+          {!teamLoaded && <EmptyState>Carregando equipe…</EmptyState>}
+        </div>
+        {resetInfo && (
+          <div className="archived-banner">
+            <span>
+              Senha temporária gerada: <b>{resetInfo.senha}</b> — repasse com segurança para a pessoa; ela deve trocar
+              a senha no primeiro acesso.
+            </span>
+            <Button onClick={() => setResetInfo(null)}>Ok, copiei</Button>
+          </div>
+        )}
+      </Card>
+      <Card className="team-invite">
+        <strong>Convidar membro</strong>
+        <div className="form-grid">
+          <label>
+            Nome
+            <Input value={invite.nome} onChange={(event) => setInvite({ ...invite, nome: event.target.value })} />
+          </label>
+          <label>
+            E-mail
+            <Input type="email" value={invite.email} onChange={(event) => setInvite({ ...invite, email: event.target.value })} />
+          </label>
+          <label>
+            Nível de acesso
+            <select value={invite.role} onChange={(event) => setInvite({ ...invite, role: event.target.value })}>
+              <option value="parceiro">Contador parceiro</option>
+              <option value="admin">Administrador</option>
+            </select>
+          </label>
+        </div>
+        <div className="settings-item-row">
+          <label className="inline-checkbox">
+            <input
+              type="checkbox"
+              checked={invite.filaRestrita}
+              onChange={(event) => setInvite({ ...invite, filaRestrita: event.target.checked })}
+            />
+            Fila restrita (só vê os próprios casos)
+          </label>
+          <label className="inline-checkbox">
+            <input
+              type="checkbox"
+              checked={invite.acessoInsightsRadar}
+              onChange={(event) => setInvite({ ...invite, acessoInsightsRadar: event.target.checked })}
+            />
+            Acesso a Insights/Radar Fiscal
+          </label>
+        </div>
+        <Button disabled={!invite.nome.trim() || !invite.email.includes("@")} onClick={() => void teamAction("convidar", invite)}>
+          <Plus size={15} /> Enviar convite
+        </Button>
+      </Card>
     </div>
   );
 }

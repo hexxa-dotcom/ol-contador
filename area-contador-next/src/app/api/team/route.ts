@@ -22,7 +22,7 @@ export async function GET() {
   return NextResponse.json(data || [], { headers: { "Cache-Control": "private, no-store" } });
 }
 
-type TeamAction = "listar" | "convidar" | "remover" | "atualizar";
+type TeamAction = "listar" | "convidar" | "remover" | "atualizar" | "resetar-senha";
 type TeamPayload = {
   id?: string;
   nome?: string;
@@ -31,6 +31,13 @@ type TeamPayload = {
   filaRestrita?: boolean;
   acessoInsightsRadar?: boolean;
 };
+
+function gerarSenhaTemporaria(): string {
+  const alfabeto = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789";
+  let senha = "";
+  for (let i = 0; i < 12; i++) senha += alfabeto[Math.floor(Math.random() * alfabeto.length)];
+  return senha;
+}
 
 export async function POST(request: Request) {
   const supabase = await createClient();
@@ -49,7 +56,7 @@ export async function POST(request: Request) {
     action?: TeamAction;
     payload?: TeamPayload;
   } | null;
-  if (!body?.action || !["listar", "convidar", "remover", "atualizar"].includes(body.action)) {
+  if (!body?.action || !["listar", "convidar", "remover", "atualizar", "resetar-senha"].includes(body.action)) {
     return NextResponse.json({ error: "invalid_action" }, { status: 400 });
   }
   if (
@@ -66,15 +73,42 @@ export async function POST(request: Request) {
   if (body.action === "atualizar" && !body.payload?.id) {
     return NextResponse.json({ error: "invalid_params" }, { status: 400 });
   }
+  if (body.action === "atualizar" && body.payload?.role && !["admin", "parceiro"].includes(body.payload.role)) {
+    return NextResponse.json({ error: "invalid_params" }, { status: 400 });
+  }
+  if (body.action === "atualizar" && body.payload?.role === "parceiro" && body.payload.id === userId) {
+    return NextResponse.json({ error: "Você não pode remover o próprio acesso de administrador." }, { status: 400 });
+  }
+  if (body.action === "resetar-senha" && !body.payload?.id) {
+    return NextResponse.json({ error: "invalid_params" }, { status: 400 });
+  }
 
   const admin = adminClient();
   if (!admin) return NextResponse.json({ error: "service_role_not_configured" }, { status: 503 });
+
+  // Nunca deixa o time sem nenhum admin — nem removendo, nem rebaixando pra parceiro.
+  const alvoDemovido = body.action === "remover" || (body.action === "atualizar" && body.payload?.role === "parceiro");
+  if (alvoDemovido) {
+    const { data: alvo } = await admin.from("staff").select("role").eq("id", body.payload!.id!).maybeSingle();
+    if (alvo?.role === "admin") {
+      const { count } = await admin.from("staff").select("id", { count: "exact", head: true }).eq("role", "admin");
+      if ((count || 0) <= 1) {
+        return NextResponse.json({ error: "Não é possível remover o último administrador do time." }, { status: 400 });
+      }
+    }
+  }
 
   try {
     if (body.action === "listar") {
       const { data, error } = await admin.from("staff").select("*").order("created_at", { ascending: true });
       if (error) throw error;
-      return NextResponse.json(data || [], { headers: { "Cache-Control": "private, no-store" } });
+      const { data: usersData } = await admin.auth.admin.listUsers({ perPage: 200 });
+      const lastSignIn = new Map((usersData?.users || []).map((u) => [u.id, u.last_sign_in_at]));
+      const enriquecido = (data || []).map((member) => ({
+        ...member,
+        last_sign_in_at: member.id ? lastSignIn.get(member.id) || null : null,
+      }));
+      return NextResponse.json(enriquecido, { headers: { "Cache-Control": "private, no-store" } });
     }
 
     if (body.action === "convidar") {
@@ -101,19 +135,30 @@ export async function POST(request: Request) {
     }
 
     if (body.action === "atualizar") {
-      const { id, filaRestrita, acessoInsightsRadar } = body.payload!;
-      const patch: { fila_restrita?: boolean; acesso_insights_radar?: boolean } = {};
+      const { id, filaRestrita, acessoInsightsRadar, role } = body.payload!;
+      const patch: { fila_restrita?: boolean; acesso_insights_radar?: boolean; role?: string } = {};
       if (typeof filaRestrita === "boolean") patch.fila_restrita = filaRestrita;
       if (typeof acessoInsightsRadar === "boolean") patch.acesso_insights_radar = acessoInsightsRadar;
+      if (role) patch.role = role;
       const { error: updateError } = await admin.from("staff").update(patch).eq("id", id!);
       if (updateError) throw updateError;
       return NextResponse.json({ ok: true });
     }
 
+    if (body.action === "resetar-senha") {
+      const { id } = body.payload!;
+      const senhaTemporaria = gerarSenhaTemporaria();
+      const { error: pwError } = await admin.auth.admin.updateUserById(id!, { password: senhaTemporaria });
+      if (pwError) throw pwError;
+      return NextResponse.json({ ok: true, senhaTemporaria });
+    }
+
     // remover
     const { id } = body.payload!;
-    await admin.from("staff").delete().eq("id", id!);
-    await admin.auth.admin.deleteUser(id!);
+    const { error: delStaffError } = await admin.from("staff").delete().eq("id", id!);
+    if (delStaffError) throw delStaffError;
+    const { error: delAuthError } = await admin.auth.admin.deleteUser(id!);
+    if (delAuthError) throw delAuthError;
     return NextResponse.json({ ok: true });
   } catch (e) {
     const err = e as Error;
