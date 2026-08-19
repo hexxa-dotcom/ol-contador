@@ -28,20 +28,50 @@ function decifrar(row: { ciphertext: string; iv: string; auth_tag: string }): st
   return Buffer.concat([decipher.update(Buffer.from(row.ciphertext, "base64")), decipher.final()]).toString("utf8");
 }
 
-export type ChaveEditavel = { chave: string; label: string; grupo: string; nota?: string };
+export type ChaveEditavel = { chave: string; label: string; grupo: string; nota?: string; usosDisponiveis?: IaUso[] };
+
+// Usos possíveis pra uma chave-provedor de IA: "chat" cobre as funções de
+// texto do Copiloto (resumo, rascunho, pergunta, diagnóstico, relatório) e
+// "documentos" cobre a leitura de anexos (imagem via visão, PDF via texto
+// extraído). Ver resolveProvider em lib/ia.ts.
+export type IaUso = "chat" | "documentos";
+export const USOS_IA: { id: IaUso; label: string }[] = [
+  { id: "chat", label: "Chat/Copiloto" },
+  { id: "documentos", label: "Análise de documentos" },
+];
 
 // Só entram aqui as chaves que algum lib/*.ts já sabe ler do banco primeiro
 // (ver getSystemSecret nos pontos de uso). Adicionar uma linha aqui sem
 // mudar o lib correspondente só cadastra a chave — não muda o comportamento
 // de nada até o código que consome ela ser adaptado.
 export const CHAVES_EDITAVEIS: ChaveEditavel[] = [
-  { chave: "GROQ_API_KEY", label: "Groq (IA principal do Copiloto)", grupo: "Inteligência Artificial" },
+  { chave: "GROQ_API_KEY", label: "Groq (IA principal do Copiloto)", grupo: "Inteligência Artificial", usosDisponiveis: ["chat", "documentos"] },
   { chave: "GROQ_MODEL", label: "Modelo Groq (texto)", grupo: "Inteligência Artificial" },
   { chave: "GROQ_VISION_MODEL", label: "Modelo Groq (visão/imagem)", grupo: "Inteligência Artificial" },
-  { chave: "OPENROUTER_API_KEY", label: "OpenRouter (IA alternativa)", grupo: "Inteligência Artificial" },
+  { chave: "OPENROUTER_API_KEY", label: "OpenRouter (IA alternativa)", grupo: "Inteligência Artificial", usosDisponiveis: ["chat", "documentos"] },
   { chave: "OPENROUTER_MODEL", label: "Modelo OpenRouter", grupo: "Inteligência Artificial" },
   { chave: "OPENAI_API_KEY", label: "OpenAI (embeddings das skills)", grupo: "Inteligência Artificial" },
 ];
+
+const CONFIG_USOS_CHAVE = "ia_chave_usos";
+type UsosConfig = Record<string, Partial<Record<IaUso, boolean>>>;
+
+// Sem linha no config = habilitada em todos os usos disponíveis (mantém o
+// comportamento anterior, onde qualquer chave presente valia pra tudo).
+export async function getChaveUsosConfig(admin: Admin): Promise<UsosConfig> {
+  const { data } = await admin.from("configuracoes").select("valor").eq("chave", CONFIG_USOS_CHAVE).maybeSingle();
+  return (data?.valor as UsosConfig) || {};
+}
+
+export async function setChaveUso(admin: Admin, chave: string, uso: IaUso, ativo: boolean): Promise<void> {
+  const atual = await getChaveUsosConfig(admin);
+  const doChave = { ...(atual[chave] || {}), [uso]: ativo };
+  const proximo = { ...atual, [chave]: doChave };
+  const { error } = await admin
+    .from("configuracoes")
+    .upsert({ chave: CONFIG_USOS_CHAVE, valor: proximo as never, updated_at: new Date().toISOString() });
+  if (error) throw error;
+}
 
 export async function getSystemSecret(admin: Admin, chave: string): Promise<string | null> {
   const { data } = await admin.from("chaves_sistema").select("ciphertext,iv,auth_tag").eq("chave", chave).maybeSingle();

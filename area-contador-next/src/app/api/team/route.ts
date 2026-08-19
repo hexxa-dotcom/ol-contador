@@ -22,7 +22,7 @@ export async function GET() {
   return NextResponse.json(data || [], { headers: { "Cache-Control": "private, no-store" } });
 }
 
-type TeamAction = "listar" | "convidar" | "remover" | "atualizar" | "resetar-senha";
+type TeamAction = "listar" | "convidar" | "remover" | "atualizar" | "resetar-senha" | "perfil";
 type TeamPayload = {
   id?: string;
   nome?: string;
@@ -56,7 +56,7 @@ export async function POST(request: Request) {
     action?: TeamAction;
     payload?: TeamPayload;
   } | null;
-  if (!body?.action || !["listar", "convidar", "remover", "atualizar", "resetar-senha"].includes(body.action)) {
+  if (!body?.action || !["listar", "convidar", "remover", "atualizar", "resetar-senha", "perfil"].includes(body.action)) {
     return NextResponse.json({ error: "invalid_action" }, { status: 400 });
   }
   if (
@@ -80,6 +80,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Você não pode remover o próprio acesso de administrador." }, { status: 400 });
   }
   if (body.action === "resetar-senha" && !body.payload?.id) {
+    return NextResponse.json({ error: "invalid_params" }, { status: 400 });
+  }
+  if (body.action === "perfil" && !body.payload?.id) {
     return NextResponse.json({ error: "invalid_params" }, { status: 400 });
   }
 
@@ -151,6 +154,66 @@ export async function POST(request: Request) {
       const { error: pwError } = await admin.auth.admin.updateUserById(id!, { password: senhaTemporaria });
       if (pwError) throw pwError;
       return NextResponse.json({ ok: true, senhaTemporaria });
+    }
+
+    if (body.action === "perfil") {
+      const { id } = body.payload!;
+      const [{ data: membro }, { data: authUser }] = await Promise.all([
+        admin.from("staff").select("*").eq("id", id!).maybeSingle(),
+        admin.auth.admin.getUserById(id!),
+      ]);
+      if (!membro) return NextResponse.json({ error: "member_not_found" }, { status: 404 });
+
+      const { data: clientes } = await admin
+        .from("clientes")
+        .select("id,name,status,tax_type,created_at,arquivado_em,honorarios")
+        .eq("responsavel_id", id!)
+        .order("created_at", { ascending: false });
+      const clienteIds = (clientes || []).map((c) => c.id);
+
+      const [{ data: atendimentos }, { data: cobrancas }, { data: agendamentos }] = clienteIds.length
+        ? await Promise.all([
+            admin
+              .from("atendimentos_historico")
+              .select("id,cliente_id,cliente_nome,assunto,finalizado_em,honorarios,modalidade")
+              .in("cliente_id", clienteIds)
+              .order("finalizado_em", { ascending: false })
+              .limit(50),
+            admin
+              .from("cobrancas")
+              .select("id,cliente_ref,valor_cents,status,paid_at,created_at,modalidade")
+              .in("cliente_ref", clienteIds)
+              .order("created_at", { ascending: false })
+              .limit(50),
+            admin
+              .from("agendamentos")
+              .select("id,cliente_ref,client_name,date,time,status")
+              .in("cliente_ref", clienteIds)
+              .order("date", { ascending: true }),
+          ])
+        : [{ data: [] }, { data: [] }, { data: [] }];
+
+      const hoje = new Date().toISOString().slice(0, 10);
+      const pagas = (cobrancas || []).filter((c) => c.status === "paid");
+      const resumo = {
+        clientesAtivos: (clientes || []).filter((c) => !c.arquivado_em).length,
+        clientesArquivados: (clientes || []).filter((c) => c.arquivado_em).length,
+        atendimentosFinalizados: (atendimentos || []).length,
+        totalRecebidoCents: pagas.reduce((soma, c) => soma + (c.valor_cents || 0), 0),
+        proximosAgendamentos: (agendamentos || []).filter((a) => (a.date || "") >= hoje && a.status !== "cancelado").length,
+      };
+
+      return NextResponse.json(
+        {
+          membro: { ...membro, last_sign_in_at: authUser?.user?.last_sign_in_at || null, email_confirmado_em: authUser?.user?.email_confirmed_at || null },
+          clientes: clientes || [],
+          atendimentos: atendimentos || [],
+          cobrancas: cobrancas || [],
+          agendamentos: agendamentos || [],
+          resumo,
+        },
+        { headers: { "Cache-Control": "private, no-store" } },
+      );
     }
 
     // remover

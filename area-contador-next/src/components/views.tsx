@@ -5019,17 +5019,33 @@ export function ConfiguracoesIntegralView({
       setLogAction(null);
     }
   }
-  const [systemSecrets, setSystemSecrets] = useState<Array<{ chave: string; label: string; grupo: string }>>([]);
+  const [systemSecrets, setSystemSecrets] = useState<Array<{ chave: string; label: string; grupo: string; usosDisponiveis?: string[] }>>([]);
   const [systemSecretsStatus, setSystemSecretsStatus] = useState<Record<string, { origem: "banco" | "ambiente" | "nenhuma"; atualizadoEm: string | null }>>({});
+  const [systemSecretsUsos, setSystemSecretsUsos] = useState<Record<string, Record<string, boolean>>>({});
+  const [usosDisponiveis, setUsosDisponiveis] = useState<Array<{ id: string; label: string }>>([]);
   const [systemSecretsLoaded, setSystemSecretsLoaded] = useState(false);
   const [secretDrafts, setSecretDrafts] = useState<Record<string, string>>({});
   const [secretAction, setSecretAction] = useState<string | null>(null);
   async function carregarChavesSistema() {
     const response = await fetch("/api/system-secrets");
-    const result = await response.json().catch(() => ({ chaves: [], status: {} }));
+    const result = await response.json().catch(() => ({ chaves: [], status: {}, usos: {}, usosDisponiveis: [] }));
     setSystemSecrets(result.chaves || []);
     setSystemSecretsStatus(result.status || {});
+    setSystemSecretsUsos(result.usos || {});
+    setUsosDisponiveis(result.usosDisponiveis || []);
     setSystemSecretsLoaded(true);
+  }
+  async function definirUsoChave(chave: string, uso: string, ativo: boolean) {
+    setSystemSecretsUsos((prev) => ({ ...prev, [chave]: { ...prev[chave], [uso]: ativo } }));
+    const response = await fetch("/api/system-secrets", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ chave, uso, ativo, acao: "definir-uso" }),
+    });
+    if (!response.ok) {
+      feedback("Não foi possível salvar esse uso.");
+      await carregarChavesSistema();
+    }
   }
   async function salvarChaveSistema(chave: string) {
     const valor = (secretDrafts[chave] || "").trim();
@@ -5971,6 +5987,23 @@ export function ConfiguracoesIntegralView({
                               <X size={15} />
                             </Button>
                           )}
+                          {item.usosDisponiveis && item.usosDisponiveis.length > 0 && (
+                            <div className="settings-item-row-usos">
+                              <small className="muted">Usar em:</small>
+                              {usosDisponiveis
+                                .filter((uso) => item.usosDisponiveis!.includes(uso.id))
+                                .map((uso) => (
+                                  <label className="inline-checkbox" key={uso.id}>
+                                    <input
+                                      type="checkbox"
+                                      checked={systemSecretsUsos[item.chave]?.[uso.id] !== false}
+                                      onChange={(event) => void definirUsoChave(item.chave, uso.id, event.target.checked)}
+                                    />
+                                    {uso.label}
+                                  </label>
+                                ))}
+                            </div>
+                          )}
                         </div>
                       );
                     })}
@@ -5984,11 +6017,259 @@ export function ConfiguracoesIntegralView({
     </div>
   );
 }
+type TeamProfileData = {
+  membro: TeamMember & { last_sign_in_at?: string | null; email_confirmado_em?: string | null; created_at?: string | null };
+  clientes: Array<{ id: string; name: string; status: string | null; tax_type: string | null; created_at: string | null; arquivado_em: string | null; honorarios: number | null }>;
+  atendimentos: Array<{ id: number; cliente_nome: string | null; assunto: string | null; finalizado_em: string; honorarios: number | null; modalidade: string | null }>;
+  cobrancas: Array<{ id: number; valor_cents: number | null; status: string | null; paid_at: string | null; created_at: string | null; modalidade: string | null }>;
+  agendamentos: Array<{ id: number; client_name: string; date: string | null; time: string | null; status: string | null }>;
+  resumo: { clientesAtivos: number; clientesArquivados: number; atendimentosFinalizados: number; totalRecebidoCents: number; proximosAgendamentos: number };
+};
+
+function TeamMemberProfileModal({
+  memberId,
+  currentStaffId,
+  actionId,
+  resetInfo,
+  onClose,
+  onAction,
+  onDismissResetInfo,
+}: {
+  memberId: string;
+  currentStaffId?: string;
+  actionId: string | null;
+  resetInfo: { id: string; senha: string } | null;
+  onClose: () => void;
+  onAction: (action: "atualizar" | "resetar-senha" | "remover", payload?: Record<string, string | boolean>) => void;
+  onDismissResetInfo: () => void;
+}) {
+  const [data, setData] = useState<TeamProfileData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const money = (cents: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(cents / 100);
+  const data_ = (value: string | null) => (value ? new Date(value).toLocaleDateString("pt-BR") : "—");
+
+  useEffect(() => {
+    let ativo = true;
+    setLoading(true);
+    fetch("/api/team", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "perfil", payload: { id: memberId } }),
+    })
+      .then((response) => response.json())
+      .then((result) => {
+        if (ativo && result?.membro) setData(result);
+      })
+      .finally(() => ativo && setLoading(false));
+    return () => {
+      ativo = false;
+    };
+  }, [memberId]);
+
+  const membro = data?.membro;
+  const ehVocêMesmo = memberId === currentStaffId;
+
+  return (
+    <div className="dialog-backdrop" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
+      <Card className="profile-dialog client-dossier" role="dialog" aria-modal="true">
+        <div className="dialog-head">
+          <div>
+            <h2>{membro?.nome || membro?.name || "Perfil do membro"}</h2>
+            <p>{membro?.email}</p>
+          </div>
+          <Button className="icon ghost" onClick={onClose}>
+            <X size={18} />
+          </Button>
+        </div>
+
+        {loading || !membro ? (
+          <EmptyState>Carregando perfil…</EmptyState>
+        ) : (
+          <div className="dossier-body team-profile-body">
+            <div className="team-profile-meta">
+              <Badge>{membro.role === "admin" ? "Administrador" : "Contador parceiro"}</Badge>
+              <small>
+                {membro.last_sign_in_at
+                  ? `Último acesso: ${new Date(membro.last_sign_in_at).toLocaleString("pt-BR")}`
+                  : "Ainda não acessou o sistema"}
+              </small>
+              <small>Na equipe desde {data_(membro.created_at ?? null)}</small>
+            </div>
+
+            <div className="team-profile-stats">
+              <div>
+                <strong>{data!.resumo.clientesAtivos}</strong>
+                <small>Clientes ativos</small>
+              </div>
+              <div>
+                <strong>{data!.resumo.clientesArquivados}</strong>
+                <small>Clientes arquivados</small>
+              </div>
+              <div>
+                <strong>{data!.resumo.atendimentosFinalizados}</strong>
+                <small>Atendimentos concluídos</small>
+              </div>
+              <div>
+                <strong>{money(data!.resumo.totalRecebidoCents)}</strong>
+                <small>Total recebido</small>
+              </div>
+              <div>
+                <strong>{data!.resumo.proximosAgendamentos}</strong>
+                <small>Próximos agendamentos</small>
+              </div>
+            </div>
+
+            <div className="settings-item-list">
+              <strong>Acesso e permissões</strong>
+              <div className="settings-item-row">
+                {!ehVocêMesmo ? (
+                  <select
+                    value={membro.role || "parceiro"}
+                    onChange={(event) => onAction("atualizar", { id: memberId, role: event.target.value })}
+                  >
+                    <option value="parceiro">Contador parceiro</option>
+                    <option value="admin">Administrador</option>
+                  </select>
+                ) : (
+                  <small className="muted">Você não pode alterar seu próprio nível de acesso.</small>
+                )}
+              </div>
+              <div className="team-member-toggles">
+                <label className="inline-checkbox">
+                  <input
+                    type="checkbox"
+                    checked={Boolean(membro.fila_restrita)}
+                    onChange={(event) => onAction("atualizar", { id: memberId, filaRestrita: event.target.checked })}
+                  />
+                  Fila restrita
+                </label>
+                <label className="inline-checkbox">
+                  <input
+                    type="checkbox"
+                    checked={membro.acesso_insights_radar !== false}
+                    onChange={(event) => onAction("atualizar", { id: memberId, acessoInsightsRadar: event.target.checked })}
+                  />
+                  Insights/Radar
+                </label>
+              </div>
+              <div className="dialog-actions">
+                <Button
+                  className="secondary compact"
+                  disabled={actionId === memberId}
+                  onClick={() => {
+                    if (membro.email && window.confirm(`Gerar uma senha temporária nova para ${membro.email}? A senha atual deixa de funcionar.`))
+                      onAction("resetar-senha", { id: memberId });
+                  }}
+                >
+                  {actionId === memberId ? "Gerando…" : "Resetar senha"}
+                </Button>
+                {!ehVocêMesmo && (
+                  <Button
+                    className="secondary compact danger-text"
+                    onClick={() => {
+                      if (membro.email && window.confirm(`Revogar o acesso de ${membro.email}?`)) {
+                        onAction("remover", { id: memberId });
+                        onClose();
+                      }
+                    }}
+                  >
+                    <X size={15} /> Revogar acesso
+                  </Button>
+                )}
+              </div>
+              {resetInfo?.id === memberId && (
+                <div className="archived-banner">
+                  <span>
+                    Senha temporária gerada: <b>{resetInfo.senha}</b> — repasse com segurança para a pessoa; ela deve
+                    trocar a senha no primeiro acesso.
+                  </span>
+                  <Button onClick={onDismissResetInfo}>Ok, copiei</Button>
+                </div>
+              )}
+            </div>
+
+            <div className="settings-item-list">
+              <strong>Clientes sob responsabilidade ({data!.clientes.length})</strong>
+              {data!.clientes.length ? (
+                data!.clientes.slice(0, 8).map((cliente) => (
+                  <div className="settings-item-row" key={cliente.id}>
+                    <div>
+                      <strong>{cliente.name}</strong>
+                      <small>{cliente.tax_type || "Sem assunto"} · {cliente.arquivado_em ? "Arquivado" : cliente.status || "Ativo"}</small>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <EmptyState>Nenhum cliente atribuído ainda.</EmptyState>
+              )}
+            </div>
+
+            <div className="settings-item-list">
+              <strong>Atendimentos recentes</strong>
+              {data!.atendimentos.length ? (
+                data!.atendimentos.slice(0, 8).map((item) => (
+                  <div className="settings-item-row" key={item.id}>
+                    <div>
+                      <strong>{item.cliente_nome || "Cliente"}</strong>
+                      <small>{item.assunto || item.modalidade || "Atendimento"} · finalizado em {data_(item.finalizado_em)}</small>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <EmptyState>Nenhum atendimento concluído ainda.</EmptyState>
+              )}
+            </div>
+
+            <div className="settings-item-list">
+              <strong>Financeiro</strong>
+              {data!.cobrancas.length ? (
+                data!.cobrancas.slice(0, 8).map((cobranca) => (
+                  <div className="settings-item-row" key={cobranca.id}>
+                    <div>
+                      <strong>{money(cobranca.valor_cents || 0)}</strong>
+                      <small>
+                        {cobranca.status === "paid" ? "Pago" : cobranca.status || "Pendente"} ·{" "}
+                        {data_(cobranca.paid_at || cobranca.created_at)}
+                      </small>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <EmptyState>Nenhuma cobrança registrada ainda.</EmptyState>
+              )}
+            </div>
+
+            <div className="settings-item-list">
+              <strong>Agenda</strong>
+              {data!.agendamentos.length ? (
+                data!.agendamentos.slice(0, 8).map((agendamento) => (
+                  <div className="settings-item-row" key={agendamento.id}>
+                    <div>
+                      <strong>{agendamento.client_name}</strong>
+                      <small>
+                        {agendamento.date ? new Date(`${agendamento.date}T00:00:00`).toLocaleDateString("pt-BR") : "Sem data"}
+                        {agendamento.time ? ` às ${agendamento.time}` : ""} · {agendamento.status || "agendado"}
+                      </small>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <EmptyState>Nenhum agendamento vinculado.</EmptyState>
+              )}
+            </div>
+          </div>
+        )}
+      </Card>
+    </div>
+  );
+}
+
 export function EquipeIntegralView({ currentStaffId }: { currentStaffId?: string }) {
   const [team, setTeam] = useState<Array<TeamMember & { last_sign_in_at?: string | null }>>([]);
   const [teamLoaded, setTeamLoaded] = useState(false);
   const [actionId, setActionId] = useState<string | null>(null);
   const [resetInfo, setResetInfo] = useState<{ id: string; senha: string } | null>(null);
+  const [profileId, setProfileId] = useState<string | null>(null);
   const [invite, setInvite] = useState({
     nome: "",
     email: "",
@@ -6042,12 +6323,18 @@ export function EquipeIntegralView({ currentStaffId }: { currentStaffId?: string
     <div className="view-stack">
       <PageTitle
         title="Equipe"
-        description="Membros, papéis, permissões e acesso da sua equipe."
+        description="Membros, papéis, permissões e acesso da sua equipe. Clique em alguém para ver o perfil completo."
       />
       <Card>
         <div className="team-integral-list">
           {team.map((member) => (
-            <div key={member.id || member.email}>
+            <button
+              type="button"
+              key={member.id || member.email}
+              className="team-integral-row"
+              onClick={() => member.id && setProfileId(member.id)}
+              disabled={!member.id}
+            >
               <div className="avatar small">
                 {(member.nome || member.name || member.email).slice(0, 2).toUpperCase()}
               </div>
@@ -6060,79 +6347,12 @@ export function EquipeIntegralView({ currentStaffId }: { currentStaffId?: string
                     : "Ainda não acessou o sistema"}
                 </small>
               </span>
-              {member.id && member.id !== currentStaffId ? (
-                <select
-                  value={member.role || "parceiro"}
-                  onChange={(event) =>
-                    void teamAction("atualizar", { id: member.id!, role: event.target.value })
-                  }
-                >
-                  <option value="parceiro">Contador parceiro</option>
-                  <option value="admin">Administrador</option>
-                </select>
-              ) : (
-                <Badge>{member.role === "admin" ? "Administrador" : "Contador parceiro"}</Badge>
-              )}
-              {member.id && (
-                <div className="team-member-toggles">
-                  <label className="inline-checkbox">
-                    <input
-                      type="checkbox"
-                      checked={Boolean(member.fila_restrita)}
-                      onChange={(event) =>
-                        void teamAction("atualizar", { id: member.id!, filaRestrita: event.target.checked })
-                      }
-                    />
-                    Fila restrita
-                  </label>
-                  <label className="inline-checkbox">
-                    <input
-                      type="checkbox"
-                      checked={member.acesso_insights_radar !== false}
-                      onChange={(event) =>
-                        void teamAction("atualizar", { id: member.id!, acessoInsightsRadar: event.target.checked })
-                      }
-                    />
-                    Insights/Radar
-                  </label>
-                </div>
-              )}
-              {member.id && (
-                <Button
-                  className="secondary compact"
-                  disabled={actionId === member.id}
-                  onClick={() => {
-                    if (window.confirm(`Gerar uma senha temporária nova para ${member.email}? A senha atual deixa de funcionar.`))
-                      void teamAction("resetar-senha", { id: member.id! });
-                  }}
-                >
-                  {actionId === member.id ? "Gerando…" : "Resetar senha"}
-                </Button>
-              )}
-              {member.id && (
-                <Button
-                  className="icon ghost danger-text"
-                  onClick={() => {
-                    if (window.confirm(`Revogar o acesso de ${member.email}?`))
-                      void teamAction("remover", { id: member.id! });
-                  }}
-                >
-                  <X size={15} />
-                </Button>
-              )}
-            </div>
+              <Badge>{member.role === "admin" ? "Administrador" : "Contador parceiro"}</Badge>
+              <span className="team-integral-row-link">Ver perfil</span>
+            </button>
           ))}
           {!teamLoaded && <EmptyState>Carregando equipe…</EmptyState>}
         </div>
-        {resetInfo && (
-          <div className="archived-banner">
-            <span>
-              Senha temporária gerada: <b>{resetInfo.senha}</b> — repasse com segurança para a pessoa; ela deve trocar
-              a senha no primeiro acesso.
-            </span>
-            <Button onClick={() => setResetInfo(null)}>Ok, copiei</Button>
-          </div>
-        )}
       </Card>
       <Card className="team-invite">
         <strong>Convidar membro</strong>
@@ -6175,6 +6395,17 @@ export function EquipeIntegralView({ currentStaffId }: { currentStaffId?: string
           <Plus size={15} /> Enviar convite
         </Button>
       </Card>
+      {profileId && (
+        <TeamMemberProfileModal
+          memberId={profileId}
+          currentStaffId={currentStaffId}
+          actionId={actionId}
+          resetInfo={resetInfo}
+          onClose={() => setProfileId(null)}
+          onAction={(action, payload) => void teamAction(action, payload)}
+          onDismissResetInfo={() => setResetInfo(null)}
+        />
+      )}
     </div>
   );
 }

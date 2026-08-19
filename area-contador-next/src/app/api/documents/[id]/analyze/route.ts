@@ -18,7 +18,7 @@ export async function POST(_request: Request, context: { params: Promise<{ id: s
 
   const admin = adminClient();
   if (!admin) return NextResponse.json({ error: "service_role_not_configured" }, { status: 503 });
-  if (!(await ia.isConfigured(admin))) return NextResponse.json({ error: "ia_not_configured" }, { status: 503 });
+  if (!(await ia.isConfigured(admin, "documentos"))) return NextResponse.json({ error: "ia_not_configured" }, { status: 503 });
 
   const { id } = await context.params;
   if (!/^\d+$/.test(id)) return NextResponse.json({ error: "invalid_document" }, { status: 400 });

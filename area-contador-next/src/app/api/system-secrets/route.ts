@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { adminClient } from "@/lib/supabase/admin";
-import { CHAVES_EDITAVEIS, clearSystemSecret, listSystemSecretsStatus, setSystemSecret } from "@/lib/systemSecrets";
+import { CHAVES_EDITAVEIS, clearSystemSecret, getChaveUsosConfig, listSystemSecretsStatus, setChaveUso, setSystemSecret, USOS_IA, type IaUso } from "@/lib/systemSecrets";
 import { registrarErro } from "@/lib/observability";
 
 export const runtime = "nodejs";
@@ -25,15 +25,24 @@ async function exigirAdmin() {
 export async function GET() {
   const ctx = await exigirAdmin();
   if (ctx.error) return ctx.error;
-  const status = await listSystemSecretsStatus(ctx.admin);
-  return NextResponse.json({ chaves: CHAVES_EDITAVEIS, status }, { headers: { "Cache-Control": "private, no-store" } });
+  const [status, usos] = await Promise.all([listSystemSecretsStatus(ctx.admin), getChaveUsosConfig(ctx.admin)]);
+  return NextResponse.json(
+    { chaves: CHAVES_EDITAVEIS, status, usos, usosDisponiveis: USOS_IA },
+    { headers: { "Cache-Control": "private, no-store" } },
+  );
 }
 
 export async function POST(request: Request) {
   const ctx = await exigirAdmin();
   if (ctx.error) return ctx.error;
 
-  const body = (await request.json().catch(() => null)) as { chave?: string; valor?: string; acao?: "salvar" | "limpar" } | null;
+  const body = (await request.json().catch(() => null)) as {
+    chave?: string;
+    valor?: string;
+    acao?: "salvar" | "limpar" | "definir-uso";
+    uso?: IaUso;
+    ativo?: boolean;
+  } | null;
   const chave = body?.chave?.trim();
   if (!chave || !CHAVES_EDITAVEIS.some((item) => item.chave === chave)) {
     return NextResponse.json({ error: "chave_invalida" }, { status: 400 });
@@ -42,6 +51,14 @@ export async function POST(request: Request) {
   try {
     if (body?.acao === "limpar") {
       await clearSystemSecret(ctx.admin, chave);
+      return NextResponse.json({ ok: true });
+    }
+    if (body?.acao === "definir-uso") {
+      const item = CHAVES_EDITAVEIS.find((i) => i.chave === chave);
+      if (!body.uso || !item?.usosDisponiveis?.includes(body.uso)) {
+        return NextResponse.json({ error: "uso_invalido" }, { status: 400 });
+      }
+      await setChaveUso(ctx.admin, chave, body.uso, body.ativo !== false);
       return NextResponse.json({ ok: true });
     }
     const valor = (body?.valor || "").trim();

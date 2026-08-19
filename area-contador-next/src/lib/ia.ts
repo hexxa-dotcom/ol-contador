@@ -1,23 +1,25 @@
 // Integração de IA — porte 1:1 de api/_lib/ia.js. A chave nunca vai pro
 // navegador; toda chamada roda no servidor.
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { getSystemSecret } from "@/lib/systemSecrets";
+import { getChaveUsosConfig, getSystemSecret, type IaUso } from "@/lib/systemSecrets";
 
 type Admin = SupabaseClient;
 
 // Resolve a chave/modelo ativos a cada chamada: banco primeiro (editável na
 // tela de Configurações), variável de ambiente como fallback. Sem cache em
 // memória de propósito — trocar a chave na UI precisa valer na próxima
-// chamada, não depois de um redeploy.
-async function resolveProvider(admin: Admin) {
-  const [groqKey, groqModel, groqVisionModel, openrouterKey, openrouterModel] = await Promise.all([
+// chamada, não depois de um redeploy. `uso` filtra pelas chaves habilitadas
+// pra esse contexto em "Chaves de API" (ver USOS_IA em systemSecrets.ts) —
+// sem configuração explícita, a chave vale pra qualquer uso.
+async function resolveProvider(admin: Admin, uso: IaUso = "chat") {
+  const [groqKey, groqModel, groqVisionModel, openrouterKey, openrouterModel, usosConfig] = await Promise.all([
     getSystemSecret(admin, "GROQ_API_KEY"),
     getSystemSecret(admin, "GROQ_MODEL"),
     getSystemSecret(admin, "GROQ_VISION_MODEL"),
     getSystemSecret(admin, "OPENROUTER_API_KEY"),
     getSystemSecret(admin, "OPENROUTER_MODEL"),
+    getChaveUsosConfig(admin),
   ]);
-  const provider = process.env.IA_PROVIDER || (groqKey ? "groq" : "openrouter");
   const providers = {
     groq: {
       baseURL: "https://api.groq.com/openai/v1",
@@ -32,11 +34,20 @@ async function resolveProvider(admin: Admin) {
       visionModel: openrouterModel || "anthropic/claude-3.5-sonnet",
     },
   } as const;
-  return providers[provider as keyof typeof providers] || providers.openrouter;
+  const habilitada = (chave: string) => {
+    const usos = usosConfig[chave];
+    return !usos || usos[uso] !== false;
+  };
+  const preferida = process.env.IA_PROVIDER === "openrouter" ? "openrouter" : "groq";
+  const ordem = (preferida === "groq" ? ["groq", "openrouter"] : ["openrouter", "groq"]) as (keyof typeof providers)[];
+  for (const nome of ordem) {
+    if (providers[nome].key && habilitada(nome === "groq" ? "GROQ_API_KEY" : "OPENROUTER_API_KEY")) return providers[nome];
+  }
+  return providers[preferida];
 }
 
-export async function isConfigured(admin: Admin): Promise<boolean> {
-  const active = await resolveProvider(admin);
+export async function isConfigured(admin: Admin, uso: IaUso = "chat"): Promise<boolean> {
+  const active = await resolveProvider(admin, uso);
   return !!active.key;
 }
 
@@ -57,9 +68,9 @@ export type ClienteContexto = {
 export async function chatCompletion(
   admin: Admin,
   messages: ChatMessage[],
-  { temperature = 0.3, maxTokens = 700 }: { temperature?: number; maxTokens?: number } = {}
+  { temperature = 0.3, maxTokens = 700, uso = "chat" }: { temperature?: number; maxTokens?: number; uso?: IaUso } = {}
 ): Promise<string> {
-  const active = await resolveProvider(admin);
+  const active = await resolveProvider(admin, uso);
   if (!active.key) {
     const err = new IaError("ia_not_configured");
     err.code = "ia_not_configured";
@@ -194,7 +205,7 @@ export async function chatVision(
   imageDataUrl: string,
   { maxTokens = 700 }: { maxTokens?: number } = {}
 ): Promise<string> {
-  const active = await resolveProvider(admin);
+  const active = await resolveProvider(admin, "documentos");
   if (!active.key) {
     const err = new IaError("ia_not_configured");
     err.code = "ia_not_configured";
@@ -260,7 +271,7 @@ export async function analisarDocumento(admin: Admin, buffer: Buffer, mime: stri
         { role: "system", content: PERSONA },
         { role: "user", content: `${PROMPT_DOC}\n\nConteúdo extraído do PDF:\n${texto}` },
       ],
-      { temperature: 0.2, maxTokens: 600 }
+      { temperature: 0.2, maxTokens: 600, uso: "documentos" }
     );
   } else {
     return { tipo: "Desconhecido", resumo: "Formato não suportado para leitura automática (envie imagem ou PDF).", diagnostico: "", dados: "" };
