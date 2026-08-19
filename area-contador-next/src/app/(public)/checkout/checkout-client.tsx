@@ -386,9 +386,22 @@ export function CheckoutClient() {
                 <>Seu atendimento está marcado para <b>{labelDia(pedido.dia!)} às {pedido.hora}</b>.</>
               )}
             </p>
+
+            <ol className="public-etapas-atendimento">
+              <li>Preencha a triagem contando o que está acontecendo.</li>
+              {pedido.modalidade === "sem_agendamento" ? (
+                <>
+                  <li>Envie os documentos direto pelo celular.</li>
+                  <li>Acompanhe pela sua área — avisamos por e-mail assim que tiver novidade.</li>
+                </>
+              ) : (
+                <li>No dia e horário marcado, conversamos por aqui mesmo, pelo chat da sua área — sem precisar de reunião por vídeo.</li>
+              )}
+            </ol>
+
             {!prefereDepois ? (
               <>
-                <p className="public-ajuda">Vamos iniciar seu atendimento agora? Você preenche a triagem e já pode enviar os documentos.</p>
+                <p className="public-ajuda">Vamos iniciar agora? Você entra direto, sem precisar de senha — lá dentro tem um passo rápido pra criar uma senha e facilitar sua próxima entrada.</p>
                 <Button className="public-btn-full" disabled={entrando} onClick={() => void iniciarAgora()}>
                   {entrando ? "Entrando…" : "Sim, iniciar atendimento agora"}
                 </Button>
