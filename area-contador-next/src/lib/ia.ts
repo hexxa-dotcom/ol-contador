@@ -1,7 +1,7 @@
 // Integração de IA — porte 1:1 de api/_lib/ia.js. A chave nunca vai pro
 // navegador; toda chamada roda no servidor.
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { getChaveUsosConfig, getSystemSecret, type IaUso } from "@/lib/systemSecrets";
+import { getChaveUsosConfig, getSystemSecret, isUsoHabilitado, type IaUso } from "@/lib/systemSecrets";
 
 type Admin = SupabaseClient;
 
@@ -289,7 +289,7 @@ export async function uploadSkillPDF(
 ): Promise<{ success: true; chunksProcessed: number }> {
   if (!skillName || !base64) throw new Error("Faltam parâmetros.");
   const OPENAI_API_KEY = await getSystemSecret(admin, "OPENAI_API_KEY");
-  if (!OPENAI_API_KEY) {
+  if (!OPENAI_API_KEY || !(await isUsoHabilitado(admin, "OPENAI_API_KEY", "embeddings"))) {
     const e = new IaError("OPENAI_API_KEY_MISSING");
     e.code = "ia_not_configured";
     throw e;
@@ -331,7 +331,7 @@ export async function uploadSkillPDF(
 
 async function generateEmbeddingForQuery(admin: Admin, text: string): Promise<number[] | null> {
   const OPENAI_API_KEY = await getSystemSecret(admin, "OPENAI_API_KEY");
-  if (!OPENAI_API_KEY) return null;
+  if (!OPENAI_API_KEY || !(await isUsoHabilitado(admin, "OPENAI_API_KEY", "embeddings"))) return null;
   try {
     const res = await fetch("https://api.openai.com/v1/embeddings", {
       method: "POST",

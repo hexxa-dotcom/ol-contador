@@ -5019,13 +5019,14 @@ export function ConfiguracoesIntegralView({
       setLogAction(null);
     }
   }
-  const [systemSecrets, setSystemSecrets] = useState<Array<{ chave: string; label: string; grupo: string; usosDisponiveis?: string[] }>>([]);
+  const [systemSecrets, setSystemSecrets] = useState<Array<{ chave: string; label: string; grupo: string; nota?: string; usosDisponiveis?: string[]; testavel?: boolean }>>([]);
   const [systemSecretsStatus, setSystemSecretsStatus] = useState<Record<string, { origem: "banco" | "ambiente" | "nenhuma"; atualizadoEm: string | null }>>({});
   const [systemSecretsUsos, setSystemSecretsUsos] = useState<Record<string, Record<string, boolean>>>({});
   const [usosDisponiveis, setUsosDisponiveis] = useState<Array<{ id: string; label: string }>>([]);
   const [systemSecretsLoaded, setSystemSecretsLoaded] = useState(false);
   const [secretDrafts, setSecretDrafts] = useState<Record<string, string>>({});
   const [secretAction, setSecretAction] = useState<string | null>(null);
+  const [secretTestResult, setSecretTestResult] = useState<Record<string, { ok: boolean; detail?: string } | "loading">>({});
   async function carregarChavesSistema() {
     const response = await fetch("/api/system-secrets");
     const result = await response.json().catch(() => ({ chaves: [], status: {}, usos: {}, usosDisponiveis: [] }));
@@ -5065,6 +5066,16 @@ export function ConfiguracoesIntegralView({
     } finally {
       setSecretAction(null);
     }
+  }
+  async function testarChaveSistema(chave: string) {
+    setSecretTestResult((prev) => ({ ...prev, [chave]: "loading" }));
+    const response = await fetch("/api/system-secrets", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ chave, valor: secretDrafts[chave] || "", acao: "testar" }),
+    });
+    const result = await response.json().catch(() => ({ ok: false, detail: "Resposta inválida" }));
+    setSecretTestResult((prev) => ({ ...prev, [chave]: { ok: Boolean(result.ok), detail: result.detail } }));
   }
   async function limparChaveSistema(chave: string) {
     if (!window.confirm("Remover essa chave do banco? O sistema volta a usar a variável de ambiente da Vercel, se houver.")) return;
@@ -5940,9 +5951,10 @@ export function ConfiguracoesIntegralView({
           {tab === "Chaves de API" && (
             <>
               <p className="muted">
-                Chaves salvas aqui ficam criptografadas no banco e valem na hora, sem precisar de redeploy. Fora dessa
-                lista, as demais integrações (Asaas, SERPRO, Resend) continuam configuradas só por variável de
-                ambiente na Vercel.
+                Chaves salvas aqui ficam criptografadas no banco e valem na hora, sem precisar de redeploy. Use
+                &quot;Testar chave&quot; pra confirmar que ela autentica de verdade no provedor antes (ou depois) de
+                salvar — colar sozinho não garante que ela funciona. Fora dessa lista, as demais integrações (Asaas,
+                SERPRO, Resend) continuam configuradas só por variável de ambiente na Vercel.
               </p>
               {!systemSecretsLoaded ? (
                 <EmptyState>Carregando chaves…</EmptyState>
@@ -5955,8 +5967,9 @@ export function ConfiguracoesIntegralView({
                 ).map(([grupo, itens]) => (
                   <div key={grupo} className="settings-item-list">
                     <strong>{grupo}</strong>
-                    {itens.map((item) => {
+    {itens.map((item) => {
                       const status = systemSecretsStatus[item.chave];
+                      const teste = secretTestResult[item.chave];
                       return (
                         <div className="settings-item-row" key={item.chave}>
                           <div>
@@ -5968,6 +5981,7 @@ export function ConfiguracoesIntegralView({
                                   ? "Configurada só na Vercel (variável de ambiente)"
                                   : "Não configurada"}
                             </small>
+                            {item.nota && <small className="muted">{item.nota}</small>}
                           </div>
                           <Input
                             type="password"
@@ -5982,10 +5996,24 @@ export function ConfiguracoesIntegralView({
                           >
                             {secretAction === item.chave ? "Salvando…" : "Salvar"}
                           </Button>
+                          {item.testavel && (
+                            <Button
+                              className="secondary compact"
+                              disabled={teste === "loading" || (status?.origem === "nenhuma" && !(secretDrafts[item.chave] || "").trim())}
+                              onClick={() => void testarChaveSistema(item.chave)}
+                            >
+                              {teste === "loading" ? "Testando…" : "Testar chave"}
+                            </Button>
+                          )}
                           {status?.origem === "banco" && (
                             <Button className="icon ghost danger-text" disabled={secretAction === item.chave} onClick={() => void limparChaveSistema(item.chave)}>
                               <X size={15} />
                             </Button>
+                          )}
+                          {teste && teste !== "loading" && (
+                            <small className={teste.ok ? "system-secret-test-ok" : "system-secret-test-fail"}>
+                              {teste.ok ? "✓ Chave válida — autenticou com o provedor." : `✗ Falhou: ${teste.detail || "não autenticou."}`}
+                            </small>
                           )}
                           {item.usosDisponiveis && item.usosDisponiveis.length > 0 && (
                             <div className="settings-item-row-usos">

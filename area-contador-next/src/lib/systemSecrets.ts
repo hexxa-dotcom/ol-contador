@@ -28,29 +28,40 @@ function decifrar(row: { ciphertext: string; iv: string; auth_tag: string }): st
   return Buffer.concat([decipher.update(Buffer.from(row.ciphertext, "base64")), decipher.final()]).toString("utf8");
 }
 
-export type ChaveEditavel = { chave: string; label: string; grupo: string; nota?: string; usosDisponiveis?: IaUso[] };
+export type ChaveEditavel = {
+  chave: string;
+  label: string;
+  grupo: string;
+  nota?: string;
+  usosDisponiveis?: IaUso[];
+  testavel?: boolean;
+};
 
 // Usos possíveis pra uma chave-provedor de IA: "chat" cobre as funções de
-// texto do Copiloto (resumo, rascunho, pergunta, diagnóstico, relatório) e
+// texto do Copiloto (resumo, rascunho, pergunta, diagnóstico, relatório),
 // "documentos" cobre a leitura de anexos (imagem via visão, PDF via texto
-// extraído). Ver resolveProvider em lib/ia.ts.
-export type IaUso = "chat" | "documentos";
+// extraído) e "embeddings" cobre a indexação/busca das skills em PDF (RAG).
+// Ver resolveProvider em lib/ia.ts.
+export type IaUso = "chat" | "documentos" | "embeddings";
 export const USOS_IA: { id: IaUso; label: string }[] = [
   { id: "chat", label: "Chat/Copiloto" },
   { id: "documentos", label: "Análise de documentos" },
+  { id: "embeddings", label: "Embeddings de skills (RAG)" },
 ];
 
 // Só entram aqui as chaves que algum lib/*.ts já sabe ler do banco primeiro
 // (ver getSystemSecret nos pontos de uso). Adicionar uma linha aqui sem
 // mudar o lib correspondente só cadastra a chave — não muda o comportamento
-// de nada até o código que consome ela ser adaptado.
+// de nada até o código que consome ela ser adaptado. `testavel` liga o botão
+// "Testar chave" (chama a API do provedor de verdade); só faz sentido pra
+// chaves de acesso, não pra nomes de modelo.
 export const CHAVES_EDITAVEIS: ChaveEditavel[] = [
-  { chave: "GROQ_API_KEY", label: "Groq (IA principal do Copiloto)", grupo: "Inteligência Artificial", usosDisponiveis: ["chat", "documentos"] },
-  { chave: "GROQ_MODEL", label: "Modelo Groq (texto)", grupo: "Inteligência Artificial" },
-  { chave: "GROQ_VISION_MODEL", label: "Modelo Groq (visão/imagem)", grupo: "Inteligência Artificial" },
-  { chave: "OPENROUTER_API_KEY", label: "OpenRouter (IA alternativa)", grupo: "Inteligência Artificial", usosDisponiveis: ["chat", "documentos"] },
-  { chave: "OPENROUTER_MODEL", label: "Modelo OpenRouter", grupo: "Inteligência Artificial" },
-  { chave: "OPENAI_API_KEY", label: "OpenAI (embeddings das skills)", grupo: "Inteligência Artificial" },
+  { chave: "GROQ_API_KEY", label: "Groq (IA principal do Copiloto)", grupo: "Inteligência Artificial", usosDisponiveis: ["chat", "documentos"], testavel: true },
+  { chave: "GROQ_MODEL", label: "Modelo Groq (texto)", grupo: "Inteligência Artificial", nota: "Nome do modelo, não é uma chave de acesso — segue o uso da Groq acima." },
+  { chave: "GROQ_VISION_MODEL", label: "Modelo Groq (visão/imagem)", grupo: "Inteligência Artificial", nota: "Nome do modelo, não é uma chave de acesso — segue o uso da Groq acima." },
+  { chave: "OPENROUTER_API_KEY", label: "OpenRouter (IA alternativa)", grupo: "Inteligência Artificial", usosDisponiveis: ["chat", "documentos"], testavel: true },
+  { chave: "OPENROUTER_MODEL", label: "Modelo OpenRouter", grupo: "Inteligência Artificial", nota: "Nome do modelo, não é uma chave de acesso — segue o uso do OpenRouter acima." },
+  { chave: "OPENAI_API_KEY", label: "OpenAI (embeddings das skills)", grupo: "Inteligência Artificial", usosDisponiveis: ["embeddings"], testavel: true },
 ];
 
 const CONFIG_USOS_CHAVE = "ia_chave_usos";
@@ -71,6 +82,11 @@ export async function setChaveUso(admin: Admin, chave: string, uso: IaUso, ativo
     .from("configuracoes")
     .upsert({ chave: CONFIG_USOS_CHAVE, valor: proximo as never, updated_at: new Date().toISOString() });
   if (error) throw error;
+}
+
+export async function isUsoHabilitado(admin: Admin, chave: string, uso: IaUso): Promise<boolean> {
+  const usos = (await getChaveUsosConfig(admin))[chave];
+  return !usos || usos[uso] !== false;
 }
 
 export async function getSystemSecret(admin: Admin, chave: string): Promise<string | null> {
@@ -96,6 +112,29 @@ export async function setSystemSecret(admin: Admin, chave: string, valor: string
 export async function clearSystemSecret(admin: Admin, chave: string): Promise<void> {
   const { error } = await admin.from("chaves_sistema").delete().eq("chave", chave);
   if (error) throw error;
+}
+
+// Chama a API do provedor de verdade com a chave informada, pra confirmar que
+// ela autentica antes (ou depois) de salvar — colar uma chave errada só se
+// revelaria no próximo atendimento sem isso.
+export async function testarChave(chave: string, valor: string): Promise<{ ok: boolean; detail?: string }> {
+  const endpoints: Record<string, { url: string; headers: (v: string) => Record<string, string> }> = {
+    GROQ_API_KEY: { url: "https://api.groq.com/openai/v1/models", headers: (v) => ({ Authorization: `Bearer ${v}` }) },
+    // /models do OpenRouter é público e responde 200 mesmo com chave inválida
+    // (chega a ignorar o header) — /key exige autenticação de verdade.
+    OPENROUTER_API_KEY: { url: "https://openrouter.ai/api/v1/key", headers: (v) => ({ Authorization: `Bearer ${v}` }) },
+    OPENAI_API_KEY: { url: "https://api.openai.com/v1/models", headers: (v) => ({ Authorization: `Bearer ${v}` }) },
+  };
+  const endpoint = endpoints[chave];
+  if (!endpoint) return { ok: false, detail: "Essa chave não tem um teste automático — verifique manualmente." };
+  try {
+    const res = await fetch(endpoint.url, { headers: endpoint.headers(valor), signal: AbortSignal.timeout(10000) });
+    if (res.ok) return { ok: true };
+    const data = await res.json().catch(() => ({}));
+    return { ok: false, detail: data?.error?.message || `${res.status} ${res.statusText}` };
+  } catch (e) {
+    return { ok: false, detail: e instanceof Error ? e.message : "Falha de rede ao testar." };
+  }
 }
 
 export async function listSystemSecretsStatus(admin: Admin): Promise<Record<string, { origem: "banco" | "ambiente" | "nenhuma"; atualizadoEm: string | null }>> {

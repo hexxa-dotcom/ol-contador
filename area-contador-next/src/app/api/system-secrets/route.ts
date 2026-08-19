@@ -1,7 +1,18 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { adminClient } from "@/lib/supabase/admin";
-import { CHAVES_EDITAVEIS, clearSystemSecret, getChaveUsosConfig, listSystemSecretsStatus, setChaveUso, setSystemSecret, USOS_IA, type IaUso } from "@/lib/systemSecrets";
+import {
+  CHAVES_EDITAVEIS,
+  clearSystemSecret,
+  getChaveUsosConfig,
+  getSystemSecret,
+  listSystemSecretsStatus,
+  setChaveUso,
+  setSystemSecret,
+  testarChave,
+  USOS_IA,
+  type IaUso,
+} from "@/lib/systemSecrets";
 import { registrarErro } from "@/lib/observability";
 
 export const runtime = "nodejs";
@@ -39,7 +50,7 @@ export async function POST(request: Request) {
   const body = (await request.json().catch(() => null)) as {
     chave?: string;
     valor?: string;
-    acao?: "salvar" | "limpar" | "definir-uso";
+    acao?: "salvar" | "limpar" | "definir-uso" | "testar";
     uso?: IaUso;
     ativo?: boolean;
   } | null;
@@ -52,6 +63,12 @@ export async function POST(request: Request) {
     if (body?.acao === "limpar") {
       await clearSystemSecret(ctx.admin, chave);
       return NextResponse.json({ ok: true });
+    }
+    if (body?.acao === "testar") {
+      const valor = (body.valor || "").trim() || (await getSystemSecret(ctx.admin, chave)) || "";
+      if (!valor) return NextResponse.json({ ok: false, detail: "Nenhuma chave pra testar — cole um valor ou salve primeiro." });
+      const resultado = await testarChave(chave, valor);
+      return NextResponse.json(resultado);
     }
     if (body?.acao === "definir-uso") {
       const item = CHAVES_EDITAVEIS.find((i) => i.chave === chave);
