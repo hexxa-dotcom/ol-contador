@@ -77,7 +77,9 @@ export function CheckoutClient() {
   const [creditoFeedback, setCreditoFeedback] = useState("");
 
   const [pagamento, setPagamento] = useState<{ cobrancaId: number; pollToken: string; pixImage?: string; pixPayload?: string; invoiceUrl?: string; metodoPagamento: string; valor: number } | null>(null);
-  const [pronto, setPronto] = useState<{ pago: boolean; email: string } | null>(null);
+  const [pronto, setPronto] = useState<{ pago: boolean; email: string; tokenHash: string | null } | null>(null);
+  const [entrando, setEntrando] = useState(false);
+  const [prefereDepois, setPrefereDepois] = useState(false);
   const [copiado, setCopiado] = useState(false);
   const buscaCepSeq = useRef(0);
   const buscaCnpjSeq = useRef(0);
@@ -235,30 +237,36 @@ export function CheckoutClient() {
     }
   }
 
-  // Tenta logar a pessoa direto, sem esperar ela abrir o e-mail: o servidor já
-  // gerou um token válido assim que confirmou o pagamento. Se outra pessoa já
-  // estiver logada neste navegador (computador compartilhado), não sobrescreve
-  // a sessão dela — cai no link por e-mail.
+  // Pagamento confirmado: sempre mostra a tela de "vamos começar agora?" em
+  // vez de logar em silêncio — a pessoa decide se quer entrar na hora ou
+  // preferir o link por e-mail depois. O token do login automático (se veio)
+  // fica guardado pra usar só quando ela escolher "iniciar agora".
   async function finalizarComLoginAutomatico(emailDoPedido: string, autoLogin: { tokenHash: string } | null, pago: boolean) {
-    if (autoLogin?.tokenHash) {
-      try {
+    setPronto({ pago, email: emailDoPedido, tokenHash: autoLogin?.tokenHash || null });
+  }
+
+  async function iniciarAgora() {
+    if (!pronto) return;
+    setEntrando(true);
+    try {
+      if (pronto.tokenHash) {
         const supabase = createBrowserClient();
         if (supabase) {
           const { data } = await supabase.auth.getSession();
-          const outraPessoaLogada = data.session?.user?.email && data.session.user.email !== emailDoPedido;
+          const outraPessoaLogada = data.session?.user?.email && data.session.user.email !== pronto.email;
           if (!outraPessoaLogada) {
-            const { error } = await supabase.auth.verifyOtp({ token_hash: autoLogin.tokenHash, type: "magiclink" });
+            const { error } = await supabase.auth.verifyOtp({ token_hash: pronto.tokenHash, type: "magiclink" });
             if (!error) {
               router.push("/portal");
               return;
             }
           }
         }
-      } catch {
-        /* cai no fallback abaixo */
       }
+      router.push("/login");
+    } finally {
+      setEntrando(false);
     }
-    setPronto({ pago, email: emailDoPedido });
   }
 
   function iniciarPolling(cobrancaId: number, pollToken: string, emailDoPedido: string) {
@@ -373,14 +381,26 @@ export function CheckoutClient() {
             <h2>{pronto.pago ? "Pagamento confirmado!" : "Atendimento confirmado!"}</h2>
             <p>
               {pedido.modalidade === "sem_agendamento" ? (
-                <>Seu Atendimento Express foi recebido. Entre na sua área agora para concluir a triagem e enviar os documentos.</>
+                <>Recebemos seu Atendimento Express.</>
               ) : (
-                <>
-                  Seu atendimento está marcado para <b>{labelDia(pedido.dia!)} às {pedido.hora}</b>. Mandamos um e-mail para <b>{pronto.email}</b> com o link de acesso.
-                </>
+                <>Seu atendimento está marcado para <b>{labelDia(pedido.dia!)} às {pedido.hora}</b>.</>
               )}
             </p>
-            <Button onClick={() => router.push("/login")}>Já recebi o e-mail, entrar</Button>
+            {!prefereDepois ? (
+              <>
+                <p className="public-ajuda">Vamos iniciar seu atendimento agora? Você preenche a triagem e já pode enviar os documentos.</p>
+                <Button className="public-btn-full" disabled={entrando} onClick={() => void iniciarAgora()}>
+                  {entrando ? "Entrando…" : "Sim, iniciar atendimento agora"}
+                </Button>
+                <button type="button" className="public-link-credito" onClick={() => setPrefereDepois(true)}>
+                  Prefiro fazer depois
+                </button>
+              </>
+            ) : (
+              <p className="public-ajuda">
+                Sem problema — mandamos um e-mail para <b>{pronto.email}</b> com o link de acesso. É só clicar nele quando quiser começar.
+              </p>
+            )}
           </div>
         </main>
         <SiteFooter />

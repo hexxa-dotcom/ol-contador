@@ -69,8 +69,6 @@ export function AgendarClient() {
   const [modalidade, setModalidade] = useState<"sem_agendamento" | "agendado">("sem_agendamento");
   const [dia, setDia] = useState<string | null>(null);
   const [hora, setHora] = useState<string | null>(null);
-  const [assuntoId, setAssuntoId] = useState<string | null>(null);
-  const [erroAssunto, setErroAssunto] = useState(false);
   const [alerta, setAlerta] = useState("");
 
   useEffect(() => {
@@ -116,7 +114,6 @@ export function AgendarClient() {
         setDia(salvo.dia || null);
         setHora(salvo.hora || null);
         setModalidade(salvo.modalidade === "agendado" ? "agendado" : "sem_agendamento");
-        setAssuntoId(salvo.assuntoId || null);
       }
     } catch {
       /* ignore */
@@ -125,7 +122,6 @@ export function AgendarClient() {
   }, [opcoes]);
 
   const servico = useMemo(() => opcoes?.servicos.find((s) => s.id === servicoId) || null, [opcoes, servicoId]);
-  const assuntos = servico?.itens || [];
   const dias = useMemo(() => diasUteis(5, opcoes?.diasBloqueados || []), [opcoes]);
   const diaAtual = dia && dias.includes(dia) ? dia : dias[0] || null;
   const ocupadosNoDia = new Set((diaAtual && opcoes?.ocupados[diaAtual]) || []);
@@ -133,26 +129,19 @@ export function AgendarClient() {
 
   function continuar() {
     setAlerta("");
-    setErroAssunto(false);
     if (!servico) return;
     if (modalidade === "agendado" && (!diaAtual || !hora)) {
       setAlerta("Escolha um dia e um horário para continuar.");
       return;
     }
-    if (modalidade === "agendado" && assuntos.length && !assuntoId) {
-      setErroAssunto(true);
-      return;
-    }
-    const assuntoSelecionado = modalidade === "agendado" ? assuntoId : null;
-    const a = assuntos.find((x) => x.id === assuntoSelecionado);
     sessionStorage.setItem(
       CHAVE,
       JSON.stringify({
         servicoId: servico.id,
         servicoNome: servico.name,
         precoCents: servico.price_cents,
-        assuntoId: assuntoSelecionado,
-        assuntoTitulo: a?.titulo || "",
+        assuntoId: null,
+        assuntoTitulo: "",
         modalidade,
         dia: modalidade === "agendado" ? diaAtual : null,
         hora: modalidade === "agendado" ? hora : null,
@@ -285,34 +274,6 @@ export function AgendarClient() {
                       })
                     )}
                   </div>
-                </div>
-              </section>
-            )}
-
-            {modalidade === "agendado" && assuntos.length > 0 && (
-              <section className="public-bloco">
-                <h2>O que está acontecendo?</h2>
-                <p className="public-ajuda">Escolha o que mais se parece com o seu caso. Não precisa saber os termos técnicos.</p>
-                <div className="public-field">
-                  <label htmlFor="assunto">Sua situação</label>
-                  <select
-                    id="assunto"
-                    className="public-select"
-                    value={assuntoId || ""}
-                    onChange={(event) => {
-                      setAssuntoId(event.target.value || null);
-                      setErroAssunto(false);
-                    }}
-                  >
-                    <option value="">Selecione…</option>
-                    {assuntos.map((a) => (
-                      <option key={a.id} value={a.id}>
-                        {a.titulo}
-                      </option>
-                    ))}
-                  </select>
-                  {assuntoId && <span className="public-ajuda">{assuntos.find((a) => a.id === assuntoId)?.resumo}</span>}
-                  {erroAssunto && <span className="public-erro">Escolha a opção que mais se parece com o seu caso.</span>}
                 </div>
               </section>
             )}
