@@ -294,6 +294,17 @@ export async function assignClientResponsavel(input:{clientId:string;responsavel
   return {ok:true as const,message:input.responsavelId?"Cliente atribuído.":"Responsável removido."};
 }
 
+export async function reactivateClient(input:{clientId:string}){
+  if(!input.clientId)return {ok:false as const,message:"Cliente inválido."};
+  const supabase=await createClient();if(!supabase)return {ok:false as const,message:"Conexão indisponível."};
+  const {data:claims}=await supabase.auth.getClaims();const userId=claims?.claims?.sub;if(!userId)return {ok:false as const,message:"Sessão expirada."};
+  const {data:staff}=await supabase.from("staff").select("id").eq("id",userId).maybeSingle();if(!staff)return {ok:false as const,message:"Ação não autorizada."};
+  const {error}=await supabase.from("clientes").update({arquivado_em:null}).eq("id",input.clientId);
+  if(error)return {ok:false as const,message:"Não foi possível reativar o cliente."};
+  revalidatePath("/");
+  return {ok:true as const,message:"Cliente reativado."};
+}
+
 export async function persistClientNotes(input:{clientId:string;notas:string}){
   if(!input.clientId)return {ok:false as const,message:"Cliente inválido."};
   const supabase=await createClient();if(!supabase)return {ok:false as const,message:"Conexão indisponível."};

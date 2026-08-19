@@ -105,6 +105,7 @@ import {
   persistClientChecklist,
   persistClientNotes,
   assignClientResponsavel,
+  reactivateClient,
   sendChatTimerWarning,
   sendAudioMessage,
   sendChatShortcut,
@@ -712,6 +713,7 @@ export function AtendimentoView({
   const warnedTimersRef = useRef(new Set<string>());
   const [isSending, startSending] = useTransition();
   const chatClients = clientsData.clients
+    .filter((client) => !client.arquivado_em)
     .filter(
       (client) =>
         messages.some((message) => message.cliente_id === client.id) ||
@@ -1896,6 +1898,19 @@ export function ClientesIntegralView({
         );
     });
   }
+  const [showArquivados, setShowArquivados] = useState(false);
+  function reactivate(clientId: string) {
+    startTransition(async () => {
+      const result = await reactivateClient({ clientId });
+      feedback(result.message);
+      if (result.ok)
+        setClients((items) =>
+          items.map((item) =>
+            item.id === clientId ? { ...item, arquivado_em: null } : item,
+          ),
+        );
+    });
+  }
   const [analyzingDocument, setAnalyzingDocument] = useState<number | null>(null);
   const [aiDossierPending, setAiDossierPending] = useState(false);
   const [recurrence, setRecurrence] = useState({
@@ -1936,6 +1951,7 @@ export function ClientesIntegralView({
     .filter(
       (client) =>
         (tab !== "Clientes Recorrentes" || client.recorrente) &&
+        (showArquivados || !client.arquivado_em) &&
         finishedInWindow(client) &&
         (!filaRestrita ||
           !client.responsavel_id ||
@@ -2448,6 +2464,14 @@ export function ClientesIntegralView({
               </button>
             ))}
           </div>
+          <label className="inline-checkbox">
+            <input
+              type="checkbox"
+              checked={showArquivados}
+              onChange={(event) => setShowArquivados(event.target.checked)}
+            />
+            Mostrar arquivados
+          </label>
           <Badge>{visible.length} resultados</Badge>
         </div>
         <div className="table-wrap">
@@ -2573,6 +2597,18 @@ export function ClientesIntegralView({
             </div>
             {section === "cadastro" && (
               <div className="profile-form dossier-body">
+                {selected.arquivado_em && (
+                  <div className="archived-banner">
+                    <span>
+                      Cliente arquivado por inatividade em{" "}
+                      {new Date(selected.arquivado_em).toLocaleDateString("pt-BR")}
+                      . Documentos e relatórios continuam guardados.
+                    </span>
+                    <Button onClick={() => reactivate(selected.id)}>
+                      Reativar cliente
+                    </Button>
+                  </div>
+                )}
                 <label>
                   Responsável pelo atendimento
                   <select

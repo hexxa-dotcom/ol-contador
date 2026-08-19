@@ -387,6 +387,7 @@ export type Database = {
       }
       clientes: {
         Row: {
+          arquivado_em: string | null
           asaas_subscription_id: string | null
           atendimento_modalidade: string
           avatar: string | null
@@ -428,6 +429,7 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          arquivado_em?: string | null
           asaas_subscription_id?: string | null
           atendimento_modalidade?: string
           avatar?: string | null
@@ -469,6 +471,7 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          arquivado_em?: string | null
           asaas_subscription_id?: string | null
           atendimento_modalidade?: string
           avatar?: string | null

@@ -749,13 +749,46 @@ como "não confirmado" só por não terem sido lidos, não por ausência real.
 
 ## 15. Decisões pendentes antes do corte
 
-- A aplicação será de um único escritório ou multiempresa?
-- Quais papéis oficiais existirão além de administrador e equipe?
-- Qual dado identifica o escritório/tenant em cada tabela?
-- Quais configurações o cliente pode alterar?
-- Quais notificações precisam de e-mail além da Área do Cliente?
-- Qual é a política de retenção de mensagens, documentos e auditoria?
-- Qual URL substituirá definitivamente a versão antiga?
+Decididas em 19/08/2026:
 
-Essas decisões devem ser resolvidas antes de expandir as políticas RLS ou
-duplicar a aplicação para a Área do Cliente.
+- [x] **Único escritório ou multiempresa?** Único escritório. O schema
+  atual não tem `tenant_id`/`organizacao_id` em nenhuma tabela — não há
+  sinal de virar SaaS multiempresa, então não vale antecipar esse
+  retrabalho agora.
+- [x] **Papéis oficiais além de admin e equipe?** Ficam só 2 papéis
+  (admin/parceiro) + 2 toggles por pessoa (`fila_restrita`,
+  `acesso_insights_radar`) — decisão já registrada na seção 14.1.
+- [x] **Dado que identifica o escritório/tenant em cada tabela?** Nenhum —
+  consequência direta de ser único escritório.
+- [x] **Configurações que o cliente pode alterar?** Telefone, e-mail de
+  contato e preferência de canal de notificação. Nome, CPF/CNPJ e dados
+  fiscais continuam somente leitura pro cliente — mudança nesses campos
+  precisa passar pelo contador, não é edição livre.
+- [x] **Notificações por e-mail além da Área do Cliente?** Sim, para
+  relatório entregue, cobrança gerada/vencendo e mensagem nova no chat
+  (com debounce para não virar spam). WhatsApp fica como canal futuro
+  (Twilio descartado, usuário vai buscar outra solução — ver seção de
+  credenciais).
+- [x] **Política de retenção de mensagens, documentos e auditoria?**
+  Retenção por tipo de dado, não um prazo único:
+  - Documentos fiscais/contábeis (guias, comprovantes, declarações,
+    relatório entregue): guardados 5 anos, é obrigação legal (Receita/
+    CFC). Estimativa de volume com 1.000 atendimentos/mês: ~1,5-2GB/mês,
+    ~90-120GB acumulado em 5 anos — dentro do storage já incluso no
+    plano Pro do Supabase (100GB), custo extra marginal se passar disso.
+  - Chat, notificações, anexos não-fiscais e rascunhos: sem obrigação
+    legal de guarda — purgados quando a conta é arquivada por
+    inatividade.
+  - Conta/cadastro do cliente: 6 meses sem login → arquivada
+    automaticamente (job recorrente, não apaga nada na hora, só marca
+    inativo). Os documentos fiscais dela continuam guardados pelos 5
+    anos independente da conta estar arquivada; o resto (chat/anexos
+    não-fiscais) é limpo nesse momento de arquivamento.
+- [x] **URL definitiva que substitui a versão antiga?** `olacontador.com.br`
+  (domínio já comprado, hoje apontado pro projeto legado `ola-contador`
+  na Vercel). Troca de domínio propositalmente **adiada** — sistema
+  ainda em teste, o corte de domínio só acontece quando o novo estiver
+  validado em produção.
+
+Com essas decisões fechadas, já é possível avançar nas políticas de RLS e
+na duplicação da aplicação para a Área do Cliente.

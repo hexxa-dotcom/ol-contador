@@ -296,6 +296,37 @@ async function aplicarRetencaoDados(admin: Admin) {
   return { retencaoRemovidos: resultados };
 }
 
+// Arquivamento por inatividade (seção 15 da doc de migração): 6 meses sem
+// atendimento arquiva o cliente e limpa chat/notificações — não apaga
+// documentos, relatórios nem anexos de relatório, que são o registro fiscal
+// e ficam retidos pelos 5 anos de guarda contábil independente do
+// arquivamento. Configurável via configuracoes.retencao_dados, mesmo padrão
+// de aplicarRetencaoDados.
+async function arquivarClientesInativos(admin: Admin) {
+  const { data: linha } = await admin.from("configuracoes").select("valor").eq("chave", "retencao_dados").maybeSingle();
+  const cfg = (linha?.valor as Record<string, unknown>) || {};
+  const diasInatividade = Math.max(30, Number(cfg.clientesInatividadeDias) || 180);
+  const limite = new Date(Date.now() - diasInatividade * 86400000).toISOString();
+
+  const { data: candidatos, error } = await admin
+    .from("clientes")
+    .select("id, created_at, ultimo_atendimento_finalizado_em")
+    .is("arquivado_em", null)
+    .or(`and(ultimo_atendimento_finalizado_em.not.is.null,ultimo_atendimento_finalizado_em.lt.${limite}),and(ultimo_atendimento_finalizado_em.is.null,created_at.lt.${limite})`)
+    .limit(100);
+  if (error) throw error;
+  if (!candidatos?.length) return { clientesArquivados: 0 };
+
+  let arquivados = 0;
+  for (const cli of candidatos) {
+    await admin.from("mensagens").delete().eq("cliente_id", cli.id);
+    await admin.from("notificacoes").delete().eq("cliente_ref", cli.id);
+    const { error: updErr } = await admin.from("clientes").update({ arquivado_em: new Date().toISOString() }).eq("id", cli.id);
+    if (!updErr) arquivados++;
+  }
+  return { clientesArquivados: arquivados };
+}
+
 export async function GET(request: Request) {
   const admin = adminClient();
   if (!admin) return NextResponse.json({ error: "service_role_not_configured" }, { status: 503 });
@@ -325,6 +356,7 @@ export async function GET(request: Request) {
     const express = await rodarAlertasAtendimentoExpress(admin);
     const cofre = await expirarCofreGovbr(admin);
     const retencao = await aplicarRetencaoDados(admin);
+    const arquivamento = await arquivarClientesInativos(admin);
 
     // Uma falha na varredura do Serpro não pode derrubar os lembretes, que
     // são a função principal deste endpoint.
@@ -335,7 +367,7 @@ export async function GET(request: Request) {
       radar = { caixaPostalChecados: 0, caixaPostalErro: (e as Error).message };
     }
 
-    return NextResponse.json({ ...r, ...r2, enviados1h, enviadosLink, ...express, ...cofre, ...retencao, ...radar });
+    return NextResponse.json({ ...r, ...r2, enviados1h, enviadosLink, ...express, ...cofre, ...retencao, ...arquivamento, ...radar });
   } catch (e) {
     const err = e as Error;
     await registrarErro(admin, { origem: "cron", codigo: "reminders_failed", mensagem: err.message, rota: "/api/cron/reminders", severidade: "critico" });
