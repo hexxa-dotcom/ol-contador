@@ -681,6 +681,59 @@ NFS-e, recorrência, resgate de crédito). Achadas e tratadas duas lacunas reais
 - Webhook do Asaas: **não migrado, deliberadamente** — já registrado na
   seção 1 como decisão de manter no legado até o corte final.
 
+### Reauditoria rigorosa (19/08/2026)
+
+A auditoria de 18/08 foi rasa (função a função só no nível de "existe
+equivalente?"). Reauditoria por 5 agentes cobrindo `app.js` inteiro
+(7418 linhas) função a função achou 15 gaps reais de comportamento —
+não de existência — e todos foram corrigidos no mesmo dia:
+
+- [x] RBAC do papel "parceiro" não restringia nada no Next (via Financeiro/
+  Configurações/Relatórios livremente) — `accountant-shell.tsx` agora
+  esconde e bloqueia navegação para essas seções quando `staff.role ===
+  'parceiro'`, igual ao legado.
+- [x] Checklist do dossiê só persistia em lote — agora salva por item
+  (`persistClientChecklist`).
+- [x] Rascunho de relatório sem autosave local — agora salva em
+  `localStorage` a cada 450ms, restaura em até 24h, avisa antes de sair
+  da página com alterações pendentes.
+- [x] Recorrência não era mais disparada pelo Kanban (só o botão manual
+  no dossiê) — mover o card para a coluna "Recorrência" volta a ativar a
+  cobrança mensal automaticamente (`api/operations` `kanban-stage`).
+- [x] Aba "Pagamentos" do cliente (histórico de cobranças por cliente)
+  reaparece no dossiê.
+- [x] Filtro de clientes por período finalizado (Todos/Hoje/Semana/Mês).
+- [x] Anexo manual de link/guia/protocolo/comprovante no relatório
+  (antes só aceitava documento já enviado pelo cliente).
+- [x] Modelos prontos de relatório (Geral/PF/PJ/Regularização).
+- [x] Som de mensagem nova no chat.
+- [x] Badge de não lidas na barra lateral em tempo real (antes só
+  atualizava em navegação/reload).
+- [x] Tela de revisão antes de confirmar a entrega do relatório (antes
+  era só um `window.confirm`).
+- [x] Arrastar-e-soltar real no Kanban de Acompanhamento (antes só
+  dropdown).
+- [x] Notas do atendimento voltam a ser editor rico (negrito/lista/cor)
+  com autosave, em vez de textarea puro.
+- [x] Skills do Copiloto e atalhos (chat/Copiloto) ganharam formulário
+  com campos e exclusão por item, em vez de textarea de JSON cru.
+- [x] PDF do relatório ganhou logo do contador e protocolo
+  (`OC-R{id}-V{versao}`); criada `/validar-relatorio` (página pública) +
+  `/api/validar-relatorio`, porte 1:1 de `validarRelatorioPublico`
+  (confirma autenticidade sem expor o conteúdo do relatório). Não portado:
+  a geração do QR code em si (dependia de lib client-side do legado) — o
+  link de validação cobre a mesma função, só sem o código escaneável.
+
+Também corrigidos de passagem: grid do Kanban fixo em 6 colunas (ficou
+desalinhado com a coluna nova de Recorrência) e o tipo do parâmetro
+`next` de `open()` em `ClientesIntegralView`, que não incluía a aba
+"pagamentos". Confirmado que bloqueio manual do chat (`setChatLocked`)
+e presença online (`oc-presence`) já existiam — a reauditoria os marcou
+como "não confirmado" só por não terem sido lidos, não por ausência real.
+
+Não corrigido, fora de escopo: paginação de rodapé por página no PDF
+("Página X de Y") e o QR code escaneável em si.
+
 ## 15. Decisões pendentes antes do corte
 
 - A aplicação será de um único escritório ou multiempresa?
