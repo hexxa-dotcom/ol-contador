@@ -2,10 +2,11 @@
 
 import { useEffect, useRef, useState, type ElementType } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import {
   Bell, CalendarDays, CheckCircle2, ChevronDown, ClipboardList, FolderOpen,
   HelpCircle, History, House, Inbox, Landmark, Lock, LogOut, Menu, MessageCircle,
-  UserRound, X,
+  PanelLeftClose, PanelLeftOpen, UserRound, X,
 } from "lucide-react";
 import { Badge, Button } from "@/components/ui/primitives";
 import {
@@ -90,7 +91,6 @@ export function ClientShell({ data }: { data: PortalData }) {
   }
 
   const initials = data.client.name.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join("").toUpperCase() || "OC";
-  const activeNavIndex = navItems.findIndex((item) => item.id === active);
   const notificationCount = data.unreadMessages + data.unreadMail;
 
   return (
@@ -100,22 +100,23 @@ export function ClientShell({ data }: { data: PortalData }) {
       </div>
       {mobile && <button className="mobile-overlay" aria-label="Fechar menu" onClick={() => setMobile(false)} />}
       <aside className={`sidebar ${collapsed ? "collapsed" : ""} ${mobile ? "mobile-open" : ""}`}>
-        <div className="brand">
-          <button className="brand-mark" aria-label={collapsed ? "Expandir menu lateral" : "Recolher menu lateral"} onClick={() => setCollapsed((value) => !value)}>
-            <Image src="/logo.svg" alt="Símbolo Olá, Contador" width={29} height={30} priority />
+        <div className="sidebar-header">
+          <button
+            className="sidebar-toggle-btn"
+            aria-label={collapsed ? "Expandir menu lateral" : "Recolher menu lateral"}
+            title={collapsed ? "Expandir menu lateral" : "Recolher menu lateral"}
+            onClick={() => setCollapsed((value) => !value)}
+          >
+            {collapsed ? <PanelLeftOpen size={20} /> : <PanelLeftClose size={20} />}
           </button>
-          {(!collapsed || mobile) && (
-            <div>
-              <strong>Olá, Contador</strong>
-              <small>Área do Cliente</small>
-            </div>
+          {!collapsed && (
+            <span className="sidebar-header-label">Menu</span>
           )}
           <Button aria-label="Fechar menu" className="icon ghost mobile-close" onClick={() => setMobile(false)}>
             <X size={18} />
           </Button>
         </div>
         <nav>
-          <span className="nav-indicator" aria-hidden="true" style={{ opacity: activeNavIndex < 0 ? 0 : 1, transform: `translateY(${Math.max(activeNavIndex, 0) * 53}px)` }} />
           {navItems.map(({ id, label, icon: Icon, badge }) => {
             const bloqueado = onboardingPendente && id !== "triagem";
             return (
@@ -140,9 +141,20 @@ export function ClientShell({ data }: { data: PortalData }) {
       </aside>
       <main className="workspace">
         <header className="topbar">
-          <Button aria-label="Abrir menu" className="icon ghost mobile-menu" onClick={() => setMobile(true)}>
-            <Menu size={20} />
-          </Button>
+          <div className="topbar-left">
+            <Button aria-label="Abrir menu" className="icon ghost mobile-menu" onClick={() => setMobile(true)}>
+              <Menu size={20} />
+            </Button>
+            <div className="topbar-brand-wrap">
+              <Link href="/portal" className="topbar-brand-link" onClick={() => navigate("dashboard")}>
+                <Image src="/logo.svg" alt="Olá, Contador" width={32} height={33} priority />
+                <span className="topbar-brand-text">
+                  Olá<i>,</i> Contador<i>.</i>
+                </span>
+              </Link>
+              <span className="topbar-portal-badge">Área do Cliente</span>
+            </div>
+          </div>
           <div className="topbar-actions">
             <Button
               aria-label="Notificações"
@@ -218,6 +230,8 @@ export function ClientShell({ data }: { data: PortalData }) {
                 clientId={data.client.id}
                 documents={data.documents}
                 appointments={data.appointments}
+                atendimentosExpress={data.atendimentosExpress}
+                onNavigate={navigate}
               />
             ) : active === "documentos" ? (
               <PortalDocumentosView clientId={data.client.id} documents={data.documents} reports={data.reports} />
@@ -230,7 +244,7 @@ export function ClientShell({ data }: { data: PortalData }) {
             ) : active === "perfil" ? (
               <PortalPerfilView client={data.client} />
             ) : active === "faq" ? (
-              <PortalFaqView />
+              <PortalFaqView onNavigate={navigate} />
             ) : (
               <PortalDashboardView data={data} onNavigate={navigate} />
             )}

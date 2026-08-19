@@ -3,9 +3,9 @@
 import { useEffect, useRef, useState, useTransition, type ChangeEvent, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import {
-  AlertTriangle, BadgeCheck, CalendarCheck, CalendarClock, CalendarPlus, Camera, Check, CheckCheck,
-  CheckCircle2, CircleAlert, ClipboardList, Download, FileCheck2, FilePlus2,
-  FileText, Inbox, KeyRound, Landmark, ListChecks, Lock, MessageCircle, Play, Search, Send, Star, Upload, UserRound, X, Zap,
+  AlertTriangle, ArrowLeft, ArrowRight, BadgeCheck, CalendarCheck, CalendarClock, CalendarPlus, Camera, Check, CheckCheck,
+  CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, CircleAlert, ClipboardList, Copy, CreditCard, Download, Eye, EyeOff, FileCheck2, FileDown, FilePlus2,
+  FileText, HelpCircle, Inbox, KeyRound, Landmark, ListChecks, Lock, Mail, MapPin, MessageCircle, Paperclip, Phone, Play, QrCode, Search, Send, ShieldAlert, ShieldCheck, Sparkles, Star, Trash2, Upload, UserRound, X, Zap,
 } from "lucide-react";
 import { Badge, Button, Card, EmptyState, Input } from "@/components/ui/primitives";
 import { PageTitle } from "@/components/views";
@@ -58,10 +58,20 @@ function PortalAvaliacaoCard({ report, avaliacoes }: { report: PortalReport | un
   const jaAvaliada = report.casoRef ? avaliacoes.find((a) => a.casoRef === report.casoRef) : avaliacoes[0];
   const notaFinal = enviada ?? jaAvaliada?.nota ?? null;
 
+  const notaLegendas = ["", "Muito insatisfeito", "Insatisfeito", "Atendimento bom", "Muito bom!", "Excelente! ⭐"];
+
   if (notaFinal) {
     return (
-      <Card className="portal-tile avaliacao-tile">
-        <p>Você deu nota {notaFinal} de 5. Obrigado por ajudar a melhorar o atendimento.</p>
+      <Card className="portal-avaliacao-card avaliada">
+        <div className="portal-avaliacao-success">
+          <div className="portal-avaliacao-star-badge">
+            <Star size={20} fill="#f59e0b" color="#f59e0b" />
+          </div>
+          <div>
+            <strong>Avaliação enviada com sucesso</strong>
+            <p>Você atribuiu nota <strong>{notaFinal} de 5</strong> ao atendimento. Agradecemos pelo seu feedback!</p>
+          </div>
+        </div>
       </Card>
     );
   }
@@ -75,20 +85,54 @@ function PortalAvaliacaoCard({ report, avaliacoes }: { report: PortalReport | un
     });
   }
 
+  const activeRating = hover || nota;
+
   return (
-    <Card className="portal-tile avaliacao-tile">
-      <strong>Como foi o seu atendimento?</strong>
-      <div className="avaliacao-estrelas">
-        {[1, 2, 3, 4, 5].map((n) => (
-          <button key={n} type="button" aria-label={`${n} estrela${n > 1 ? "s" : ""}`} onMouseEnter={() => setHover(n)} onMouseLeave={() => setHover(0)} onClick={() => setNota(n)}>
-            <Star size={22} fill={(hover || nota) >= n ? "currentColor" : "none"} />
-          </button>
-        ))}
+    <Card className="portal-avaliacao-card">
+      <div className="portal-avaliacao-header">
+        <div className="portal-avaliacao-icon">
+          <Star size={18} />
+        </div>
+        <div>
+          <h3 className="portal-avaliacao-title">Como foi sua experiência no atendimento?</h3>
+          <p className="portal-avaliacao-desc">Sua opinião é fundamental para aprimorarmos nossos serviços.</p>
+        </div>
       </div>
-      <textarea placeholder="Quer comentar alguma coisa? (opcional)" rows={2} value={comentario} onChange={(event) => setComentario(event.target.value)} />
-      <Button disabled={!nota || pending} onClick={enviar}>
-        {pending ? "Enviando…" : "Enviar avaliação"}
-      </Button>
+      <div className="portal-avaliacao-body">
+        <div className="avaliacao-estrelas-wrap">
+          <div className="avaliacao-estrelas">
+            {[1, 2, 3, 4, 5].map((n) => (
+              <button
+                key={n}
+                type="button"
+                className={`star-btn ${activeRating >= n ? "active" : ""}`}
+                aria-label={`${n} estrela${n > 1 ? "s" : ""}`}
+                onMouseEnter={() => setHover(n)}
+                onMouseLeave={() => setHover(0)}
+                onClick={() => setNota(n)}
+              >
+                <Star size={28} fill={activeRating >= n ? "currentColor" : "none"} />
+              </button>
+            ))}
+          </div>
+          {activeRating > 0 && (
+            <span className="avaliacao-legenda">{notaLegendas[activeRating]}</span>
+          )}
+        </div>
+        <textarea
+          className="portal-avaliacao-textarea"
+          placeholder="Deixe um comentário ou sugestão sobre o atendimento (opcional)…"
+          rows={2}
+          value={comentario}
+          onChange={(event) => setComentario(event.target.value)}
+        />
+        <div className="portal-avaliacao-actions">
+          <Button disabled={!nota || pending} onClick={enviar}>
+            <Star size={15} />
+            <span>{pending ? "Enviando…" : "Confirmar avaliação"}</span>
+          </Button>
+        </div>
+      </div>
     </Card>
   );
 }
@@ -170,18 +214,28 @@ function PortalProximaAcaoCard({ data, onNavigate }: { data: PortalData; onNavig
   const acao = computeProximaAcao(data);
   const Icon = acao.Icon;
   return (
-    <Card className={`portal-tile next-action-card tone-${acao.tone}`}>
-      <div className="next-action-icon">
-        <Icon size={20} />
+    <div className={`portal-spotlight-card tone-${acao.tone}`}>
+      <div className="portal-spotlight-left">
+        <div className={`portal-spotlight-icon-wrap tone-${acao.tone}`}>
+          <Icon size={24} />
+        </div>
+        <div className="portal-spotlight-content">
+          <div className="portal-spotlight-tag">
+            <span>Ação Recomendada</span>
+          </div>
+          <h2 className="portal-spotlight-title">{acao.title}</h2>
+          <p className="portal-spotlight-desc">{acao.text}</p>
+        </div>
       </div>
-      <div className="next-action-body">
-        <strong>{acao.title}</strong>
-        <p>{acao.text}</p>
-      </div>
-      <Button className="secondary" onClick={() => onNavigate(acao.target)}>
-        {acao.buttonLabel}
-      </Button>
-    </Card>
+      <button 
+        type="button" 
+        className={`portal-spotlight-btn tone-${acao.tone}`} 
+        onClick={() => onNavigate(acao.target)}
+      >
+        <span>{acao.buttonLabel}</span>
+        <ArrowRight size={16} />
+      </button>
+    </div>
   );
 }
 
@@ -223,29 +277,44 @@ function computeTimeline(data: PortalData): { passos: PassoTimeline[]; ativoInde
 
 function PortalTimelineCard({ data }: { data: PortalData }) {
   const { passos, ativoIndex } = computeTimeline(data);
-  const passoAtivo = ativoIndex >= 0 ? passos[ativoIndex] : null;
   const feitos = passos.filter((p) => p.feito).length;
+  const pct = Math.round((feitos / passos.length) * 100);
+
   return (
-    <Card className="portal-tile timeline-card">
-      <strong>Linha do tempo do seu caso</strong>
-      <div className="timeline-passos">
-        {passos.map((p, i) => (
-          <div key={p.titulo} className={`timeline-passo ${p.feito ? "feito" : i === ativoIndex ? "ativo" : ""}`}>
-            <span className="timeline-marca">{p.feito ? <Check size={13} /> : i + 1}</span>
-            <div>
-              <strong>{p.titulo}</strong>
-              <p>{p.descricao}</p>
-            </div>
+    <Card className="portal-timeline-box">
+      <div className="portal-timeline-header">
+        <div className="portal-timeline-header-left">
+          <h3 className="portal-timeline-title">Linha do tempo do seu caso</h3>
+          <span className="portal-timeline-subtitle">Acompanhe cada fase do diagnóstico contábil</span>
+        </div>
+        <div className="portal-timeline-progress-badge">
+          <span>{feitos} de {passos.length} etapas concluídas ({pct}%)</span>
+          <div className="portal-timeline-bar-track">
+            <div className="portal-timeline-bar-fill" style={{ width: `${pct}%` }} />
           </div>
-        ))}
+        </div>
       </div>
-      {passoAtivo ? (
-        <p className="timeline-resumo">
-          Etapa atual: <strong>{passoAtivo.titulo}</strong> · {feitos} de {passos.length} etapas concluídas.
-        </p>
-      ) : (
-        <p className="timeline-resumo">Tudo certo — atendimento concluído.</p>
-      )}
+
+      <div className="portal-timeline-steps">
+        {passos.map((p, i) => {
+          const isDone = p.feito;
+          const isCurrent = i === ativoIndex;
+          return (
+            <div key={p.titulo} className={`portal-timeline-step ${isDone ? "is-done" : isCurrent ? "is-current" : "is-pending"}`}>
+              <div className="portal-timeline-node">
+                <div className="portal-timeline-icon">
+                  {isDone ? <Check size={13} strokeWidth={3} /> : <span>{i + 1}</span>}
+                </div>
+                {i < passos.length - 1 && <div className="portal-timeline-line" />}
+              </div>
+              <div className="portal-timeline-info">
+                <strong className="portal-timeline-step-title">{p.titulo}</strong>
+                <p className="portal-timeline-step-desc">{p.descricao}</p>
+              </div>
+            </div>
+          );
+        })}
+      </div>
     </Card>
   );
 }
@@ -365,79 +434,190 @@ export function PortalDashboardView({ data, onNavigate }: { data: PortalData; on
   const expressAtivo = data.atendimentosExpress.find((item) => item.status !== "concluido" && item.status !== "cancelado");
   const triagemPendente = data.triagem && data.triagem.status !== "enviada" ? data.triagem : null;
   const ultimaMensagem = data.messages[data.messages.length - 1];
+  const primeiroNome = data.client.name.split(" ")[0] || "Cliente";
 
   return (
-    <div className="view-stack">
-      <PageTitle title={`Olá, ${data.client.name.split(" ")[0]}`} description="Resumo do seu atendimento — o que precisa da sua atenção primeiro." />
+    <div className="view-stack portal-dashboard-stack">
+      {/* CABEÇALHO DO CLIENTE */}
+      <div className="portal-hero-header">
+        <div className="portal-hero-info">
+          <div className="portal-hero-status-pill">
+            <span className="portal-hero-status-dot" />
+            <span>Atendimento ativo com contador CRC</span>
+          </div>
+          <h1 className="portal-hero-title">
+            Olá, {primeiroNome}! 👋
+          </h1>
+          <p className="portal-hero-desc">
+            Acompanhe em tempo real o status do seu caso, mensagens e relatórios oficiais.
+          </p>
+        </div>
+      </div>
+
+      {/* CARD DE DESTAQUE: PRÓXIMA AÇÃO */}
       <PortalProximaAcaoCard data={data} onNavigate={onNavigate} />
+
+      {/* CARD DE CRIAR SENHA (DISPENSÁVEL) */}
       <PortalCriarSenhaCard clientId={data.client.id} />
-      <section>
-        <div className="stats-grid">
-          <button type="button" className="card dashboard-link-card portal-tile" onClick={() => onNavigate(proximo || !expressAtivo ? "agendamento" : "historico")}>
-            <div className="card-heading">
-              <div>
-                <CalendarClock size={18} />
-                <strong>{expressAtivo && !proximo ? "Atendimento Express" : "Próximo atendimento"}</strong>
+
+      {/* GRID DE CARDS PRINCIPAIS (4 COLUNAS / 2x2 NO TABLET/MOBILE) */}
+      <section className="portal-dashboard-section">
+        <div className="portal-tiles-grid">
+          {/* TILE 1: PRÓXIMO ATENDIMENTO OU EXPRESS */}
+          <button 
+            type="button" 
+            className="portal-action-tile tile-agenda" 
+            onClick={() => onNavigate(proximo || !expressAtivo ? "agendamento" : "historico")}
+          >
+            <div className="portal-tile-top">
+              <div className="portal-tile-icon-box agenda">
+                <CalendarClock size={20} />
               </div>
+              <span className="portal-tile-tag">
+                {expressAtivo && !proximo ? "Express" : "Reunião"}
+              </span>
             </div>
-            {proximo ? (
-              <p>
-                {formatDate(proximo.date)} às {proximo.time}
-                <br />
-                <small>{proximo.taxType || "Atendimento agendado"}</small>
-              </p>
-            ) : expressAtivo ? (
-              <p>
-                {STATUS_EXPRESS_LABEL[expressAtivo.status] || expressAtivo.status}
-                <br />
-                <small>{expressAtivo.assunto || "Em andamento"} · previsão {formatDate(expressAtivo.prazoConclusaoEm.slice(0, 10))}</small>
-              </p>
-            ) : (
-              <EmptyState>Nenhum atendimento agendado.</EmptyState>
-            )}
+            <div className="portal-tile-body">
+              <h3 className="portal-tile-title">
+                {expressAtivo && !proximo ? "Atendimento Express" : "Próximo Atendimento"}
+              </h3>
+              {proximo ? (
+                <div className="portal-tile-snippet">
+                  <strong>{formatDate(proximo.date)} às {proximo.time}</strong>
+                  <span>{proximo.taxType || "Atendimento agendado"}</span>
+                </div>
+              ) : expressAtivo ? (
+                <div className="portal-tile-snippet">
+                  <strong>{STATUS_EXPRESS_LABEL[expressAtivo.status] || expressAtivo.status}</strong>
+                  <span>{expressAtivo.assunto || "Em andamento"} · previsão {formatDate(expressAtivo.prazoConclusaoEm.slice(0, 10))}</span>
+                </div>
+              ) : (
+                <div className="portal-tile-snippet empty">
+                  <span>Nenhum horário marcado</span>
+                </div>
+              )}
+            </div>
+            <div className="portal-tile-footer">
+              <span className="portal-tile-action-label">
+                {proximo ? "Ver agendamento" : "Agendar consultoria"}
+              </span>
+              <ChevronRight size={16} className="portal-tile-arrow" />
+            </div>
           </button>
 
-          <button type="button" className="card dashboard-link-card portal-tile" onClick={() => onNavigate("triagem")}>
-            <div className="card-heading">
-              <div>
-                <CircleAlert size={18} />
-                <strong>Pré-atendimento</strong>
+          {/* TILE 2: PRÉ-ATENDIMENTO / TRIAGEM */}
+          <button 
+            type="button" 
+            className="portal-action-tile tile-triagem" 
+            onClick={() => onNavigate("triagem")}
+          >
+            <div className="portal-tile-top">
+              <div className="portal-tile-icon-box triagem">
+                <ClipboardList size={20} />
               </div>
+              {triagemPendente ? (
+                <span className="portal-tile-badge pending">Pendente</span>
+              ) : (
+                <span className="portal-tile-badge ok">Enviado</span>
+              )}
             </div>
-            {triagemPendente ? (
-              <p>
-                Pendente: <strong>{triagemPendente.assunto ? nomeDoAssunto(data.triagemCatalogo, triagemPendente.assunto) : "conte o que aconteceu"}</strong>
-              </p>
-            ) : (
-              <p>Nenhuma pendência no momento.</p>
-            )}
+            <div className="portal-tile-body">
+              <h3 className="portal-tile-title">Pré-atendimento</h3>
+              {triagemPendente ? (
+                <div className="portal-tile-snippet">
+                  <strong>{triagemPendente.assunto ? nomeDoAssunto(data.triagemCatalogo, triagemPendente.assunto) : "Conte o que aconteceu"}</strong>
+                  <span>Responda as perguntas rápidas</span>
+                </div>
+              ) : (
+                <div className="portal-tile-snippet">
+                  <strong>Informações enviadas</strong>
+                  <span>Contador analisando seu caso</span>
+                </div>
+              )}
+            </div>
+            <div className="portal-tile-footer">
+              <span className="portal-tile-action-label">
+                {triagemPendente ? "Completar diagnóstico" : "Ver respostas"}
+              </span>
+              <ChevronRight size={16} className="portal-tile-arrow" />
+            </div>
           </button>
 
-          <button type="button" className="card dashboard-link-card portal-tile" onClick={() => onNavigate("atendimento")}>
-            <div className="card-heading">
-              <div>
-                <MessageCircle size={18} />
-                <strong>Atendimento</strong>
+          {/* TILE 3: MENSAGENS / ATENDIMENTO */}
+          <button 
+            type="button" 
+            className="portal-action-tile tile-chat" 
+            onClick={() => onNavigate("atendimento")}
+          >
+            <div className="portal-tile-top">
+              <div className="portal-tile-icon-box chat">
+                <MessageCircle size={20} />
               </div>
-              {data.unreadMessages > 0 && <Badge className="nav-count">{data.unreadMessages}</Badge>}
+              {data.unreadMessages > 0 ? (
+                <Badge className="portal-tile-counter">{data.unreadMessages} nova{data.unreadMessages > 1 ? "s" : ""}</Badge>
+              ) : (
+                <span className="portal-tile-tag">Canal Direto</span>
+              )}
             </div>
-            {ultimaMensagem ? <p>{ultimaMensagem.text || (ultimaMensagem.type === "audio" ? "Mensagem de áudio" : "Anexo enviado")}</p> : <EmptyState>Nenhuma mensagem ainda.</EmptyState>}
+            <div className="portal-tile-body">
+              <h3 className="portal-tile-title">Mensagens & Chat</h3>
+              {ultimaMensagem ? (
+                <div className="portal-tile-snippet">
+                  <p className="portal-tile-msg-preview">
+                    {ultimaMensagem.text || (ultimaMensagem.type === "audio" ? "🎙️ Mensagem de áudio" : "📎 Anexo enviado")}
+                  </p>
+                  <span>{ultimaMensagem.createdAt ? formatDateTime(ultimaMensagem.createdAt) : ultimaMensagem.time || ""}</span>
+                </div>
+              ) : (
+                <div className="portal-tile-snippet empty">
+                  <span>Inicie uma conversa com seu contador</span>
+                </div>
+              )}
+            </div>
+            <div className="portal-tile-footer">
+              <span className="portal-tile-action-label">Abrir atendimento</span>
+              <ChevronRight size={16} className="portal-tile-arrow" />
+            </div>
           </button>
 
-          <button type="button" className="card dashboard-link-card portal-tile" onClick={() => onNavigate("caixa-postal")}>
-            <div className="card-heading">
-              <div>
-                <Inbox size={18} />
-                <strong>Caixa Postal</strong>
+          {/* TILE 4: CAIXA POSTAL & DOCUMENTOS */}
+          <button 
+            type="button" 
+            className="portal-action-tile tile-docs" 
+            onClick={() => onNavigate(data.unreadMail > 0 ? "caixa-postal" : "documentos")}
+          >
+            <div className="portal-tile-top">
+              <div className="portal-tile-icon-box docs">
+                <Inbox size={20} />
               </div>
-              {data.unreadMail > 0 && <Badge className="nav-count">{data.unreadMail}</Badge>}
+              {data.unreadMail > 0 ? (
+                <Badge className="portal-tile-counter">{data.unreadMail} não lida{data.unreadMail > 1 ? "s" : ""}</Badge>
+              ) : (
+                <span className="portal-tile-tag">{data.documents.length} doc{data.documents.length !== 1 ? "s" : ""}</span>
+              )}
             </div>
-            <p>{data.mailbox.length} mensagem(ns) do escritório.</p>
+            <div className="portal-tile-body">
+              <h3 className="portal-tile-title">Documentos & Avisos</h3>
+              <div className="portal-tile-snippet">
+                <strong>{data.reports.length} relatório(s) oficial(is)</strong>
+                <span>{data.mailbox.length} comunicado(s) na Caixa Postal</span>
+              </div>
+            </div>
+            <div className="portal-tile-footer">
+              <span className="portal-tile-action-label">Acessar documentos</span>
+              <ChevronRight size={16} className="portal-tile-arrow" />
+            </div>
           </button>
         </div>
       </section>
+
+      {/* LINHA DO TEMPO DO ATENDIMENTO */}
       <PortalTimelineCard data={data} />
+
+      {/* AGENDA FISCAL (SE HOUVER OBRIGAÇÕES) */}
       <PortalAgendaFiscalCard obrigacoes={data.agendaFiscal} />
+
+      {/* AVALIAÇÃO DO ATENDIMENTO */}
       <PortalAvaliacaoCard report={data.reports.find((r) => r.status === "entregue")} avaliacoes={data.avaliacoes} />
     </div>
   );
@@ -816,7 +996,13 @@ export function PortalAtendimentoView({
               // só que invertido: "agent" aqui alinha à direita e representa a MINHA mensagem.
               <div key={item.id} className={`chat-message ${item.sender === "client" ? "agent" : "client"}`}>
                 <div>
-                  <p>{item.text || (item.type === "audio" ? "Mensagem de áudio" : item.docName || "Anexo")}</p>
+                  {item.text && <p>{item.text}</p>}
+                  {item.docName && item.type !== "audio" && (
+                    <div className="chat-doc-attachment">
+                      <FileText size={15} />
+                      <span>{item.docName}</span>
+                    </div>
+                  )}
                   {item.type === "audio" &&
                     (() => {
                       const documento = documents.find((d) => d.fileName === item.docName);
@@ -842,6 +1028,17 @@ export function PortalAtendimentoView({
         </div>
         {lock.mode !== "finalizado" && (
           <div className="composer">
+            {onNavigate && (
+              <button
+                type="button"
+                className="composer-attach-btn"
+                onClick={() => onNavigate("documentos")}
+                title="Enviar documento ou comprovante"
+                aria-label="Enviar documento"
+              >
+                <Paperclip size={18} />
+              </button>
+            )}
             <Input
               value={text}
               onChange={(event) => {
@@ -880,13 +1077,18 @@ const VAULT_STATUS_LABEL: Record<string, string> = {
 function PortalCofreGovBr({ clientId }: { clientId: string }) {
   const [status, setStatus] = useState<VaultStatus | null>(null);
   const [senha, setSenha] = useState("");
+  const [showSenha, setShowSenha] = useState(false);
   const [ttl, setTtl] = useState(48);
   const [autoriza, setAutoriza] = useState(false);
   const [pending, startTransition] = useTransition();
   const [erro, setErro] = useState("");
 
   async function chamar(action: string, extra?: Record<string, unknown>) {
-    const response = await fetch("/api/clients/vault", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action, clientId, ...extra }) });
+    const response = await fetch("/api/clients/vault", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action, clientId, ...extra }),
+    });
     const body = await response.json().catch(() => null);
     if (!response.ok) throw new Error(body?.error || "vault_failed");
     return body as VaultStatus;
@@ -901,7 +1103,7 @@ function PortalCofreGovBr({ clientId }: { clientId: string }) {
 
   function enviar() {
     setErro("");
-    if (senha.length < 8) {
+    if (senha.length < 6) {
       setErro("Digite a senha completa do gov.br no campo do cofre.");
       return;
     }
@@ -915,18 +1117,19 @@ function PortalCofreGovBr({ clientId }: { clientId: string }) {
         setSenha("");
         setAutoriza(false);
         setStatus(result);
-        feedback("Senha protegida no cofre.");
+        feedback("Senha protegida com sucesso no cofre.");
       } catch {
-        setErro("Não foi possível proteger a senha agora. Não a envie por outro canal; tente novamente.");
+        setErro("Não foi possível proteger a senha agora. Tente novamente.");
       }
     });
   }
 
   function apagar() {
-    if (!window.confirm("Revogar o acesso e apagar agora a senha protegida?")) return;
+    if (!window.confirm("Revogar o acesso e apagar agora a senha protegida do cofre?")) return;
     startTransition(async () => {
       try {
         setStatus(await chamar("delete"));
+        feedback("Senha do cofre revogada e apagada.");
       } catch {
         setErro("Não foi possível apagar agora. Tente novamente.");
       }
@@ -936,44 +1139,112 @@ function PortalCofreGovBr({ clientId }: { clientId: string }) {
   const pendente = status?.status === "pending";
 
   return (
-    <Card className="portal-tile">
-      <div className="card-heading">
-        <div>
-          <Lock size={18} />
-          <strong>Cofre gov.br</strong>
+    <Card className="portal-perfil-card cofre">
+      <div className="portal-perfil-card-header">
+        <div className="portal-perfil-card-title-wrap">
+          <div className="portal-perfil-icon cofre">
+            <KeyRound size={20} />
+          </div>
+          <div>
+            <h3 className="portal-perfil-card-title">Cofre gov.br Seguro</h3>
+            <p className="portal-perfil-card-desc">
+              Envio criptografado e temporário de credenciais para procedimentos fiscais
+            </p>
+          </div>
         </div>
-        {status && <Badge className={`cofre-badge cofre-${status.status}`}>{VAULT_STATUS_LABEL[status.status] || "Nenhuma senha enviada"}</Badge>}
-      </div>
-      <p className="triagem-dica">
-        Use só se o contador pedir acesso temporário à sua conta gov.br. A senha fica criptografada e só pode ser aberta uma única vez pelo contador — depois é apagada para sempre.
-      </p>
-      {pendente && status?.expiresAt && <p className="triagem-dica">Disponível para uma única abertura até {new Date(status.expiresAt).toLocaleString("pt-BR")}.</p>}
-      <label>
-        Senha do gov.br
-        <Input type="password" value={senha} onChange={(event) => setSenha(event.target.value)} placeholder="Digite a senha" />
-      </label>
-      <label>
-        Expira em
-        <select className="input" value={ttl} onChange={(event) => setTtl(Number(event.target.value))}>
-          <option value={24}>24 horas</option>
-          <option value={48}>48 horas</option>
-          <option value={72}>72 horas</option>
-        </select>
-      </label>
-      <label className="perfil-checkbox">
-        <input type="checkbox" checked={autoriza} onChange={(event) => setAutoriza(event.target.checked)} />
-        <span>Autorizo o uso temporário desta senha pelo contador para o atendimento solicitado.</span>
-      </label>
-      {erro && <p className="login-error">{erro}</p>}
-      <div className="portal-form-acoes">
-        <Button disabled={pending} onClick={enviar}>
-          {pendente ? "Substituir senha do cofre" : "Enviar ao cofre seguro"}
-        </Button>
-        {pendente && (
-          <button type="button" className="secondary compact" disabled={pending} onClick={apagar}>
-            Apagar senha
-          </button>
+        {status && (
+          <span className={`portal-cofre-status-badge ${status.status}`}>
+            {status.status === "pending" && <ShieldCheck size={13} />}
+            {status.status === "empty" && <ShieldAlert size={13} />}
+            <span>{VAULT_STATUS_LABEL[status.status] || "Nenhuma senha no cofre"}</span>
+          </span>
         )}
+      </div>
+
+      <div className="portal-cofre-notice">
+        <p>
+          🔒 <strong>Segurança Nível Bancário:</strong> A senha fica criptografada e só pode ser visualizada uma única vez pelo contador responsável. Assim que consultada (ou atingido o prazo), ela é <strong>apagada para sempre</strong>.
+        </p>
+      </div>
+
+      {pendente && status?.expiresAt && (
+        <div className="portal-cofre-expiration-alert">
+          <span>⏳ Senha ativa no cofre até <strong>{new Date(status.expiresAt).toLocaleString("pt-BR")}</strong>.</span>
+        </div>
+      )}
+
+      <div className="portal-cofre-form">
+        <div className="triagem-field-group">
+          <div className="triagem-field-header">
+            <span className="triagem-field-label">Senha do gov.br</span>
+          </div>
+          <div className="portal-password-input-wrap">
+            <Input
+              type={showSenha ? "text" : "password"}
+              value={senha}
+              onChange={(event) => setSenha(event.target.value)}
+              placeholder="Digite a senha temporária"
+              disabled={pending}
+            />
+            <button
+              type="button"
+              className="portal-password-toggle-btn"
+              onClick={() => setShowSenha(!showSenha)}
+              title={showSenha ? "Ocultar senha" : "Ver senha"}
+            >
+              {showSenha ? <EyeOff size={16} /> : <Eye size={16} />}
+            </button>
+          </div>
+        </div>
+
+        <div className="triagem-field-group">
+          <div className="triagem-field-header">
+            <span className="triagem-field-label">Tempo de validade no cofre</span>
+          </div>
+          <select
+            className="input portal-select"
+            value={ttl}
+            onChange={(event) => setTtl(Number(event.target.value))}
+            disabled={pending}
+          >
+            <option value={24}>24 horas (recomendado)</option>
+            <option value={48}>48 horas</option>
+            <option value={72}>72 horas</option>
+          </select>
+        </div>
+
+        <label className="portal-cofre-checkbox-row">
+          <input
+            type="checkbox"
+            checked={autoriza}
+            onChange={(event) => setAutoriza(event.target.checked)}
+            disabled={pending}
+          />
+          <span>Autorizo o uso temporário desta senha pelo contador exclusivamente para o atendimento solicitado.</span>
+        </label>
+
+        {erro && <p className="login-error">{erro}</p>}
+
+        <div className="portal-cofre-actions">
+          <Button
+            className="portal-agenda-confirm-btn"
+            disabled={pending || !senha}
+            onClick={enviar}
+          >
+            <ShieldCheck size={16} />
+            <span>{pendente ? "Substituir Senha no Cofre" : "Guardar no Cofre Seguro"}</span>
+          </Button>
+          {pendente && (
+            <Button
+              className="secondary compact portal-cofre-delete-btn"
+              disabled={pending}
+              onClick={apagar}
+            >
+              <Trash2 size={14} />
+              <span>Revogar e Apagar Agora</span>
+            </Button>
+          )}
+        </div>
       </div>
     </Card>
   );
@@ -982,6 +1253,8 @@ function PortalCofreGovBr({ clientId }: { clientId: string }) {
 export function PortalPerfilView({ client }: { client: PortalData["client"] }) {
   const [novaSenha, setNovaSenha] = useState("");
   const [confirmaSenha, setConfirmaSenha] = useState("");
+  const [showNova, setShowNova] = useState(false);
+  const [showConfirma, setShowConfirma] = useState(false);
   const [pending, startTransition] = useTransition();
   const [mensagem, setMensagem] = useState("");
   const [erro, setErro] = useState(false);
@@ -1013,82 +1286,214 @@ export function PortalPerfilView({ client }: { client: PortalData["client"] }) {
       }
       setNovaSenha("");
       setConfirmaSenha("");
-      setMensagem("Senha alterada com sucesso! Você já pode usá-la para acessar sua conta.");
+      setMensagem("Senha alterada com sucesso! Você já pode usá-la no seu próximo login.");
       setErro(false);
     });
   }
 
   const endereco =
-    [client.endereco && `${client.endereco}${client.numero ? `, ${client.numero}` : ""}`, client.bairro, [client.cidade, client.estado].filter(Boolean).join(" - ") || null, client.cep && `CEP: ${client.cep}`]
+    [
+      client.endereco && `${client.endereco}${client.numero ? `, ${client.numero}` : ""}`,
+      client.bairro,
+      [client.cidade, client.estado].filter(Boolean).join(" - ") || null,
+      client.cep && `CEP: ${client.cep}`,
+    ]
       .filter(Boolean)
       .join(" • ") || "Endereço não informado";
+
   const cpfFmt = client.cpf
     ? (() => {
         const clean = client.cpf!.replace(/\D/g, "");
-        return clean.length === 11 ? `${clean.slice(0, 3)}.${clean.slice(3, 6)}.${clean.slice(6, 9)}-${clean.slice(9, 11)}` : client.cpf;
+        return clean.length === 11
+          ? `${clean.slice(0, 3)}.${clean.slice(3, 6)}.${clean.slice(6, 9)}-${clean.slice(9, 11)}`
+          : client.cpf;
       })()
     : "Não informado";
 
+  const initials = (client.name || "C")
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((w) => w[0]?.toUpperCase())
+    .join("");
+
   return (
     <div className="view-stack">
-      <PageTitle title="Meu perfil" description="Seus dados e segurança da conta." />
-      <Card className="portal-tile">
-        <div className="card-heading">
-          <div>
-            <UserRound size={18} />
-            <strong>Dados cadastrais</strong>
+      <PageTitle
+        title="Meu Perfil & Segurança"
+        description="Gerencie seus dados cadastrais, segurança da conta e cofre seguro de credenciais gov.br."
+      />
+
+      {/* HERO DO PERFIL */}
+      <Card className="portal-perfil-hero-card">
+        <div className="portal-perfil-hero-avatar">
+          <span>{initials}</span>
+        </div>
+        <div className="portal-perfil-hero-info">
+          <div className="portal-perfil-hero-top">
+            <h2 className="portal-perfil-hero-name">{client.name}</h2>
+            <span className="portal-perfil-verified-pill">
+              <BadgeCheck size={14} />
+              <span>Conta Verificada</span>
+            </span>
+          </div>
+          <div className="portal-perfil-hero-meta">
+            <span>CPF/CNPJ: <strong>{cpfFmt}</strong></span>
+            {client.taxType && <span>· Serviço: <strong>{client.taxType}</strong></span>}
           </div>
         </div>
-        <div className="perfil-dados-grid">
-          <div>
-            <span>Nome</span>
-            <strong>{client.name}</strong>
-          </div>
-          <div>
-            <span>CPF/CNPJ</span>
-            <strong>{cpfFmt}</strong>
-          </div>
-          <div>
-            <span>Telefone</span>
-            <strong>{client.phone || "Não informado"}</strong>
-          </div>
-          <div>
-            <span>E-mail</span>
-            <strong>{client.email || "Não informado"}</strong>
-          </div>
-          <div>
-            <span>Endereço</span>
-            <strong>{endereco}</strong>
-          </div>
-          <div>
-            <span>Serviço</span>
-            <strong>{client.taxType || "Atendimento Olá, Contador"}</strong>
-          </div>
-        </div>
-        <p className="triagem-dica">Para corrigir algum dado cadastral, fale com o escritório pelas Mensagens.</p>
       </Card>
 
-      <Card className="portal-tile">
-        <div className="card-heading">
-          <div>
-            <Lock size={18} />
-            <strong>Segurança</strong>
+      {/* GRID DE INFORMAÇÕES: DADOS CADASTRAIS & SEGURANÇA */}
+      <div className="portal-perfil-grid">
+        {/* CARD DE DADOS CADASTRAIS */}
+        <Card className="portal-perfil-card">
+          <div className="portal-perfil-card-header">
+            <div className="portal-perfil-card-title-wrap">
+              <div className="portal-perfil-icon">
+                <UserRound size={20} />
+              </div>
+              <div>
+                <h3 className="portal-perfil-card-title">Dados Cadastrais</h3>
+                <p className="portal-perfil-card-desc">Informações do titular para registros fiscais</p>
+              </div>
+            </div>
           </div>
-        </div>
-        <label>
-          Nova senha
-          <Input type="password" value={novaSenha} onChange={(event) => setNovaSenha(event.target.value)} />
-        </label>
-        <label>
-          Confirmar nova senha
-          <Input type="password" value={confirmaSenha} onChange={(event) => setConfirmaSenha(event.target.value)} />
-        </label>
-        {mensagem && <p className={erro ? "login-error" : "triagem-salvo"}>{mensagem}</p>}
-        <Button disabled={pending || !novaSenha} onClick={salvarSenha}>
-          {pending ? "Salvando…" : "Salvar nova senha"}
-        </Button>
-      </Card>
 
+          <div className="portal-perfil-info-tiles">
+            <div className="portal-perfil-info-tile">
+              <div className="portal-perfil-tile-icon">
+                <UserRound size={15} />
+              </div>
+              <div className="portal-perfil-tile-body">
+                <span className="portal-perfil-tile-label">Nome Completo</span>
+                <strong className="portal-perfil-tile-value">{client.name}</strong>
+              </div>
+            </div>
+
+            <div className="portal-perfil-info-tile">
+              <div className="portal-perfil-tile-icon">
+                <ShieldCheck size={15} />
+              </div>
+              <div className="portal-perfil-tile-body">
+                <span className="portal-perfil-tile-label">Documento Principal</span>
+                <strong className="portal-perfil-tile-value">{cpfFmt}</strong>
+              </div>
+            </div>
+
+            <div className="portal-perfil-info-tile">
+              <div className="portal-perfil-tile-icon">
+                <Phone size={15} />
+              </div>
+              <div className="portal-perfil-tile-body">
+                <span className="portal-perfil-tile-label">Telefone / WhatsApp</span>
+                <strong className="portal-perfil-tile-value">{client.phone || "Não informado"}</strong>
+              </div>
+            </div>
+
+            <div className="portal-perfil-info-tile">
+              <div className="portal-perfil-tile-icon">
+                <Mail size={15} />
+              </div>
+              <div className="portal-perfil-tile-body">
+                <span className="portal-perfil-tile-label">E-mail de Contato</span>
+                <strong className="portal-perfil-tile-value">{client.email || "Não informado"}</strong>
+              </div>
+            </div>
+
+            <div className="portal-perfil-info-tile full">
+              <div className="portal-perfil-tile-icon">
+                <MapPin size={15} />
+              </div>
+              <div className="portal-perfil-tile-body">
+                <span className="portal-perfil-tile-label">Endereço Cadastrado</span>
+                <strong className="portal-perfil-tile-value">{endereco}</strong>
+              </div>
+            </div>
+          </div>
+
+          <div className="portal-perfil-card-footer">
+            <p>Precisa alterar algum dado cadastral? Solicite a alteração diretamente pelo Chat.</p>
+          </div>
+        </Card>
+
+        {/* CARD DE SEGURANÇA E SENHA */}
+        <Card className="portal-perfil-card">
+          <div className="portal-perfil-card-header">
+            <div className="portal-perfil-card-title-wrap">
+              <div className="portal-perfil-icon">
+                <Lock size={20} />
+              </div>
+              <div>
+                <h3 className="portal-perfil-card-title">Segurança de Acesso</h3>
+                <p className="portal-perfil-card-desc">Altere sua senha de login na Área do Cliente</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="portal-perfil-form-stack">
+            <div className="triagem-field-group">
+              <div className="triagem-field-header">
+                <span className="triagem-field-label">Nova Senha</span>
+              </div>
+              <div className="portal-password-input-wrap">
+                <Input
+                  type={showNova ? "text" : "password"}
+                  value={novaSenha}
+                  onChange={(event) => setNovaSenha(event.target.value)}
+                  placeholder="Mínimo 6 caracteres"
+                />
+                <button
+                  type="button"
+                  className="portal-password-toggle-btn"
+                  onClick={() => setShowNova(!showNova)}
+                  title={showNova ? "Ocultar" : "Mostrar"}
+                >
+                  {showNova ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
+            </div>
+
+            <div className="triagem-field-group">
+              <div className="triagem-field-header">
+                <span className="triagem-field-label">Confirmar Nova Senha</span>
+              </div>
+              <div className="portal-password-input-wrap">
+                <Input
+                  type={showConfirma ? "text" : "password"}
+                  value={confirmaSenha}
+                  onChange={(event) => setConfirmaSenha(event.target.value)}
+                  placeholder="Digite a nova senha novamente"
+                />
+                <button
+                  type="button"
+                  className="portal-password-toggle-btn"
+                  onClick={() => setShowConfirma(!showConfirma)}
+                  title={showConfirma ? "Ocultar" : "Mostrar"}
+                >
+                  {showConfirma ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
+            </div>
+
+            {mensagem && (
+              <div className={`portal-form-feedback ${erro ? "erro" : "sucesso"}`}>
+                <span>{mensagem}</span>
+              </div>
+            )}
+
+            <Button
+              className="portal-agenda-confirm-btn"
+              disabled={pending || !novaSenha}
+              onClick={salvarSenha}
+            >
+              <span>{pending ? "Salvando nova senha…" : "Atualizar Senha de Acesso"}</span>
+            </Button>
+          </div>
+        </Card>
+      </div>
+
+      {/* COFRE GOV.BR */}
       <PortalCofreGovBr clientId={client.id} />
     </div>
   );
@@ -1153,6 +1558,7 @@ export function PortalAgendaView({
   const [resultado, setResultado] = useState<ChargeResult | null>(null);
   const [pago, setPago] = useState(false);
   const [erro, setErro] = useState("");
+  const [copiado, setCopiado] = useState(false);
   const router = useRouter();
 
   function horaOcupada(dia: string, hora: string) {
@@ -1213,6 +1619,14 @@ export function PortalAgendaView({
     });
   }
 
+  function copiarPix() {
+    if (!resultado?.pixPayload) return;
+    void navigator.clipboard.writeText(resultado.pixPayload);
+    setCopiado(true);
+    feedback("Código Pix copiado para a área de transferência!");
+    setTimeout(() => setCopiado(false), 3000);
+  }
+
   // Confere a cada 4s se a cobrança foi paga (mesmo polling do checkout do
   // cliente.html) — assim que confirma, atualiza a lista de agendamentos.
   useEffect(() => {
@@ -1235,143 +1649,291 @@ export function PortalAgendaView({
     const descontoFmt = resultado.desconto && resultado.valorOriginal ? ` (10% de desconto — de ${resultado.valorOriginal.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })})` : "";
     return (
       <div className="view-stack">
-        <PageTitle title={pago ? "Atendimento confirmado" : "Pagamento gerado"} description={pago ? "Seu atendimento começará no horário agendado." : "Finalize o pagamento para confirmar seu atendimento."} />
-        <Card className="portal-form">
-          {pago ? (
-            <div className="triagem-espera pronto">
-              <CheckCheck size={20} />
-              <div>
-                <strong>Pagamento confirmado</strong>
-                <p>
-                  {resultado.servico?.name} · {formatDate(diaAtual)} às {horaAtual}. Seu atendimento começará no horário agendado.
+        <PageTitle
+          title={pago ? "Atendimento Confirmado" : "Pagamento do Atendimento"}
+          description={pago ? "Seu atendimento foi confirmado e começará no horário agendado." : "Finalize o pagamento para garantir seu horário com o contador."}
+        />
+        <div className="portal-checkout-wrap">
+          <Card className="portal-checkout-card">
+            {pago ? (
+              <div className="portal-checkout-success">
+                <div className="portal-checkout-success-icon">
+                  <CheckCheck size={28} />
+                </div>
+                <h3 className="portal-checkout-success-title">Agendamento Confirmado com Sucesso!</h3>
+                <p className="portal-checkout-success-desc">
+                  <strong>{resultado.servico?.name}</strong> agendado para <strong>{formatDate(diaAtual)}</strong> às <strong>{horaAtual}</strong>.
                 </p>
+                <div className="portal-checkout-success-box">
+                  <p>Você pode acessar a sala de atendimento pelo Chat quando chegar a data e horário marcados.</p>
+                </div>
               </div>
+            ) : (
+              <div className="portal-checkout-pending">
+                <div className="portal-checkout-summary">
+                  <div className="portal-checkout-service-pill">
+                    <span>{resultado.servico?.name}</span>
+                  </div>
+                  <strong className="portal-checkout-price">{precoFmt} {descontoFmt}</strong>
+                  <span className="portal-checkout-date">
+                    📅 {formatDate(diaAtual)} às {horaAtual}
+                  </span>
+                </div>
+
+                {resultado.pixImage ? (
+                  <div className="portal-checkout-pix-box">
+                    <span className="portal-checkout-pix-title">Escaneie o QR Code no seu aplicativo do banco</span>
+                    <div className="portal-checkout-qr-frame">
+                      <img src={`data:image/png;base64,${resultado.pixImage}`} alt="QR Code Pix" className="portal-checkout-qr-img" />
+                    </div>
+                    <div className="portal-checkout-copy-wrap">
+                      <span className="portal-checkout-copy-label">Ou copie a chave Pix Copia e Cola:</span>
+                      <div className="portal-checkout-copy-row">
+                        <input type="text" readOnly value={resultado.pixPayload || ""} className="portal-checkout-copy-input" />
+                        <Button className="portal-checkout-copy-btn" onClick={copiarPix}>
+                          <Copy size={14} />
+                          <span>{copiado ? "Copiado!" : "Copiar"}</span>
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                ) : resultado.invoiceUrl ? (
+                  <div className="portal-checkout-card-box">
+                    <p>Abrimos a página segura de pagamento em outra aba.</p>
+                    <a href={resultado.invoiceUrl} target="_blank" rel="noopener noreferrer" className="button">
+                      Abrir página de pagamento
+                    </a>
+                  </div>
+                ) : null}
+
+                <div className="portal-checkout-status-ticker">
+                  <div className="portal-checkout-ticker-dot" />
+                  <span>Aguardando confirmação bancária em tempo real…</span>
+                </div>
+              </div>
+            )}
+            <div className="portal-checkout-actions">
+              <Button className="secondary" onClick={() => { setResultado(null); setPago(false); }}>
+                {pago ? "Agendar outro horário" : "Voltar e escolher outro horário"}
+              </Button>
             </div>
-          ) : (
-            <>
-              <p>
-                {resultado.servico?.name} — {precoFmt}
-                {descontoFmt} · {formatDate(diaAtual)} às {horaAtual}
-              </p>
-              <span className="triagem-passo">{resultado.metodoPagamento === "cartao" ? "Pague com cartão para confirmar" : "Pague com Pix para confirmar"}</span>
-              {resultado.pixImage ? (
-                <>
-                  <img src={`data:image/png;base64,${resultado.pixImage}`} alt="QR Code Pix" style={{ maxWidth: 220 }} />
-                  <label>
-                    Pix copia e cola
-                    <textarea readOnly value={resultado.pixPayload || ""} onClick={(event) => (event.target as HTMLTextAreaElement).select()} />
-                  </label>
-                </>
-              ) : resultado.invoiceUrl ? (
-                <p>
-                  Abrimos a página segura de pagamento em outra aba. Se não abriu,{" "}
-                  <a href={resultado.invoiceUrl} target="_blank" rel="noopener noreferrer">
-                    clique aqui
-                  </a>
-                  .
-                </p>
-              ) : null}
-              <p className="triagem-dica">Assim que o pagamento for confirmado, esta tela atualiza sozinha.</p>
-            </>
-          )}
-          <Button onClick={() => { setResultado(null); setPago(false); }}>{pago ? "Agendar outro horário" : "Cancelar e escolher outro horário"}</Button>
-        </Card>
+          </Card>
+        </div>
       </div>
     );
   }
 
   return (
     <div className="view-stack">
-      <PageTitle title="Agendar Atendimento" description="Escolha o serviço, veja os horários disponíveis e confirme seu atendimento com o contador." />
+      <PageTitle
+        title="Agendar Atendimento"
+        description="Selecione o serviço contábil, escolha o melhor dia e horário na agenda e confirme sua consulta."
+      />
+
       <div className="portal-agenda-grid">
-        <Card className="portal-form">
-          <span className="triagem-passo">1. Escolha o serviço</span>
-          {servicos.length ? (
-            servicos.map((item) => (
-              <button key={item.id} type="button" className={`triagem-assunto-card ${servicoId === item.id ? "selecionado" : ""}`} onClick={() => setServicoId(item.id)}>
-                <strong>{item.name}</strong>
-                <span>{(item.priceCents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</span>
-              </button>
-            ))
-          ) : (
-            <EmptyState>Nenhum serviço disponível no momento.</EmptyState>
-          )}
+        {/* COLUNA 1: SERVIÇOS */}
+        <Card className="portal-agenda-card">
+          <div className="portal-agenda-step-header">
+            <span className="portal-agenda-step-num">1</span>
+            <div>
+              <h3 className="portal-agenda-step-title">Escolha o serviço contábil</h3>
+              <p className="portal-agenda-step-desc">Selecione o tipo de atendimento que você precisa</p>
+            </div>
+          </div>
+          <div className="portal-servicos-list">
+            {servicos.length ? (
+              servicos.map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  className={`portal-servico-choice ${servicoId === item.id ? "selecionado" : ""}`}
+                  onClick={() => setServicoId(item.id)}
+                >
+                  <div className="portal-servico-choice-body">
+                    <strong className="portal-servico-choice-title">{item.name}</strong>
+                    <span className="portal-servico-choice-price">
+                      {(item.priceCents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                    </span>
+                  </div>
+                  <div className={`portal-choice-radio ${servicoId === item.id ? "checked" : ""}`}>
+                    {servicoId === item.id && <Check size={13} />}
+                  </div>
+                </button>
+              ))
+            ) : (
+              <EmptyState>Nenhum serviço disponível no momento.</EmptyState>
+            )}
+          </div>
         </Card>
 
-        <Card className="portal-form">
-          <span className="triagem-passo">2. Data e horário</span>
-          <div className="portal-agenda-semana">
-            <button type="button" className="secondary compact" disabled={offsetSemanas === 0} onClick={() => irSemana(-1)}>
-              ‹
+        {/* COLUNA 2: DATA, HORA & PAGAMENTO */}
+        <Card className="portal-agenda-card">
+          <div className="portal-agenda-step-header">
+            <span className="portal-agenda-step-num">2</span>
+            <div>
+              <h3 className="portal-agenda-step-title">Data e horário da consulta</h3>
+              <p className="portal-agenda-step-desc">Horários com atendimento ao vivo do contador</p>
+            </div>
+          </div>
+
+          {/* NAVEGAÇÃO DE SEMANAS */}
+          <div className="portal-agenda-nav-bar">
+            <button
+              type="button"
+              className="portal-agenda-nav-btn"
+              disabled={offsetSemanas === 0}
+              onClick={() => irSemana(-1)}
+              aria-label="Semana anterior"
+            >
+              <ChevronLeft size={16} />
             </button>
-            <span>
+            <span className="portal-agenda-nav-label">
               {formatDate(dias[0])} a {formatDate(dias[dias.length - 1])}
             </span>
-            <button type="button" className="secondary compact" onClick={() => irSemana(1)}>
-              ›
+            <button
+              type="button"
+              className="portal-agenda-nav-btn"
+              onClick={() => irSemana(1)}
+              aria-label="Próxima semana"
+            >
+              <ChevronRight size={16} />
             </button>
           </div>
-          <div className="portal-agenda-dias">
-            {dias.map((dia) => (
-              <button key={dia} type="button" className={`portal-agenda-dia ${diaAtual === dia ? "selecionado" : ""} ${!primeiroLivre(dia) ? "lotado" : ""}`} onClick={() => escolherDia(dia)}>
-                <small>{DIA_SEMANA_CURTO[new Date(`${dia}T12:00:00`).getDay()]}</small>
-                <strong>{dia.slice(8, 10)}/{dia.slice(5, 7)}</strong>
-              </button>
-            ))}
+
+          {/* GRADE DE DIAS */}
+          <div className="portal-agenda-days-grid">
+            {dias.map((dia) => {
+              const livre = primeiroLivre(dia);
+              const isSelected = diaAtual === dia;
+              return (
+                <button
+                  key={dia}
+                  type="button"
+                  className={`portal-agenda-day-card ${isSelected ? "selecionado" : ""} ${!livre ? "lotado" : ""}`}
+                  onClick={() => escolherDia(dia)}
+                >
+                  <small className="portal-agenda-day-name">
+                    {DIA_SEMANA_CURTO[new Date(`${dia}T12:00:00`).getDay()]}
+                  </small>
+                  <strong className="portal-agenda-day-num">{dia.slice(8, 10)}/{dia.slice(5, 7)}</strong>
+                  <span className="portal-agenda-day-status">{livre ? "Disponível" : "Fechado"}</span>
+                </button>
+              );
+            })}
           </div>
+
           {diaBloqueado ? (
-            <p>Não atendemos neste dia. Escolha outra data.</p>
+            <div className="portal-agenda-notice-box">
+              <p>Não há horários de atendimento nesta data. Por favor, escolha outro dia útil.</p>
+            </div>
           ) : (
-            <div className="portal-agenda-horarios">
-              {agendaHorarios.map((hora) => {
-                const ocupado = horaOcupada(diaAtual, hora);
-                const passou = horaPassada(diaAtual, hora);
-                return (
-                  <button key={hora} type="button" className={`triagem-chip ${horaAtual === hora ? "selecionado" : ""}`} disabled={ocupado || passou} onClick={() => escolherHora(hora)}>
-                    {hora}
-                  </button>
-                );
-              })}
+            <div className="portal-agenda-hours-wrap">
+              <span className="portal-agenda-subheading">Horários disponíveis:</span>
+              <div className="portal-agenda-hours-grid">
+                {agendaHorarios.map((hora) => {
+                  const ocupado = horaOcupada(diaAtual, hora);
+                  const passou = horaPassada(diaAtual, hora);
+                  const isSelected = horaAtual === hora;
+                  return (
+                    <button
+                      key={hora}
+                      type="button"
+                      className={`portal-agenda-hour-chip ${isSelected ? "selecionado" : ""}`}
+                      disabled={ocupado || passou}
+                      onClick={() => escolherHora(hora)}
+                    >
+                      {hora}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           )}
-          <span className="triagem-passo">3. Pagamento</span>
-          <div className="portal-agenda-pagamento">
-            <button type="button" className={`triagem-assunto-card ${metodoPagamento === "pix" ? "selecionado" : ""}`} onClick={() => setMetodoPagamento("pix")}>
-              <strong>Pix</strong>
-              <span>Confirmação na hora</span>
+
+          {/* FORMA DE PAGAMENTO */}
+          <div className="portal-agenda-step-header" style={{ marginTop: 12 }}>
+            <span className="portal-agenda-step-num">3</span>
+            <div>
+              <h3 className="portal-agenda-step-title">Forma de pagamento</h3>
+              <p className="portal-agenda-step-desc">Confirmação automática e segura</p>
+            </div>
+          </div>
+
+          <div className="portal-payment-methods-grid">
+            <button
+              type="button"
+              className={`portal-payment-card ${metodoPagamento === "pix" ? "selecionado" : ""}`}
+              onClick={() => setMetodoPagamento("pix")}
+            >
+              <div className="portal-payment-card-icon pix">
+                <QrCode size={20} />
+              </div>
+              <div className="portal-payment-card-body">
+                <strong>Pix Instantâneo</strong>
+                <span>Liberação imediata da agenda</span>
+              </div>
             </button>
-            <button type="button" className={`triagem-assunto-card ${metodoPagamento === "cartao" ? "selecionado" : ""}`} onClick={() => setMetodoPagamento("cartao")}>
-              <strong>Cartão de crédito</strong>
-              <span>à vista ou parcelado</span>
+            <button
+              type="button"
+              className={`portal-payment-card ${metodoPagamento === "cartao" ? "selecionado" : ""}`}
+              onClick={() => setMetodoPagamento("cartao")}
+            >
+              <div className="portal-payment-card-icon card">
+                <CreditCard size={20} />
+              </div>
+              <div className="portal-payment-card-body">
+                <strong>Cartão de Crédito</strong>
+                <span>À vista ou parcelado</span>
+              </div>
             </button>
           </div>
+
           {erro && <p className="login-error">{erro}</p>}
-          <Button disabled={pending || !servico || !horaAtual || diaBloqueado} onClick={gerarPagamento}>
-            {pending ? "Gerando…" : metodoPagamento === "pix" ? "Gerar pagamento Pix" : "Ir para pagamento"}
+
+          <Button
+            className="portal-agenda-confirm-btn"
+            disabled={pending || !servico || !horaAtual || diaBloqueado}
+            onClick={gerarPagamento}
+          >
+            <span>
+              {pending
+                ? "Gerando agendamento…"
+                : metodoPagamento === "pix"
+                ? `Confirmar e Gerar Pix (${servico ? (servico.priceCents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) : ""})`
+                : `Ir para Pagamento com Cartão`}
+            </span>
+            <ArrowRight size={15} />
           </Button>
         </Card>
       </div>
 
-      <Card>
-        {appointments.length ? (
-          <div className="records-list appointment-list">
+      {/* HISTÓRICO DE AGENDAMENTOS DO CLIENTE */}
+      {appointments.length > 0 && (
+        <Card className="portal-agenda-history-card">
+          <div className="card-heading">
+            <div>
+              <CalendarCheck size={18} />
+              <strong>Seus Agendamentos Cadastrados</strong>
+            </div>
+          </div>
+          <div className="portal-agenda-history-list">
             {appointments.map((item) => (
-              <article key={item.id}>
-                <div className="record-date">
+              <div key={item.id} className="portal-agenda-history-item">
+                <div className="portal-agenda-history-date-box">
                   <strong>{formatDate(item.date)}</strong>
-                  <small>{item.time || "A definir"}</small>
+                  <span>{item.time || "A definir"}</span>
                 </div>
-                <div>
-                  <strong>{item.taxType || "Atendimento"}</strong>
-                  <span>Status: {statusLabel[item.status || ""] || item.status || "—"}</span>
+                <div className="portal-agenda-history-info">
+                  <strong className="portal-agenda-history-title">{item.taxType || "Atendimento Contábil"}</strong>
+                  <span className="portal-agenda-history-status">
+                    Status: {statusLabel[item.status || ""] || item.status || "—"}
+                  </span>
                 </div>
-              </article>
+              </div>
             ))}
           </div>
-        ) : (
-          <EmptyState>Nenhum agendamento encontrado.</EmptyState>
-        )}
-      </Card>
+        </Card>
+      )}
     </div>
   );
 }
@@ -1381,13 +1943,29 @@ function nomeDoAssunto(catalogo: TriagemAssunto[], assuntoId: string | null): st
   return acharAssunto(catalogo, assuntoId)?.titulo || assuntoId;
 }
 
-function QuestionField({ pergunta, value, onChange, disabled }: { pergunta: TriagemPergunta; value: string; onChange: (value: string) => void; disabled: boolean }) {
+function QuestionField({
+  pergunta,
+  value,
+  onChange,
+  disabled,
+}: {
+  pergunta: TriagemPergunta;
+  value: string;
+  onChange: (value: string) => void;
+  disabled: boolean;
+}) {
   if (pergunta.tipo === "escolha" || pergunta.tipo === "sim-nao") {
     const opcoes = pergunta.tipo === "sim-nao" ? ["Sim", "Não"] : pergunta.opcoes || [];
     return (
       <div className="triagem-chips">
         {opcoes.map((opcao) => (
-          <button key={opcao} type="button" className={`triagem-chip ${value === opcao ? "selecionado" : ""}`} disabled={disabled} onClick={() => onChange(opcao)}>
+          <button
+            key={opcao}
+            type="button"
+            className={`triagem-chip ${value === opcao ? "selecionado" : ""}`}
+            disabled={disabled}
+            onClick={() => onChange(opcao)}
+          >
             {opcao}
           </button>
         ))}
@@ -1395,9 +1973,24 @@ function QuestionField({ pergunta, value, onChange, disabled }: { pergunta: Tria
     );
   }
   if (pergunta.tipo === "textao") {
-    return <textarea value={value} onChange={(event) => onChange(event.target.value)} disabled={disabled} />;
+    return (
+      <textarea
+        className="portal-input textarea"
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        disabled={disabled}
+        rows={3}
+      />
+    );
   }
-  return <Input type={pergunta.tipo === "data" ? "date" : "text"} value={value} onChange={(event) => onChange(event.target.value)} disabled={disabled} />;
+  return (
+    <Input
+      type={pergunta.tipo === "data" ? "date" : "text"}
+      value={value}
+      onChange={(event) => onChange(event.target.value)}
+      disabled={disabled}
+    />
+  );
 }
 
 function formatarQuando(data: string, hora: string | null): string {
@@ -1420,6 +2013,8 @@ export function PortalTriagemView({
   clientId,
   documents: initialDocuments,
   appointments,
+  atendimentosExpress = [],
+  onNavigate,
 }: {
   triagem: PortalTriagem | null;
   catalogo: TriagemAssunto[];
@@ -1427,9 +2022,26 @@ export function PortalTriagemView({
   clientId: string;
   documents: PortalDocument[];
   appointments: PortalAppointment[];
+  atendimentosExpress?: PortalAtendimentoExpress[];
+  onNavigate?: (view: string) => void;
 }) {
   const router = useRouter();
-  const [assuntoId, setAssuntoId] = useState<string | null>(triagem?.assunto && acharAssunto(catalogo, triagem.assunto) ? triagem.assunto : null);
+
+  // Identifica se há atendimento express em aberto ou agendamento ao vivo
+  const expressAtivo = atendimentosExpress.find((e) => e.status !== "concluido" && e.status !== "cancelado") ?? null;
+  const proximoAtendimento = appointments
+    .filter((item) => item.status !== "done" && item.status !== "cancelled")
+    .sort((a, b) => `${a.date}${a.time}`.localeCompare(`${b.date}${b.time}`))[0] ?? null;
+
+  const isExpress = Boolean(expressAtivo);
+  const isAgendado = Boolean(proximoAtendimento) && !isExpress;
+
+  // Pré-seleciona o assunto se vier de atendimento express
+  const initialAssunto =
+    (triagem?.assunto && acharAssunto(catalogo, triagem.assunto) ? triagem.assunto : null) ||
+    (expressAtivo?.assunto && acharAssunto(catalogo, expressAtivo.assunto) ? expressAtivo.assunto : null);
+
+  const [assuntoId, setAssuntoId] = useState<string | null>(initialAssunto);
   const [respostas, setRespostas] = useState<Record<string, string>>((triagem?.respostas as Record<string, string>) || {});
   const [descricao, setDescricao] = useState(triagem?.descricao || "");
   const [status, setStatus] = useState(triagem?.status || "rascunho");
@@ -1446,15 +2058,16 @@ export function PortalTriagemView({
   const minimo = regras.minimoRelato || 20;
   const mostrarResumo = status === "enviada" && !editando;
   const pct = completude({ assunto: assuntoId, descricao, respostas }, catalogo, regras);
-  const medidorTexto = pct >= 90 ? "O contador vai chegar sabendo do seu caso" : pct >= 60 ? "Já dá um bom contexto — se puder, complete" : pct >= 30 ? "Falta o principal: o que aconteceu" : "Vamos lá";
+  const medidorTexto = pct >= 90
+    ? isExpress
+      ? "Pronto para envio e execução express"
+      : "Pronto para análise do contador"
+    : pct >= 60
+    ? "Bom contexto — se puder, anexe comprovantes"
+    : pct >= 30
+    ? "Falta descrever o que aconteceu"
+    : "Preencha as informações iniciais";
 
-  const proximoAtendimento = appointments
-    .filter((item) => item.status !== "done" && item.status !== "cancelled")
-    .sort((a, b) => `${a.date}${a.time}`.localeCompare(`${b.date}${b.time}`))[0];
-
-  // Rascunho salva sozinho (debounce de 800ms) — mesma UX do cliente.html:
-  // quem está contando um problema fiscal não deveria ter que lembrar de
-  // clicar em "salvar".
   useEffect(() => {
     if (!montado.current) {
       montado.current = true;
@@ -1474,17 +2087,17 @@ export function PortalTriagemView({
       .then((result) => {
         if (!result.ok) {
           if (salvoTimer.current) clearTimeout(salvoTimer.current);
-          setSalvo("Problema de conexão ao salvar.");
+          setSalvo("Problema ao salvar");
           if (enviar) feedback(result.message || "Não foi possível enviar.");
           return;
         }
         setStatus(result.data.status);
         setEnviadaEm(result.data.enviadaEm);
         if (salvoTimer.current) clearTimeout(salvoTimer.current);
-        setSalvo("Salvo");
-        salvoTimer.current = setTimeout(() => setSalvo(""), 2000);
+        setSalvo("Salvo automaticamente ✓");
+        salvoTimer.current = setTimeout(() => setSalvo(""), 2500);
         if (enviar) {
-          feedback("Pré-atendimento enviado ao escritório.");
+          feedback(isExpress ? "Documentos enviados para execução express!" : "Pré-atendimento enviado ao escritório com sucesso!");
           setTimeout(() => setEditando(false), 800);
           router.refresh();
         }
@@ -1496,11 +2109,11 @@ export function PortalTriagemView({
 
   function enviar() {
     if (!assuntoId) {
-      setSalvo("Escolha do que se trata, ali em cima.");
+      feedback("Escolha sobre o que você precisa falar no Passo 1.");
       return;
     }
     if (descricao.trim().length < minimo) {
-      setSalvo("Conte um pouco do que aconteceu — nem que sejam duas linhas.");
+      feedback(`Conte um pouco do que aconteceu no Passo 2 (mínimo ${minimo} caracteres).`);
       return;
     }
     startSave(true);
@@ -1541,7 +2154,7 @@ export function PortalTriagemView({
         { id: doc.id, fileName: doc.file_name, mime: doc.mime, sizeBytes: doc.size_bytes, uploadedBy: doc.uploaded_by, createdAt: doc.created_at, checklistItem: doc.checklist_item, storagePath: doc.storage_path },
         ...items,
       ]);
-      feedback("Documento anexado.");
+      feedback("Documento anexado com sucesso!");
     } catch {
       feedback("Não foi possível anexar esse arquivo agora.");
     } finally {
@@ -1551,50 +2164,153 @@ export function PortalTriagemView({
 
   return (
     <div className="view-stack">
-      <PageTitle title="Pré-atendimento" description="Conte o que aconteceu antes do seu atendimento. Quanto mais o contador souber antes, menos tempo vocês gastam se apresentando." />
+      <PageTitle
+        title={isExpress ? "Atendimento Express · Envio de Documentos" : "Pré-atendimento & Diagnóstico"}
+        description={
+          isExpress
+            ? "Como você escolheu o Atendimento Express, não é necessária reunião ao vivo. Preencha as informações e anexe os comprovantes para o contador executar o serviço diretamente."
+            : "Conte o que aconteceu antes do seu atendimento. Quanto mais o contador souber antes, mais ágil e precisa será sua orientação."
+        }
+      />
 
-      {proximoAtendimento && (
-        <Card className={`triagem-espera ${status === "enviada" ? "pronto" : ""}`}>
-          {status === "enviada" ? <CheckCheck size={20} /> : <CalendarClock size={20} />}
-          <div>
-            <strong>{status === "enviada" ? "Tudo certo — nosso time já está cuidando" : "Seu atendimento já começou"}</strong>
-            <p>
-              {formatarQuando(proximoAtendimento.date || "", proximoAtendimento.time)}
-              {status !== "enviada" ? ". Aproveite a espera para contar seu caso aqui embaixo." : ""}
+      {/* CARD DE CRIAR SENHA (DISPENSÁVEL) — quem entra direto na triagem
+          pelo link automático do pagamento não passa pelo dashboard, então
+          precisa ver esse aviso aqui também. */}
+      <PortalCriarSenhaCard clientId={clientId} />
+
+      {/* BANNER DE MODALIDADE CONTEXTUAL */}
+      {isExpress ? (
+        <Card className="triagem-espera-banner express">
+          <div className="triagem-espera-icon express">
+            <Zap size={22} />
+          </div>
+          <div className="triagem-espera-body">
+            <div className="triagem-espera-badge-row">
+              <span className="triagem-badge-express">Atendimento Express Contratado</span>
+              {expressAtivo?.prazoConclusaoEm && (
+                <span className="triagem-badge-sla">
+                  Prazo de entrega: até {formatDateTime(expressAtivo.prazoConclusaoEm)}
+                </span>
+              )}
+            </div>
+            <strong className="triagem-espera-title">
+              {status === "enviada" ? "Documentos enviados para execução do contador" : "Envio de Documentos para Execução Contábil"}
+            </strong>
+            <p className="triagem-espera-desc">
+              Esta modalidade é 100% assíncrona. Preencha os campos e anexe os arquivos solicitados para que o contador faça o procedimento e entregue sua guia ou relatório na aba Documentos.
             </p>
           </div>
+        </Card>
+      ) : isAgendado && proximoAtendimento ? (
+        <Card className={`triagem-espera-banner ${status === "enviada" ? "pronto" : ""}`}>
+          <div className="triagem-espera-icon">
+            {status === "enviada" ? <CheckCheck size={22} /> : <CalendarClock size={22} />}
+          </div>
+          <div className="triagem-espera-body">
+            <div className="triagem-espera-badge-row">
+              <span className="triagem-badge-agendado">Consulta com Contador Agendada</span>
+            </div>
+            <strong className="triagem-espera-title">
+              {status === "enviada" ? "Diagnóstico prévio enviado ao contador responsável" : "Pré-atendimento para sua Consulta ao Vivo"}
+            </strong>
+            <p className="triagem-espera-desc">
+              📅 {formatarQuando(proximoAtendimento.date || "", proximoAtendimento.time)}
+              {status !== "enviada" ? " · Preencha os dados e anexe o que tiver para o contador estudar seu caso antes da reunião." : " · Nossa equipe já tem acesso ao seu pré-diagnóstico."}
+            </p>
+          </div>
+        </Card>
+      ) : (
+        <Card className="triagem-mode-switch-card">
+          <div className="triagem-mode-switch-info">
+            <strong className="triagem-mode-switch-title">Diagnóstico Preliminar Gratuito</strong>
+            <p className="triagem-mode-switch-desc">
+              Preencha os dados do seu caso para análise preliminar ou escolha agendar uma reunião ao vivo com o contador.
+            </p>
+          </div>
+          {onNavigate && (
+            <div className="triagem-mode-switch-actions">
+              <Button className="secondary compact" onClick={() => onNavigate("agenda")}>
+                <CalendarClock size={14} />
+                <span>Ver Agenda de Horários</span>
+              </Button>
+            </div>
+          )}
         </Card>
       )}
 
       {mostrarResumo ? (
-        <Card className="triagem-resumo">
+        <Card className="triagem-resumo-card">
           <div className="triagem-resumo-topo">
             <div>
-              <span className="triagem-resumo-eyebrow">Você já contou seu caso</span>
-              <h3>{assunto?.titulo || "Seu caso"}</h3>
+              <span className="triagem-resumo-badge">
+                <BadgeCheck size={13} />
+                {isExpress ? "Documentos Enviados para Execução" : "Diagnóstico Pré-atendimento Enviado"}
+              </span>
+              <h3 className="triagem-resumo-title">{assunto?.titulo || "Caso em Análise"}</h3>
             </div>
-            <Button className="ghost" onClick={() => setEditando(true)}>Editar</Button>
+            <Button className="secondary compact" onClick={() => setEditando(true)}>
+              Editar informações
+            </Button>
           </div>
-          <div className="triagem-resumo-item">
-            <span className="triagem-resumo-label">O que aconteceu</span>
-            <p>{descricao || "—"}</p>
-          </div>
-          {assunto?.perguntas.filter((p) => respostas[p.id]).map((p) => (
-            <div key={p.id} className="triagem-resumo-item">
-              <span className="triagem-resumo-label">{p.label}</span>
-              <p>{respostas[p.id]}</p>
+
+          <div className="triagem-resumo-grid">
+            <div className="triagem-resumo-item full">
+              <span className="triagem-resumo-label">Relato / Descrição da Necessidade:</span>
+              <p className="triagem-resumo-text">{descricao || "—"}</p>
             </div>
-          ))}
+            {assunto?.perguntas.filter((p) => respostas[p.id]).map((p) => (
+              <div key={p.id} className="triagem-resumo-item">
+                <span className="triagem-resumo-label">{p.label}:</span>
+                <p className="triagem-resumo-text">{respostas[p.id]}</p>
+              </div>
+            ))}
+          </div>
+
+          {documents.some((d) => d.checklistItem) && (
+            <div className="triagem-resumo-docs-section">
+              <span className="triagem-resumo-label">Comprovantes anexados:</span>
+              <div className="triagem-resumo-docs-pills">
+                {documents.filter((d) => d.checklistItem).map((doc) => (
+                  <span key={doc.id} className="triagem-resumo-doc-pill">
+                    <FileText size={12} />
+                    <strong>{doc.checklistItem}</strong>: {doc.fileName}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
         </Card>
       ) : (
         <>
-          <Card className="portal-form">
-            <span className="triagem-passo">1 · Sobre o que você precisa falar?</span>
+          {/* PASSO 1: SELEÇÃO DE ASSUNTO */}
+          <Card className="portal-agenda-card">
+            <div className="portal-agenda-step-header">
+              <span className="portal-agenda-step-num">1</span>
+              <div>
+                <h3 className="portal-agenda-step-title">
+                  {isExpress ? "Serviço Express Selecionado" : "Sobre o que você precisa falar?"}
+                </h3>
+                <p className="portal-agenda-step-desc">
+                  {isExpress ? "Confira o serviço contratado para envio dos dados" : "Selecione o tema principal da sua necessidade fiscal ou contábil"}
+                </p>
+              </div>
+            </div>
+
             <div className="triagem-assuntos-grid">
               {catalogo.map((item) => (
-                <button key={item.id} type="button" className={`triagem-assunto-card ${assuntoId === item.id ? "selecionado" : ""}`} onClick={() => setAssuntoId(item.id)}>
-                  <strong>{item.titulo}</strong>
-                  <span>{item.resumo}</span>
+                <button
+                  key={item.id}
+                  type="button"
+                  className={`triagem-assunto-card ${assuntoId === item.id ? "selecionado" : ""}`}
+                  onClick={() => setAssuntoId(item.id)}
+                >
+                  <div className="triagem-assunto-card-body">
+                    <strong className="triagem-assunto-title">{item.titulo}</strong>
+                    <span className="triagem-assunto-desc">{item.resumo}</span>
+                  </div>
+                  <div className={`portal-choice-radio ${assuntoId === item.id ? "checked" : ""}`}>
+                    {assuntoId === item.id && <Check size={12} />}
+                  </div>
                 </button>
               ))}
             </div>
@@ -1602,42 +2318,125 @@ export function PortalTriagemView({
 
           {assunto && (
             <>
-              <Card className="portal-form">
-                <span className="triagem-passo">2 · Me conta um pouco mais</span>
-                {assunto.perguntas.map((pergunta) => (
-                  <label key={pergunta.id}>
-                    {pergunta.label} {!pergunta.opcional && <span className="triagem-obrigatorio">obrigatório</span>}
-                    {pergunta.dica && <small className="triagem-dica">{pergunta.dica}</small>}
-                    <QuestionField pergunta={pergunta} value={respostas[pergunta.id] || ""} disabled={enviando} onChange={(value) => setRespostas((current) => ({ ...current, [pergunta.id]: value }))} />
-                  </label>
-                ))}
-                <label>
-                  O que aconteceu? <span className="triagem-obrigatorio">obrigatório</span>
-                  <small className="triagem-dica">Escreva com suas palavras, do seu jeito — não precisa saber os termos técnicos.</small>
-                  <textarea value={descricao} onChange={(event) => setDescricao(event.target.value)} disabled={enviando} placeholder={`Conte o que está acontecendo (pelo menos ${minimo} caracteres).`} />
-                </label>
+              {/* PASSO 2: PERGUNTAS ESPECÍFICAS E DESCRIÇÃO */}
+              <Card className="portal-agenda-card">
+                <div className="portal-agenda-step-header">
+                  <span className="portal-agenda-step-num">2</span>
+                  <div>
+                    <h3 className="portal-agenda-step-title">
+                      {isExpress ? "Informações para Execução do Serviço" : "Conte os detalhes da sua situação"}
+                    </h3>
+                    <p className="portal-agenda-step-desc">
+                      {isExpress ? "Responda as questões necessárias para o contador dar entrada no processo" : "Responda as questões para que o contador prepare as respostas"}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="triagem-form-stack">
+                  {assunto.perguntas.map((pergunta) => (
+                    <div key={pergunta.id} className="triagem-field-group">
+                      <div className="triagem-field-header">
+                        <span className="triagem-field-label">{pergunta.label}</span>
+                        {!pergunta.opcional && <span className="triagem-obrigatorio-tag">Obrigatório</span>}
+                      </div>
+                      {pergunta.dica && <small className="triagem-field-dica">{pergunta.dica}</small>}
+                      <QuestionField
+                        pergunta={pergunta}
+                        value={respostas[pergunta.id] || ""}
+                        disabled={enviando}
+                        onChange={(value) => setRespostas((current) => ({ ...current, [pergunta.id]: value }))}
+                      />
+                    </div>
+                  ))}
+
+                  <div className="triagem-field-group">
+                    <div className="triagem-field-header">
+                      <span className="triagem-field-label">
+                        {isExpress ? "Orientações ou observações adicionais" : "O que está acontecendo?"}
+                      </span>
+                      <span className="triagem-obrigatorio-tag">Obrigatório</span>
+                    </div>
+                    <small className="triagem-field-dica">
+                      {isExpress
+                        ? "Descreva qualquer detalhe relevante para o contador realizar a emissão/declaração."
+                        : "Escreva livremente com as suas palavras — não se preocupe com terminologias técnicas."}
+                    </small>
+                    <textarea
+                      className="portal-input textarea"
+                      value={descricao}
+                      onChange={(event) => setDescricao(event.target.value)}
+                      disabled={enviando}
+                      rows={4}
+                      placeholder={
+                        isExpress
+                          ? `Descreva sua solicitação express com detalhes (mínimo ${minimo} caracteres)...`
+                          : `Descreva sua dúvida, pendência ou notificação recebida (mínimo ${minimo} caracteres)...`
+                      }
+                    />
+                    <div className="triagem-textarea-counter">
+                      <span>{descricao.trim().length} / {minimo} caracteres mínimos</span>
+                    </div>
+                  </div>
+                </div>
               </Card>
 
-              <Card className="portal-form">
-                <span className="triagem-passo">3 · Envie o que você já tem</span>
-                <p className="triagem-dica">Use a câmera do celular ou escolha um arquivo. Se algo importante estiver faltando, avisaremos exatamente o que enviar.</p>
-                <div className="triagem-docs">
+              {/* PASSO 3: CHECKLIST DE DOCUMENTOS */}
+              <Card className="portal-agenda-card">
+                <div className="portal-agenda-step-header">
+                  <span className="portal-agenda-step-num">3</span>
+                  <div>
+                    <h3 className="portal-agenda-step-title">
+                      {isExpress ? "Comprovantes Obrigatórios para Execução" : "Anexar documentos e comprovantes"}
+                    </h3>
+                    <p className="portal-agenda-step-desc">
+                      {isExpress
+                        ? "Envie fotos ou PDFs dos documentos para que o contador execute o procedimento."
+                        : "Tire uma foto pelo celular ou selecione do computador"}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="triagem-docs-list">
                   {assunto.documentos.map((nome) => {
                     const enviado = documents.find((d) => d.checklistItem === nome);
                     const carregando = uploadingItem === nome;
                     return (
-                      <div key={nome} className={`triagem-doc ${enviado ? "pronto" : ""}`}>
-                        {enviado ? <CheckCheck size={16} /> : <CircleAlert size={16} />}
-                        <div className="triagem-doc-nome">
-                          {nome}
-                          {enviado && <span className="triagem-doc-arquivo">{enviado.fileName}</span>}
+                      <div key={nome} className={`triagem-doc-card ${enviado ? "pronto" : ""}`}>
+                        <div className={`triagem-doc-status-icon ${enviado ? "pronto" : ""}`}>
+                          {enviado ? <CheckCheck size={16} /> : <CircleAlert size={16} />}
                         </div>
-                        <div className="triagem-doc-acoes">
-                          <button type="button" className="triagem-doc-btn" disabled={carregando} onClick={() => anexarDocumento(nome, true)}>
-                            {carregando ? "Enviando…" : enviado ? "Nova foto" : "Tirar foto"}
+                        <div className="triagem-doc-info">
+                          <strong className="triagem-doc-title">{nome}</strong>
+                          {enviado ? (
+                            <span className="triagem-doc-file-tag">
+                              <FileText size={11} /> {enviado.fileName}
+                            </span>
+                          ) : (
+                            <span className="triagem-doc-hint">
+                              {isExpress ? "Necessário para execução" : "Pendente de anexo (opcional)"}
+                            </span>
+                          )}
+                        </div>
+                        <div className="triagem-doc-actions">
+                          <button
+                            type="button"
+                            className="triagem-doc-action-btn"
+                            disabled={carregando}
+                            onClick={() => anexarDocumento(nome, true)}
+                            title="Tirar foto com a câmera"
+                          >
+                            <Camera size={13} />
+                            <span>{carregando ? "Enviando…" : enviado ? "Tirar outra" : "Tirar foto"}</span>
                           </button>
-                          <button type="button" className="triagem-doc-btn" disabled={carregando} onClick={() => anexarDocumento(nome, false)}>
-                            {enviado ? "Trocar arquivo" : "Escolher arquivo"}
+                          <button
+                            type="button"
+                            className="triagem-doc-action-btn"
+                            disabled={carregando}
+                            onClick={() => anexarDocumento(nome, false)}
+                            title="Escolher arquivo do dispositivo"
+                          >
+                            <Upload size={13} />
+                            <span>{enviado ? "Trocar arquivo" : "Escolher arquivo"}</span>
                           </button>
                         </div>
                       </div>
@@ -1646,20 +2445,37 @@ export function PortalTriagemView({
                 </div>
               </Card>
 
-              <div className="triagem-barra">
-                <div className="triagem-medidor">
-                  <div className="triagem-medidor-topo">
-                    <span>{medidorTexto}</span>
-                    <strong>{pct}%</strong>
+              {/* BARRA FLUTUANTE DE COMPLETUDE E ENVIO */}
+              <div className="triagem-floating-bar">
+                <div className="triagem-progress-block">
+                  <div className="triagem-progress-header">
+                    <span className="triagem-progress-label">{medidorTexto}</span>
+                    <strong className="triagem-progress-pct">{pct}% concluído</strong>
                   </div>
-                  <div className="triagem-medidor-trilho">
-                    <div className="triagem-medidor-barra" style={{ width: `${pct}%` }} />
+                  <div className="triagem-progress-track">
+                    <div className="triagem-progress-fill" style={{ width: `${pct}%` }} />
                   </div>
                 </div>
-                <div className="triagem-acoes">
-                  <span className="triagem-salvo">{salvo}</span>
-                  <Button disabled={enviando} onClick={enviar}>
-                    {enviando ? "Enviando…" : status === "enviada" ? "Enviado — atualizar" : "Enviar para o contador"}
+
+                <div className="triagem-submit-actions">
+                  {salvo && <span className="triagem-autosave-tag">{salvo}</span>}
+                  <Button
+                    className="portal-agenda-confirm-btn triagem-submit-btn"
+                    disabled={enviando}
+                    onClick={enviar}
+                  >
+                    <span>
+                      {enviando
+                        ? "Enviando…"
+                        : status === "enviada"
+                        ? isExpress
+                          ? "Atualizar Documentos Express"
+                          : "Atualizar Diagnóstico"
+                        : isExpress
+                        ? "Enviar para Execução Express"
+                        : "Enviar para o Contador"}
+                    </span>
+                    <ArrowRight size={15} />
                   </Button>
                 </div>
               </div>
@@ -1671,31 +2487,65 @@ export function PortalTriagemView({
   );
 }
 
-function DocumentList({ title, documents, busyId, pending, onDownload }: { title: string; documents: PortalDocument[]; busyId: number | null; pending: boolean; onDownload: (doc: PortalDocument) => void }) {
+function DocumentList({
+  title,
+  documents,
+  busyId,
+  pending,
+  onDownload,
+}: {
+  title: string;
+  documents: PortalDocument[];
+  busyId: number | null;
+  pending: boolean;
+  onDownload: (doc: PortalDocument) => void;
+}) {
+  const isSent = title.includes("Enviados");
+
   return (
-    <div className="portal-doc-list">
-      <h4>{title}</h4>
+    <div className="portal-doc-section">
+      <div className="portal-doc-section-header">
+        <div className={`portal-doc-section-icon ${isSent ? "sent" : "received"}`}>
+          {isSent ? <Upload size={15} /> : <Download size={15} />}
+        </div>
+        <h4 className="portal-doc-section-title">{title}</h4>
+        <span className="count-pill">{documents.length}</span>
+      </div>
       {documents.length ? (
-        <div className="records-list">
-          {documents.map((item) => (
-            <article key={item.id}>
-              <div className="record-icon">
-                <FileText size={16} />
-              </div>
-              <div>
-                <strong>{item.fileName}</strong>
-                <small>{formatBytes(item.sizeBytes)}{item.createdAt ? ` · ${formatDateTime(item.createdAt)}` : ""}</small>
-              </div>
-              <div className="table-actions">
-                <button type="button" className="secondary compact" disabled={pending && busyId === item.id} onClick={() => onDownload(item)}>
+        <div className="portal-doc-items-list">
+          {documents.map((item) => {
+            const isPdf = item.mime === "application/pdf" || item.fileName.toLowerCase().endsWith(".pdf");
+            const isImg = Boolean(item.mime?.startsWith("image/")) || /\.(png|jpe?g)$/i.test(item.fileName);
+            return (
+              <div key={item.id} className="portal-doc-item">
+                <div className={`portal-doc-item-icon ${isPdf ? "pdf" : isImg ? "img" : "generic"}`}>
+                  <FileText size={18} />
+                </div>
+                <div className="portal-doc-item-info">
+                  <strong className="portal-doc-item-name">{item.fileName}</strong>
+                  <div className="portal-doc-item-meta">
+                    <span>{formatBytes(item.sizeBytes)}</span>
+                    {item.createdAt && <span>· {formatDateTime(item.createdAt)}</span>}
+                  </div>
+                </div>
+                <Button
+                  className="secondary compact portal-doc-download-btn"
+                  disabled={pending && busyId === item.id}
+                  onClick={() => onDownload(item)}
+                  title="Baixar arquivo"
+                  aria-label={`Baixar ${item.fileName}`}
+                >
                   <Download size={14} />
-                </button>
+                  <span>{pending && busyId === item.id ? "Baixando…" : "Baixar"}</span>
+                </Button>
               </div>
-            </article>
-          ))}
+            );
+          })}
         </div>
       ) : (
-        <p className="portal-doc-empty">Nenhum documento {title === "Meus Arquivos (Enviados)" ? "enviado" : "recebido"} ainda.</p>
+        <div className="portal-doc-empty-box">
+          <p>Nenhum documento {isSent ? "enviado por você" : "recebido do contador"} ainda.</p>
+        </div>
       )}
     </div>
   );
@@ -1704,22 +2554,34 @@ function DocumentList({ title, documents, busyId, pending, onDownload }: { title
 function ReportList({ reports }: { reports: PortalReport[] }) {
   if (!reports.length) return null;
   return (
-    <div className="portal-doc-list">
-      <h4>Relatórios de Atendimento</h4>
-      <div className="records-list">
+    <div className="portal-doc-section reports">
+      <div className="portal-doc-section-header">
+        <div className="portal-doc-section-icon report">
+          <FileCheck2 size={16} />
+        </div>
+        <h4 className="portal-doc-section-title">Relatórios Oficiais & Diagnósticos</h4>
+        <span className="count-pill">{reports.length}</span>
+      </div>
+      <div className="portal-doc-items-list">
         {reports.map((report) => (
-          <article key={report.id}>
-            <div className="record-icon">
-              <FileText size={16} />
+          <div key={report.id} className="portal-report-card">
+            <div className="portal-report-top">
+              <div className="portal-report-badge">
+                <BadgeCheck size={13} />
+                <span>Emitido por Contador CRC</span>
+              </div>
+              <span className="portal-report-date">
+                {report.entregueEm ? `Entregue em ${formatDateTime(report.entregueEm)}` : "Disponível"}
+              </span>
             </div>
-            <div>
-              <strong>{report.titulo || "Relatório de atendimento"}</strong>
-              <span>{report.entregueEm ? `Entregue em ${formatDateTime(report.entregueEm)}` : "Disponível"}</span>
-              {report.anexos.length > 0 && (
-                <small>
-                  {report.anexos.map((anexo, index) => (
-                    <span key={anexo.id}>
-                      {index > 0 && " · "}
+            <h3 className="portal-report-title">{report.titulo || "Relatório Oficial de Atendimento"}</h3>
+            {report.anexos.length > 0 && (
+              <div className="portal-report-anexos">
+                <span className="portal-report-anexos-label">Anexos complementares:</span>
+                <div className="portal-report-anexos-pills">
+                  {report.anexos.map((anexo) => (
+                    <span key={anexo.id} className="portal-report-anexo-pill">
+                      <FileText size={12} />
                       {anexo.url ? (
                         <a href={anexo.url} target="_blank" rel="noopener noreferrer">
                           {anexo.titulo}
@@ -1729,44 +2591,54 @@ function ReportList({ reports }: { reports: PortalReport[] }) {
                       )}
                     </span>
                   ))}
-                </small>
-              )}
+                </div>
+              </div>
+            )}
+            <div className="portal-report-footer">
+              <Button
+                className="portal-report-download-btn"
+                onClick={() =>
+                  void baixarRelatorioPdf({
+                    id: report.id,
+                    versao: report.versao,
+                    tipoRelatorio: report.tipoRelatorio,
+                    titulo: report.titulo,
+                    clienteNome: report.clienteNome,
+                    clienteCpf: report.clienteCpf,
+                    problema: report.problema,
+                    solucao: report.solucao,
+                    oqueFeito: report.oqueFeito,
+                    comoFeito: report.comoFeito,
+                    pendencias: report.pendencias,
+                    contadorAssinatura: report.contadorAssinatura,
+                    contadorNome: report.contadorNome,
+                    contadorCrc: report.contadorCrc,
+                    codigoValidacao: report.codigoValidacao,
+                    entregueEm: report.entregueEm,
+                    createdAt: report.createdAt,
+                  })
+                }
+              >
+                <Download size={14} />
+                <span>Baixar Relatório Oficial (PDF)</span>
+              </Button>
             </div>
-            <button
-              type="button"
-              className="secondary compact"
-              onClick={() =>
-                void baixarRelatorioPdf({
-                  id: report.id,
-                  versao: report.versao,
-                  tipoRelatorio: report.tipoRelatorio,
-                  titulo: report.titulo,
-                  clienteNome: report.clienteNome,
-                  clienteCpf: report.clienteCpf,
-                  problema: report.problema,
-                  solucao: report.solucao,
-                  oqueFeito: report.oqueFeito,
-                  comoFeito: report.comoFeito,
-                  pendencias: report.pendencias,
-                  contadorAssinatura: report.contadorAssinatura,
-                  contadorNome: report.contadorNome,
-                  contadorCrc: report.contadorCrc,
-                  codigoValidacao: report.codigoValidacao,
-                  entregueEm: report.entregueEm,
-                  createdAt: report.createdAt,
-                })
-              }
-            >
-              Baixar relatório
-            </button>
-          </article>
+          </div>
         ))}
       </div>
     </div>
   );
 }
 
-export function PortalDocumentosView({ clientId, documents: initialDocuments, reports }: { clientId: string; documents: PortalDocument[]; reports: PortalReport[] }) {
+export function PortalDocumentosView({
+  clientId,
+  documents: initialDocuments,
+  reports,
+}: {
+  clientId: string;
+  documents: PortalDocument[];
+  reports: PortalReport[];
+}) {
   const [documents, setDocuments] = useState(initialDocuments);
   const [pending, startTransition] = useTransition();
   const [busyId, setBusyId] = useState<number | null>(null);
@@ -1814,7 +2686,7 @@ export function PortalDocumentosView({ clientId, documents: initialDocuments, re
         { id: document.id, fileName: document.file_name, mime: document.mime, sizeBytes: document.size_bytes, uploadedBy: document.uploaded_by, createdAt: document.created_at, checklistItem: document.checklist_item, storagePath: document.storage_path },
         ...items,
       ]);
-      feedback("Documento enviado.");
+      feedback("Documento enviado com sucesso.");
     } catch {
       feedback("Não foi possível enviar o documento agora.");
     } finally {
@@ -1833,11 +2705,13 @@ export function PortalDocumentosView({ clientId, documents: initialDocuments, re
 
   return (
     <div className="view-stack">
-      <PageTitle title="Seus Documentos" description="Faça upload de recibos, RGs e baixe as guias enviadas pelo contador." />
+      <PageTitle
+        title="Documentos & Guias Fiscais"
+        description="Envie comprovantes e documentos solicitados ou faça o download de guias e relatórios emitidos pelo contador."
+      />
       <div className="portal-documentos-grid">
-        <button
-          type="button"
-          className={`portal-dropzone ${dragOver ? "arrastando" : ""}`}
+        <div
+          className={`portal-dropzone-container ${dragOver ? "arrastando" : ""}`}
           onClick={() => fileInputRef.current?.click()}
           onDragOver={(event) => {
             event.preventDefault();
@@ -1850,16 +2724,38 @@ export function PortalDocumentosView({ clientId, documents: initialDocuments, re
             const file = event.dataTransfer.files?.[0];
             if (file) void uploadFile(file);
           }}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(event) => {
+            if (event.key === "Enter" || event.key === " ") {
+              event.preventDefault();
+              fileInputRef.current?.click();
+            }
+          }}
         >
           <input ref={fileInputRef} type="file" accept="application/pdf,image/png,image/jpeg" hidden onChange={onInputChange} />
-          <Upload size={28} />
-          <strong>{uploading ? "Enviando…" : "Clique ou arraste arquivos aqui"}</strong>
-          <span>Envie PDFs, Imagens (JPG/PNG). Máx: 10MB.</span>
-        </button>
-        <Card className="portal-doc-lists">
+          <div className="portal-dropzone-icon-wrap">
+            <Upload size={24} />
+          </div>
+          <div className="portal-dropzone-texts">
+            <strong className="portal-dropzone-title">
+              {uploading ? "Enviando arquivo…" : "Clique ou arraste seus arquivos aqui"}
+            </strong>
+            <p className="portal-dropzone-desc">
+              Envie comprovantes, documentos de identificação ou contratos para análise do escritório.
+            </p>
+          </div>
+          <div className="portal-dropzone-badges">
+            <span className="portal-dropzone-badge">.PDF</span>
+            <span className="portal-dropzone-badge">.PNG</span>
+            <span className="portal-dropzone-badge">.JPG</span>
+            <span className="portal-dropzone-badge max">Máx. 10MB</span>
+          </div>
+        </div>
+        <Card className="portal-doc-collections">
           <ReportList reports={reports} />
-          <DocumentList title="Meus Arquivos (Enviados)" documents={meusArquivos} busyId={busyId} pending={pending} onDownload={download} />
-          <DocumentList title="Documentos Recebidos (Contador)" documents={recebidos} busyId={busyId} pending={pending} onDownload={download} />
+          <DocumentList title="Meus Arquivos Enviados" documents={meusArquivos} busyId={busyId} pending={pending} onDownload={download} />
+          <DocumentList title="Documentos Recebidos do Escritório" documents={recebidos} busyId={busyId} pending={pending} onDownload={download} />
         </Card>
       </div>
     </div>
@@ -1937,10 +2833,11 @@ export function PortalCaixaPostalView({ clientId, mailbox: initialMailbox }: { c
       <div className="view-stack">
         <PageTitle
           title={modo === "compose" ? "Nova mensagem" : threadAtiva || ASSUNTO_SEM_CATEGORIA}
-          description="Fora do horário do chat ao vivo — resposta em até 1 dia útil."
+          description="Comunicação com o escritório contábil — resposta em até 1 dia útil."
           action={
-            <button type="button" className="secondary compact" onClick={() => setModo("inbox")}>
-              Voltar
+            <button type="button" className="portal-back-btn" onClick={() => setModo("inbox")}>
+              <ArrowLeft size={16} />
+              <span>Voltar</span>
             </button>
           }
         />
@@ -1958,9 +2855,9 @@ export function PortalCaixaPostalView({ clientId, mailbox: initialMailbox }: { c
             </div>
           )}
           {modo === "compose" && (
-            <div className="portal-form">
+            <div className="portal-form portal-compose-form">
               <label>
-                Assunto
+                <span>Assunto da mensagem</span>
                 <select className="input" value={assuntoNovo} onChange={(event) => setAssuntoNovo(event.target.value)}>
                   {["Dúvida sobre pagamento", "Dúvida sobre documentos", "Reagendar atendimento", ASSUNTO_SEM_CATEGORIA].map((opcao) => (
                     <option key={opcao} value={opcao}>
@@ -1969,14 +2866,43 @@ export function PortalCaixaPostalView({ clientId, mailbox: initialMailbox }: { c
                   ))}
                 </select>
               </label>
+              <label>
+                <span>Mensagem</span>
+                <textarea
+                  value={texto}
+                  onChange={(event) => setTexto(event.target.value)}
+                  placeholder="Escreva detalhadamente sua dúvida ou solicitação…"
+                  rows={4}
+                  disabled={pending}
+                />
+              </label>
+              <div className="portal-form-acoes">
+                <Button disabled={pending || !texto.trim()} onClick={enviar}>
+                  <Send size={15} />
+                  <span>{pending ? "Enviando…" : "Enviar mensagem"}</span>
+                </Button>
+              </div>
             </div>
           )}
-          <div className="composer">
-            <Input value={texto} onChange={(event) => setTexto(event.target.value)} placeholder="Escreva sua mensagem…" disabled={pending} />
-            <Button className="icon" disabled={pending || !texto.trim()} onClick={enviar} aria-label="Enviar mensagem">
-              <Send size={16} />
-            </Button>
-          </div>
+          {modo === "thread" && (
+            <div className="composer">
+              <Input
+                value={texto}
+                onChange={(event) => setTexto(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" && !event.shiftKey) {
+                    event.preventDefault();
+                    enviar();
+                  }
+                }}
+                placeholder="Responder nesta conversa…"
+                disabled={pending}
+              />
+              <Button className="icon" disabled={pending || !texto.trim()} onClick={enviar} aria-label="Enviar mensagem">
+                <Send size={16} />
+              </Button>
+            </div>
+          )}
         </Card>
       </div>
     );
@@ -1985,8 +2911,8 @@ export function PortalCaixaPostalView({ clientId, mailbox: initialMailbox }: { c
   return (
     <div className="view-stack">
       <PageTitle
-        title="Mensagens"
-        description="Fora do horário do chat ao vivo — resposta em até 1 dia útil."
+        title="Caixa Postal"
+        description="Avisos oficiais do escritório e mensagens enviadas fora do horário ao vivo (resposta em até 1 dia útil)."
         action={
           <Button
             onClick={() => {
@@ -1995,13 +2921,14 @@ export function PortalCaixaPostalView({ clientId, mailbox: initialMailbox }: { c
               setModo("compose");
             }}
           >
-            Criar nova mensagem
+            <Mail size={15} />
+            <span>Nova mensagem</span>
           </Button>
         }
       />
-      <Card>
+      <div className="portal-mailbox-container">
         {threads.length ? (
-          <div className="records-list">
+          <div className="portal-mailbox-list">
             {threads.map((itens) => {
               const ultima = itens[itens.length - 1];
               const assunto = ultima.assunto || ASSUNTO_SEM_CATEGORIA;
@@ -2010,7 +2937,7 @@ export function PortalCaixaPostalView({ clientId, mailbox: initialMailbox }: { c
                 <button
                   type="button"
                   key={assunto}
-                  className="portal-thread-row"
+                  className={`portal-mailbox-row ${naoLidas ? "is-unread" : ""}`}
                   onClick={() => {
                     setThreadAtiva(assunto);
                     setModo("thread");
@@ -2022,22 +2949,31 @@ export function PortalCaixaPostalView({ clientId, mailbox: initialMailbox }: { c
                     }
                   }}
                 >
-                  <div className="record-icon">
-                    <Inbox size={16} />
+                  <div className={`portal-mailbox-icon ${naoLidas ? "unread" : ""}`}>
+                    <Inbox size={18} />
                   </div>
-                  <div>
-                    <strong>{assunto}</strong>
-                    <span>{ultima.mensagem}</span>
-                    <small>{formatDateTime(ultima.createdAt)}{naoLidas ? " · não lida" : ""}</small>
+                  <div className="portal-mailbox-body">
+                    <div className="portal-mailbox-row-top">
+                      <strong className="portal-mailbox-subject">{assunto}</strong>
+                      <span className="portal-mailbox-time">{formatDateTime(ultima.createdAt)}</span>
+                    </div>
+                    <p className="portal-mailbox-snippet">{ultima.mensagem}</p>
+                    <div className="portal-mailbox-row-bottom">
+                      <span className="portal-mailbox-count">{itens.length} mensagem(ns)</span>
+                      {naoLidas && <span className="portal-tile-badge pending">Nova mensagem</span>}
+                    </div>
                   </div>
+                  <ChevronRight size={16} className="portal-mailbox-arrow" />
                 </button>
               );
             })}
           </div>
         ) : (
-          <EmptyState>Nenhuma mensagem ainda. Clique em &quot;Criar nova mensagem&quot; pra escrever pro contador fora do horário do chat.</EmptyState>
+          <Card className="portal-tile">
+            <EmptyState>Nenhuma mensagem ainda. Clique em &quot;Nova mensagem&quot; para enviar uma dúvida ao escritório.</EmptyState>
+          </Card>
         )}
-      </Card>
+      </div>
     </div>
   );
 }
@@ -2061,6 +2997,8 @@ const statusAgendamento: Record<string, string> = {
 };
 
 export function PortalHistoricoView({ appointments, reports, atendimentosExpress, onNavigate }: { appointments: PortalAppointment[]; reports: PortalReport[]; atendimentosExpress: PortalAtendimentoExpress[]; onNavigate: (id: string) => void }) {
+  const [filtro, setFiltro] = useState<"todos" | "Atendimento" | "Relatório" | "Express">("todos");
+
   // Mesma composição do cliente.html: atendimentos + casos Express +
   // relatórios entregues, mais recentes primeiro.
   const itens: HistoricoItem[] = [
@@ -2093,33 +3031,98 @@ export function PortalHistoricoView({ appointments, reports, atendimentosExpress
     })),
   ];
 
+  const itensFiltrados = filtro === "todos" ? itens : itens.filter((i) => i.tipo === filtro);
+
   return (
     <div className="view-stack">
-      <PageTitle title="Histórico" description="Consulte serviços anteriores realizados com o escritório." />
-      <Card>
-        {itens.length ? (
-          <div className="records-list">
-            {itens.map((item) => (
-              <article key={item.key}>
-                <div className="record-icon">{item.tipo === "Relatório" ? <FileText size={16} /> : item.tipo === "Express" ? <Zap size={16} /> : <CalendarClock size={16} />}</div>
-                <div>
-                  <span>{item.tipo.toUpperCase()}</span>
-                  <strong>{item.titulo}</strong>
-                  <small>{item.quando}</small>
+      <PageTitle
+        title="Histórico de Serviços"
+        description="Acompanhe todos os seus atendimentos, relatórios fiscais oficiais e serviços contratados."
+      />
+
+      {/* TABS DE FILTRO */}
+      <div className="portal-filter-tabs">
+        <button
+          type="button"
+          className={`portal-filter-tab ${filtro === "todos" ? "active" : ""}`}
+          onClick={() => setFiltro("todos")}
+        >
+          <span>Todos</span>
+          <span className="count-pill">{itens.length}</span>
+        </button>
+        <button
+          type="button"
+          className={`portal-filter-tab ${filtro === "Atendimento" ? "active" : ""}`}
+          onClick={() => setFiltro("Atendimento")}
+        >
+          <span>Atendimentos</span>
+          <span className="count-pill">{itens.filter((i) => i.tipo === "Atendimento").length}</span>
+        </button>
+        <button
+          type="button"
+          className={`portal-filter-tab ${filtro === "Relatório" ? "active" : ""}`}
+          onClick={() => setFiltro("Relatório")}
+        >
+          <span>Relatórios Fiscais</span>
+          <span className="count-pill">{itens.filter((i) => i.tipo === "Relatório").length}</span>
+        </button>
+        <button
+          type="button"
+          className={`portal-filter-tab ${filtro === "Express" ? "active" : ""}`}
+          onClick={() => setFiltro("Express")}
+        >
+          <span>Express</span>
+          <span className="count-pill">{itens.filter((i) => i.tipo === "Express").length}</span>
+        </button>
+      </div>
+
+      <div className="portal-historico-container">
+        {itensFiltrados.length ? (
+          <div className="portal-historico-list">
+            {itensFiltrados.map((item) => (
+              <div key={item.key} className="portal-historico-card">
+                <div className={`portal-historico-icon-wrap ${item.tipo.toLowerCase()}`}>
+                  {item.tipo === "Relatório" ? (
+                    <FileText size={20} />
+                  ) : item.tipo === "Express" ? (
+                    <Zap size={20} />
+                  ) : (
+                    <CalendarClock size={20} />
+                  )}
                 </div>
-                <div className="table-actions">
-                  <Badge className={item.concluido ? "success" : ""}>{item.status}</Badge>
-                  <button type="button" className="secondary compact" onClick={() => onNavigate(item.destino)}>
-                    Ver
-                  </button>
+                <div className="portal-historico-body">
+                  <div className="portal-historico-top">
+                    <span className={`portal-historico-tag ${item.tipo.toLowerCase()}`}>
+                      {item.tipo === "Relatório"
+                        ? "Relatório Oficial"
+                        : item.tipo === "Express"
+                        ? "Serviço Express"
+                        : "Atendimento Online"}
+                    </span>
+                    <span className="portal-historico-date">{item.quando}</span>
+                  </div>
+                  <h3 className="portal-historico-title">{item.titulo}</h3>
+                  <div className="portal-historico-footer">
+                    <span className={`portal-tile-badge ${item.concluido ? "done" : "pending"}`}>
+                      {item.status}
+                    </span>
+                  </div>
                 </div>
-              </article>
+                <div className="portal-historico-action">
+                  <Button className="secondary compact" onClick={() => onNavigate(item.destino)}>
+                    <span>Acessar</span>
+                    <ArrowRight size={14} />
+                  </Button>
+                </div>
+              </div>
             ))}
           </div>
         ) : (
-          <EmptyState>Nenhum atendimento no histórico ainda.</EmptyState>
+          <Card className="portal-tile">
+            <EmptyState>Nenhum registro encontrado nesta categoria do histórico.</EmptyState>
+          </Card>
         )}
-      </Card>
+      </div>
     </div>
   );
 }
@@ -2267,120 +3270,162 @@ export function PortalRadarView({ clientId, caixaPostalNovas }: { clientId: stri
 
   return (
     <div className="view-stack">
-      <PageTitle title="Radar Fiscal" description="Parcelamentos e guias disponíveis para você, com os dados que o escritório já consultou." />
+      <PageTitle title="Radar Fiscal" description="Diagnóstico fiscal e monitoramento contínuo de pendências junto à Receita Federal e órgãos públicos." />
 
-      <Card className="portal-tile radar-status-tile">
-        <Badge className="radar-badge-ok">
-          <Landmark size={13} /> Radar habilitado
-        </Badge>
-        <span className="triagem-dica">Caixa Postal verificada a cada {estado.configuracao.caixaPostalIntervaloDias || 7} dias.</span>
-      </Card>
-
-      <Card className="portal-tile">
-        <div className="card-heading">
-          <div>
-            <Inbox size={18} />
-            <strong>Caixa Postal (e-CAC)</strong>
+      <div className="portal-spotlight-card tone-green">
+        <div className="portal-spotlight-left">
+          <div className="portal-spotlight-icon-wrap tone-green">
+            <Landmark size={24} />
+          </div>
+          <div className="portal-spotlight-content">
+            <div className="portal-spotlight-tag">
+              <span>Monitoramento Ativo</span>
+            </div>
+            <h2 className="portal-spotlight-title">Radar Fiscal Integrado</h2>
+            <p className="portal-spotlight-desc">
+              Caixa Postal e-CAC e parcelamentos verificados a cada {estado.configuracao.caixaPostalIntervaloDias || 7} dias pelo escritório.
+            </p>
           </div>
         </div>
-        {caixaPostalNovas ? (
-          <div className="radar-alerta">
-            <CircleAlert size={18} />
+      </div>
+
+      <div className="portal-radar-grid">
+        {/* CAIXA POSTAL E-CAC */}
+        <Card className="portal-radar-card">
+          <div className="portal-radar-card-header">
+            <div className="portal-radar-card-icon inbox">
+              <Inbox size={18} />
+            </div>
             <div>
-              <strong>Chegou mensagem nova da Receita</strong>
-              <p>Seu contador foi avisado e vai verificar o conteúdo. Se for preciso agir, entramos em contato.</p>
+              <h3 className="portal-radar-card-title">Caixa Postal (e-CAC / Receita)</h3>
+              <span className="portal-radar-card-desc">Comunicados oficiais emitidos pelo fisco</span>
             </div>
           </div>
-        ) : mensagens.length ? (
-          <div className="records-list">
-            {mensagens.map((m, index) => (
-              <article key={index}>
-                <div className="record-icon">
-                  <Inbox size={16} />
-                </div>
+          <div className="portal-radar-card-body">
+            {caixaPostalNovas ? (
+              <div className="radar-alerta">
+                <CircleAlert size={18} />
                 <div>
-                  <strong>{m.assunto}</strong>
-                  <small>{dataCurtaRadar(m.data)}</small>
+                  <strong>Chegou mensagem nova da Receita Federal</strong>
+                  <p>Seu contador foi avisado e vai verificar o teor da notificação. Se for necessária qualquer ação, entraremos em contato.</p>
                 </div>
-              </article>
-            ))}
-          </div>
-        ) : (
-          <EmptyState>Nenhuma mensagem nova desde a última verificação{caixa ? ` (${dataCurtaRadar(caixa.obtido_em)})` : ""}.</EmptyState>
-        )}
-      </Card>
-
-      <Card className="portal-tile">
-        <div className="card-heading">
-          <div>
-            <FileText size={18} />
-            <strong>Situação fiscal</strong>
-          </div>
-        </div>
-        {sitfis ? (
-          <p>
-            Seu relatório de situação fiscal foi emitido em <strong>{dataCurtaRadar(sitfis.obtido_em)}</strong> e está em <strong>Meus Documentos</strong>.
-          </p>
-        ) : (
-          <p>
-            Nenhum relatório de situação fiscal emitido ainda. Peça ao seu contador pelas <strong>Mensagens</strong> quando precisar de um.
-          </p>
-        )}
-      </Card>
-
-      <Card className="portal-tile">
-        <div className="card-heading">
-          <div>
-            <Landmark size={18} />
-            <strong>Parcelamentos</strong>
-          </div>
-        </div>
-        {parcelamentos ? (
-          <>
-            <p className="triagem-dica">Dados consultados em {dataCurtaRadar(parcelamentos.obtido_em)}.</p>
-            {sistemas.length ? (
-              sistemas.map((bloco) => (
-                <div key={bloco.sistema} className="radar-sistema">
-                  <div className="radar-sistema-topo">
-                    <strong>{bloco.sistema}</strong>
-                    <span>{bloco.pedidos.length} parcelamento(s)</span>
+              </div>
+            ) : mensagens.length ? (
+              <div className="portal-radar-msg-list">
+                {mensagens.map((m, index) => (
+                  <div key={index} className="portal-radar-msg-item">
+                    <div className="portal-radar-msg-icon">
+                      <Inbox size={15} />
+                    </div>
+                    <div className="portal-radar-msg-info">
+                      <strong>{m.assunto}</strong>
+                      <span>{dataCurtaRadar(m.data)}</span>
+                    </div>
                   </div>
-                  {bloco.parcelas.length ? (
-                    bloco.parcelas.map((p, index) => {
-                      const chave = `${bloco.sistema}:${p.parcela}`;
-                      return (
-                        <div key={index} className="radar-parcela">
-                          <span>
-                            Parcela {p.parcela} · vence {p.vencimento || "—"}
-                          </span>
-                          {podeEmitirDas && (
-                            <button type="button" className="triagem-doc-btn" disabled={emitindo === chave} onClick={() => emitirGuia(bloco.sistema, p.parcela)}>
-                              {emitindo === chave ? "Emitindo…" : "Emitir guia"}
-                            </button>
-                          )}
-                        </div>
-                      );
-                    })
-                  ) : (
-                    <p className="triagem-dica">Nenhuma parcela disponível para emissão.</p>
-                  )}
-                </div>
-              ))
+                ))}
+              </div>
             ) : (
-              <EmptyState>Nenhum parcelamento encontrado.</EmptyState>
+              <EmptyState>Nenhuma notificação pendente desde a última verificação{caixa ? ` (${dataCurtaRadar(caixa.obtido_em)})` : ""}.</EmptyState>
             )}
-          </>
-        ) : estado.regime ? (
-          <>
-            <p>Ainda não há dados salvos. A primeira consulta será guardada e reutilizada nas próximas vezes.</p>
-            <button type="button" className="secondary compact" disabled={pending} onClick={consultarParcelamentos}>
-              Consultar parcelamentos
-            </button>
-          </>
-        ) : (
-          <p>Peça ao seu contador para definir se a empresa é MEI ou Simples Nacional antes da primeira consulta.</p>
-        )}
-        {error && <p className="login-error">{error}</p>}
+          </div>
+        </Card>
+
+        {/* SITUAÇÃO FISCAL */}
+        <Card className="portal-radar-card">
+          <div className="portal-radar-card-header">
+            <div className="portal-radar-card-icon docs">
+              <FileText size={18} />
+            </div>
+            <div>
+              <h3 className="portal-radar-card-title">Situação Fiscal</h3>
+              <span className="portal-radar-card-desc">Relatório de diagnóstico cadastral</span>
+            </div>
+          </div>
+          <div className="portal-radar-card-body">
+            {sitfis ? (
+              <div className="portal-radar-sitfis-box">
+                <p>
+                  Relatório emitido em <strong>{dataCurtaRadar(sitfis.obtido_em)}</strong> e arquivado em <strong>Documentos</strong>.
+                </p>
+              </div>
+            ) : (
+              <div className="portal-radar-sitfis-box empty">
+                <p>
+                  Nenhum relatório de situação fiscal emitido no momento. Você pode solicitar um ao contador pelo chat a qualquer momento.
+                </p>
+              </div>
+            )}
+          </div>
+        </Card>
+      </div>
+
+      {/* PARCELAMENTOS ATIVOS */}
+      <Card className="portal-radar-card">
+        <div className="portal-radar-card-header">
+          <div className="portal-radar-card-icon agenda">
+            <Landmark size={18} />
+          </div>
+          <div>
+            <h3 className="portal-radar-card-title">Parcelamentos & Guias Tributárias</h3>
+            <span className="portal-radar-card-desc">Emissão rápida de DAS e parcelas ativas</span>
+          </div>
+        </div>
+        <div className="portal-radar-card-body">
+          {parcelamentos ? (
+            <>
+              <p className="triagem-dica">Última consulta realizada em {dataCurtaRadar(parcelamentos.obtido_em)}.</p>
+              {sistemas.length ? (
+                sistemas.map((bloco) => (
+                  <div key={bloco.sistema} className="radar-sistema">
+                    <div className="radar-sistema-topo">
+                      <strong>{bloco.sistema}</strong>
+                      <span className="portal-tile-tag">{bloco.pedidos.length} parcelamento(s)</span>
+                    </div>
+                    {bloco.parcelas.length ? (
+                      <div className="portal-parcelas-grid">
+                        {bloco.parcelas.map((p, index) => {
+                          const chave = `${bloco.sistema}:${p.parcela}`;
+                          return (
+                            <div key={index} className="radar-parcela">
+                              <div>
+                                <strong>Parcela {p.parcela}</strong>
+                                <span className="radar-parcela-vencimento">Vencimento: {p.vencimento || "—"}</span>
+                              </div>
+                              {podeEmitirDas && (
+                                <Button
+                                  className="secondary compact"
+                                  disabled={emitindo === chave}
+                                  onClick={() => emitirGuia(bloco.sistema, p.parcela)}
+                                >
+                                  <FileDown size={14} />
+                                  <span>{emitindo === chave ? "Emitindo…" : "Emitir DAS"}</span>
+                                </Button>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <p className="triagem-dica">Nenhuma parcela pendente para emissão neste sistema.</p>
+                    )}
+                  </div>
+                ))
+              ) : (
+                <EmptyState>Nenhum parcelamento tributário ativo encontrado.</EmptyState>
+              )}
+            </>
+          ) : estado.regime ? (
+            <div className="portal-radar-empty-actions">
+              <p>Ainda não há dados salvos. A primeira consulta será guardada e reutilizada nas próximas vezes.</p>
+              <Button onClick={consultarParcelamentos} disabled={pending}>
+                <span>Consultar parcelamentos</span>
+              </Button>
+            </div>
+          ) : (
+            <p className="triagem-dica">Peça ao seu contador para definir se a empresa é MEI ou Simples Nacional antes da primeira consulta.</p>
+          )}
+          {error && <p className="login-error">{error}</p>}
+        </div>
       </Card>
     </div>
   );
@@ -2534,45 +3579,151 @@ function normalizarBusca(texto: string): string {
     .replace(/[̀-ͯ]/g, "");
 }
 
-export function PortalFaqView() {
+export function PortalFaqView({ onNavigate }: { onNavigate?: (view: string) => void }) {
   const [busca, setBusca] = useState("");
+  const [categoriaAtiva, setCategoriaAtiva] = useState<string>("todos");
   const termo = normalizarBusca(busca.trim());
 
   function bate(texto: string) {
     return normalizarBusca(texto).includes(termo);
   }
 
-  const grupos = FAQ_GRUPOS.map((grupo) => ({
-    ...grupo,
-    itens: grupo.itens.filter((item) => !termo || bate(item.pergunta)),
-  })).filter((grupo) => grupo.itens.length > 0);
+  const categorias = ["todos", ...FAQ_GRUPOS.map((g) => g.titulo)];
+
+  const gruposFiltrados = FAQ_GRUPOS.filter((grupo) => categoriaAtiva === "todos" || grupo.titulo === categoriaAtiva)
+    .map((grupo) => ({
+      ...grupo,
+      itens: grupo.itens.filter((item) => !termo || bate(item.pergunta)),
+    }))
+    .filter((grupo) => grupo.itens.length > 0);
+
+  const totalItens = gruposFiltrados.reduce((acc, g) => acc + g.itens.length, 0);
 
   return (
     <div className="view-stack">
-      <PageTitle title="Ajuda e Dúvidas Frequentes" description="As dúvidas mais comuns sobre a conta gov.br e sobre como usar a plataforma." />
-      <div className="faq-busca">
-        <Search size={16} />
-        <input type="search" placeholder="Buscar uma dúvida (ex: duas etapas, bloqueada, nível prata)" value={busca} onChange={(event) => setBusca(event.target.value)} aria-label="Buscar nas dúvidas frequentes" />
-      </div>
-      {grupos.length === 0 && (
-        <Card className="portal-tile">
-          <p>
-            Nenhuma dúvida encontrada com esse termo. Tente outra palavra ou fale com seu contador pelas <strong>Mensagens</strong>.
-          </p>
-        </Card>
-      )}
-      {grupos.map((grupo) => (
-        <Card key={grupo.titulo} className="portal-tile faq-grupo">
-          <h3>{grupo.titulo}</h3>
-          {grupo.itens.map((item) => (
-            <details key={item.pergunta} className="faq-item" open={!!termo}>
-              <summary>{item.pergunta}</summary>
-              <div className="faq-resposta">{item.resposta}</div>
-            </details>
+      <PageTitle
+        title="Central de Ajuda & Dúvidas"
+        description="Respostas claras sobre acesso ao gov.br, etapas do atendimento e utilização da plataforma."
+      />
+
+      {/* HERO / SEARCH BAR */}
+      <Card className="portal-faq-search-card">
+        <div className="portal-faq-search-box">
+          <Search size={18} className="portal-faq-search-icon" />
+          <input
+            type="search"
+            placeholder="Buscar por palavra-chave (ex: duas etapas, bloqueada, nível prata, relatório)..."
+            value={busca}
+            onChange={(event) => setBusca(event.target.value)}
+            aria-label="Buscar nas dúvidas frequentes"
+          />
+          {busca && (
+            <button
+              type="button"
+              className="portal-faq-clear-btn"
+              onClick={() => setBusca("")}
+              title="Limpar busca"
+            >
+              <X size={15} />
+            </button>
+          )}
+        </div>
+
+        <div className="portal-faq-categories-row">
+          {categorias.map((cat) => (
+            <button
+              key={cat}
+              type="button"
+              className={`portal-faq-cat-pill ${categoriaAtiva === cat ? "ativo" : ""}`}
+              onClick={() => setCategoriaAtiva(cat)}
+            >
+              {cat === "todos" ? "Todas as Dúvidas" : cat}
+            </button>
           ))}
+          {busca && (
+            <span className="portal-faq-count-badge">
+              {totalItens} {totalItens === 1 ? "resultado" : "resultados"}
+            </span>
+          )}
+        </div>
+      </Card>
+
+      {gruposFiltrados.length === 0 ? (
+        <Card className="portal-faq-empty-card">
+          <div className="portal-faq-empty-icon">
+            <HelpCircle size={28} />
+          </div>
+          <strong className="portal-faq-empty-title">Nenhuma dúvida encontrada</strong>
+          <p className="portal-faq-empty-desc">
+            Não encontramos nenhum artigo correspondente a &quot;{busca}&quot;. Tente outros termos ou entre em contato com nosso time.
+          </p>
+          {onNavigate && (
+            <Button className="secondary compact" onClick={() => onNavigate("caixa-postal")}>
+              <Mail size={14} />
+              <span>Enviar Dúvida na Caixa Postal</span>
+            </Button>
+          )}
         </Card>
-      ))}
-      <p className="triagem-dica">As orientações sobre a conta gov.br seguem o que está publicado no portal oficial do Governo Digital. Procedimentos do governo mudam de tempos em tempos.</p>
+      ) : (
+        <div className="portal-faq-groups-stack">
+          {gruposFiltrados.map((grupo) => (
+            <Card key={grupo.titulo} className="portal-faq-group-card">
+              <div className="portal-faq-group-header">
+                <div className="portal-faq-group-icon">
+                  {grupo.titulo === "Conta gov.br" ? <KeyRound size={18} /> : <Sparkles size={18} />}
+                </div>
+                <div>
+                  <h3 className="portal-faq-group-title">{grupo.titulo}</h3>
+                  <span className="portal-faq-group-subtitle">{grupo.itens.length} tópicos explicativos</span>
+                </div>
+              </div>
+
+              <div className="portal-faq-items-list">
+                {grupo.itens.map((item) => (
+                  <details key={item.pergunta} className="portal-faq-accordion-item" open={Boolean(termo)}>
+                    <summary className="portal-faq-accordion-summary">
+                      <span className="portal-faq-question-text">{item.pergunta}</span>
+                      <div className="portal-faq-chevron-wrap">
+                        <ChevronDown size={17} />
+                      </div>
+                    </summary>
+                    <div className="portal-faq-accordion-content">
+                      <div className="portal-faq-answer-body">{item.resposta}</div>
+                    </div>
+                  </details>
+                ))}
+              </div>
+            </Card>
+          ))}
+        </div>
+      )}
+
+      {/* CARD DE CONTATO / SUPORTE */}
+      <Card className="portal-faq-contact-card">
+        <div className="portal-faq-contact-info">
+          <div className="portal-faq-contact-icon">
+            <MessageCircle size={22} />
+          </div>
+          <div>
+            <strong className="portal-faq-contact-title">Ainda precisa de orientação específica?</strong>
+            <p className="portal-faq-contact-desc">
+              Envie uma mensagem para a equipe do escritório ou converse com o contador no seu horário agendado.
+            </p>
+          </div>
+        </div>
+        {onNavigate && (
+          <div className="portal-faq-contact-actions">
+            <Button className="secondary compact" onClick={() => onNavigate("caixa-postal")}>
+              <Inbox size={14} />
+              <span>Abrir Caixa Postal</span>
+            </Button>
+            <Button className="portal-agenda-confirm-btn compact" onClick={() => onNavigate("atendimento")}>
+              <MessageCircle size={14} />
+              <span>Ir para o Chat</span>
+            </Button>
+          </div>
+        )}
+      </Card>
     </div>
   );
 }
