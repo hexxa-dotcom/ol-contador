@@ -5019,6 +5019,13 @@ export function ConfiguracoesIntegralView({
       setLogAction(null);
     }
   }
+  const [serproTeste, setSerproTeste] = useState<{ ok: boolean; detail?: string } | "loading" | null>(null);
+  async function testarConexaoSerpro() {
+    setSerproTeste("loading");
+    const response = await fetch("/api/serpro/testar", { method: "POST" });
+    const result = await response.json().catch(() => ({ ok: false, detail: "Resposta inválida" }));
+    setSerproTeste(response.ok ? { ok: Boolean(result.ok), detail: result.detail } : { ok: false, detail: result.error || result.detail });
+  }
   const [systemSecrets, setSystemSecrets] = useState<Array<{ chave: string; label: string; grupo: string; nota?: string; usosDisponiveis?: string[]; testavel?: boolean }>>([]);
   const [systemSecretsStatus, setSystemSecretsStatus] = useState<Record<string, { origem: "banco" | "ambiente" | "nenhuma"; atualizadoEm: string | null }>>({});
   const [systemSecretsUsos, setSystemSecretsUsos] = useState<Record<string, Record<string, boolean>>>({});
@@ -5946,6 +5953,27 @@ export function ConfiguracoesIntegralView({
               ) : (
                 <EmptyState>Nenhum evento de webhook registrado ainda.</EmptyState>
               )}
+
+              <div className="card-heading" style={{ marginTop: 24 }}>
+                <div>
+                  <ShieldCheck size={18} />
+                  <strong>Integrações externas</strong>
+                </div>
+              </div>
+              <div className="settings-item-row">
+                <div>
+                  <strong>SERPRO — Integra Contador</strong>
+                  <small>Testa a autenticação OAuth2 + certificado mTLS com as credenciais configuradas na Vercel.</small>
+                </div>
+                <Button className="secondary compact" disabled={serproTeste === "loading"} onClick={() => void testarConexaoSerpro()}>
+                  {serproTeste === "loading" ? "Testando…" : "Testar conexão"}
+                </Button>
+                {serproTeste && serproTeste !== "loading" && (
+                  <small className={serproTeste.ok ? "system-secret-test-ok" : "system-secret-test-fail"}>
+                    {serproTeste.ok ? "✓ Autenticou com o SERPRO." : `✗ Falhou: ${serproTeste.detail || "não autenticou."}`}
+                  </small>
+                )}
+              </div>
             </>
           )}
           {tab === "Chaves de API" && (
