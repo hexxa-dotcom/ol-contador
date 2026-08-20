@@ -846,6 +846,7 @@ export function AtendimentoView({
 }) {
   const [queue, setQueue] = useState<"Chats" | "Agenda do dia">("Chats");
   const [tool, setTool] = useState<"fila" | "copilot">("fila");
+  const [mobileChatView, setMobileChatView] = useState<"queue" | "chat" | "copilot">("queue");
   const [panelCollapsed, setPanelCollapsed] = useState(false);
   const [chatLocked, setChatLocked] = useState(false);
   const [timerRunning, setTimerRunning] = useState(false);
@@ -1225,6 +1226,7 @@ export function AtendimentoView({
     setElapsed(restoredElapsed);
     setTimerRunning(wasRunning);
     setPanelCollapsed(false);
+    setMobileChatView("chat");
     setMessages((items) =>
       items.map((item) =>
         item.cliente_id === clientId &&
@@ -1514,11 +1516,16 @@ export function AtendimentoView({
     }
     setTool(nextTool);
     setPanelCollapsed(false);
+    if (nextTool === "copilot") {
+      setMobileChatView("copilot");
+    } else {
+      setMobileChatView("queue");
+    }
   }
 
   return (
     <div
-      className={`chat-layout tool-${tool} ${panelCollapsed ? "queue-collapsed" : ""} ${chatAppearance.dark ? "chat-dark" : ""}`}
+      className={`chat-layout tool-${tool} ${panelCollapsed ? "queue-collapsed" : ""} ${chatAppearance.dark ? "chat-dark" : ""} mobile-view-${mobileChatView}`}
       style={{
         "--custom-chat-bg": chatAppearance.chatBackground,
         "--custom-agent-bubble": chatAppearance.accountantBubble,
@@ -1695,7 +1702,17 @@ export function AtendimentoView({
                 </strong>
                 <small>Apoio durante o atendimento</small>
               </div>
-              <Badge className="attention">IA</Badge>
+              <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                <Badge className="attention">IA</Badge>
+                <button
+                  type="button"
+                  className="mobile-copilot-close-btn"
+                  onClick={() => setMobileChatView(selectedClientId ? "chat" : "queue")}
+                  aria-label="Fechar copiloto"
+                >
+                  <X size={16} />
+                </button>
+              </div>
             </div>
             <div className="copilot-context">
               <MessageCircle size={14} />
@@ -1809,6 +1826,16 @@ export function AtendimentoView({
 
       <main className="chat-main">
         <header className="chat-header">
+          <button
+            type="button"
+            className="chat-back-mobile-btn"
+            onClick={() => setMobileChatView("queue")}
+            aria-label="Voltar para a lista de conversas"
+            title="Voltar para a fila"
+          >
+            <ChevronLeft size={18} />
+            <span>Fila</span>
+          </button>
           <div className="avatar">
             {selectedClient
               ? selectedClient.name.slice(0, 2).toUpperCase()
@@ -1825,6 +1852,16 @@ export function AtendimentoView({
             </small>
           </div>
           <div className="chat-actions">
+            <button
+              type="button"
+              className="chat-action-button mobile-copilot-toggle"
+              onClick={() => setMobileChatView((v) => (v === "copilot" ? "chat" : "copilot"))}
+              aria-label="Copiloto IA"
+              title="Copiloto IA"
+            >
+              <Bot size={15} />
+              <span className="chat-action-label">IA</span>
+            </button>
             <div className={`timer-capsule ${timerRunning ? "running" : ""}`}>
               <Clock3 size={14} />
               <strong>{formattedElapsed}</strong>
@@ -3739,43 +3776,48 @@ function RadarResult({
         </a>
       </div>
     );
-  if (messages.length)
+  const ehResultadoDeCaixaPostal = typeof result.pagina !== "undefined";
+  if (messages.length || ehResultadoDeCaixaPostal)
     return (
       <div className="radar-result-list">
-        {messages.map((item, index) => (
-          <article
-            key={String(item.isn || index)}
-          >
-            <div>
-              <strong>
-                {String(
-                  item.assunto ||
-                    "Resultado",
-                )}
-              </strong>
-              <span>
-                {String(item.remetente || item.situacao || item.erro || "")}
-              </span>
-              <small>
-                {item.data
-                  ? new Intl.DateTimeFormat("pt-BR", {
-                      dateStyle: "short",
-                      timeStyle: "short",
-                    }).format(new Date(String(item.data)))
-                  : Array.isArray(item.pedidos)
-                    ? `${item.pedidos.length} parcelamento(s)`
-                    : ""}
-              </small>
-            </div>
-            <Button
-              className="secondary compact"
-              disabled={busy || !item.isn}
-              onClick={() => onAction("mensagem-detalhe", { isn: item.isn })}
+        {messages.length ? (
+          messages.map((item, index) => (
+            <article
+              key={String(item.isn || index)}
             >
-              Abrir mensagem
-            </Button>
-          </article>
-        ))}
+              <div>
+                <strong>
+                  {String(
+                    item.assunto ||
+                      "Resultado",
+                  )}
+                </strong>
+                <span>
+                  {String(item.remetente || item.situacao || item.erro || "")}
+                </span>
+                <small>
+                  {item.data
+                    ? new Intl.DateTimeFormat("pt-BR", {
+                        dateStyle: "short",
+                        timeStyle: "short",
+                      }).format(new Date(String(item.data)))
+                    : Array.isArray(item.pedidos)
+                      ? `${item.pedidos.length} parcelamento(s)`
+                      : ""}
+                </small>
+              </div>
+              <Button
+                className="secondary compact"
+                disabled={busy || !item.isn}
+                onClick={() => onAction("mensagem-detalhe", { isn: item.isn })}
+              >
+                Abrir mensagem
+              </Button>
+            </article>
+          ))
+        ) : (
+          <EmptyState>Nenhuma mensagem na Caixa Postal para esse CPF/CNPJ.</EmptyState>
+        )}
         <div className="radar-result-actions">
           <Button
             className="secondary compact"
