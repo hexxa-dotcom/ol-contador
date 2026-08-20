@@ -254,9 +254,18 @@ export async function POST(request: Request) {
       case "mensagem-detalhe": {
         const isn = body.isn as string;
         if (!isn) return NextResponse.json({ error: "isn_required" }, { status: 400 });
+        // O conteúdo de uma mensagem já enviada pela Receita não muda —
+        // guarda sem expiração, pra reabrir a mesma mensagem nunca gastar
+        // uma nova requisição paga.
+        const servicoCache = `caixa-postal-msg-${isn}`;
+        if (clienteRef && !forcarAtualizacao) {
+          const salvo = await buscarResultadoSalvo(admin, clienteRef, servicoCache, 0);
+          if (salvo) return NextResponse.json({ detalhe: salvo.resultado, cacheado: true, obtidoEm: salvo.obtido_em });
+        }
         try {
           const r = await serpro.detalharMensagem(documento, isn);
           await log("CAIXAPOSTAL", "MSGDETALHAMENTO62", "Consultar", true);
+          if (clienteRef) await guardarResultado(admin, clienteRef, servicoCache, r, 0);
           return NextResponse.json({ detalhe: r });
         } catch (e) {
           await log("CAIXAPOSTAL", "MSGDETALHAMENTO62", "Consultar", false, e as Error);

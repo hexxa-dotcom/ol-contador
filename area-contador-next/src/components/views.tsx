@@ -3891,6 +3891,13 @@ function RadarResult({
   if (messages.length || ehResultadoDeCaixaPostal)
     return (
       <div className="radar-result-list">
+        {ehResultadoDeCaixaPostal && (
+          <div className="radar-origem-info">
+            {result.cacheado
+              ? `Dados salvos${result.obtidoEm ? ` de ${new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" }).format(new Date(String(result.obtidoEm)))}` : ""} — sem custo de consulta.`
+              : "Consulta feita agora ao SERPRO — consumiu uma requisição paga."}
+          </div>
+        )}
         {messages.length ? (
           messages.map((item, index) => (
             <article
@@ -4398,6 +4405,7 @@ export function RadarFiscalView({
                       {mensagem.remetente && <span>De: {mensagem.remetente}</span>}
                       {formatarData(mensagem.dataEnvio) && <span>Enviada em {formatarData(mensagem.dataEnvio)}</span>}
                       {formatarData(mensagem.dataLeitura) && <span>Lida em {formatarData(mensagem.dataLeitura)}</span>}
+                      <span>{detail.cacheado ? "Dados salvos — sem custo" : "Consultada agora ao SERPRO"}</span>
                     </div>
                     <div
                       className="radar-mensagem-corpo"
