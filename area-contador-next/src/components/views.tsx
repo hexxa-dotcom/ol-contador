@@ -4471,6 +4471,11 @@ export function RadarFiscalView({
                 <Badge className={item.sucesso ? "success" : "attention"}>
                   {item.sucesso ? "Concluída" : item.erro_codigo || "Falha"}
                 </Badge>
+                {item.sucesso && servicoCacheavelPorAba[tab] && (
+                  <Button className="secondary compact" disabled={loading} onClick={() => void verDadosSalvos()}>
+                    Ver resultado
+                  </Button>
+                )}
               </article>
             ))}
           </div>
