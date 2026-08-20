@@ -29,14 +29,11 @@ export async function POST() {
       SERPRO_KEY_PEM_BASE64: !!process.env.SERPRO_KEY_PEM_BASE64,
       SERPRO_TEMP_ACCESS_TOKEN: !!process.env.SERPRO_TEMP_ACCESS_TOKEN,
       SERPRO_TEMP_JWT_TOKEN: !!process.env.SERPRO_TEMP_JWT_TOKEN,
-      // Diagnóstico temporário — confirma se QUALQUER env var nova está
-      // sendo injetada neste runtime, não só as do SERPRO.
-      TESTE_DIAG_TEMP: !!process.env.TESTE_DIAG_TEMP,
-      GROQ_API_KEY: !!process.env.GROQ_API_KEY,
-      VERCEL_ENV: process.env.VERCEL_ENV || "(vazio)",
-      VERCEL_GIT_COMMIT_SHA: process.env.VERCEL_GIT_COMMIT_SHA || "(vazio)",
     };
-    return NextResponse.json({ ok: false, detail: `Faltam variáveis do SERPRO. Diagnóstico: ${JSON.stringify(presentes)}` });
+    const faltando = Object.entries(presentes)
+      .filter(([, ok]) => !ok)
+      .map(([nome]) => nome);
+    return NextResponse.json({ ok: false, detail: `Faltam variáveis do SERPRO: ${faltando.join(", ")}.` });
   }
 
   try {
