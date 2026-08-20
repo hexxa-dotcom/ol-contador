@@ -4178,8 +4178,8 @@ export function RadarFiscalView({
       feedback("Selecione um cliente com procuração eletrônica.");
       return;
     }
-    if (tab === "Parcelamentos" && !regime) {
-      feedback("Selecione MEI ou Simples Nacional.");
+    if (tab === "Parcelamentos" && (selected.cpf || "").replace(/\D/g, "").length !== 14) {
+      feedback("O Integra Contador só atende parcelamento de CNPJ (Simples Nacional/MEI) — o SERPRO ainda não aceita e-CPF nessa API.");
       return;
     }
     if (
@@ -4192,6 +4192,15 @@ export function RadarFiscalView({
     setError("");
     setResult(null);
     try {
+      let regimeParaConsulta = regime;
+      // O regime (MEI/Simples) não é mais escolhido na mão — se ainda não
+      // foi detectado pra esse cliente, detecta agora (consulta CCMEI) e
+      // salva no cadastro, pra próxima vez já vir pronto.
+      if (tab === "Parcelamentos" && !regimeParaConsulta) {
+        const deteccao = await callRadar("regime");
+        regimeParaConsulta = String(deteccao.regime || "");
+        setRegime(regimeParaConsulta);
+      }
       const actions: Record<string, string> = {
         "Caixa Postal": "caixa-postal",
         "Situação Fiscal": "situacao-fiscal",
@@ -4200,7 +4209,7 @@ export function RadarFiscalView({
         CND: "cnd",
       };
       const payload: RadarPayload = await callRadar(actions[tab], {
-        regime: regime || undefined,
+        regime: regimeParaConsulta || undefined,
         forcar: true,
       });
       setCaixaPostalPilha([]);
@@ -4349,17 +4358,14 @@ export function RadarFiscalView({
           <Badge>{related.length} no histórico</Badge>
         </div>
         <p className="muted">{radarDescriptions[tab]}</p>
-        {tab === "Parcelamentos" && (
-          <div className="radar-options">
-            <select
-              value={regime}
-              onChange={(event) => setRegime(event.target.value)}
-            >
-              <option value="">Selecione o regime</option>
-              <option value="simples">Simples Nacional</option>
-              <option value="mei">MEI</option>
-            </select>
-          </div>
+        {tab === "Parcelamentos" && selected && (
+          <p className="muted radar-regime-info">
+            {regime === "mei"
+              ? "Regime detectado: MEI (parcelas liberadas todo dia 1º)."
+              : regime === "simples"
+                ? "Regime detectado: Simples Nacional (parcelas liberadas todo dia 10)."
+                : "Regime ainda não detectado — a primeira consulta identifica automaticamente."}
+          </p>
         )}
         {servicoCacheavelPorAba[tab] ? (
           <div className="radar-options">

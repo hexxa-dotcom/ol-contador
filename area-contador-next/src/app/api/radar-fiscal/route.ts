@@ -113,6 +113,19 @@ async function registrarConsumo(
   }
 }
 
+// PARCSN (Simples Nacional) libera parcelas atualizadas todo dia 10; PARCMEI
+// libera todo dia 1º — antes disso, no mesmo mês, não existe nada novo pra
+// buscar, então o cache vale até a última liberação (não um prazo fixo).
+function horasDesdeUltimaLiberacaoParcelamento(regime: string): number {
+  const dia = regime === "mei" ? 1 : 10;
+  const agora = new Date();
+  let liberacao = new Date(Date.UTC(agora.getUTCFullYear(), agora.getUTCMonth(), dia));
+  if (agora.getTime() < liberacao.getTime()) {
+    liberacao = new Date(Date.UTC(agora.getUTCFullYear(), agora.getUTCMonth() - 1, dia));
+  }
+  return Math.max(1, Math.round((agora.getTime() - liberacao.getTime()) / 3600000));
+}
+
 async function guardarResultado(admin: SupabaseClient<Database>, clienteRef: string | null, servico: string, resultado: unknown, validadeHoras: number) {
   if (!clienteRef) return;
   const horas = Number.isFinite(validadeHoras) ? validadeHoras : 24;
@@ -213,7 +226,12 @@ export async function POST(request: Request) {
     if (salvo) return NextResponse.json({ ...(salvo.resultado as object), cacheado: true, obtidoEm: salvo.obtido_em });
   }
   if (acao === "parcelamentos" && clienteRef && !forcarAtualizacao) {
-    const horas = radarCfg.parcelamentosValidadeDias > 0 ? radarCfg.parcelamentosValidadeDias * 24 : 0;
+    const regimeConhecido = (body.regime as string) || cliente?.regime_tributario || "";
+    const horas = regimeConhecido
+      ? horasDesdeUltimaLiberacaoParcelamento(regimeConhecido)
+      : radarCfg.parcelamentosValidadeDias > 0
+        ? radarCfg.parcelamentosValidadeDias * 24
+        : 0;
     const salvo = await buscarResultadoSalvo(admin, clienteRef, "parcelamentos", horas);
     if (salvo) return NextResponse.json({ ...(salvo.resultado as object), cacheado: true, obtidoEm: salvo.obtido_em });
   }
@@ -369,8 +387,9 @@ export async function POST(request: Request) {
           saida.sistemas.push(bloco);
         }
 
-        const validadeHoras = radarCfg.parcelamentosValidadeDias > 0 ? radarCfg.parcelamentosValidadeDias * 24 : 0;
-        await guardarResultado(admin, clienteRef, "parcelamentos", saida, validadeHoras);
+        // expira_em é só metadado aqui — a validade real é calculada na
+        // hora da leitura via horasDesdeUltimaLiberacaoParcelamento.
+        await guardarResultado(admin, clienteRef, "parcelamentos", saida, 0);
         return NextResponse.json({ ...saida, cacheado: false });
       }
 
