@@ -19,7 +19,7 @@ export function nowTime(): string {
   return new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
 }
 
-// SLA comercial do Atendimento Express: quantidade de dias úteis configurada
+// Prazo de entrega comercial do Atendimento Express: quantidade de dias úteis configurada
 // em cada plano, contada da confirmação. O instante final fica salvo na
 // contratação, então mudar o plano depois não altera prazos já prometidos.
 export function prazoExpressEmDiasUteis(inicio: Date = new Date(), quantidade = 2): Date {

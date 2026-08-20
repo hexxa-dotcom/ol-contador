@@ -190,17 +190,22 @@ const tabsByView: Record<string, string[]> = {
 
 export function PageTitle({
   title,
+  badge,
   description,
   action,
 }: {
   title: string;
+  badge?: ReactNode;
   description: string;
   action?: ReactNode;
 }) {
   return (
     <div className="page-title">
       <div>
-        <h1>{title}</h1>
+        <div className="page-title-heading">
+          <h1>{title}</h1>
+          {badge}
+        </div>
         <p>{description}</p>
       </div>
       {action}
@@ -266,6 +271,7 @@ export function DashboardView({
 }) {
   const [tasks, setTasks] = useState(data.tasks);
   const [monthlyGuides, setMonthlyGuides] = useState(data.monthlyGuides);
+  const [taskFilter, setTaskFilter] = useState<"todas" | "pendentes" | "concluidas">("todas");
   const [taskOpen, setTaskOpen] = useState(false);
   const [taskForm, setTaskForm] = useState({
     texto: "",
@@ -273,6 +279,74 @@ export function DashboardView({
     dataFinal: new Date().toISOString().slice(0, 10),
   });
   const [taskPending, startTaskTransition] = useTransition();
+
+  const todayIso = new Date().toISOString().slice(0, 10);
+
+  function cleanTaskText(texto: string | null | undefined) {
+    if (!texto) return "";
+    return texto
+      .replace(/\bSLA\s*vencido\b/gi, "Prazo vencido")
+      .replace(/\bSLA\s*vence\b/gi, "Prazo vence")
+      .replace(/\bAlerta\s*de\s*SLA\b/gi, "Alerta de prazo")
+      .replace(/\bSLA\b/g, "Prazo")
+      .replace(/\bsla\b/g, "prazo");
+  }
+
+  function formatShortDate(val: string | null) {
+    if (!val) return "Sem data";
+    try {
+      const clean = val.includes("T") ? val.slice(0, 10) : val;
+      const [year, month, day] = clean.split("-");
+      if (day && month && year) return `${day}/${month}/${year}`;
+      return new Date(val).toLocaleDateString("pt-BR");
+    } catch {
+      return val;
+    }
+  }
+
+  function getDeadlineBadge(task: { feita: boolean; dataFinal: string | null }) {
+    if (task.feita) {
+      return (
+        <span className="task-deadline-badge done">
+          <Check size={11} /> Concluída
+        </span>
+      );
+    }
+    if (!task.dataFinal) {
+      return <span className="task-deadline-badge sem-prazo">Sem prazo</span>;
+    }
+    const finalDate = task.dataFinal.includes("T") ? task.dataFinal.slice(0, 10) : task.dataFinal;
+    if (finalDate < todayIso) {
+      return (
+        <span className="task-deadline-badge overdue">
+          <AlertTriangle size={11} /> Prazo vencido ({formatShortDate(task.dataFinal)})
+        </span>
+      );
+    }
+    if (finalDate === todayIso) {
+      return (
+        <span className="task-deadline-badge today">
+          <Clock3 size={11} /> Vence hoje
+        </span>
+      );
+    }
+    return (
+      <span className="task-deadline-badge on-time">
+        <Clock3 size={11} /> Prazo: {formatShortDate(task.dataFinal)}
+      </span>
+    );
+  }
+
+  const pendingTasksCount = tasks.filter((t) => !t.feita).length;
+  const doneTasksCount = tasks.filter((t) => t.feita).length;
+  const progressPercent = tasks.length > 0 ? Math.round((doneTasksCount / tasks.length) * 100) : 0;
+
+  const filteredTasks = tasks.filter((task) => {
+    if (taskFilter === "pendentes") return !task.feita;
+    if (taskFilter === "concluidas") return task.feita;
+    return true;
+  });
+
   const money = (cents: number) =>
     new Intl.NumberFormat("pt-BR", {
       style: "currency",
@@ -382,14 +456,16 @@ export function DashboardView({
   return (
     <div className="view-stack">
       <PageTitle
-        title="Meu Dashboard"
-        description="Faturamento, operação do dia e pendências externas — nesta ordem."
+        title="Dashboard"
+        badge={<span className="topbar-portal-badge">Área Profissional</span>}
+        description="Faturamento, operação do dia, tarefas e guias mensais — nesta ordem."
         action={
           <Badge className={data.mode === "live" ? "success" : ""}>
             {data.mode === "live" ? "Dados ao vivo" : "Modo de prévia"}
           </Badge>
         }
       />
+      {/* 1. FATURAMENTO */}
       <section>
         <div className="section-label">Faturamento</div>
         <div className="stats-grid">
@@ -416,46 +492,8 @@ export function DashboardView({
           />
         </div>
       </section>
-      <section>
-        <div className="section-label">Guias mensais</div>
-        <Card className="task-manager-card">
-          <div className="card-heading">
-            <div>
-              <ReceiptText size={18} />
-              <strong>Obrigações dos clientes recorrentes</strong>
-            </div>
-            <Badge className={monthlyGuides.some((item) => item.status !== "gerada") ? "attention" : "success"}>
-              {monthlyGuides.filter((item) => item.status !== "gerada").length} pendente(s)
-            </Badge>
-          </div>
-          <div className="records-list appointment-list">
-            {monthlyGuides
-              .filter((item) => item.status !== "gerada")
-              .slice(0, 12)
-              .map((guide) => (
-                <article key={guide.id}>
-                  <div className="record-icon"><ReceiptText size={16} /></div>
-                  <div>
-                    <strong>{guide.clientName}</strong>
-                    <span>{guide.tipo}</span>
-                    <small>Competência {guide.competencia}</small>
-                  </div>
-                  <div className="table-actions">
-                    <Button className="secondary compact" disabled={taskPending} onClick={() => completeGuide(guide.id)}>
-                      <Check size={14} /> Marcar gerada
-                    </Button>
-                    <Button className="icon ghost" aria-label={`Abrir cliente ${guide.clientName}`} onClick={() => onNavigate?.("clientes", guide.clienteRef)}>
-                      <ArrowUpRight size={15} />
-                    </Button>
-                  </div>
-                </article>
-              ))}
-            {!monthlyGuides.some((item) => item.status !== "gerada") && (
-              <EmptyState>Nenhuma guia pendente neste mês.</EmptyState>
-            )}
-          </div>
-        </Card>
-      </section>
+
+      {/* 2. OPERAÇÃO DO DIA */}
       <section>
         <div className="section-label">Operação do dia</div>
         <div className="operation-grid">
@@ -490,62 +528,243 @@ export function DashboardView({
           )}
         </div>
       </section>
+
+      {/* 3. TAREFAS E GESTÃO DE PROCESSOS */}
+      <section className="dashboard-tasks-section">
+        <div className="section-label">Tarefas e Gestão de Processos</div>
+        <div className="tasks-dashboard-layout">
+          {/* Card Principal: Gestão de Tarefas */}
+          <Card className="task-manager-card">
+            <div className="card-heading">
+              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                <div className="task-heading-icon">
+                  <ListChecks size={18} />
+                </div>
+                <div>
+                  <strong>Tarefas & Ações Internas</strong>
+                  <span className="task-heading-sub">Rotinas operacionais e prazos de entrega</span>
+                </div>
+              </div>
+              <Button className="secondary compact" onClick={() => setTaskOpen(true)}>
+                <Plus size={15} /> Nova tarefa
+              </Button>
+            </div>
+
+            {/* Barra de Progresso & Filtros */}
+            <div className="task-manager-toolbar">
+              <div className="task-filter-pills">
+                <button
+                  type="button"
+                  className={taskFilter === "todas" ? "active" : ""}
+                  onClick={() => setTaskFilter("todas")}
+                >
+                  Todas ({tasks.length})
+                </button>
+                <button
+                  type="button"
+                  className={taskFilter === "pendentes" ? "active" : ""}
+                  onClick={() => setTaskFilter("pendentes")}
+                >
+                  Pendentes ({pendingTasksCount})
+                </button>
+                <button
+                  type="button"
+                  className={taskFilter === "concluidas" ? "active" : ""}
+                  onClick={() => setTaskFilter("concluidas")}
+                >
+                  Concluídas ({doneTasksCount})
+                </button>
+              </div>
+
+              {tasks.length > 0 && (
+                <div className="task-progress-wrap">
+                  <div className="task-progress-text">
+                    <span>{progressPercent}% concluído</span>
+                    <small>{doneTasksCount} de {tasks.length}</small>
+                  </div>
+                  <div className="task-progress-bar">
+                    <div className="task-progress-fill" style={{ width: `${progressPercent}%` }} />
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Lista Enriquecida de Tarefas */}
+            <div className="task-list">
+              {filteredTasks.map((task) => {
+                const deadlineBadge = getDeadlineBadge(task);
+                return (
+                  <article className={`task-item-card ${task.feita ? "done" : ""}`} key={task.id}>
+                    <button
+                      type="button"
+                      className={`task-checkbox-custom ${task.feita ? "checked" : ""}`}
+                      aria-label={`Concluir ${cleanTaskText(task.texto)}`}
+                      disabled={taskPending}
+                      onClick={() => toggleTaskDone(task.id, !task.feita)}
+                    >
+                      {task.feita && <Check size={13} />}
+                    </button>
+                    <div className="task-item-content">
+                      <div className="task-item-title-row">
+                        <strong>{cleanTaskText(task.texto)}</strong>
+                        {deadlineBadge}
+                      </div>
+                      <div className="task-item-meta-row">
+                        <span className="task-meta-dates">
+                          {task.dataInicial && (
+                            <span>Início: {formatShortDate(task.dataInicial)}</span>
+                          )}
+                          {task.dataFinal && (
+                            <span>Prazo de conclusão: {formatShortDate(task.dataFinal)}</span>
+                          )}
+                          {!task.dataInicial && !task.dataFinal && <span>Sem datas definidas</span>}
+                        </span>
+
+                        <div className="task-assignee-badge">
+                          <UserRound size={13} />
+                          <select
+                            aria-label={`Responsável por ${cleanTaskText(task.texto)}`}
+                            value={task.responsavelId || ""}
+                            disabled={taskPending}
+                            onChange={(event) => moveTask(task.id, event.target.value)}
+                          >
+                            <option value="">Sem responsável</option>
+                            {data.staffList.map((member) => (
+                              <option key={member.id} value={member.id}>{member.nome}</option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      className="task-delete-btn"
+                      aria-label={`Excluir ${cleanTaskText(task.texto)}`}
+                      disabled={taskPending}
+                      onClick={() => removeTask(task.id)}
+                      title="Excluir tarefa"
+                    >
+                      <Trash2 size={15} />
+                    </button>
+                  </article>
+                );
+              })}
+              {!filteredTasks.length && (
+                <EmptyState>
+                  {taskFilter === "concluidas"
+                    ? "Nenhuma tarefa concluída ainda."
+                    : taskFilter === "pendentes"
+                    ? "Tudo em dia! Nenhuma tarefa pendente."
+                    : "Nenhuma tarefa cadastrada. Clique em '+ Nova tarefa' para registrar."}
+                </EmptyState>
+              )}
+            </div>
+          </Card>
+
+          {/* Card Lateral: Painel de Controle de Prazos & Processos */}
+          <Card className="tasks-process-summary-card">
+            <div className="card-heading">
+              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                <div className="task-heading-icon orange">
+                  <Clock3 size={18} />
+                </div>
+                <div>
+                  <strong>Painel de Prazos do Processo</strong>
+                  <span className="task-heading-sub">Indicadores de cumprimento e entregas</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="process-metrics-grid">
+              <div className="process-metric-box">
+                <span className="process-metric-label">Atendimentos Express</span>
+                <strong className="process-metric-val">{data.expressPending}</strong>
+                <small className="process-metric-hint">Aguardando execução</small>
+              </div>
+              <div className="process-metric-box">
+                <span className="process-metric-label">Guias do Mês</span>
+                <strong className="process-metric-val">
+                  {monthlyGuides.filter((g) => g.status !== "gerada").length}
+                </strong>
+                <small className="process-metric-hint">Pendentes de emissão</small>
+              </div>
+              <div className="process-metric-box">
+                <span className="process-metric-label">Mensagens de Clientes</span>
+                <strong className="process-metric-val">{data.unreadMessages}</strong>
+                <small className="process-metric-hint">Dúvidas sem resposta</small>
+              </div>
+              <div className="process-metric-box">
+                <span className="process-metric-label">Eficiência de Prazos</span>
+                <strong className="process-metric-val">
+                  {tasks.length > 0 ? `${progressPercent}%` : "100%"}
+                </strong>
+                <small className="process-metric-hint">Tarefas concluídas</small>
+              </div>
+            </div>
+
+            <div className="process-guidance-box">
+              <div className="process-guidance-title">
+                <Sparkles size={15} />
+                <span>Gestão de Prazos e Entregas</span>
+              </div>
+              <p>
+                Acompanhe as datas finais dos processos para assegurar que relatórios, guias e consultorias sejam entregues dentro do prazo acordado com seus clientes.
+              </p>
+            </div>
+
+            <Button
+              className="secondary full process-shortcut-btn"
+              onClick={() => onNavigate?.("acompanhamento")}
+            >
+              Abrir Esteira de Processos <ArrowUpRight size={15} />
+            </Button>
+          </Card>
+        </div>
+      </section>
+
+      {/* 4. GUIAS MENSAIS */}
       <section>
-        <div className="section-label">Tarefas internas</div>
+        <div className="section-label">Guias mensais</div>
         <Card className="task-manager-card">
           <div className="card-heading">
-            <div>
-              <ListChecks size={18} />
-              <strong>Ações e compromissos de acompanhamento</strong>
+            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+              <div className="task-heading-icon">
+                <ReceiptText size={18} />
+              </div>
+              <div>
+                <strong>Obrigações dos clientes recorrentes</strong>
+                <span className="task-heading-sub">Controle de emissão de guias e impostos</span>
+              </div>
             </div>
-            <Button className="secondary" onClick={() => setTaskOpen(true)}>
-              <Plus size={15} /> Nova tarefa
-            </Button>
+            <Badge className={monthlyGuides.some((item) => item.status !== "gerada") ? "attention" : "success"}>
+              {monthlyGuides.filter((item) => item.status !== "gerada").length} pendente(s)
+            </Badge>
           </div>
-          <div className="task-list">
-            {tasks.map((task) => (
-              <article className={task.feita ? "done" : ""} key={task.id}>
-                <input
-                  type="checkbox"
-                  aria-label={`Concluir ${task.texto}`}
-                  checked={task.feita}
-                  disabled={taskPending}
-                  onChange={(event) => toggleTaskDone(task.id, event.target.checked)}
-                />
-                <span>
-                  <strong>{task.texto}</strong>
-                  <small>
-                    {task.dataInicial
-                      ? new Date(task.dataInicial).toLocaleDateString("pt-BR")
-                      : "Sem data"}
-                    {" → "}
-                    {task.dataFinal
-                      ? new Date(task.dataFinal).toLocaleDateString("pt-BR")
-                      : "Sem prazo"}
-                  </small>
-                </span>
-                <select
-                  className="input compact"
-                  aria-label={`Responsável por ${task.texto}`}
-                  value={task.responsavelId || ""}
-                  disabled={taskPending}
-                  onChange={(event) => moveTask(task.id, event.target.value)}
-                >
-                  <option value="">Sem responsável</option>
-                  {data.staffList.map((member) => (
-                    <option key={member.id} value={member.id}>{member.nome}</option>
-                  ))}
-                </select>
-                <button
-                  aria-label={`Excluir ${task.texto}`}
-                  disabled={taskPending}
-                  onClick={() => removeTask(task.id)}
-                >
-                  <X size={15} />
-                </button>
-              </article>
-            ))}
-            {!tasks.length && <EmptyState>Nenhuma tarefa pendente.</EmptyState>}
+          <div className="records-list appointment-list">
+            {monthlyGuides
+              .filter((item) => item.status !== "gerada")
+              .slice(0, 12)
+              .map((guide) => (
+                <article key={guide.id}>
+                  <div className="record-icon"><ReceiptText size={16} /></div>
+                  <div>
+                    <strong>{guide.clientName}</strong>
+                    <span>{guide.tipo}</span>
+                    <small>Competência {guide.competencia}</small>
+                  </div>
+                  <div className="table-actions">
+                    <Button className="secondary compact" disabled={taskPending} onClick={() => completeGuide(guide.id)}>
+                      <Check size={14} /> Marcar gerada
+                    </Button>
+                    <Button className="icon ghost" aria-label={`Abrir cliente ${guide.clientName}`} onClick={() => onNavigate?.("clientes", guide.clienteRef)}>
+                      <ArrowUpRight size={15} />
+                    </Button>
+                  </div>
+                </article>
+              ))}
+            {!monthlyGuides.some((item) => item.status !== "gerada") && (
+              <EmptyState>Nenhuma guia pendente neste mês.</EmptyState>
+            )}
           </div>
         </Card>
       </section>
@@ -554,8 +773,8 @@ export function DashboardView({
           <Card className="profile-dialog compact" role="dialog" aria-modal="true">
             <div className="dialog-head">
               <div>
-                <h2>Nova tarefa</h2>
-                <p>Registre uma ação interna com início e prazo.</p>
+                <h2>Nova tarefa interna</h2>
+                <p>Registre uma ação interna definindo início e prazo limite de entrega.</p>
               </div>
               <Button className="icon ghost" onClick={() => setTaskOpen(false)}>
                 <X size={18} />
@@ -563,14 +782,14 @@ export function DashboardView({
             </div>
             <div className="profile-form">
               <label>
-                Descrição
+                Descrição da tarefa / processo
                 <Input
                   autoFocus
                   value={taskForm.texto}
                   onChange={(event) =>
                     setTaskForm({ ...taskForm, texto: event.target.value })
                   }
-                  placeholder="Ex.: Enviar relatório — Ana Silva"
+                  placeholder="Ex.: Revisar documentação fiscal de abertura — Cliente XYZ"
                 />
               </label>
               <div className="form-grid">
@@ -585,7 +804,7 @@ export function DashboardView({
                   />
                 </label>
                 <label>
-                  Prazo final
+                  Prazo limite de entrega
                   <Input
                     type="date"
                     value={taskForm.dataFinal}
@@ -3939,6 +4158,16 @@ export function RadarFiscalView({
             Atualizar mesmo se houver dados das últimas 24 horas
           </label>
         )}
+        {tab === "Caixa Postal" && (
+          <label className="radar-force">
+            <input
+              type="checkbox"
+              checked={force}
+              onChange={(event) => setForce(event.target.checked)}
+            />{" "}
+            Atualizar mesmo se houver dados salvos
+          </label>
+        )}
         <Button disabled={loading || !selected} onClick={execute}>
           {loading ? <Clock3 size={16} /> : <ShieldCheck size={16} />}{" "}
           {loading ? "Consultando…" : labels[tab]}
@@ -7047,7 +7276,7 @@ export function AcompanhamentoIntegralView({
     <div className="view-stack">
       <PageTitle
         title="Esteira de Acompanhamento"
-        description="Movimente casos, atribua execução e acompanhe o SLA até a entrega."
+        description="Movimente casos, atribua execução e acompanhe os prazos de entrega até a conclusão."
         action={
           <Badge className="success">
             {express.length + Object.keys(legacyMap).length} processos

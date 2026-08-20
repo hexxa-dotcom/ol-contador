@@ -92,7 +92,12 @@ export async function loadDashboardData(supabase: SupabaseClient<Database>): Pro
   const appointments = appointmentsResult.data ?? [];
   const tasks = (tasksResult.data ?? []).map((item) => ({
     id: item.id,
-    texto: item.texto,
+    texto: (item.texto || "")
+      .replace(/\bSLA\s*vencido\b/gi, "Prazo vencido")
+      .replace(/\bSLA\s*vence\b/gi, "Prazo vence")
+      .replace(/\bAlerta\s*de\s*SLA\b/gi, "Alerta de prazo")
+      .replace(/\bSLA\b/g, "Prazo")
+      .replace(/\bsla\b/g, "prazo"),
     feita: item.feita,
     dataInicial: item.data_inicial,
     dataFinal: item.data_final,

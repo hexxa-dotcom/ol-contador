@@ -102,19 +102,20 @@ export function ClientShell({ data }: { data: PortalData }) {
       <aside className={`sidebar ${collapsed ? "collapsed" : ""} ${mobile ? "mobile-open" : ""}`}>
         <div className="sidebar-header">
           <button
+            type="button"
             className="sidebar-toggle-btn"
             aria-label={collapsed ? "Expandir menu lateral" : "Recolher menu lateral"}
-            title={collapsed ? "Expandir menu lateral" : "Recolher menu lateral"}
+            title={collapsed && !mobile ? "Expandir menu" : undefined}
             onClick={() => setCollapsed((value) => !value)}
           >
-            {collapsed ? <PanelLeftOpen size={20} /> : <PanelLeftClose size={20} />}
+            {collapsed ? <PanelLeftOpen size={19} /> : <PanelLeftClose size={19} />}
+            {(!collapsed || mobile) && <span>Recolher</span>}
           </button>
-          {!collapsed && (
-            <span className="sidebar-header-label">Menu</span>
+          {mobile && (
+            <Button aria-label="Fechar menu" className="icon ghost mobile-close" onClick={() => setMobile(false)}>
+              <X size={18} />
+            </Button>
           )}
-          <Button aria-label="Fechar menu" className="icon ghost mobile-close" onClick={() => setMobile(false)}>
-            <X size={18} />
-          </Button>
         </div>
         <nav>
           {navItems.map(({ id, label, icon: Icon, badge }) => {
@@ -125,8 +126,8 @@ export function ClientShell({ data }: { data: PortalData }) {
                 key={id}
                 onClick={() => navigate(id)}
                 disabled={bloqueado}
-                title={bloqueado ? `${label} — disponível após enviar o pré-atendimento` : label}
-                data-tooltip={label}
+                title={bloqueado ? `${label} — disponível após enviar o pré-atendimento` : (collapsed && !mobile ? label : undefined)}
+                data-tooltip={collapsed && !mobile ? label : undefined}
                 aria-label={collapsed && !mobile ? label : undefined}
                 aria-current={active === id ? "page" : undefined}
                 aria-disabled={bloqueado}

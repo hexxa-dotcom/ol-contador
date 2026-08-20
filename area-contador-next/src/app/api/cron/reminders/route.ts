@@ -17,7 +17,7 @@ type Admin = SupabaseClient<Database>;
 const SITE_URL = process.env.SITE_URL || "https://area-contador-next.vercel.app";
 
 // Porte 1:1 de api/agenda-fiscal/run-reminders.js do legado — motor de
-// lembretes (fiscal + horário de atendimento), alertas de SLA do Express,
+// lembretes (fiscal + horário de atendimento), alertas de prazo do Express,
 // expiração do cofre GovBR e retenção de dados. Único endpoint porque tudo
 // roda no mesmo cron, na mesma janela de execução.
 //
@@ -251,7 +251,7 @@ async function rodarAlertasAtendimentoExpress(admin: Admin) {
     const { error: claimError } = await admin.from("atendimentos_express").update({ alerta_sla_em: new Date().toISOString() }).eq("id", caso.id).is("alerta_sla_em", null);
     if (claimError) continue;
     await admin.from("notificacoes").insert({
-      text: `${atrasado ? "SLA vencido" : "SLA vence em até 12h"}: Atendimento Express #${caso.id}${caso.responsavel_nome ? ` · ${caso.responsavel_nome}` : " · sem responsável"}.`,
+      text: `${atrasado ? "Prazo de entrega vencido" : "Prazo de entrega vence em até 12h"}: Atendimento Express #${caso.id}${caso.responsavel_nome ? ` · ${caso.responsavel_nome}` : " · sem responsável"}.`,
       time: nowTime(),
       unread: true,
       cliente_ref: caso.cliente_ref,

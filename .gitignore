@@ -15,3 +15,9 @@ yarn-error.log*
 .env.local
 .env.*.local
 .vercel/
+
+# Certificados digitais (chave privada) — nunca versionar
+*.pfx
+*.p12
+*.pem
+*.key
