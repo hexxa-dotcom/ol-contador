@@ -20,7 +20,23 @@ export async function POST() {
   if (!staff || staff.role !== "admin") return NextResponse.json({ error: "forbidden" }, { status: 403 });
 
   if (!isSerproConfigured()) {
-    return NextResponse.json({ ok: false, detail: "Faltam variáveis do SERPRO (consumer key/secret ou certificado mTLS)." });
+    // Nunca expõe o valor — só diz quais variáveis estão de fato vazias no
+    // ambiente de execução, pra diagnosticar sem vazar segredo nenhum.
+    const presentes = {
+      SERPRO_CONSUMER_KEY: !!process.env.SERPRO_CONSUMER_KEY,
+      SERPRO_CONSUMER_SECRET: !!process.env.SERPRO_CONSUMER_SECRET,
+      SERPRO_CERT_PEM_BASE64: !!process.env.SERPRO_CERT_PEM_BASE64,
+      SERPRO_KEY_PEM_BASE64: !!process.env.SERPRO_KEY_PEM_BASE64,
+      SERPRO_TEMP_ACCESS_TOKEN: !!process.env.SERPRO_TEMP_ACCESS_TOKEN,
+      SERPRO_TEMP_JWT_TOKEN: !!process.env.SERPRO_TEMP_JWT_TOKEN,
+    };
+    const faltando = Object.entries(presentes)
+      .filter(([, ok]) => !ok)
+      .map(([nome]) => nome);
+    return NextResponse.json({
+      ok: false,
+      detail: `Faltam variáveis do SERPRO: ${faltando.join(", ")}.`,
+    });
   }
 
   try {
