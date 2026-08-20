@@ -2082,6 +2082,9 @@ export function AtendimentoView({
                   {item.type === "audio" && item.duration && (
                     <small>Áudio · {item.duration}</small>
                   )}
+                  {item.type === "audio" && item.transcricao && (
+                    <p className="chat-audio-transcricao">&ldquo;{item.transcricao}&rdquo;</p>
+                  )}
                   <small>{item.time || ""}</small>
                 </div>
               </article>

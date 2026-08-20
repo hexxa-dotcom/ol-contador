@@ -137,6 +137,32 @@ export async function testarChave(chave: string, valor: string): Promise<{ ok: b
   }
 }
 
+// Metadados do certificado digital do SERPRO (não é segredo — só a data de
+// validade e o titular, pra mostrar aviso de vencimento na tela sem precisar
+// descriptografar o certificado toda vez). PEM/chave em si ficam em
+// `chaves_sistema` via set/getSystemSecret, como qualquer outra chave.
+export type SerproCertificadoMeta = {
+  validoDesde: string;
+  validoAte: string;
+  titular: string;
+  atualizadoEm: string;
+  atualizadoPor: string;
+};
+
+const CONFIG_SERPRO_CERT_META = "serpro_certificado_meta";
+
+export async function getSerproCertificadoMeta(admin: Admin): Promise<SerproCertificadoMeta | null> {
+  const { data } = await admin.from("configuracoes").select("valor").eq("chave", CONFIG_SERPRO_CERT_META).maybeSingle();
+  return (data?.valor as SerproCertificadoMeta) || null;
+}
+
+export async function setSerproCertificadoMeta(admin: Admin, meta: SerproCertificadoMeta): Promise<void> {
+  const { error } = await admin
+    .from("configuracoes")
+    .upsert({ chave: CONFIG_SERPRO_CERT_META, valor: meta as never, updated_at: new Date().toISOString() });
+  if (error) throw error;
+}
+
 export async function listSystemSecretsStatus(admin: Admin): Promise<Record<string, { origem: "banco" | "ambiente" | "nenhuma"; atualizadoEm: string | null }>> {
   const { data } = await admin.from("chaves_sistema").select("chave,atualizado_em");
   const noBanco = new Map((data || []).map((row) => [row.chave, row.atualizado_em]));

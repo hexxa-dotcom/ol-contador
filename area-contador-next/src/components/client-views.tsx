@@ -5,12 +5,12 @@ import { useRouter } from "next/navigation";
 import {
   AlertTriangle, ArrowLeft, ArrowRight, BadgeCheck, CalendarCheck, CalendarClock, CalendarPlus, Camera, Check, CheckCheck,
   CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, CircleAlert, ClipboardList, Copy, CreditCard, Download, Eye, EyeOff, FileCheck2, FileDown, FilePlus2,
-  FileText, HelpCircle, Inbox, KeyRound, Landmark, ListChecks, Lock, Mail, MapPin, MessageCircle, Paperclip, Phone, Play, QrCode, Search, Send, ShieldAlert, ShieldCheck, Sparkles, Star, Trash2, Upload, UserRound, X, Zap,
+  FileText, HelpCircle, Inbox, KeyRound, Landmark, ListChecks, Lock, Mail, MapPin, MessageCircle, Mic, Paperclip, Phone, Play, QrCode, Search, Send, ShieldAlert, ShieldCheck, Sparkles, Square, Star, Trash2, Upload, UserRound, Volume2, X, Zap,
 } from "lucide-react";
 import { Badge, Button, Card, EmptyState, Input } from "@/components/ui/primitives";
 import { PageTitle } from "@/components/views";
 import type { PortalAppointment, PortalAtendimentoExpress, PortalAvaliacao, PortalContador, PortalData, PortalDocument, PortalMailItem, PortalMessage, PortalObrigacao, PortalOcupado, PortalReport, PortalServico, PortalTriagem } from "@/lib/portal";
-import { getDocumentDownloadUrl, markMailRead, markPortalMessagesRead, saveTriagem, sendPortalMailMessage, sendPortalMessage, submitAvaliacao } from "@/app/portal/actions";
+import { getDocumentDownloadUrl, markMailRead, markPortalMessagesRead, saveTriagem, sendPortalAudioMessage, sendPortalMailMessage, sendPortalMessage, submitAvaliacao } from "@/app/portal/actions";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import { createClient as createBrowserClient } from "@/lib/supabase/client";
 import { acharAssunto, completude, type TriagemAssunto, type TriagemPergunta, type TriagemRegras } from "@/lib/triagemCatalogo";
@@ -779,11 +779,11 @@ function useLiveMessages(clientId: string, setMessages: (updater: (items: Portal
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "mensagens", filter: `cliente_id=eq.${clientId}` },
         (payload) => {
-          const row = payload.new as { id: string; sender: string; text: string | null; type: string | null; doc_name: string | null; duration: string | null; time: string | null; created_at: string | null; read_at: string | null; seq: number };
+          const row = payload.new as { id: string; sender: string; text: string | null; type: string | null; doc_name: string | null; duration: string | null; transcricao: string | null; time: string | null; created_at: string | null; read_at: string | null; seq: number };
           setMessages((items) =>
             items.some((item) => item.id === row.id)
               ? items
-              : [...items, { id: row.id, sender: row.sender, text: row.text, type: row.type, docName: row.doc_name, duration: row.duration, time: row.time, createdAt: row.created_at, readAt: row.read_at, seq: row.seq }],
+              : [...items, { id: row.id, sender: row.sender, text: row.text, type: row.type, docName: row.doc_name, duration: row.duration, transcricao: row.transcricao, time: row.time, createdAt: row.created_at, readAt: row.read_at, seq: row.seq }],
           );
         },
       )
@@ -839,7 +839,7 @@ export function PortalAtendimentoView({
   triagem,
   reports,
   catalogo,
-  documents,
+  documents: initialDocuments,
   onNavigate,
 }: {
   messages: PortalMessage[];
@@ -854,9 +854,15 @@ export function PortalAtendimentoView({
   onNavigate?: (id: string) => void;
 }) {
   const [messages, setMessages] = useState(initialMessages);
+  const [documents, setDocuments] = useState(initialDocuments);
   const [text, setText] = useState("");
   const [pending, startTransition] = useTransition();
   const bottomRef = useRef<HTMLDivElement>(null);
+  const [recording, setRecording] = useState(false);
+  const [recordingSeconds, setRecordingSeconds] = useState(0);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+  const recordingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const presence = useContadorPresence(clientId);
   const lock = useChatLock(clientId, clientStatus, appointments);
   const typing = useTypingIndicator(clientId);
@@ -906,6 +912,90 @@ export function PortalAtendimentoView({
       } else {
         feedback(result.message);
       }
+    });
+  }
+
+  const [falando, setFalando] = useState<string | null>(null);
+  // Acessibilidade: ouvir a resposta do contador em voz alta, pra quem tem
+  // dificuldade de leitura. Só o navegador — sem custo, sem servidor.
+  function ouvirMensagem(id: string, texto: string) {
+    if (!("speechSynthesis" in window)) return feedback("Seu navegador não suporta leitura em voz alta.");
+    if (falando === id) {
+      window.speechSynthesis.cancel();
+      setFalando(null);
+      return;
+    }
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(texto);
+    utterance.lang = "pt-BR";
+    utterance.onend = () => setFalando(null);
+    utterance.onerror = () => setFalando(null);
+    setFalando(id);
+    window.speechSynthesis.speak(utterance);
+  }
+
+  async function startRecording() {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mimeType = ["audio/webm", "audio/mp4", "audio/ogg"].find((type) => MediaRecorder.isTypeSupported(type)) || "";
+      const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
+      audioChunksRef.current = [];
+      recorder.ondataavailable = (event) => {
+        if (event.data.size > 0) audioChunksRef.current.push(event.data);
+      };
+      recorder.onstop = () => {
+        stream.getTracks().forEach((track) => track.stop());
+        const blob = new Blob(audioChunksRef.current, { type: mimeType || "audio/webm" });
+        void enviarAudioGravado(blob, recordingSeconds);
+      };
+      mediaRecorderRef.current = recorder;
+      recorder.start();
+      setRecording(true);
+      setRecordingSeconds(0);
+      recordingTimerRef.current = setInterval(() => setRecordingSeconds((value) => value + 1), 1000);
+    } catch {
+      feedback("Não foi possível acessar o microfone. Verifique a permissão do navegador.");
+    }
+  }
+
+  function stopRecording() {
+    if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
+    setRecording(false);
+    mediaRecorderRef.current?.stop();
+  }
+
+  function enviarAudioGravado(blob: Blob, durationSeconds: number) {
+    startTransition(async () => {
+      const supabase = createBrowserClient();
+      if (!supabase) return feedback("Conexão indisponível.");
+      const ext = blob.type.includes("mp4") ? "m4a" : blob.type.includes("ogg") ? "ogg" : "webm";
+      const fileName = `audio-${Date.now()}.${ext}`;
+      const path = `${clientId}/${fileName}`;
+      const { error: storageError } = await supabase.storage.from("documentos").upload(path, blob, { contentType: blob.type || "audio/webm", upsert: false });
+      if (storageError) return feedback("Não foi possível enviar o áudio agora.");
+      const { data: document, error: documentError } = await supabase
+        .from("documentos")
+        .insert({ cliente_ref: clientId, file_name: fileName, mime: blob.type || "audio/webm", size_bytes: blob.size, storage_path: path, uploaded_by: "client" })
+        .select("id,file_name,mime,size_bytes,uploaded_by,created_at,checklist_item,storage_path")
+        .single();
+      if (documentError || !document) return feedback("Não foi possível salvar o áudio.");
+      setDocuments((items) => [
+        ...items,
+        {
+          id: document.id,
+          fileName: document.file_name,
+          mime: document.mime,
+          sizeBytes: document.size_bytes,
+          uploadedBy: document.uploaded_by,
+          createdAt: document.created_at,
+          checklistItem: document.checklist_item,
+          storagePath: document.storage_path,
+        },
+      ]);
+      const duracao = `${Math.floor(durationSeconds / 60)}:${String(durationSeconds % 60).padStart(2, "0")}`;
+      const result = await sendPortalAudioMessage({ fileName, duration: duracao });
+      if (result.ok) setMessages((items) => (items.some((item) => item.id === result.data.id) ? items : [...items, result.data]));
+      else feedback(result.message);
     });
   }
 
@@ -1012,7 +1102,22 @@ export function PortalAtendimentoView({
               // só que invertido: "agent" aqui alinha à direita e representa a MINHA mensagem.
               <div key={item.id} className={`chat-message ${item.sender === "client" ? "agent" : "client"}`}>
                 <div>
-                  {item.text && <p>{item.text}</p>}
+                  {item.text && (
+                    <p>
+                      {item.text}
+                      {item.sender !== "client" && item.type !== "audio" && (
+                        <button
+                          type="button"
+                          className="chat-ouvir-btn"
+                          onClick={() => ouvirMensagem(item.id, item.text || "")}
+                          aria-label={falando === item.id ? "Parar leitura" : "Ouvir esta mensagem"}
+                          title={falando === item.id ? "Parar leitura" : "Ouvir esta mensagem"}
+                        >
+                          {falando === item.id ? <Square size={11} /> : <Volume2 size={13} />}
+                        </button>
+                      )}
+                    </p>
+                  )}
                   {item.docName && item.type !== "audio" && (
                     <div className="chat-doc-attachment">
                       <FileText size={15} />
@@ -1024,6 +1129,9 @@ export function PortalAtendimentoView({
                       const documento = documents.find((d) => d.fileName === item.docName);
                       return documento ? <ChatAudioPlayer documentId={documento.id} duration={item.duration} /> : null;
                     })()}
+                  {item.type === "audio" && item.transcricao && (
+                    <p className="chat-audio-transcricao">&ldquo;{item.transcricao}&rdquo;</p>
+                  )}
                   <small>
                     {item.time}
                     {item.sender === "client" && <MessageTicks item={item} />}
@@ -1070,6 +1178,16 @@ export function PortalAtendimentoView({
               placeholder={lockPlaceholder}
               disabled={pending}
             />
+            {lock.mode === "none" &&
+              (recording ? (
+                <button type="button" className="chat-recording-button" disabled={pending} onClick={stopRecording} title="Parar gravação e enviar" aria-label="Parar gravação e enviar áudio">
+                  <Square size={14} /> {Math.floor(recordingSeconds / 60)}:{String(recordingSeconds % 60).padStart(2, "0")}
+                </button>
+              ) : (
+                <button type="button" className="composer-attach-btn" disabled={pending || !!text.trim()} onClick={() => void startRecording()} title="Gravar uma mensagem de áudio pelo microfone" aria-label="Gravar mensagem de áudio">
+                  <Mic size={18} />
+                </button>
+              ))}
             <Button className="icon" disabled={pending || !text.trim()} onClick={send} aria-label="Enviar mensagem">
               <Send size={16} />
             </Button>

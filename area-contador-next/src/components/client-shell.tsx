@@ -43,6 +43,19 @@ export function ClientShell({ data }: { data: PortalData }) {
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const [feedback, setFeedback] = useState("");
   const accountMenuRef = useRef<HTMLDivElement>(null);
+  // Acessibilidade: tamanho de texto ajustável pelo cliente, persistido no
+  // navegador. `zoom` (não `font-size`) porque escala o portal inteiro —
+  // botões, ícones, espaçamento — não só o texto, que é o que de fato ajuda
+  // quem tem baixa visão ou pouca familiaridade com telas pequenas.
+  const [fontScale, setFontScale] = useState(1);
+  useEffect(() => {
+    const saved = Number(window.localStorage.getItem("oc-portal-zoom"));
+    if (saved && [0.9, 1, 1.15, 1.3].includes(saved)) setFontScale(saved);
+  }, []);
+  function ajustarFontScale(value: number) {
+    setFontScale(value);
+    window.localStorage.setItem("oc-portal-zoom", String(value));
+  }
 
   useEffect(() => {
     if (onboardingPendente) return;
@@ -94,7 +107,10 @@ export function ClientShell({ data }: { data: PortalData }) {
   const notificationCount = data.unreadMessages + data.unreadMail;
 
   return (
-    <div className={`app-shell portal-shell view-${active} ${active !== "dashboard" ? "hide-mobile-topbar" : "show-mobile-topbar"} ${active === "atendimento" ? "chat-view-active" : ""}`}>
+    <div
+      className={`app-shell portal-shell view-${active} ${active !== "dashboard" ? "hide-mobile-topbar" : "show-mobile-topbar"} ${active === "atendimento" ? "chat-view-active" : ""}`}
+      style={{ zoom: fontScale }}
+    >
       <div className="preview-banner">
         <span>HOMOLOGAÇÃO</span> Migração funcional em validação; a versão anterior permanece preservada.
       </div>
@@ -192,6 +208,15 @@ export function ClientShell({ data }: { data: PortalData }) {
                     <HelpCircle size={16} />
                     <span>Ajuda</span>
                   </button>
+                  <div className="account-menu-separator" />
+                  <div className="account-menu-font-size" role="group" aria-label="Tamanho do texto">
+                    <span>Tamanho do texto</span>
+                    <div className="account-menu-font-buttons">
+                      <button type="button" aria-label="Texto normal" aria-pressed={fontScale === 1} onClick={() => ajustarFontScale(1)}>A</button>
+                      <button type="button" aria-label="Texto grande" aria-pressed={fontScale === 1.15} onClick={() => ajustarFontScale(1.15)}>A+</button>
+                      <button type="button" aria-label="Texto extra grande" aria-pressed={fontScale === 1.3} onClick={() => ajustarFontScale(1.3)}>A++</button>
+                    </div>
+                  </div>
                   <div className="account-menu-separator" />
                   <form action={signOut}>
                     <button className="danger" role="menuitem" type="submit">

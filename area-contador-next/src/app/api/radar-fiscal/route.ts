@@ -189,14 +189,14 @@ export async function POST(request: Request) {
       configuracao: { caixaPostalIntervaloDias: radarCfg.caixaPostalIntervaloDias, parcelamentosValidadeDias: radarCfg.parcelamentosValidadeDias, clientePodeEmitirDas: radarCfg.clientePodeEmitirDas },
       regime: cliente.regime_tributario || null,
       resultados: data || [],
-      capacidades: { integraContador: serpro.isSerproConfigured(), dividaAtiva: dividaAtiva.isConfigured(), cnd: cnd.isConfigured() },
+      capacidades: { integraContador: await serpro.isSerproConfigured(), dividaAtiva: dividaAtiva.isConfigured(), cnd: cnd.isConfigured() },
     });
   }
 
   if (acao === "capacidades") {
     if (!souStaff) return NextResponse.json({ error: "forbidden" }, { status: 403 });
     return NextResponse.json({
-      integraContador: serpro.isSerproConfigured(),
+      integraContador: await serpro.isSerproConfigured(),
       dividaAtiva: dividaAtiva.isConfigured(),
       cnd: cnd.isConfigured(),
       servicos: { caixaPostal: true, situacaoFiscal: true, parcelamentosSimplesMei: true, dividaAtivaUniao: dividaAtiva.isConfigured(), parcelamentosPgfnRegularize: false, cnd: cnd.isConfigured() },
@@ -245,7 +245,7 @@ export async function POST(request: Request) {
   }
 
   const acaoExterna = ["divida-ativa", "divida-ativa-detalhe", "cnd"].includes(acao);
-  if (!acaoExterna && !serpro.isSerproConfigured()) return NextResponse.json({ error: "serpro_not_configured" }, { status: 503 });
+  if (!acaoExterna && !(await serpro.isSerproConfigured())) return NextResponse.json({ error: "serpro_not_configured" }, { status: 503 });
 
   const log = (idSistema: string, idServico: string, verbo: string, sucesso: boolean, erro?: { code?: string; message: string } | null) =>
     registrarConsumo(admin, { clienteRef, documento, idSistema, idServico, acao: verbo, sucesso, erro, userId, origem: souStaff ? "painel" : "cliente" });

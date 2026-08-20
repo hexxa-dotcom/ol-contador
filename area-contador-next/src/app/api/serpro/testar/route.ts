@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { isSerproConfigured, testarAutenticacao } from "@/lib/serpro";
+import { diagnosticoCredenciaisSerpro, isSerproConfigured, testarAutenticacao } from "@/lib/serpro";
 import { registrarErro } from "@/lib/observability";
 import { adminClient } from "@/lib/supabase/admin";
 
@@ -19,17 +19,10 @@ export async function POST() {
   const { data: staff } = await supabase.from("staff").select("id,role").eq("id", userId).maybeSingle();
   if (!staff || staff.role !== "admin") return NextResponse.json({ error: "forbidden" }, { status: 403 });
 
-  if (!isSerproConfigured()) {
-    // Nunca expõe o valor — só diz quais variáveis estão de fato vazias no
-    // ambiente de execução, pra diagnosticar sem vazar segredo nenhum.
-    const presentes = {
-      SERPRO_CONSUMER_KEY: !!process.env.SERPRO_CONSUMER_KEY,
-      SERPRO_CONSUMER_SECRET: !!process.env.SERPRO_CONSUMER_SECRET,
-      SERPRO_CERT_PEM_BASE64: !!process.env.SERPRO_CERT_PEM_BASE64,
-      SERPRO_KEY_PEM_BASE64: !!process.env.SERPRO_KEY_PEM_BASE64,
-      SERPRO_TEMP_ACCESS_TOKEN: !!process.env.SERPRO_TEMP_ACCESS_TOKEN,
-      SERPRO_TEMP_JWT_TOKEN: !!process.env.SERPRO_TEMP_JWT_TOKEN,
-    };
+  if (!(await isSerproConfigured())) {
+    // Nunca expõe o valor — só diz quais chaves estão de fato ausentes (banco
+    // e ambiente), pra diagnosticar sem vazar segredo nenhum.
+    const presentes = await diagnosticoCredenciaisSerpro();
     const faltando = Object.entries(presentes)
       .filter(([, ok]) => !ok)
       .map(([nome]) => nome);

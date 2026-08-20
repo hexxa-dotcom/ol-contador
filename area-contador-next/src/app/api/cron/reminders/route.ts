@@ -169,7 +169,7 @@ async function rodarVarreduraCaixaPostal(admin: Admin) {
     if (linha.chave === "radar_fiscal_clientes") Object.assign(liberacoes, valor);
   });
   if (cfg.caixaPostalAutomatica === false) return { caixaPostalChecados: 0, caixaPostalDesligada: true };
-  if (!serpro.isSerproConfigured()) return { caixaPostalChecados: 0 };
+  if (!(await serpro.isSerproConfigured())) return { caixaPostalChecados: 0 };
 
   const diasEntreChecagens = Math.min(30, Math.max(1, parseInt(String(cfg.caixaPostalIntervaloDias), 10) || 7));
   const limite = new Date(Date.now() - diasEntreChecagens * 24 * 3600 * 1000).toISOString();
@@ -296,10 +296,37 @@ async function aplicarRetencaoDados(admin: Admin) {
   return { retencaoRemovidos: resultados };
 }
 
+// Um documento é fiscal (guarda de 5 anos, nunca apagado aqui) quando tem
+// `checklist_item` (prova do dossiê) ou está anexado a algum relatório
+// entregue (`relatorio_anexos.documento_id`). Tudo mais em `documentos` pra
+// esse cliente — anexo solto de chat, áudio de mensagem — não tem obrigação
+// legal de guarda e é removido junto com o chat no arquivamento.
+async function purgarAnexosNaoFiscais(admin: Admin, clienteId: string): Promise<number> {
+  const { data: anexosFiscais } = await admin
+    .from("relatorio_anexos")
+    .select("documento_id")
+    .eq("cliente_ref", clienteId)
+    .not("documento_id", "is", null);
+  const idsFiscais = new Set((anexosFiscais || []).map((item) => item.documento_id as number));
+
+  const { data: documentos } = await admin
+    .from("documentos")
+    .select("id, storage_path")
+    .eq("cliente_ref", clienteId)
+    .is("checklist_item", null);
+  const paraApagar = (documentos || []).filter((doc) => !idsFiscais.has(doc.id));
+  if (!paraApagar.length) return 0;
+
+  const paths = paraApagar.map((doc) => doc.storage_path).filter(Boolean) as string[];
+  if (paths.length) await admin.storage.from("documentos").remove(paths);
+  await admin.from("documentos").delete().in("id", paraApagar.map((doc) => doc.id));
+  return paraApagar.length;
+}
+
 // Arquivamento por inatividade (seção 15 da doc de migração): 6 meses sem
-// atendimento arquiva o cliente e limpa chat/notificações — não apaga
-// documentos, relatórios nem anexos de relatório, que são o registro fiscal
-// e ficam retidos pelos 5 anos de guarda contábil independente do
+// atendimento arquiva o cliente e limpa chat, notificações e anexos
+// não-fiscais (ver purgarAnexosNaoFiscais) — documentos fiscais, relatórios e
+// seus anexos ficam retidos pelos 5 anos de guarda contábil independente do
 // arquivamento. Configurável via configuracoes.retencao_dados, mesmo padrão
 // de aplicarRetencaoDados.
 async function arquivarClientesInativos(admin: Admin) {
@@ -315,16 +342,18 @@ async function arquivarClientesInativos(admin: Admin) {
     .or(`and(ultimo_atendimento_finalizado_em.not.is.null,ultimo_atendimento_finalizado_em.lt.${limite}),and(ultimo_atendimento_finalizado_em.is.null,created_at.lt.${limite})`)
     .limit(100);
   if (error) throw error;
-  if (!candidatos?.length) return { clientesArquivados: 0 };
+  if (!candidatos?.length) return { clientesArquivados: 0, anexosNaoFiscaisRemovidos: 0 };
 
   let arquivados = 0;
+  let anexosRemovidos = 0;
   for (const cli of candidatos) {
+    anexosRemovidos += await purgarAnexosNaoFiscais(admin, cli.id);
     await admin.from("mensagens").delete().eq("cliente_id", cli.id);
     await admin.from("notificacoes").delete().eq("cliente_ref", cli.id);
     const { error: updErr } = await admin.from("clientes").update({ arquivado_em: new Date().toISOString() }).eq("id", cli.id);
     if (!updErr) arquivados++;
   }
-  return { clientesArquivados: arquivados };
+  return { clientesArquivados: arquivados, anexosNaoFiscaisRemovidos: anexosRemovidos };
 }
 
 export async function GET(request: Request) {

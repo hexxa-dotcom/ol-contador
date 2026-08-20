@@ -989,6 +989,7 @@ export type Database = {
           seq: number
           text: string | null
           time: string | null
+          transcricao: string | null
           type: string | null
         }
         Insert: {
@@ -1003,6 +1004,7 @@ export type Database = {
           seq?: never
           text?: string | null
           time?: string | null
+          transcricao?: string | null
           type?: string | null
         }
         Update: {
@@ -1017,6 +1019,7 @@ export type Database = {
           seq?: never
           text?: string | null
           time?: string | null
+          transcricao?: string | null
           type?: string | null
         }
         Relationships: [

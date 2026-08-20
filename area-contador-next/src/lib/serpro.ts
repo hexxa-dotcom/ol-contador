@@ -2,6 +2,8 @@
 // Autenticação mTLS + OAuth2. Uma requisição por serviço do catálogo; sem
 // fallback simulado — se o SERPRO não responder, vira erro.
 import https from "node:https";
+import { adminClient } from "./supabase/admin";
+import { getSystemSecret } from "./systemSecrets";
 
 // O fetch nativo do Node (undici por baixo) NÃO aplica um https.Agent comum
 // passado em `agent` — ignora o certificado do cliente (mTLS). https.request
@@ -29,10 +31,6 @@ function httpsRequestMtls(
   });
 }
 
-const SERPRO_CONSUMER_KEY = process.env.SERPRO_CONSUMER_KEY || "";
-const SERPRO_CONSUMER_SECRET = process.env.SERPRO_CONSUMER_SECRET || "";
-const SERPRO_CERT_PEM_BASE64 = process.env.SERPRO_CERT_PEM_BASE64 || "";
-const SERPRO_KEY_PEM_BASE64 = process.env.SERPRO_KEY_PEM_BASE64 || "";
 const SERPRO_TEMP_ACCESS_TOKEN = process.env.SERPRO_TEMP_ACCESS_TOKEN || "";
 const SERPRO_TEMP_JWT_TOKEN = process.env.SERPRO_TEMP_JWT_TOKEN || "";
 const SERPRO_CNPJ_CONTRATANTE = (process.env.SERPRO_CNPJ_CONTRATANTE || "62414421000116").replace(/\D/g, "");
@@ -41,18 +39,74 @@ let cachedAccessToken: string | null = null;
 let cachedJwtToken: string | null = null;
 let tokenExpiration = 0;
 
-export function isSerproConfigured(): boolean {
-  const temporariosCompletos = !!(SERPRO_TEMP_ACCESS_TOKEN && SERPRO_TEMP_JWT_TOKEN);
-  const mtlsCompleto = !!(SERPRO_CONSUMER_KEY && SERPRO_CONSUMER_SECRET && SERPRO_CERT_PEM_BASE64 && SERPRO_KEY_PEM_BASE64);
-  return temporariosCompletos || mtlsCompleto;
+type Credenciais = { consumerKey: string; consumerSecret: string; certPem: string; keyPem: string };
+let credenciaisCache: (Credenciais & { cachedAt: number }) | null = null;
+const CREDENCIAIS_TTL_MS = 5 * 60 * 1000;
+
+// Consultar/gravar upload de certificado via `/api/serpro/certificado`
+// invalida esse cache na hora, pra não esperar até 5min pro certificado novo
+// valer. Consumer key/secret e o par cert/chave PEM podem vir do banco
+// (`chaves_sistema`, editável pela UI) ou, se nunca migrados, da variável de
+// ambiente da Vercel — mesmo fallback usado pelas outras chaves do sistema.
+export function invalidarCacheCredenciaisSerpro(): void {
+  credenciaisCache = null;
 }
 
-function getHttpsAgent(): https.Agent | null {
-  if (!SERPRO_CERT_PEM_BASE64 || !SERPRO_KEY_PEM_BASE64) return null;
-  return new https.Agent({
-    cert: Buffer.from(SERPRO_CERT_PEM_BASE64, "base64").toString("utf8"),
-    key: Buffer.from(SERPRO_KEY_PEM_BASE64, "base64").toString("utf8"),
-  });
+async function getCredenciais(): Promise<Credenciais> {
+  if (credenciaisCache && Date.now() - credenciaisCache.cachedAt < CREDENCIAIS_TTL_MS) return credenciaisCache;
+  const admin = adminClient();
+  const [consumerKey, consumerSecret, certB64, keyB64] = admin
+    ? await Promise.all([
+        getSystemSecret(admin, "SERPRO_CONSUMER_KEY"),
+        getSystemSecret(admin, "SERPRO_CONSUMER_SECRET"),
+        getSystemSecret(admin, "SERPRO_CERT_PEM_BASE64"),
+        getSystemSecret(admin, "SERPRO_KEY_PEM_BASE64"),
+      ])
+    : [
+        process.env.SERPRO_CONSUMER_KEY || null,
+        process.env.SERPRO_CONSUMER_SECRET || null,
+        process.env.SERPRO_CERT_PEM_BASE64 || null,
+        process.env.SERPRO_KEY_PEM_BASE64 || null,
+      ];
+  const credenciais: Credenciais = {
+    consumerKey: consumerKey || "",
+    consumerSecret: consumerSecret || "",
+    certPem: certB64 ? Buffer.from(certB64, "base64").toString("utf8") : "",
+    keyPem: keyB64 ? Buffer.from(keyB64, "base64").toString("utf8") : "",
+  };
+  credenciaisCache = { ...credenciais, cachedAt: Date.now() };
+  return credenciais;
+}
+
+// Checagem de presença por chave (banco → ambiente), sem cache — só usada
+// pelo diagnóstico da tela de configurações, não no caminho quente das
+// chamadas ao SERPRO.
+export async function diagnosticoCredenciaisSerpro(): Promise<Record<string, boolean>> {
+  const admin = adminClient();
+  async function presente(chave: string): Promise<boolean> {
+    if (admin) return !!(await getSystemSecret(admin, chave));
+    return !!process.env[chave];
+  }
+  return {
+    SERPRO_CONSUMER_KEY: await presente("SERPRO_CONSUMER_KEY"),
+    SERPRO_CONSUMER_SECRET: await presente("SERPRO_CONSUMER_SECRET"),
+    SERPRO_CERT_PEM_BASE64: await presente("SERPRO_CERT_PEM_BASE64"),
+    SERPRO_KEY_PEM_BASE64: await presente("SERPRO_KEY_PEM_BASE64"),
+    SERPRO_TEMP_ACCESS_TOKEN: !!process.env.SERPRO_TEMP_ACCESS_TOKEN,
+    SERPRO_TEMP_JWT_TOKEN: !!process.env.SERPRO_TEMP_JWT_TOKEN,
+  };
+}
+
+export async function isSerproConfigured(): Promise<boolean> {
+  const temporariosCompletos = !!(SERPRO_TEMP_ACCESS_TOKEN && SERPRO_TEMP_JWT_TOKEN);
+  if (temporariosCompletos) return true;
+  const c = await getCredenciais();
+  return !!(c.consumerKey && c.consumerSecret && c.certPem && c.keyPem);
+}
+
+function buildHttpsAgent(c: Credenciais): https.Agent | null {
+  if (!c.certPem || !c.keyPem) return null;
+  return new https.Agent({ cert: c.certPem, key: c.keyPem });
 }
 
 async function getSerproTokens(): Promise<{ accessToken: string; jwtToken: string }> {
@@ -63,10 +117,11 @@ async function getSerproTokens(): Promise<{ accessToken: string; jwtToken: strin
     return { accessToken: cachedAccessToken, jwtToken: cachedJwtToken };
   }
 
-  const agent = getHttpsAgent();
+  const credenciais = await getCredenciais();
+  const agent = buildHttpsAgent(credenciais);
   if (!agent) throw new Error("Certificado PEM ausente para mTLS.");
 
-  const authHeader = Buffer.from(`${SERPRO_CONSUMER_KEY}:${SERPRO_CONSUMER_SECRET}`).toString("base64");
+  const authHeader = Buffer.from(`${credenciais.consumerKey}:${credenciais.consumerSecret}`).toString("base64");
   const response = await httpsRequestMtls("https://autenticacao.sapi.serpro.gov.br/authenticate", {
     method: "POST",
     headers: {
@@ -118,14 +173,14 @@ export async function chamarIntegraContador({
   documento: string;
   tipoDocumento: number;
 }): Promise<Record<string, unknown>> {
-  if (!isSerproConfigured()) {
+  if (!(await isSerproConfigured())) {
     const err = new SerproError("Integra Contador não configurado neste ambiente.");
     err.code = "serpro_not_configured";
     throw err;
   }
 
   const { accessToken, jwtToken } = await getSerproTokens();
-  const agent = getHttpsAgent();
+  const agent = buildHttpsAgent(await getCredenciais());
 
   const body = {
     contratante: { numero: SERPRO_CNPJ_CONTRATANTE, tipo: 2 },

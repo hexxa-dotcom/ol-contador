@@ -9,6 +9,7 @@ export type PortalMessage = {
   type: string | null;
   docName: string | null;
   duration: string | null;
+  transcricao: string | null;
   time: string | null;
   createdAt: string | null;
   readAt: string | null;
@@ -210,7 +211,7 @@ export function proximosVencimentos(
 export async function loadPortalData(supabase: SupabaseClient<Database>, clientId: string): Promise<PortalData> {
   const [clientResult, messagesResult, appointmentsResult, triagensResult, documentsResult, mailResult, reportsResult, perfilResult, configResult, servicosResult, ocupadosResult, anexosResult, avaliacoesResult, expressResult, obrigacoesResult] = await Promise.all([
     supabase.from("clientes").select("id,name,email,phone,tax_type,status,honorarios,recorrente,recorrente_tipo,onboarding_pendente,caixa_postal_novas,cpf,endereco,numero,bairro,cidade,estado,cep,atendimento_modalidade").eq("id", clientId).single(),
-    supabase.from("mensagens").select("id,sender,text,type,doc_name,duration,time,created_at,read_at,seq").eq("cliente_id", clientId).order("seq", { ascending: true }).limit(200),
+    supabase.from("mensagens").select("id,sender,text,type,doc_name,duration,transcricao,time,created_at,read_at,seq").eq("cliente_id", clientId).order("seq", { ascending: true }).limit(200),
     supabase.from("agendamentos").select("id,date,time,status,tax_type").eq("cliente_ref", clientId).order("date", { ascending: false }).limit(50),
     // Só a triagem ativa (a mais recente ainda não arquivada) — igual ao
     // /api/triagem do legado: é uma linha só por vez, não uma lista.
@@ -277,6 +278,7 @@ export async function loadPortalData(supabase: SupabaseClient<Database>, clientI
     type: m.type,
     docName: m.doc_name,
     duration: m.duration,
+    transcricao: m.transcricao,
     time: m.time,
     createdAt: m.created_at,
     readAt: m.read_at,

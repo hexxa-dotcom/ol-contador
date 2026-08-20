@@ -56,6 +56,35 @@ class IaError extends Error {
   status?: number;
 }
 
+// Transcrição de áudio (acessibilidade: cliente/equipe grava por voz em vez
+// de digitar, e a mensagem também vira texto pesquisável no chat). Só o
+// Whisper da Groq faz isso hoje — não passa por resolveProvider (que
+// escolhe entre Groq/OpenRouter pra chat de texto), sempre usa GROQ_API_KEY
+// direto. Se a chave não estiver configurada, devolve null e a mensagem de
+// áudio segue sem transcrição (o áudio em si continua funcionando).
+export async function transcreverAudio(admin: Admin, audio: Buffer, mimeType: string, fileName: string): Promise<string | null> {
+  const groqKey = await getSystemSecret(admin, "GROQ_API_KEY");
+  if (!groqKey) return null;
+  try {
+    const form = new FormData();
+    form.append("file", new Blob([new Uint8Array(audio)], { type: mimeType || "audio/webm" }), fileName);
+    form.append("model", "whisper-large-v3-turbo");
+    form.append("language", "pt");
+    form.append("response_format", "text");
+    const res = await fetch("https://api.groq.com/openai/v1/audio/transcriptions", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${groqKey}` },
+      body: form,
+      signal: AbortSignal.timeout(30000),
+    });
+    if (!res.ok) return null;
+    const texto = (await res.text()).trim();
+    return texto || null;
+  } catch {
+    return null;
+  }
+}
+
 type ChatMessage = { role: "system" | "user" | "assistant"; content: string };
 export type ClienteContexto = {
   name: string;

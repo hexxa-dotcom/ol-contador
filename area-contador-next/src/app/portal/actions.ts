@@ -2,6 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { adminClient } from "@/lib/supabase/admin";
+import { transcreverAudio } from "@/lib/ia";
 
 async function requirePortalClient() {
   const supabase = await createClient();
@@ -54,12 +56,80 @@ export async function sendPortalMessage(text: string) {
       type: data.type,
       docName: data.doc_name,
       duration: data.duration,
+      transcricao: null,
       time: data.time,
       createdAt: data.created_at,
       readAt: data.read_at,
       seq: data.seq,
     },
   };
+}
+
+// O áudio em si já foi enviado pro Storage + inserido em `documentos` pelo
+// browser (client RLS, uploaded_by="client") antes de chamar esta action —
+// aqui só anuncia a mensagem no chat, igual sendPortalMessage. Acessibilidade:
+// alternativa a digitar pra quem tem dificuldade de escrita ou baixa
+// familiaridade com tecnologia.
+export async function sendPortalAudioMessage(input: { fileName: string; duration: string }) {
+  const ctx = await requirePortalClient();
+  if (!ctx) return { ok: false as const, message: "Sessão expirada." };
+  if (!input.fileName) return { ok: false as const, message: "Áudio inválido." };
+  const { data: document } = await ctx.supabase
+    .from("documentos")
+    .select("id,cliente_ref,file_name,storage_path,mime")
+    .eq("cliente_ref", ctx.clientId)
+    .eq("file_name", input.fileName)
+    .maybeSingle();
+  if (!document) return { ok: false as const, message: "O áudio foi salvo, mas não foi possível anunciá-lo no chat." };
+  const transcricao = await transcreverAudioDocumento(document);
+  const now = new Date();
+  const { data, error } = await ctx.supabase
+    .from("mensagens")
+    .insert({
+      id: crypto.randomUUID(),
+      cliente_id: ctx.clientId,
+      sender: "client",
+      text: `Mensagem de Áudio (${input.duration})`,
+      type: "audio",
+      doc_name: document.file_name,
+      duration: input.duration,
+      transcricao,
+      created_at: now.toISOString(),
+      time: new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo", hour: "2-digit", minute: "2-digit" }).format(now),
+    })
+    .select("id,cliente_id,sender,text,type,doc_name,duration,transcricao,time,created_at,read_at,seq")
+    .single();
+  if (error || !data) return { ok: false as const, message: "O áudio foi salvo, mas não foi possível anunciá-lo no chat." };
+  revalidatePath("/portal");
+  return {
+    ok: true as const,
+    data: {
+      id: data.id,
+      sender: data.sender,
+      text: data.text,
+      type: data.type,
+      docName: data.doc_name,
+      duration: data.duration,
+      transcricao: data.transcricao,
+      time: data.time,
+      createdAt: data.created_at,
+      readAt: data.read_at,
+      seq: data.seq,
+    },
+  };
+}
+
+// Baixa o áudio recém-salvo (via service_role, funciona mesmo se a RLS do
+// client não permitir leitura direta do Storage) e transcreve pelo Whisper
+// da Groq. Nunca derruba o envio — se falhar, a mensagem de áudio segue
+// normal, só sem o texto pesquisável.
+async function transcreverAudioDocumento(document: { storage_path: string; file_name: string; mime: string | null }): Promise<string | null> {
+  const admin = adminClient();
+  if (!admin) return null;
+  const { data: blob } = await admin.storage.from("documentos").download(document.storage_path);
+  if (!blob) return null;
+  const buffer = Buffer.from(await blob.arrayBuffer());
+  return transcreverAudio(admin, buffer, document.mime || "audio/webm", document.file_name);
 }
 
 export async function sendPortalMailMessage(input: { assunto: string; mensagem: string }) {
