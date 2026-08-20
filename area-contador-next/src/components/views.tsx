@@ -4051,7 +4051,6 @@ export function RadarFiscalView({
   const [clientQuery, setClientQuery] = useState("");
   const [selectedId, setSelectedId] = useState("");
   const [regime, setRegime] = useState("");
-  const [force, setForce] = useState(false);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<RadarPayload | null>(null);
   const [error, setError] = useState("");
@@ -4205,7 +4204,7 @@ export function RadarFiscalView({
         };
         payload = await callRadar(actions[tab], {
           regime: regime || undefined,
-          forcar: force,
+          forcar: true,
         });
       }
       setCaixaPostalPilha([]);
@@ -4217,6 +4216,42 @@ export function RadarFiscalView({
           ? reason.message
           : "Não foi possível concluir a consulta.",
       );
+    } finally {
+      setLoading(false);
+    }
+  }
+  const servicoCacheavelPorAba: Record<string, string> = {
+    "Caixa Postal": "caixa-postal",
+    Parcelamentos: "parcelamentos",
+    "Dívida Ativa": "divida-ativa",
+  };
+  async function verDadosSalvos() {
+    const servico = servicoCacheavelPorAba[tab];
+    if (!selected || !servico) return;
+    setLoading(true);
+    setError("");
+    try {
+      const response = await fetch("/api/radar-fiscal", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ acao: "cache", clienteRef: selectedId }),
+      });
+      const data = (await response.json().catch(() => ({ resultados: [] }))) as {
+        resultados?: Array<{ servico: string; resultado: unknown; obtido_em: string }>;
+        error?: string;
+      };
+      if (!response.ok) throw new Error(data.error || "Falha ao buscar dados salvos.");
+      const achado = (data.resultados || []).find((item) => item.servico === servico);
+      if (!achado) {
+        setResult(null);
+        setError('Nenhuma consulta salva ainda pra esse serviço — use "Nova consulta".');
+        return;
+      }
+      setCaixaPostalPilha([]);
+      setCaixaPostalPonteiroAtual(null);
+      setResult({ ...(achado.resultado as object), cacheado: true, obtidoEm: achado.obtido_em });
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Não foi possível buscar os dados salvos.");
     } finally {
       setLoading(false);
     }
@@ -4327,40 +4362,24 @@ export function RadarFiscalView({
               <option value="simples">Simples Nacional</option>
               <option value="mei">MEI</option>
             </select>
-            <label>
-              <input
-                type="checkbox"
-                checked={force}
-                onChange={(event) => setForce(event.target.checked)}
-              />{" "}
-              Atualizar mesmo se houver dados salvos
-            </label>
           </div>
         )}
-        {tab === "Dívida Ativa" && (
-          <label className="radar-force">
-            <input
-              type="checkbox"
-              checked={force}
-              onChange={(event) => setForce(event.target.checked)}
-            />{" "}
-            Atualizar mesmo se houver dados das últimas 24 horas
-          </label>
+        {servicoCacheavelPorAba[tab] ? (
+          <div className="radar-options">
+            <Button disabled={loading || !selected} onClick={execute}>
+              {loading ? <Clock3 size={16} /> : <ShieldCheck size={16} />}{" "}
+              {loading ? "Consultando…" : "Nova consulta"}
+            </Button>
+            <Button className="secondary" disabled={loading || !selected} onClick={() => void verDadosSalvos()}>
+              <ClipboardList size={16} /> Ver dados salvos
+            </Button>
+          </div>
+        ) : (
+          <Button disabled={loading || !selected} onClick={execute}>
+            {loading ? <Clock3 size={16} /> : <ShieldCheck size={16} />}{" "}
+            {loading ? "Consultando…" : labels[tab]}
+          </Button>
         )}
-        {tab === "Caixa Postal" && (
-          <label className="radar-force">
-            <input
-              type="checkbox"
-              checked={force}
-              onChange={(event) => setForce(event.target.checked)}
-            />{" "}
-            Atualizar mesmo se houver dados salvos
-          </label>
-        )}
-        <Button disabled={loading || !selected} onClick={execute}>
-          {loading ? <Clock3 size={16} /> : <ShieldCheck size={16} />}{" "}
-          {loading ? "Consultando…" : labels[tab]}
-        </Button>
         {error && (
           <div className="form-message" role="alert">
             {error}

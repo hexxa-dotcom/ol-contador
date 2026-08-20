@@ -94,7 +94,7 @@ export function ClientShell({ data }: { data: PortalData }) {
   const notificationCount = data.unreadMessages + data.unreadMail;
 
   return (
-    <div className="app-shell">
+    <div className={`app-shell portal-shell view-${active} ${active !== "dashboard" ? "hide-mobile-topbar" : "show-mobile-topbar"} ${active === "atendimento" ? "chat-view-active" : ""}`}>
       <div className="preview-banner">
         <span>HOMOLOGAÇÃO</span> Migração funcional em validação; a versão anterior permanece preservada.
       </div>
