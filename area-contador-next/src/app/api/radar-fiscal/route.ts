@@ -221,6 +221,10 @@ export async function POST(request: Request) {
     const salvo = await buscarResultadoSalvo(admin, clienteRef, "divida-ativa", 24);
     if (salvo) return NextResponse.json({ ...(salvo.resultado as object), cacheado: true, obtidoEm: salvo.obtido_em });
   }
+  if (acao === "situacao-fiscal" && clienteRef && !forcarAtualizacao) {
+    const salvo = await buscarResultadoSalvo(admin, clienteRef, "situacao-fiscal", 24);
+    if (salvo) return NextResponse.json({ ...(salvo.resultado as object), cacheado: true, obtidoEm: salvo.obtido_em });
+  }
 
   const acaoExterna = ["divida-ativa", "divida-ativa-detalhe", "cnd"].includes(acao);
   if (!acaoExterna && !serpro.isSerproConfigured()) return NextResponse.json({ error: "serpro_not_configured" }, { status: 503 });
@@ -269,6 +273,27 @@ export async function POST(request: Request) {
           return NextResponse.json({ detalhe: r });
         } catch (e) {
           await log("CAIXAPOSTAL", "MSGDETALHAMENTO62", "Consultar", false, e as Error);
+          throw e;
+        }
+      }
+
+      // Orquestra o fluxo de duas etapas (solicitar protocolo + esperar +
+      // emitir) num único request e guarda o relatório completo (com PDF)
+      // em cache — assim "Ver dados salvos" reabre o mesmo relatório sem
+      // gastar outra requisição paga.
+      case "situacao-fiscal": {
+        try {
+          const protocolo = await serpro.solicitarProtocoloSitfis(documento);
+          await log("SITFIS", "SOLICITARPROTOCOLO91", "Apoiar", true);
+          if (!protocolo.protocolo) throw new Error("A Receita não devolveu o protocolo SITFIS.");
+          const espera = Math.min(Number(protocolo.tempoEsperaMs) || 0, 20000);
+          if (espera > 0) await new Promise((resolve) => setTimeout(resolve, espera));
+          const relatorio = await serpro.emitirRelatorioSitfis(documento, String(protocolo.protocolo));
+          await log("SITFIS", "RELATORIOSITFIS92", "Emitir", true);
+          if (clienteRef) await guardarResultado(admin, clienteRef, "situacao-fiscal", relatorio, 24);
+          return NextResponse.json(relatorio);
+        } catch (e) {
+          await log("SITFIS", "RELATORIOSITFIS92", "Emitir", false, e as Error);
           throw e;
         }
       }

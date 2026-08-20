@@ -3872,19 +3872,26 @@ function RadarResult({
     : [];
   if (pdf)
     return (
-      <div className="radar-result-success">
-        <CheckCircle2 size={18} />
-        <div>
-          <strong>Documento oficial gerado</strong>
-          <span>Arquivo pronto para conferência.</span>
+      <div className="radar-result-list">
+        <div className="radar-origem-info">
+          {result.cacheado
+            ? `Dados salvos${result.obtidoEm ? ` de ${new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" }).format(new Date(String(result.obtidoEm)))}` : ""} — sem custo de consulta.`
+            : "Consulta feita agora ao SERPRO — consumiu uma requisição paga."}
         </div>
-        <a
-          className="button"
-          download={`documento-fiscal-${clientDocument || "cliente"}.pdf`}
-          href={`data:application/pdf;base64,${pdf}`}
-        >
-          Baixar PDF
-        </a>
+        <div className="radar-result-success">
+          <CheckCircle2 size={18} />
+          <div>
+            <strong>Documento oficial gerado</strong>
+            <span>Arquivo pronto para conferência.</span>
+          </div>
+          <a
+            className="button"
+            download={`documento-fiscal-${clientDocument || "cliente"}.pdf`}
+            href={`data:application/pdf;base64,${pdf}`}
+          >
+            Baixar PDF
+          </a>
+        </div>
       </div>
     );
   const ehResultadoDeCaixaPostal = typeof result.naoLidas !== "undefined";
@@ -4185,28 +4192,17 @@ export function RadarFiscalView({
     setError("");
     setResult(null);
     try {
-      let payload: RadarPayload;
-      if (tab === "Situação Fiscal") {
-        const protocol = await callRadar("sitfis-solicitar");
-        if (!protocol.protocolo)
-          throw new Error("A Receita não devolveu o protocolo SITFIS.");
-        const wait = Math.min(Number(protocol.tempoEsperaMs) || 0, 20000);
-        if (wait > 0) await new Promise((resolve) => setTimeout(resolve, wait));
-        payload = await callRadar("sitfis-emitir", {
-          protocolo: protocol.protocolo,
-        });
-      } else {
-        const actions: Record<string, string> = {
-          "Caixa Postal": "caixa-postal",
-          Parcelamentos: "parcelamentos",
-          "Dívida Ativa": "divida-ativa",
-          CND: "cnd",
-        };
-        payload = await callRadar(actions[tab], {
-          regime: regime || undefined,
-          forcar: true,
-        });
-      }
+      const actions: Record<string, string> = {
+        "Caixa Postal": "caixa-postal",
+        "Situação Fiscal": "situacao-fiscal",
+        Parcelamentos: "parcelamentos",
+        "Dívida Ativa": "divida-ativa",
+        CND: "cnd",
+      };
+      const payload: RadarPayload = await callRadar(actions[tab], {
+        regime: regime || undefined,
+        forcar: true,
+      });
       setCaixaPostalPilha([]);
       setCaixaPostalPonteiroAtual(null);
       setResult(payload);
@@ -4222,6 +4218,7 @@ export function RadarFiscalView({
   }
   const servicoCacheavelPorAba: Record<string, string> = {
     "Caixa Postal": "caixa-postal",
+    "Situação Fiscal": "situacao-fiscal",
     Parcelamentos: "parcelamentos",
     "Dívida Ativa": "divida-ativa",
   };

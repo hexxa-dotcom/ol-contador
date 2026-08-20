@@ -5553,6 +5553,291 @@ td { font-size: 11px; }
   .radar-connection { grid-column: auto; }
   .insights-filter, .date-range { align-items: stretch; }
   .insights-filter > .badge { margin-left: 0; }
+
+  /* ==================== ÁREA DO CLIENTE MOBILE APP-LIKE ==================== */
+  .portal-shell.chat-view-active .view-stack {
+    height: 100% !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 0 !important;
+  }
+  .portal-shell.chat-view-active .page-title {
+    display: none !important;
+  }
+  .portal-shell.chat-view-active .portal-chat-card {
+    height: 100% !important;
+    max-height: 100% !important;
+    min-height: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    display: flex !important;
+    flex-direction: column !important;
+    flex: 1 !important;
+  }
+  .portal-shell.chat-view-active .portal-chat-card .chat-messages {
+    flex: 1 !important;
+    min-height: 0 !important;
+    overflow-y: auto !important;
+    padding: 10px 12px !important;
+  }
+  .portal-chat-card .chat-header {
+    padding: 8px 12px;
+    gap: 10px;
+    background: rgba(255, 255, 255, 0.95);
+    border-bottom: 1px solid rgba(203, 213, 225, 0.8);
+    display: flex;
+    align-items: center;
+  }
+  .portal-chat-card .chat-header-avatar {
+    width: 36px;
+    height: 36px;
+    font-size: 12px;
+    flex-shrink: 0;
+  }
+  .portal-chat-card .chat-header-info {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    flex: 1;
+    gap: 2px;
+  }
+  .portal-chat-card .chat-header-nome h3 {
+    font-size: 13px;
+    font-weight: 800;
+    color: #0f172a;
+    margin: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .portal-chat-card .chat-header-crc {
+    font-size: 10.5px;
+    color: #64748b;
+    margin: 0;
+  }
+  .portal-chat-card .chat-header-meta {
+    display: none;
+  }
+
+  /* Portal Dashboard Mobile */
+  .portal-hero-header {
+    padding: 4px 0 8px;
+  }
+  .portal-hero-title {
+    font-size: 1.35rem;
+  }
+  .portal-hero-desc {
+    font-size: 12px;
+  }
+  .portal-spotlight-card {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 14px;
+    padding: 16px;
+  }
+  .portal-spotlight-left {
+    align-items: flex-start;
+    gap: 12px;
+  }
+  .portal-spotlight-btn {
+    width: 100%;
+    justify-content: center;
+  }
+  .portal-tiles-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 10px;
+  }
+  .portal-action-tile {
+    padding: 14px 12px;
+    min-height: 135px;
+  }
+  .portal-tile-title {
+    font-size: 12px;
+  }
+  .portal-tile-snippet strong {
+    font-size: 11px;
+  }
+  .portal-timeline-box {
+    padding: 16px 14px;
+  }
+  .portal-timeline-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  .portal-timeline-progress-badge {
+    align-items: flex-start;
+    width: 100%;
+  }
+  .portal-timeline-bar-track {
+    width: 100%;
+  }
+  .portal-timeline-steps {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  .portal-timeline-line {
+    display: none;
+  }
+
+  /* Portal Triagem (Pré-atendimento) Mobile */
+  .triagem-espera-banner {
+    padding: 14px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  .triagem-resumo-grid {
+    grid-template-columns: 1fr !important;
+    gap: 10px;
+  }
+  .triagem-assuntos-grid {
+    grid-template-columns: 1fr !important;
+    gap: 10px;
+  }
+  .triagem-assunto-card {
+    padding: 14px 12px;
+  }
+  .triagem-doc-checklist-item {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    padding: 12px;
+  }
+  .triagem-doc-checklist-actions {
+    width: 100%;
+    display: flex;
+    gap: 6px;
+  }
+  .triagem-doc-checklist-actions button {
+    flex: 1;
+    justify-content: center;
+  }
+  .triagem-sticky-footer {
+    padding: 12px 14px calc(12px + env(safe-area-inset-bottom, 0px));
+    flex-direction: column;
+    gap: 8px;
+  }
+  .triagem-sticky-footer .button {
+    width: 100%;
+    justify-content: center;
+  }
+
+  /* Portal Agenda & Checkout Mobile */
+  .portal-agenda-grid {
+    grid-template-columns: 1fr !important;
+    gap: 16px;
+  }
+  .portal-agenda-card {
+    padding: 16px;
+    border-radius: 18px;
+  }
+  .portal-semana-nav {
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .portal-dias-pills {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 5px;
+  }
+  .portal-dia-pill {
+    padding: 8px 3px;
+    font-size: 11px;
+    min-width: 0;
+  }
+  .portal-horarios-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+  }
+  .portal-checkout-card {
+    padding: 18px 14px;
+    border-radius: 20px;
+  }
+  .portal-checkout-copy-row {
+    flex-direction: column;
+    gap: 8px;
+  }
+  .portal-checkout-copy-input {
+    width: 100%;
+  }
+  .portal-checkout-copy-btn {
+    width: 100%;
+    justify-content: center;
+  }
+  .portal-payment-methods-grid {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  /* Portal Documentos, Relatórios e Caixa Postal Mobile */
+  .portal-documentos-grid {
+    grid-template-columns: 1fr !important;
+    gap: 14px;
+  }
+  .portal-documento-card {
+    padding: 14px;
+    border-radius: 16px;
+  }
+  .portal-report-card {
+    padding: 16px 14px;
+  }
+  .portal-report-top {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+  .portal-report-footer .button {
+    width: 100%;
+    justify-content: center;
+  }
+  .portal-mailbox-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .portal-mail-composer {
+    padding: 14px;
+    border-radius: 16px;
+  }
+
+  /* Portal Radar, Histórico e Perfil Mobile */
+  .portal-radar-grid {
+    grid-template-columns: 1fr !important;
+    gap: 14px;
+  }
+  .portal-radar-card {
+    padding: 16px;
+    border-radius: 18px;
+  }
+  .portal-radar-hero {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  .portal-radar-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+  .portal-certidao-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 12px;
+  }
+  .portal-historico-list article {
+    padding: 14px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  .portal-perfil-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .portal-perfil-card {
+    padding: 16px;
+    border-radius: 18px;
+  }
 }
 
 @media (max-width: 560px) {
@@ -5584,9 +5869,8 @@ td { font-size: 11px; }
   .client-detail-title { align-items: flex-start; }
   .client-detail-actions { align-items: stretch; flex-direction: column; }
   .client-detail-actions .button { width: 100%; }
-  .chat-header { padding-inline: 8px; gap: 6px; overflow-x: auto; }
+  .chat-header { padding-inline: 8px; gap: 6px; }
   .chat-header .avatar { width: 31px; height: 31px; }
-  .chat-client-copy { display: none; }
   .chat-actions { gap: 4px; }
   .timer-capsule { height: 34px; padding-left: 7px; }
   .chat-action-button, .chat-finish-button { width: 34px; min-width: 34px; height: 34px; padding: 0; justify-content: center; }
