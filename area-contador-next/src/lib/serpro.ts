@@ -265,10 +265,55 @@ export async function consultarCaixaPostal(documento: string, ponteiroPagina?: s
   };
 }
 
-export async function detalharMensagem(documento: string, isn: string) {
+// Remove tags/atributos perigosos do HTML que a Receita manda no corpo da
+// mensagem — o conteúdo vem de fonte confiável (SERPRO autenticado), mas
+// não custa não confiar cegamente num HTML que vai direto pra tela.
+function sanitizarHtmlMensagem(html: string): string {
+  return html
+    .replace(/<script[\s\S]*?<\/script>/gi, "")
+    .replace(/<iframe[\s\S]*?<\/iframe>/gi, "")
+    .replace(/\son\w+\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi, "")
+    .replace(/(href|src)\s*=\s*("|')\s*javascript:[^"']*\2/gi, '$1="#"');
+}
+
+// Substitui ++VARIAVEL++ (assunto, valor único) e ++1++, ++2++... (corpo,
+// na ordem de "variaveis") pelos valores reais — formato documentado em
+// obter_detalhes_de_uma_mensagem_especifica.
+function substituirVariaveis(texto: string, valorUnico: string | null, lista: string[]): string {
+  let saida = texto.replace(/\+\+VARIAVEL\+\+/g, valorUnico || "");
+  lista.forEach((valor, index) => {
+    saida = saida.replaceAll(`++${index + 1}++`, valor);
+  });
+  return saida;
+}
+
+export type DetalheMensagem = {
+  isn: string;
+  assunto: string;
+  remetente: string | null;
+  dataEnvio: string | null;
+  dataLeitura: string | null;
+  corpoHtml: string;
+};
+
+export async function detalharMensagem(documento: string, isn: string): Promise<DetalheMensagem> {
   const digitos = String(documento).replace(/\D/g, "");
   const resp = await chamarIntegraContador({ acao: "Consultar", idSistema: "CAIXAPOSTAL", idServico: "MSGDETALHAMENTO62", dados: JSON.stringify({ isn: String(isn) }), documento: digitos, tipoDocumento: tipoDoDocumento(digitos) });
-  return parseDados(resp);
+  const d = parseDados(resp) as Record<string, unknown>;
+  const conteudo = Array.isArray(d?.conteudo) ? (d.conteudo as Record<string, unknown>[]) : [];
+  const m = conteudo[0] || {};
+  const variaveis = Array.isArray(m.variaveis) ? (m.variaveis as unknown[]).map((v) => String(v ?? "")) : [];
+  const valorParametroAssunto = m.valorParametroAssunto != null ? String(m.valorParametroAssunto) : null;
+  const assunto = substituirVariaveis(String(m.assuntoModelo || "Mensagem da Receita Federal"), valorParametroAssunto, variaveis);
+  const corpo = substituirVariaveis(String(m.corpoModelo || ""), valorParametroAssunto, variaveis);
+  return {
+    isn: String(isn),
+    assunto,
+    remetente: m.descricaoOrigem ? String(m.descricaoOrigem) : null,
+    dataEnvio: dataHoraSerpro(m.dataEnvio, null),
+    dataLeitura: dataHoraSerpro(m.dataLeitura, m.horaLeitura),
+    corpoHtml: sanitizarHtmlMensagem(corpo),
+  };
 }
 
 // =========================================================================

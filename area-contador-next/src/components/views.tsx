@@ -4373,17 +4373,47 @@ export function RadarFiscalView({
         {detail && (
           <div className="radar-detail-result">
             <div className="card-heading">
-              <strong>Detalhe da consulta</strong>
+              <strong>{detail.detalhe ? "Mensagem" : "Detalhe da consulta"}</strong>
               <Button className="icon ghost" onClick={() => setDetail(null)} aria-label="Fechar detalhe">
                 <X size={15} />
               </Button>
             </div>
-            <RadarResult
-              result={detail}
-              clientDocument={selected?.cpf?.replace(/\D/g, "") || ""}
-              onAction={(action, extra) => void executeSubAction(action, extra)}
-              busy={loading}
-            />
+            {detail.detalhe && typeof detail.detalhe === "object" && "corpoHtml" in (detail.detalhe as object) ? (
+              (() => {
+                const mensagem = detail.detalhe as {
+                  assunto?: string;
+                  remetente?: string | null;
+                  dataEnvio?: string | null;
+                  dataLeitura?: string | null;
+                  corpoHtml?: string;
+                };
+                const formatarData = (iso?: string | null) =>
+                  iso
+                    ? new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" }).format(new Date(iso))
+                    : null;
+                return (
+                  <div className="radar-mensagem-leitura">
+                    <strong>{mensagem.assunto || "Mensagem da Receita Federal"}</strong>
+                    <div className="radar-mensagem-meta">
+                      {mensagem.remetente && <span>De: {mensagem.remetente}</span>}
+                      {formatarData(mensagem.dataEnvio) && <span>Enviada em {formatarData(mensagem.dataEnvio)}</span>}
+                      {formatarData(mensagem.dataLeitura) && <span>Lida em {formatarData(mensagem.dataLeitura)}</span>}
+                    </div>
+                    <div
+                      className="radar-mensagem-corpo"
+                      dangerouslySetInnerHTML={{ __html: mensagem.corpoHtml || "<p>Sem conteúdo.</p>" }}
+                    />
+                  </div>
+                );
+              })()
+            ) : (
+              <RadarResult
+                result={detail}
+                clientDocument={selected?.cpf?.replace(/\D/g, "") || ""}
+                onAction={(action, extra) => void executeSubAction(action, extra)}
+                busy={loading}
+              />
+            )}
           </div>
         )}
       </Card>
