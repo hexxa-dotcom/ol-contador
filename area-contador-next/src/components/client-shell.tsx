@@ -112,6 +112,12 @@ export function ClientShell({ data }: { data: PortalData }) {
             {(!collapsed || mobile) && <span>Recolher</span>}
           </button>
           {mobile && (
+            <div className="sidebar-mobile-title-wrap">
+              <Image src="/logo.svg" alt="Olá, Contador" width={26} height={27} priority />
+              <span className="sidebar-mobile-title">Menu</span>
+            </div>
+          )}
+          {mobile && (
             <Button aria-label="Fechar menu" className="icon ghost mobile-close" onClick={() => setMobile(false)}>
               <X size={18} />
             </Button>
@@ -143,9 +149,6 @@ export function ClientShell({ data }: { data: PortalData }) {
       <main className="workspace">
         <header className="topbar">
           <div className="topbar-left">
-            <Button aria-label="Abrir menu" className="icon ghost mobile-menu" onClick={() => setMobile(true)}>
-              <Menu size={20} />
-            </Button>
             <div className="topbar-brand-wrap">
               <Link href="/portal" className="topbar-brand-link" onClick={() => navigate("dashboard")}>
                 <Image src="/logo.svg" alt="Olá, Contador" width={32} height={33} priority />
@@ -153,7 +156,6 @@ export function ClientShell({ data }: { data: PortalData }) {
                   Olá<i>,</i> Contador<i>.</i>
                 </span>
               </Link>
-              <span className="topbar-portal-badge">Área do Cliente</span>
             </div>
           </div>
           <div className="topbar-actions">

@@ -443,7 +443,7 @@ export function PortalDashboardView({ data, onNavigate }: { data: PortalData; on
         <div className="portal-hero-info">
           <div className="portal-hero-status-pill">
             <span className="portal-hero-status-dot" />
-            <span>Atendimento ativo com contador CRC</span>
+            <span>Área do Cliente</span>
           </div>
           <h1 className="portal-hero-title">
             Olá, {primeiroNome}! 👋
@@ -1816,7 +1816,7 @@ export function PortalAgendaView({
                     {DIA_SEMANA_CURTO[new Date(`${dia}T12:00:00`).getDay()]}
                   </small>
                   <strong className="portal-agenda-day-num">{dia.slice(8, 10)}/{dia.slice(5, 7)}</strong>
-                  <span className="portal-agenda-day-status">{livre ? "Disponível" : "Fechado"}</span>
+                  <span className="portal-agenda-day-status">{livre ? "Livre" : "Fechado"}</span>
                 </button>
               );
             })}

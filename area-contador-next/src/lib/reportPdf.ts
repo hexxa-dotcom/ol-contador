@@ -5,7 +5,6 @@
 // validação (QR real + protocolo + "Página X de Y") em cada página do PDF
 // final, com as mesmas primitivas de desenho do jsPDF que o legado usava.
 import qrcode from "qrcode-generator";
-import html2pdf from "html2pdf.js";
 
 export type ReportForPdf = {
   id: number;
@@ -327,6 +326,7 @@ export async function baixarRelatorioPdf(rel: ReportForPdf): Promise<boolean> {
 
   try {
     if (rodapeHtml) rodapeHtml.style.display = "none";
+    const html2pdf = (await import("html2pdf.js")).default;
     const worker = html2pdf()
       .set({
         margin: 0,
