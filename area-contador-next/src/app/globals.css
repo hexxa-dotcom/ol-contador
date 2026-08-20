@@ -1294,12 +1294,12 @@ select { width: auto; min-width: 160px; }
   min-height: 68px !important;
   padding: 14px 22px !important;
   gap: 14px !important;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.15) !important;
-  background: linear-gradient(135deg, #129a7d 0%, #0d755f 50%, #084e3f 100%) !important;
-  color: #FFFFFF !important;
+  border-bottom: 1px solid rgba(203, 213, 225, 0.7) !important;
+  background: linear-gradient(135deg, #FFFFFF 0%, #F8FAFC 50%, #F1F5F9 100%) !important;
+  color: #0F172A !important;
   display: flex !important;
   align-items: center !important;
-  box-shadow: 0 4px 16px rgba(13, 117, 95, 0.15) !important;
+  box-shadow: 0 2px 10px rgba(15, 23, 42, 0.03) !important;
 }
 
 .portal-chat-card .chat-header-avatar {
@@ -1307,8 +1307,8 @@ select { width: auto; min-width: 160px; }
   height: 46px;
   flex: 0 0 auto;
   border-radius: 50%;
-  background: #FFFFFF;
-  color: #0d755f;
+  background: linear-gradient(135deg, #14a284 0%, #0d755f 55%, #084e3f 100%);
+  color: #FFFFFF;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1316,8 +1316,8 @@ select { width: auto; min-width: 160px; }
   font-size: 16px;
   font-weight: 800;
   overflow: hidden;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  border: 2px solid rgba(255, 255, 255, 0.9);
+  box-shadow: 0 3px 10px rgba(13, 117, 95, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  border: 2px solid rgba(255, 255, 255, 0.95);
 }
 
 .portal-chat-card .chat-header-avatar img {
@@ -1345,22 +1345,21 @@ select { width: auto; min-width: 160px; }
   font-family: var(--font-bricolage), sans-serif;
   font-size: 16px;
   font-weight: 750;
-  color: #FFFFFF;
+  color: #0F172A;
 }
 
 .portal-chat-card .chat-verificado {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  color: #4ADE80;
-  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.2));
+  color: #0d755f;
 }
 
 .portal-chat-card .chat-header-crc {
   margin: 0;
   font-size: 11px;
-  color: rgba(255, 255, 255, 0.8);
-  font-weight: 500;
+  color: #64748B;
+  font-weight: 600;
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
@@ -1371,11 +1370,11 @@ select { width: auto; min-width: 160px; }
   display: flex;
   align-items: center;
   gap: 5px;
-  color: rgba(255, 255, 255, 0.9);
+  color: #64748B;
 }
 
 .portal-chat-card .status-indicator.online {
-  color: #86efac;
+  color: #16a34a;
 }
 
 .portal-chat-card .status-indicator .dot {
@@ -5832,22 +5831,23 @@ td { font-size: 11px; }
     min-height: 56px !important;
     padding: calc(10px + env(safe-area-inset-top, 0px)) 14px 10px !important;
     gap: 10px !important;
-    background: linear-gradient(135deg, #129a7d 0%, #0d755f 50%, #084e3f 100%) !important;
+    background: linear-gradient(135deg, #FFFFFF 0%, #F8FAFC 50%, #F1F5F9 100%) !important;
     border-radius: 0 !important;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.15) !important;
+    border-bottom: 1px solid rgba(203, 213, 225, 0.7) !important;
     display: flex !important;
     align-items: center !important;
-    color: #FFFFFF !important;
-    box-shadow: 0 2px 10px rgba(13, 117, 95, 0.18) !important;
+    color: #0F172A !important;
+    box-shadow: 0 2px 10px rgba(15, 23, 42, 0.03) !important;
   }
   .portal-chat-card .chat-header-avatar {
     width: 38px !important;
     height: 38px !important;
     font-size: 13px !important;
     flex-shrink: 0 !important;
-    background: #FFFFFF !important;
-    color: #0d755f !important;
-    border: 2px solid rgba(255, 255, 255, 0.9) !important;
+    background: linear-gradient(135deg, #14a284 0%, #0d755f 55%, #084e3f 100%) !important;
+    color: #FFFFFF !important;
+    border: 1.5px solid rgba(255, 255, 255, 0.95) !important;
+    box-shadow: 0 2px 8px rgba(13, 117, 95, 0.25) !important;
   }
   .portal-chat-card .chat-header-info {
     display: flex !important;
@@ -5864,7 +5864,7 @@ td { font-size: 11px; }
   .portal-chat-card .chat-header-nome h3 {
     font-size: 14px !important;
     font-weight: 800 !important;
-    color: #FFFFFF !important;
+    color: #0F172A !important;
     margin: 0 !important;
     overflow: hidden !important;
     text-overflow: ellipsis !important;
@@ -5872,12 +5872,13 @@ td { font-size: 11px; }
   }
   .portal-chat-card .chat-header-crc {
     font-size: 10.5px !important;
-    color: rgba(255, 255, 255, 0.85) !important;
+    color: #64748B !important;
     margin: 0 !important;
+    font-weight: 600 !important;
   }
   .portal-chat-card .status-indicator {
     font-size: 10px !important;
-    color: #86efac !important;
+    color: #16a34a !important;
     margin: 0 !important;
   }
   .chat-assunto-faixa {
