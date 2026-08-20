@@ -6,7 +6,7 @@ import Link from "next/link";
 import {
   BarChart3, Bell, CalendarDays, CheckCircle2, ChevronDown, CircleDollarSign,
   ClipboardList, FileText, House, Landmark, LogOut, Menu, MessageCircle,
-  PanelLeftClose, PanelLeftOpen, Settings, UserRound, Users, Users2, X,
+  PanelLeftClose, PanelLeftOpen, Settings, UserRound, Users, Users2, X, Zap,
 } from "lucide-react";
 import { Badge, Button } from "@/components/ui/primitives";
 import { AcompanhamentoIntegralView as AcompanhamentoView, AgendaIntegralView as AgendamentosView, AtendimentoView, ClientesIntegralView as ClientesView, ConfiguracoesIntegralView as ConfiguracoesView, DashboardView, EquipeIntegralView as EquipeView, FinanceiroIntegralView as FinanceiroView, InsightsView, NotificacoesIntegralView as NotificacoesView, PerfilView, RadarFiscalView as RadarView, RelatoriosIntegralView as RelatoriosView, type NotificationItem } from "@/components/views";
@@ -282,7 +282,7 @@ export function AccountantShell({ dashboardData, clientsData, operationsData, us
   const visibleNavItems = navItems.filter(item => !isSectionRestricted(item.id));
 
   return (
-    <div className={`app-shell ${darkModeEnabled ? "dark-mode" : ""}`}>
+    <div className={`app-shell ${darkModeEnabled ? "dark-mode" : ""} view-${active} ${active !== "dashboard" ? "hide-mobile-topbar" : "show-mobile-topbar"} ${active === "atendimento" ? "chat-view-active" : ""}`}>
       <div className="preview-banner">
         <span>HOMOLOGAÇÃO</span> Migração funcional em validação; a versão anterior permanece preservada.
       </div>
@@ -471,6 +471,66 @@ export function AccountantShell({ dashboardData, clientsData, operationsData, us
           </div>
         </div>
       </main>
+
+      {/* BOTTOM NAVIGATION BAR MOBILE */}
+      <nav className="bottom-nav" aria-label="Navegação rápida mobile">
+        <button
+          type="button"
+          className={`bottom-nav-item ${active === "dashboard" ? "active" : ""}`}
+          onClick={() => navigate("dashboard")}
+        >
+          <House size={20} />
+          <span>Início</span>
+        </button>
+
+        <button
+          type="button"
+          className={`bottom-nav-item ${active === "acompanhamento" ? "active" : ""}`}
+          onClick={() => navigate("acompanhamento")}
+        >
+          <Zap size={20} />
+          <span>Processos</span>
+          {dashboardData.expressPending > 0 && (
+            <span className="bottom-nav-badge">
+              {dashboardData.expressPending > 9 ? "9+" : dashboardData.expressPending}
+            </span>
+          )}
+        </button>
+
+        <button
+          type="button"
+          className={`bottom-nav-item ${active === "atendimento" ? "active" : ""}`}
+          onClick={() => navigate("atendimento")}
+        >
+          <MessageCircle size={20} />
+          <span>Chat</span>
+          {dashboardData.unreadMessages > 0 && (
+            <span className="bottom-nav-badge">
+              {dashboardData.unreadMessages > 9 ? "9+" : dashboardData.unreadMessages}
+            </span>
+          )}
+        </button>
+
+        <button
+          type="button"
+          className={`bottom-nav-item ${active === "clientes" ? "active" : ""}`}
+          onClick={() => navigate("clientes")}
+        >
+          <Users size={20} />
+          <span>Clientes</span>
+        </button>
+
+        <button
+          type="button"
+          className={`bottom-nav-item ${!["dashboard", "acompanhamento", "atendimento", "clientes"].includes(active) ? "active" : ""}`}
+          onClick={() => setMobile(true)}
+          aria-label="Abrir menu completo"
+        >
+          <Menu size={20} />
+          <span>Mais</span>
+        </button>
+      </nav>
+
       {feedback && (
         <div className="action-toast" role="status">
           <CheckCircle2 size={17} />

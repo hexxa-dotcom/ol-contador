@@ -35,6 +35,7 @@ import {
   MessageCircle,
   Mic,
   MoreHorizontal,
+  MoreVertical,
   PanelLeftClose,
   PanelLeftOpen,
   Paperclip,
@@ -847,6 +848,7 @@ export function AtendimentoView({
   const [queue, setQueue] = useState<"Chats" | "Agenda do dia">("Chats");
   const [tool, setTool] = useState<"fila" | "copilot">("fila");
   const [mobileChatView, setMobileChatView] = useState<"queue" | "chat" | "copilot">("queue");
+  const [mobileActionsOpen, setMobileActionsOpen] = useState(false);
   const [panelCollapsed, setPanelCollapsed] = useState(false);
   const [chatLocked, setChatLocked] = useState(false);
   const [timerRunning, setTimerRunning] = useState(false);
@@ -1829,12 +1831,14 @@ export function AtendimentoView({
           <button
             type="button"
             className="chat-back-mobile-btn"
-            onClick={() => setMobileChatView("queue")}
+            onClick={() => {
+              setMobileChatView("queue");
+              setMobileActionsOpen(false);
+            }}
             aria-label="Voltar para a lista de conversas"
             title="Voltar para a fila"
           >
-            <ChevronLeft size={18} />
-            <span>Fila</span>
+            <ChevronLeft size={20} />
           </button>
           <div className="avatar">
             {selectedClient
@@ -1846,22 +1850,123 @@ export function AtendimentoView({
               {selectedClient?.name || "Selecione um atendimento"}
             </strong>
             <small>
-              {selectedClient?.email ||
-                selectedClient?.cpf ||
-                "CPF ou CNPJ do cliente"}
+              {selectedClient?.cpf ||
+                selectedClient?.email ||
+                "Atendimento ativo"}
             </small>
           </div>
-          <div className="chat-actions">
-            <button
-              type="button"
-              className="chat-action-button mobile-copilot-toggle"
-              onClick={() => setMobileChatView((v) => (v === "copilot" ? "chat" : "copilot"))}
-              aria-label="Copiloto IA"
-              title="Copiloto IA"
-            >
-              <Bot size={15} />
-              <span className="chat-action-label">IA</span>
-            </button>
+
+          {/* Ações Mobile: Timer compacto + Menu 3 pontinhos */}
+          <div className="chat-actions-mobile">
+            <div className={`timer-capsule compact ${timerRunning ? "running" : ""}`}>
+              <Clock3 size={13} />
+              <strong>{formattedElapsed}</strong>
+              <button
+                disabled={!selectedClient}
+                onClick={toggleTimer}
+                aria-label={timerRunning ? "Pausar cronômetro" : "Iniciar cronômetro"}
+              >
+                {timerRunning ? <Pause size={12} /> : <Play size={12} />}
+              </button>
+            </div>
+
+            <div className="mobile-chat-menu-wrap">
+              <button
+                type="button"
+                className={`chat-action-button mobile-menu-trigger ${mobileActionsOpen ? "active" : ""}`}
+                onClick={() => setMobileActionsOpen((v) => !v)}
+                aria-label="Mais opções de atendimento"
+                title="Mais opções"
+              >
+                <MoreVertical size={17} />
+              </button>
+
+              {mobileActionsOpen && (
+                <>
+                  <div
+                    className="mobile-chat-menu-backdrop"
+                    onClick={() => setMobileActionsOpen(false)}
+                  />
+                  <div className="mobile-chat-menu-popover" role="menu">
+                    <div className="mobile-chat-menu-head">
+                      <strong>Ações do Atendimento</strong>
+                      <small>{selectedClient?.name || "Cliente"}</small>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMobileActionsOpen(false);
+                        setMobileChatView("copilot");
+                      }}
+                      role="menuitem"
+                    >
+                      <Bot size={16} />
+                      <span>Copiloto IA</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      disabled={isSending || !selectedClient}
+                      onClick={() => {
+                        setMobileActionsOpen(false);
+                        toggleChatLock();
+                      }}
+                      role="menuitem"
+                    >
+                      {chatLocked ? <UnlockKeyhole size={16} /> : <LockKeyhole size={16} />}
+                      <span>{chatLocked ? "Desbloquear Chat" : "Bloquear Chat"}</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      disabled={isSending || !selectedClient}
+                      onClick={() => {
+                        setMobileActionsOpen(false);
+                        changeStage("followup");
+                      }}
+                      role="menuitem"
+                    >
+                      <ListChecks size={16} />
+                      <span>Enviar p/ Acompanhamento</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      disabled={!selectedClient || elapsed === 0}
+                      onClick={() => {
+                        setMobileActionsOpen(false);
+                        resetTimer();
+                      }}
+                      role="menuitem"
+                    >
+                      <RotateCcw size={16} />
+                      <span>Zerar Cronômetro</span>
+                    </button>
+
+                    <div className="mobile-chat-menu-divider" />
+
+                    <button
+                      type="button"
+                      className="danger-item"
+                      disabled={isSending || !selectedClient || chatLocked}
+                      onClick={() => {
+                        setMobileActionsOpen(false);
+                        changeStage("finish");
+                      }}
+                      role="menuitem"
+                    >
+                      <CircleCheckBig size={16} />
+                      <span>Encerrar Atendimento</span>
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+
+          {/* Ações Desktop (barra completa tradicional) */}
+          <div className="chat-actions chat-actions-desktop">
             <div className={`timer-capsule ${timerRunning ? "running" : ""}`}>
               <Clock3 size={14} />
               <strong>{formattedElapsed}</strong>
@@ -3743,11 +3848,17 @@ function RadarResult({
   clientDocument,
   onAction,
   busy,
+  podeVoltarPagina,
+  onProximaPagina,
+  onPaginaAnterior,
 }: {
   result: RadarPayload;
   clientDocument: string;
   onAction: (action: string, extra: RadarPayload) => void;
   busy: boolean;
+  podeVoltarPagina?: boolean;
+  onProximaPagina?: () => void;
+  onPaginaAnterior?: () => void;
 }) {
   const pdf = typeof result.pdfBase64 === "string" ? result.pdfBase64 : "";
   const messages = Array.isArray(result.mensagens)
@@ -3776,7 +3887,7 @@ function RadarResult({
         </a>
       </div>
     );
-  const ehResultadoDeCaixaPostal = typeof result.pagina !== "undefined";
+  const ehResultadoDeCaixaPostal = typeof result.naoLidas !== "undefined";
   if (messages.length || ehResultadoDeCaixaPostal)
     return (
       <div className="radar-result-list">
@@ -3821,26 +3932,15 @@ function RadarResult({
         <div className="radar-result-actions">
           <Button
             className="secondary compact"
-            disabled={busy || Number(result.pagina || 1) <= 1}
-            onClick={() =>
-              onAction("caixa-postal", {
-                pagina: Math.max(1, Number(result.pagina || 1) - 1),
-                forcar: true,
-              })
-            }
+            disabled={busy || !podeVoltarPagina}
+            onClick={() => onPaginaAnterior?.()}
           >
             Página anterior
           </Button>
-          <Badge>Página {String(result.pagina || 1)}</Badge>
           <Button
             className="secondary compact"
-            disabled={busy || result.temProxima === false}
-            onClick={() =>
-              onAction("caixa-postal", {
-                pagina: Number(result.pagina || 1) + 1,
-                forcar: true,
-              })
-            }
+            disabled={busy || !result.temProxima}
+            onClick={() => onProximaPagina?.()}
           >
             Próxima página
           </Button>
@@ -3950,6 +4050,10 @@ export function RadarFiscalView({
   const [error, setError] = useState("");
   const [connection, setConnection] = useState("");
   const [detail, setDetail] = useState<RadarPayload | null>(null);
+  // Paginação da Caixa Postal é por ponteiro (cursor), não por número —
+  // essa pilha guarda os ponteiros já visitados pra permitir "página anterior".
+  const [caixaPostalPilha, setCaixaPostalPilha] = useState<(string | null)[]>([]);
+  const [caixaPostalPonteiroAtual, setCaixaPostalPonteiroAtual] = useState<string | null>(null);
   const clients = clientsData.clients.filter(
     (item) =>
       item.cpf &&
@@ -4021,6 +4125,41 @@ export function RadarFiscalView({
       setLoading(false);
     }
   }
+  async function caixaPostalProximaPagina() {
+    const proximo = result?.ponteiroProximaPagina as string | undefined;
+    if (!proximo) return;
+    setLoading(true);
+    setError("");
+    try {
+      const payload = await callRadar("caixa-postal", { ponteiroPagina: proximo, forcar: true });
+      setCaixaPostalPilha((pilha) => [...pilha, caixaPostalPonteiroAtual]);
+      setCaixaPostalPonteiroAtual(proximo);
+      setResult(payload);
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Não foi possível carregar a próxima página.");
+    } finally {
+      setLoading(false);
+    }
+  }
+  async function caixaPostalPaginaAnterior() {
+    if (!caixaPostalPilha.length) return;
+    const pilha = [...caixaPostalPilha];
+    const anterior = pilha.pop() ?? null;
+    setLoading(true);
+    setError("");
+    try {
+      const payload = anterior
+        ? await callRadar("caixa-postal", { ponteiroPagina: anterior, forcar: true })
+        : await callRadar("caixa-postal");
+      setCaixaPostalPilha(pilha);
+      setCaixaPostalPonteiroAtual(anterior);
+      setResult(payload);
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Não foi possível voltar a página.");
+    } finally {
+      setLoading(false);
+    }
+  }
   async function execute() {
     if (!selected) {
       feedback("Selecione um cliente com procuração eletrônica.");
@@ -4058,11 +4197,12 @@ export function RadarFiscalView({
           CND: "cnd",
         };
         payload = await callRadar(actions[tab], {
-          pagina: 1,
           regime: regime || undefined,
           forcar: force,
         });
       }
+      setCaixaPostalPilha([]);
+      setCaixaPostalPonteiroAtual(null);
       setResult(payload);
     } catch (reason) {
       setError(
@@ -4225,6 +4365,9 @@ export function RadarFiscalView({
             clientDocument={selected?.cpf?.replace(/\D/g, "") || ""}
             onAction={(action, extra) => void executeSubAction(action, extra)}
             busy={loading}
+            podeVoltarPagina={caixaPostalPilha.length > 0}
+            onProximaPagina={() => void caixaPostalProximaPagina()}
+            onPaginaAnterior={() => void caixaPostalPaginaAnterior()}
           />
         )}
         {detail && (

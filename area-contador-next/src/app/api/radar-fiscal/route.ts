@@ -208,7 +208,7 @@ export async function POST(request: Request) {
   if (![11, 14].includes(documento.length)) return NextResponse.json({ error: "documento_invalido", detail: "Informe um CPF com 11 dígitos ou CNPJ com 14 dígitos." }, { status: 400 });
 
   const forcarAtualizacao = !!(souStaff && body.forcar);
-  if (acao === "caixa-postal" && clienteRef && !forcarAtualizacao && (parseInt(String(body.pagina), 10) || 1) === 1) {
+  if (acao === "caixa-postal" && clienteRef && !forcarAtualizacao && !body.ponteiroPagina) {
     const salvo = await buscarResultadoSalvo(admin, clienteRef, "caixa-postal", radarCfg.caixaPostalIntervaloDias * 24);
     if (salvo) return NextResponse.json({ ...(salvo.resultado as object), cacheado: true, obtidoEm: salvo.obtido_em });
   }
@@ -237,10 +237,10 @@ export async function POST(request: Request) {
 
       case "caixa-postal": {
         try {
-          const pagina = Math.max(1, parseInt(String(body.pagina), 10) || 1);
-          const r = await serpro.consultarCaixaPostal(documento, pagina);
+          const ponteiroPagina = (body.ponteiroPagina as string) || null;
+          const r = await serpro.consultarCaixaPostal(documento, ponteiroPagina);
           await log("CAIXAPOSTAL", "MSGCONTRIBUINTE61", "Consultar", true);
-          if (pagina === 1) await guardarResultado(admin, clienteRef, "caixa-postal", r, radarCfg.caixaPostalIntervaloDias * 24);
+          if (!ponteiroPagina) await guardarResultado(admin, clienteRef, "caixa-postal", r, radarCfg.caixaPostalIntervaloDias * 24);
           if (clienteRef) {
             await admin.from("clientes").update({ caixa_postal_novas: false, caixa_postal_checada_em: new Date().toISOString() }).eq("id", clienteRef);
           }

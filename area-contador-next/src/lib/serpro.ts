@@ -214,32 +214,53 @@ export async function indicadorNovasMensagens(documento: string) {
   return { temNovas: flag === true || flag === 1 || flag === "1" || flag === "S", bruto: d };
 }
 
-export async function consultarCaixaPostal(documento: string, pagina = 1) {
+// Formata "20250408" + "092949" (formato do SERPRO) em ISO 8601.
+function dataHoraSerpro(data: unknown, hora: unknown): string | null {
+  const d = String(data || "");
+  if (d.length !== 8) return null;
+  const h = String(hora || "");
+  const hh = h.length === 6 ? `${h.slice(0, 2)}:${h.slice(2, 4)}:${h.slice(4, 6)}` : "00:00:00";
+  return `${d.slice(0, 4)}-${d.slice(4, 6)}-${d.slice(6, 8)}T${hh}`;
+}
+
+// Documentação oficial (obter_lista_de_mensagens_por_contribuintes): "dados"
+// vem como { codigo, conteudo: [{ listaMensagens: [...], ponteiroProximaPagina,
+// indicadorUltimaPagina, ... }] } — um array de UM bloco que contém a lista
+// de verdade dentro, não a lista direto. Paginação é por ponteiro, não por
+// número de página: indicadorPagina "0" pede a primeira página; "1" +
+// ponteiroPagina (devolvido como ponteiroProximaPagina na chamada anterior)
+// pedem as seguintes.
+export async function consultarCaixaPostal(documento: string, ponteiroPagina?: string | null) {
   const digitos = String(documento).replace(/\D/g, "");
-  const paginaSegura = Math.max(1, Math.min(999, parseInt(String(pagina), 10) || 1));
+  const primeira = !ponteiroPagina;
   const resp = await chamarIntegraContador({
     acao: "Consultar",
     idSistema: "CAIXAPOSTAL",
     idServico: "MSGCONTRIBUINTE61",
-    dados: JSON.stringify({ indicadorPagina: String(paginaSegura), statusLeitura: "0" }),
+    dados: JSON.stringify({
+      statusLeitura: "0",
+      indicadorPagina: primeira ? "0" : "1",
+      ponteiroPagina: primeira ? "00000000000000" : String(ponteiroPagina),
+    }),
     documento: digitos,
     tipoDocumento: tipoDoDocumento(digitos),
   });
   const d = parseDados(resp) as Record<string, unknown>;
-  const lista = encontrarLista(d, ["listaMensagens", "mensagens", "mensagem", "itens"]);
-  const totalPaginas = Number(d && (d.quantidadePaginas || d.totalPaginas || d.numeroPaginas)) || null;
-  const temProxima = typeof (d && d.indicadorProximaPagina) !== "undefined" ? flagVerdadeira(d.indicadorProximaPagina) : totalPaginas ? paginaSegura < totalPaginas : lista.length >= 20;
+  const conteudo = Array.isArray(d?.conteudo) ? (d.conteudo as Record<string, unknown>[]) : [];
+  const bloco = conteudo[0] || {};
+  const lista = Array.isArray(bloco.listaMensagens) ? (bloco.listaMensagens as Record<string, unknown>[]) : [];
+  const ultimaPagina = String(bloco.indicadorUltimaPagina || "").toUpperCase() === "S";
+  const proximoPonteiro = bloco.ponteiroProximaPagina ? String(bloco.ponteiroProximaPagina) : null;
   return {
-    pagina: paginaSegura,
-    totalPaginas,
-    temProxima,
-    naoLidas: lista.filter((m) => !flagVerdadeira(m.lida ?? m.indicadorLeitura ?? m.statusLeitura)).length,
+    ponteiroProximaPagina: !ultimaPagina ? proximoPonteiro : null,
+    temProxima: !ultimaPagina && !!proximoPonteiro,
+    naoLidas: lista.filter((m) => !flagVerdadeira(m.indicadorLeitura)).length,
     mensagens: lista.map((m) => ({
-      isn: m.isn || m.isnMensagem || m.identificadorMensagem || null,
-      data: m.dataRecepcao || m.dataDisponibilizacao || m.data || null,
-      assunto: m.assunto || m.titulo || m.nomeMensagem || "Mensagem da Receita Federal",
-      remetente: m.remetente || m.nomeRemetente || null,
-      lida: flagVerdadeira(m.lida ?? m.indicadorLeitura ?? m.statusLeitura),
+      isn: m.isn || null,
+      data: dataHoraSerpro(m.dataEnvio, m.horaEnvio),
+      assunto: m.assuntoModelo || "Mensagem da Receita Federal",
+      remetente: m.descricaoOrigem || null,
+      lida: flagVerdadeira(m.indicadorLeitura),
     })),
   };
 }

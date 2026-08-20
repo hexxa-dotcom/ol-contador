@@ -252,6 +252,65 @@ export function ClientShell({ data }: { data: PortalData }) {
           </div>
         </div>
       </main>
+
+      {/* BOTTOM NAVIGATION BAR MOBILE CLIENTE */}
+      <nav className="bottom-nav" aria-label="Navegação rápida do cliente">
+        <button
+          type="button"
+          className={`bottom-nav-item ${active === "dashboard" ? "active" : ""}`}
+          onClick={() => navigate("dashboard")}
+          disabled={onboardingPendente}
+        >
+          <House size={20} />
+          <span>Início</span>
+        </button>
+
+        <button
+          type="button"
+          className={`bottom-nav-item ${active === "documentos" ? "active" : ""}`}
+          onClick={() => navigate("documentos")}
+          disabled={onboardingPendente}
+        >
+          <FolderOpen size={20} />
+          <span>Documentos</span>
+        </button>
+
+        <button
+          type="button"
+          className={`bottom-nav-item ${active === "atendimento" ? "active" : ""}`}
+          onClick={() => navigate("atendimento")}
+          disabled={onboardingPendente}
+        >
+          <MessageCircle size={20} />
+          <span>Suporte</span>
+          {!onboardingPendente && data.unreadMessages > 0 && (
+            <span className="bottom-nav-badge">
+              {data.unreadMessages > 9 ? "9+" : data.unreadMessages}
+            </span>
+          )}
+        </button>
+
+        <button
+          type="button"
+          className={`bottom-nav-item ${active === "agendamento" ? "active" : ""}`}
+          onClick={() => navigate("agendamento")}
+          disabled={onboardingPendente}
+        >
+          <CalendarDays size={20} />
+          <span>Agenda</span>
+        </button>
+
+        <button
+          type="button"
+          className={`bottom-nav-item ${!["dashboard", "documentos", "atendimento", "agendamento"].includes(active) ? "active" : ""}`}
+          onClick={() => setMobile(true)}
+          aria-label="Abrir menu completo"
+        >
+          <Menu size={20} />
+          <span>Menu</span>
+        </button>
+      </nav>
+
       {feedback && (
         <div className="action-toast" role="status">
           <CheckCircle2 size={17} />
