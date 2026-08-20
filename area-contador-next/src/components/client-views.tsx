@@ -921,6 +921,17 @@ export function PortalAtendimentoView({
       <PageTitle title="Atendimento" description="Converse com o escritório sobre o seu caso." />
       <Card className="portal-chat-card">
         <div className="chat-header">
+          {onNavigate && (
+            <button
+              type="button"
+              className="chat-back-mobile-btn"
+              onClick={() => onNavigate("dashboard")}
+              aria-label="Voltar para a área inicial"
+              title="Voltar ao início"
+            >
+              <ChevronLeft size={20} />
+            </button>
+          )}
           <div className="chat-header-avatar" aria-hidden="true">
             {contador.logoDataUrl ? <img src={contador.logoDataUrl} alt="" /> : initials}
           </div>
