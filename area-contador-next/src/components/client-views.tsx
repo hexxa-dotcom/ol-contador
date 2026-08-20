@@ -1007,8 +1007,7 @@ export function PortalAtendimentoView({
         : "Escreva sua mensagem…";
 
   return (
-    <div className="view-stack">
-      <PageTitle title="Atendimento" description="Converse com o escritório sobre o seu caso." />
+    <div className="view-stack portal-chat-view-stack">
       <Card className="portal-chat-card">
         <div className="chat-header">
           {onNavigate && (
