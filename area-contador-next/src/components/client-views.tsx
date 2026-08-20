@@ -441,16 +441,16 @@ export function PortalDashboardView({ data, onNavigate }: { data: PortalData; on
       {/* CABEÇALHO DO CLIENTE */}
       <div className="portal-hero-header">
         <div className="portal-hero-info">
-          <div className="portal-hero-status-pill">
-            <span className="portal-hero-status-dot" />
-            <span>Área do Cliente</span>
-          </div>
           <h1 className="portal-hero-title">
             Olá, {primeiroNome}! 👋
           </h1>
           <p className="portal-hero-desc">
             Acompanhe em tempo real o status do seu caso, mensagens e relatórios oficiais.
           </p>
+        </div>
+        <div className="portal-hero-status-pill">
+          <span className="portal-hero-status-dot" />
+          <span>Área do Cliente</span>
         </div>
       </div>
 

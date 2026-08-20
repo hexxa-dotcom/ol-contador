@@ -2,6 +2,7 @@
 // Autenticação mTLS + OAuth2. Uma requisição por serviço do catálogo; sem
 // fallback simulado — se o SERPRO não responder, vira erro.
 import https from "node:https";
+import sanitizeHtml from "sanitize-html";
 import { adminClient } from "./supabase/admin";
 import { getSystemSecret } from "./systemSecrets";
 
@@ -321,14 +322,19 @@ export async function consultarCaixaPostal(documento: string, ponteiroPagina?: s
 }
 
 // Remove tags/atributos perigosos do HTML que a Receita manda no corpo da
-// mensagem — o conteúdo vem de fonte confiável (SERPRO autenticado), mas
-// não custa não confiar cegamente num HTML que vai direto pra tela.
+// mensagem — o conteúdo vem de fonte confiável (SERPRO autenticado), mas não
+// custa não confiar cegamente num HTML que vai direto pra tela (renderizado
+// via dangerouslySetInnerHTML). Usa parser de HTML de verdade (sanitize-html,
+// baseado em htmlparser2) em vez de regex — regex não dá conta de casos como
+// `<svg/onload=...>` (sem espaço antes do atributo) ou de outras tags/
+// atributos capazes de rodar script além de on*/script/iframe/javascript:.
 function sanitizarHtmlMensagem(html: string): string {
-  return html
-    .replace(/<script[\s\S]*?<\/script>/gi, "")
-    .replace(/<iframe[\s\S]*?<\/iframe>/gi, "")
-    .replace(/\son\w+\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi, "")
-    .replace(/(href|src)\s*=\s*("|')\s*javascript:[^"']*\2/gi, '$1="#"');
+  return sanitizeHtml(html, {
+    allowedTags: ["p", "br", "b", "strong", "i", "em", "u", "ul", "ol", "li", "a", "table", "thead", "tbody", "tr", "td", "th", "span", "div"],
+    allowedAttributes: { a: ["href"] },
+    allowedSchemesByTag: { a: ["http", "https", "mailto"] },
+    transformTags: { a: sanitizeHtml.simpleTransform("a", { rel: "noopener noreferrer", target: "_blank" }) },
+  });
 }
 
 // Substitui ++VARIAVEL++ (assunto, valor único) e ++1++, ++2++... (corpo,

@@ -44,15 +44,26 @@ async function precoDe(id: string, fallbackCents: number): Promise<number> {
   return data?.price_cents ?? fallbackCents;
 }
 
+const JSON_LD_FAQ = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: FAQ.map((item) => ({
+    "@type": "Question",
+    name: item.p,
+    acceptedAnswer: { "@type": "Answer", text: item.r },
+  })),
+};
+
 export default async function PrecosPage() {
   const [pf, pj, consulta] = await Promise.all([
-    precoDe("pf", 19900), 
-    precoDe("pj-atendimento", 39900), 
+    precoDe("pf", 19900),
+    precoDe("pj-atendimento", 39900),
     precoDe("consulta", 19900)
   ]);
 
   return (
     <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD_FAQ) }} />
       <SiteHeader active="precos" />
       <main className={styles.mainWrapper}>
         <div className={styles.container}>

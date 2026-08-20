@@ -5,13 +5,13 @@ import { HomePage } from "./home-page";
 export const metadata: Metadata = {
   title: "Olá, Contador — Um contador de verdade, dedicado ao seu caso",
   description: "Conte o que está acontecendo, envie os documentos pelo celular, e um contador com registro CRC ativo cuida do seu caso do começo ao fim. Se não resolvermos, devolvemos seu dinheiro.",
-  alternates: { canonical: "https://www.olacontador.com.br/" },
+  alternates: { canonical: "https://olacontador.com.br/" },
   openGraph: {
     type: "website",
     siteName: "Olá, Contador",
     title: "Olá, Contador — Um contador de verdade, dedicado ao seu caso",
     description: "Conte o que está acontecendo, envie os documentos pelo celular, e um contador com registro CRC ativo cuida do seu caso do começo ao fim. Se não resolvermos, devolvemos seu dinheiro.",
-    url: "https://www.olacontador.com.br/",
+    url: "https://olacontador.com.br/",
     locale: "pt_BR",
   },
   twitter: {
@@ -25,7 +25,7 @@ const JSON_LD_SERVICO = {
   "@context": "https://schema.org",
   "@type": "ProfessionalService",
   name: "Olá, Contador",
-  url: "https://www.olacontador.com.br/",
+  url: "https://olacontador.com.br/",
   description: "Atendimento contábil sob demanda com contador de registro CRC ativo, dedicado ao seu caso. Envie o caso e os documentos pelo celular, com garantia de reembolso.",
   areaServed: "BR",
   priceRange: "R$ 199 - R$ 399",
