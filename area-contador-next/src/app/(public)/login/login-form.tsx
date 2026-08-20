@@ -2,7 +2,7 @@
 
 import { useEffect, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import { LockKeyhole, Mail } from "lucide-react";
+import { KeyRound, LockKeyhole, Mail } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import styles from "./login.module.css";
 
@@ -10,11 +10,12 @@ export function LoginForm() {
   const router = useRouter();
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [mode, setMode] = useState<"login" | "request" | "recovery">("login");
+  const [mode, setMode] = useState<"login" | "request" | "recovery" | "otp-request" | "otp-verify">("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmation, setConfirmation] = useState("");
   const [success, setSuccess] = useState("");
+  const [otpCode, setOtpCode] = useState("");
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -36,6 +37,39 @@ export function LoginForm() {
       return;
     }
 
+    if (mode === "otp-request") {
+      // shouldCreateUser:false é a trava de segurança — sem isso, qualquer
+      // e-mail digitado criaria conta nova. Só quem já tem conta recebe
+      // código; e-mail inexistente também mostra a mesma mensagem genérica
+      // (não confirma nem nega se a conta existe).
+      const { error: otpError } = await supabase.auth.signInWithOtp({
+        email: email.trim(),
+        options: { shouldCreateUser: false },
+      });
+      setLoading(false);
+      if (otpError && !/rate limit/i.test(otpError.message)) {
+        setError("Não foi possível enviar o código agora.");
+        return;
+      }
+      setSuccess("Se o e-mail estiver cadastrado, você recebeu um código de acesso.");
+      setMode("otp-verify");
+      return;
+    }
+    if (mode === "otp-verify") {
+      const { error: verifyError } = await supabase.auth.verifyOtp({
+        email: email.trim(),
+        token: otpCode.trim(),
+        type: "email",
+      });
+      setLoading(false);
+      if (verifyError) {
+        setError("Código inválido ou expirado. Solicite um novo.");
+        return;
+      }
+      router.replace("/painel");
+      router.refresh();
+      return;
+    }
     if (mode === "request") {
       const redirectTo = `${window.location.origin}/auth/callback?next=${encodeURIComponent("/login?recovery=1")}`;
       const { error: resetError } = await supabase.auth.resetPasswordForEmail(
@@ -87,7 +121,7 @@ export function LoginForm() {
 
   return (
     <form className={styles.form} onSubmit={submit}>
-      {mode !== "recovery" && (
+      {mode !== "recovery" && mode !== "otp-verify" && (
         <div>
           <label htmlFor="login-email">E-mail</label>
           <div className={styles.field}>
@@ -96,7 +130,16 @@ export function LoginForm() {
           </div>
         </div>
       )}
-      {mode !== "request" && (
+      {mode === "otp-verify" && (
+        <div>
+          <label htmlFor="login-otp">Código de acesso</label>
+          <div className={styles.field}>
+            <KeyRound size={16} />
+            <input id="login-otp" className={styles.input} name="otp" inputMode="numeric" autoComplete="one-time-code" value={otpCode} onChange={(event) => setOtpCode(event.target.value)} placeholder="Digite o código recebido por e-mail" required />
+          </div>
+        </div>
+      )}
+      {mode !== "request" && mode !== "otp-request" && mode !== "otp-verify" && (
         <div>
           <label htmlFor="login-password">{mode === "recovery" ? "Nova senha" : "Senha"}</label>
           <div className={styles.field}>
@@ -117,12 +160,29 @@ export function LoginForm() {
       {error && <div className={`${styles.msg} ${styles.msgErr}`} role="alert">{error}</div>}
       {success && <div className={`${styles.msg} ${styles.msgOk}`} role="status">{success}</div>}
       <button className={styles.button} type="submit" disabled={loading}>
-        {loading ? "Processando…" : mode === "request" ? "Enviar link seguro" : mode === "recovery" ? "Salvar nova senha" : "Entrar"}
+        {loading
+          ? "Processando…"
+          : mode === "request"
+            ? "Enviar link seguro"
+            : mode === "recovery"
+              ? "Salvar nova senha"
+              : mode === "otp-request"
+                ? "Enviar código"
+                : mode === "otp-verify"
+                  ? "Confirmar código"
+                  : "Entrar"}
       </button>
-      {mode === "login" ? (
-        <button className={styles.link} type="button" onClick={() => { setError(""); setSuccess(""); setMode("request"); }}>Esqueci minha senha</button>
-      ) : (
-        <button className={styles.link} type="button" onClick={() => { setError(""); setSuccess(""); setMode("login"); }}>Voltar para o login</button>
+      {mode === "login" && (
+        <>
+          <button className={styles.link} type="button" onClick={() => { setError(""); setSuccess(""); setMode("request"); }}>Esqueci minha senha</button>
+          <button className={styles.link} type="button" onClick={() => { setError(""); setSuccess(""); setOtpCode(""); setMode("otp-request"); }}>Entrar sem senha (código por e-mail)</button>
+        </>
+      )}
+      {mode !== "login" && (
+        <button className={styles.link} type="button" onClick={() => { setError(""); setSuccess(""); setOtpCode(""); setMode("login"); }}>Voltar para o login</button>
+      )}
+      {mode === "otp-verify" && (
+        <button className={styles.link} type="button" onClick={() => { setError(""); setSuccess(""); setMode("otp-request"); }}>Reenviar código</button>
       )}
     </form>
   );
