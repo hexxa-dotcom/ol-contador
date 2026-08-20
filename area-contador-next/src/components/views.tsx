@@ -185,6 +185,7 @@ const tabsByView: Record<string, string[]> = {
     "Inteligência Artificial (AIA)",
     "Aparência do Chat",
     "Log do Sistema",
+    "Integrações Externas",
     "Chaves de API",
   ],
 };
@@ -1006,6 +1007,19 @@ export function AtendimentoView({
   const selectedClient =
     clientsData.clients.find((client) => client.id === selectedClientId) ||
     null;
+  const selectedTriage =
+    clientsData.triages.find((t) => t.cliente_ref === selectedClientId && t.status !== "finalizada") ||
+    clientsData.triages.find((t) => t.cliente_ref === selectedClientId) ||
+    null;
+  const selectedAssunto =
+    selectedTriage?.assunto ||
+    selectedClient?.treatment ||
+    selectedClient?.diagnosis ||
+    "Atendimento Geral";
+  const selectedProtocolo =
+    selectedTriage?.id
+      ? String(selectedTriage.id).padStart(4, "0")
+      : (selectedClient ? String(selectedClient.id).replace(/\D/g, "").slice(0, 6) || "2026-001" : "2026-001");
   const selectedMessages = messages
     .filter((item) => item.cliente_id === selectedClientId)
     .sort((a, b) => a.seq - b.seq);
@@ -2022,6 +2036,18 @@ export function AtendimentoView({
             </button>
           </div>
         </header>
+        {selectedClient && (
+          <div className="chat-assunto-faixa">
+            <div className="chat-assunto-info">
+              <span className="chat-assunto-tag">Caso:</span>
+              <strong className="chat-assunto-nome" title={selectedAssunto}>
+                {selectedAssunto}
+              </strong>
+            </div>
+            <span className="chat-assunto-sep">·</span>
+            <span className="chat-assunto-protocolo">Protocolo: #OC-{selectedProtocolo}</span>
+          </div>
+        )}
         {selectedClient ? (
           <div className="chat-messages" aria-live="polite">
             {selectedMessages.map((item) => {
@@ -5235,6 +5261,11 @@ const settingsContent: Record<string, [string, string, string[]]> = {
     "Erros e eventos de integrações — pra detectar problemas antes do cliente reclamar.",
     ["Erros registrados", "Eventos de webhook"],
   ],
+  "Integrações Externas": [
+    "Integrações Externas",
+    "Conexão e credenciais dos serviços externos que o sistema depende pra funcionar de verdade.",
+    ["SERPRO — Integra Contador", "Certificado digital e-CNPJ"],
+  ],
   "Chaves de API": [
     "Chaves de API",
     "Credenciais de integrações editáveis por aqui — trocam na hora, sem depender de redeploy.",
@@ -5505,6 +5536,50 @@ export function ConfiguracoesIntegralView({
     const result = await response.json().catch(() => ({ ok: false, detail: "Resposta inválida" }));
     setSerproTeste(response.ok ? { ok: Boolean(result.ok), detail: result.detail } : { ok: false, detail: result.error || result.detail });
   }
+  const [certMeta, setCertMeta] = useState<{ validoDesde: string; validoAte: string; titular: string } | null>(null);
+  const [certDiasRestantes, setCertDiasRestantes] = useState<number | null>(null);
+  const [certLoaded, setCertLoaded] = useState(false);
+  const [certArquivo, setCertArquivo] = useState<File | null>(null);
+  const [certSenha, setCertSenha] = useState("");
+  const [certEnviando, setCertEnviando] = useState(false);
+  const [certErro, setCertErro] = useState("");
+  async function carregarCertificadoSerpro() {
+    const response = await fetch("/api/serpro/certificado");
+    const result = await response.json().catch(() => ({ meta: null }));
+    setCertMeta(result.meta || null);
+    setCertDiasRestantes(typeof result.diasRestantes === "number" ? result.diasRestantes : null);
+    setCertLoaded(true);
+  }
+  async function enviarCertificadoSerpro() {
+    if (!certArquivo || !certSenha) return;
+    setCertEnviando(true);
+    setCertErro("");
+    try {
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result || ""));
+        reader.onerror = () => reject(reader.error);
+        reader.readAsDataURL(certArquivo);
+      });
+      const response = await fetch("/api/serpro/certificado", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ base64, senha: certSenha }),
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        setCertErro(result.detail || "Não foi possível processar o certificado.");
+        return;
+      }
+      setCertMeta(result.meta || null);
+      setCertDiasRestantes(typeof result.diasRestantes === "number" ? result.diasRestantes : null);
+      setCertArquivo(null);
+      setCertSenha("");
+      feedback(`Certificado atualizado — válido até ${new Date(result.meta.validoAte).toLocaleDateString("pt-BR")}.`);
+    } finally {
+      setCertEnviando(false);
+    }
+  }
   const [systemSecrets, setSystemSecrets] = useState<Array<{ chave: string; label: string; grupo: string; nota?: string; usosDisponiveis?: string[]; testavel?: boolean }>>([]);
   const [systemSecretsStatus, setSystemSecretsStatus] = useState<Record<string, { origem: "banco" | "ambiente" | "nenhuma"; atualizadoEm: string | null }>>({});
   const [systemSecretsUsos, setSystemSecretsUsos] = useState<Record<string, Record<string, boolean>>>({});
@@ -5654,6 +5729,7 @@ export function ConfiguracoesIntegralView({
   }
   useEffect(() => {
     if (tab === "Log do Sistema" && !systemErrorsLoaded && !webhookEventsLoaded) void carregarLogSistema();
+    if (tab === "Integrações Externas" && !certLoaded) void carregarCertificadoSerpro();
     if (tab === "Chaves de API" && !systemSecretsLoaded) void carregarChavesSistema();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab]);
@@ -6432,17 +6508,20 @@ export function ConfiguracoesIntegralView({
               ) : (
                 <EmptyState>Nenhum evento de webhook registrado ainda.</EmptyState>
               )}
-
-              <div className="card-heading" style={{ marginTop: 24 }}>
+            </>
+          )}
+          {tab === "Integrações Externas" && (
+            <>
+              <div className="card-heading">
                 <div>
                   <ShieldCheck size={18} />
-                  <strong>Integrações externas</strong>
+                  <strong>SERPRO — Integra Contador</strong>
                 </div>
               </div>
               <div className="settings-item-row">
                 <div>
-                  <strong>SERPRO — Integra Contador</strong>
-                  <small>Testa a autenticação OAuth2 + certificado mTLS com as credenciais configuradas na Vercel.</small>
+                  <strong>Conexão OAuth2 + mTLS</strong>
+                  <small>Testa a autenticação com as credenciais configuradas (banco ou Vercel).</small>
                 </div>
                 <Button className="secondary compact" disabled={serproTeste === "loading"} onClick={() => void testarConexaoSerpro()}>
                   {serproTeste === "loading" ? "Testando…" : "Testar conexão"}
@@ -6453,6 +6532,52 @@ export function ConfiguracoesIntegralView({
                   </small>
                 )}
               </div>
+
+              <div className="settings-item-row">
+                <div>
+                  <strong>Certificado digital e-CNPJ (mTLS)</strong>
+                  <small>Suba o arquivo .pfx/.p12 e a senha — converte, salva criptografado e já vale sem redeploy.</small>
+                  {certLoaded && certMeta && (
+                    <small
+                      className={
+                        certDiasRestantes === null
+                          ? "muted"
+                          : certDiasRestantes < 0
+                            ? "system-secret-test-fail"
+                            : certDiasRestantes <= 30
+                              ? "system-secret-test-fail"
+                              : certDiasRestantes <= 60
+                                ? "muted"
+                                : "system-secret-test-ok"
+                      }
+                    >
+                      {certDiasRestantes !== null && certDiasRestantes < 0
+                        ? `✗ Venceu em ${new Date(certMeta.validoAte).toLocaleDateString("pt-BR")} — o Integra Contador vai falhar até subir um novo.`
+                        : `${certMeta.titular ? `${certMeta.titular} · ` : ""}válido até ${new Date(certMeta.validoAte).toLocaleDateString("pt-BR")}${certDiasRestantes !== null ? ` (faltam ${certDiasRestantes} dia${certDiasRestantes === 1 ? "" : "s"})` : ""}${certDiasRestantes !== null && certDiasRestantes <= 60 ? " — vencimento próximo, já providencie a renovação." : ""}`}
+                    </small>
+                  )}
+                  {certLoaded && !certMeta && <small className="muted">Nenhum certificado configurado ainda.</small>}
+                </div>
+              </div>
+              <div className="settings-item-row">
+                <input
+                  type="file"
+                  accept=".pfx,.p12"
+                  onChange={(event) => setCertArquivo(event.target.files?.[0] || null)}
+                />
+                <Input
+                  type="password"
+                  placeholder="Senha do certificado"
+                  value={certSenha}
+                  onChange={(event) => setCertSenha(event.target.value)}
+                />
+                <Button className="secondary compact" disabled={certEnviando || !certArquivo || !certSenha} onClick={() => void enviarCertificadoSerpro()}>
+                  <Upload size={14} /> {certEnviando ? "Enviando…" : "Subir certificado"}
+                </Button>
+              </div>
+              {certErro && (
+                <small className="system-secret-test-fail" role="alert">✗ {certErro}</small>
+              )}
             </>
           )}
           {tab === "Chaves de API" && (

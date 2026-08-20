@@ -1357,45 +1357,84 @@ select { width: auto; min-width: 160px; }
   50% { opacity: 0.5; transform: scale(1.2); }
 }
 
-.portal-chat-card .chat-header-meta {
-  margin-left: auto;
-  flex: 0 0 auto;
+/* Faixa de Contexto do Atendimento (Assunto + Protocolo): discreta, 1 linha, clean */
+.chat-assunto-faixa {
+  flex-shrink: 0;
   display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  justify-content: center;
-  gap: 3px;
-  text-align: right;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 20px;
+  background: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+  font-size: 11.5px;
+  color: #64748b;
+  min-width: 0;
+  overflow: hidden;
+  box-sizing: border-box;
 }
 
-.portal-chat-card .chat-header-meta-label {
+.chat-assunto-info {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  overflow: hidden;
+  flex: 1;
+}
+
+.chat-assunto-tag {
   font-size: 10px;
+  font-weight: 750;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  font-weight: 700;
-  color: rgba(255, 255, 255, 0.7);
+  color: #94a3b8;
+  flex-shrink: 0;
 }
 
-.portal-chat-card .chat-header-assunto {
-  font-size: 12px;
+.chat-assunto-nome {
   font-weight: 700;
-  color: #FFFFFF;
-  max-width: 240px;
-  white-space: nowrap;
+  color: #0C5446;
   overflow: hidden;
   text-overflow: ellipsis;
-  background: rgba(255, 255, 255, 0.14);
-  padding: 4px 12px;
-  border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  backdrop-filter: blur(8px);
+  white-space: nowrap;
+  min-width: 0;
+  font-size: 12px;
 }
 
-.portal-chat-card .chat-header-codigo {
-  font-size: 10.5px;
-  color: rgba(255, 255, 255, 0.75);
-  font-family: ui-monospace, monospace;
+.chat-assunto-sep {
+  color: #cbd5e1;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+
+.chat-assunto-protocolo {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
   font-weight: 600;
+  color: #334155;
+  background: rgba(12, 84, 70, 0.06);
+  padding: 2px 8px;
+  border-radius: 6px;
+  border: 1px solid rgba(12, 84, 70, 0.12);
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.chat-dark .chat-assunto-faixa {
+  background: rgba(15, 23, 42, 0.95);
+  border-bottom-color: rgba(255, 255, 255, 0.1);
+  color: #94a3b8;
+}
+
+.chat-dark .chat-assunto-nome {
+  color: #6ee7b7;
+}
+
+.chat-dark .chat-assunto-protocolo {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.15);
+  color: #e2e8f0;
 }
 
 /* Trava de Chat / Lock Banners */
@@ -5779,8 +5818,20 @@ td { font-size: 11px; }
     color: #86efac !important;
     margin: 0 !important;
   }
-  .portal-chat-card .chat-header-meta {
-    display: none !important;
+  .chat-assunto-faixa {
+    padding: 6px 12px !important;
+    gap: 6px !important;
+    font-size: 11px !important;
+    background: #f1f5f9 !important;
+    border-bottom: 1px solid #e2e8f0 !important;
+    flex-shrink: 0 !important;
+  }
+  .chat-assunto-nome {
+    font-size: 11.5px !important;
+  }
+  .chat-assunto-protocolo {
+    font-size: 10px !important;
+    padding: 2px 6px !important;
   }
   .portal-chat-card .chat-lock-banner {
     flex-shrink: 0 !important;

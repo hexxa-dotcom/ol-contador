@@ -950,11 +950,16 @@ export function PortalAtendimentoView({
               <span className="status-text">{presence.label}</span>
             </div>
           </div>
-          <div className="chat-header-meta">
-            <span className="chat-header-meta-label">Atendimento sobre:</span>
-            <strong className="chat-header-assunto">{nomeCaso}</strong>
-            <span className="chat-header-codigo">Protocolo: #OC-{protocolo}</span>
+        </div>
+
+        {/* Faixa do atendimento: discreta, 1 linha, abaixo do cabeçalho */}
+        <div className="chat-assunto-faixa">
+          <div className="chat-assunto-info">
+            <span className="chat-assunto-tag">Caso:</span>
+            <strong className="chat-assunto-nome" title={nomeCaso}>{nomeCaso}</strong>
           </div>
+          <span className="chat-assunto-sep">·</span>
+          <span className="chat-assunto-protocolo">Protocolo: #OC-{protocolo}</span>
         </div>
         {lock.mode !== "none" && (
           <div className={`chat-lock-banner ${lock.mode}`}>
