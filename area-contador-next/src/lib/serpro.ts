@@ -241,9 +241,6 @@ export async function consultarCaixaPostal(documento: string, pagina = 1) {
       remetente: m.remetente || m.nomeRemetente || null,
       lida: flagVerdadeira(m.lida ?? m.indicadorLeitura ?? m.statusLeitura),
     })),
-    // Diagnóstico temporário — resposta crua do SERPRO, pra ver o que
-    // realmente veio quando a lista de mensagens sai vazia.
-    _bruto: resp,
   };
 }
 
