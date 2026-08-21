@@ -38,7 +38,7 @@ const ASSUNTOS = [
   "CPF cancelado ou pendente",
   "CNPJ inapto ou suspenso",
   "Ganho de capital na venda de bens",
-  "Abertura e baixa de MEI",
+  "Serviços diversos para o MEI",
   "Declaração de Imposto de Renda",
   "Regularização de pendências fiscais",
   "Parcelamento de débitos na Receita",
