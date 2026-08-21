@@ -180,7 +180,7 @@ export function ClientShell({ data }: { data: PortalData }) {
           <div className="topbar-left">
             <div className="topbar-brand-wrap">
               <Link href="/portal" className="topbar-brand-link" onClick={() => navigate("dashboard")}>
-                <Image src="/logo.svg" alt="Olá, Contador" width={32} height={33} priority />
+                <Image src="/logo.svg" alt="Olá, Contador" width={44} height={45} priority className="topbar-brand-img" />
                 <span className="topbar-brand-text">
                   Olá<i>,</i> Contador<i>.</i>
                 </span>

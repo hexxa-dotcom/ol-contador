@@ -369,7 +369,7 @@ export function AccountantShell({ dashboardData, clientsData, operationsData, us
             </Button>
             <div className="topbar-brand-wrap">
               <Link href="/painel" className="topbar-brand-link" onClick={() => navigate("dashboard")}>
-                <Image src="/logo.svg" alt="Olá, Contador" width={32} height={33} priority />
+                <Image src="/logo.svg" alt="Olá, Contador" width={44} height={45} priority className="topbar-brand-img" />
                 <span className="topbar-brand-text">
                   Olá<i>,</i> Contador<i>.</i>
                 </span>
