@@ -6619,17 +6619,42 @@ tr:hover td { background: #f8fafc; }
   .calendar-month-grid > button small { display: none; }
 }
 
-/* ==================== Site público (Header & Navegação) ==================== */
+/* ==================== Site público (Header & Navegação Liquid Glass) ==================== */
 .public-nav-wrap {
   position: sticky;
   top: 0;
   z-index: 50;
-  background: rgba(8, 38, 32, 0.88);
-  backdrop-filter: blur(24px) saturate(1.8);
-  -webkit-backdrop-filter: blur(24px) saturate(1.8);
-  border-bottom: 1px solid rgba(52, 211, 153, 0.2);
-  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5), inset 0 -1px 0 rgba(52, 211, 153, 0.08);
+  isolation: isolate;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.12) 0%, rgba(10, 46, 39, 0.75) 45%, rgba(5, 26, 22, 0.9) 100%);
+  backdrop-filter: blur(28px) saturate(2);
+  -webkit-backdrop-filter: blur(28px) saturate(2);
+  border-bottom: 1px solid rgba(52, 211, 153, 0.32);
+  box-shadow: 
+    0 14px 36px -10px rgba(0, 0, 0, 0.6),
+    0 0 28px -6px rgba(52, 211, 153, 0.22),
+    inset 0 1px 0 rgba(255, 255, 255, 0.38),
+    inset 0 -1px 0 rgba(52, 211, 153, 0.18);
   transition: background 0.3s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.public-nav-wrap::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 10%;
+  right: 10%;
+  height: 1.5px;
+  background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.5) 25%, rgba(110, 231, 183, 0.9) 50%, rgba(255, 255, 255, 0.5) 75%, transparent 100%);
+  pointer-events: none;
+}
+
+.public-nav-wrap::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse 60% 70% at 50% -20%, rgba(52, 211, 153, 0.18), transparent 75%);
+  pointer-events: none;
+  z-index: -1;
 }
 
 .public-nav-container { display: flex; align-items: center; justify-content: space-between; width: 100%; margin: 0 auto; padding: 14px 48px; }
