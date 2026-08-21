@@ -58,9 +58,19 @@ export function ClientShell({ data }: { data: PortalData }) {
   }
 
   useEffect(() => {
-    if (onboardingPendente) return;
-    const section = window.location.hash.replace("#", "");
-    if (allowedSections.has(section)) setActive(section);
+    // Sincroniza a seção ativa com a hash da URL — carga inicial e sempre
+    // que o usuário aperta "voltar"/"avançar" (nativo do celular incluso).
+    // Sem o listener de popstate, navigate() empilhava a hash certinho, mas
+    // nada reagia ao voltar: ficava preso na última seção até o histórico
+    // esgotar e sair do app de vez, direto pro site público.
+    function syncFromHash() {
+      if (onboardingPendente) return;
+      const section = window.location.hash.replace("#", "");
+      setActive(allowedSections.has(section) ? section : "dashboard");
+    }
+    syncFromHash();
+    window.addEventListener("popstate", syncFromHash);
+    return () => window.removeEventListener("popstate", syncFromHash);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -100,7 +110,10 @@ export function ClientShell({ data }: { data: PortalData }) {
     setActive(id);
     setMobile(false);
     setAccountMenuOpen(false);
-    window.history.replaceState(null, "", `#${id}`);
+    // pushState (não replaceState) empilha uma entrada de histórico por
+    // navegação — é o que faz o botão "voltar" do celular voltar pra seção
+    // anterior do app em vez de sair direto pro site público.
+    if (window.location.hash !== `#${id}`) window.history.pushState(null, "", `#${id}`);
   }
 
   const initials = data.client.name.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join("").toUpperCase() || "OC";

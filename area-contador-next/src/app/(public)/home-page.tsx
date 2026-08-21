@@ -11,7 +11,7 @@ import { TimelineSteps } from "./timeline-steps";
 import { CountUp } from "./count-up";
 import { ProtocolCard } from "./protocol-card";
 
-import { FaqAccordion, Asterisco } from "./faq-accordion";
+import { FaqAccordion } from "./faq-accordion";
 import { GlowCard } from "@/components/ui/glow-card";
 import {
   ShieldCheck,
@@ -19,6 +19,8 @@ import {
   Star,
   Zap,
   TrendingUp,
+  Clock,
+  CheckCircle2,
 } from "lucide-react";
 import styles from "./home.module.css";
 
@@ -219,13 +221,17 @@ export function HomePage({ precos }: { precos: { pf: number; pj: number; consult
         <div className={styles.container}>
           <Reveal>
             <div className={styles.bannerBold}>
-              <Asterisco className={styles.bannerAstTl} />
-              <Asterisco className={styles.bannerAstBr} />
               <h2 className={styles.bannerTitle}>GARANTIA TOTAL DE<br />DEVOLUÇÃO <span className={styles.heroDash}>——</span></h2>
               <p className={styles.bannerSub}>Se o contador analisar seus dados e identificar que não há como ajudar na sua situação, você recebe 100% do valor de volta na hora. Sem burocracia, sem letras miúdas.</p>
               <div className={styles.pricingFooter}>
-                <div className={styles.pfItem}>⏱️ <span><b>Resposta em até 24h</b></span></div>
-                <div className={styles.pfItem}>✓ <span>Contador com <b>CRC ativo</b> verificável</span></div>
+                <div className={styles.pfItem}>
+                  <Clock size={18} style={{ color: "#FF9C7E", flexShrink: 0 }} />
+                  <span><b>Resposta em até 24h</b></span>
+                </div>
+                <div className={styles.pfItem}>
+                  <CheckCircle2 size={18} style={{ color: "#34D399", flexShrink: 0 }} />
+                  <span>Contador com <b>CRC ativo</b> verificável</span>
+                </div>
               </div>
             </div>
           </Reveal>
@@ -380,7 +386,6 @@ export function HomePage({ precos }: { precos: { pf: number; pj: number; consult
         <div className={styles.container}>
           <Reveal>
             <div className={styles.faqHead}>
-              <Asterisco className={styles.faqAsterisco} />
               <h2 className={styles.sectionTitle}>Dúvidas comuns</h2>
               <p className={styles.faqSub}>Não achou sua pergunta aqui? <a href="mailto:ola@olacontador.com.br">Fale com a gente</a>.</p>
             </div>
@@ -398,7 +403,10 @@ export function HomePage({ precos }: { precos: { pf: number; pj: number; consult
             <div className={styles.finalCta}>
               <h2>Pronto para tirar essa pendência da cabeça?</h2>
               <p>Fale agora com um contador com CRC ativo e resolva sua situação ainda hoje.</p>
-              <Link className={styles.btnPrimary} href="/precos">Resolver meu caso agora</Link>
+              <Link className={styles.btnCoralGlow} href="/precos">
+                <span>Resolver meu caso agora</span>
+                <ArrowRight size={18} />
+              </Link>
             </div>
           </Reveal>
         </div>

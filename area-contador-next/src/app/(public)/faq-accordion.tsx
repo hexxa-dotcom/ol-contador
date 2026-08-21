@@ -41,7 +41,3 @@ export function FaqAccordion({ faqList }: { faqList: { p: string; r: string }[] 
     </div>
   );
 }
-
-export function Asterisco({ className }: { className?: string }) {
-  return <span className={`${styles.asterisco} ${className ?? ""}`} aria-hidden="true">✳</span>;
-}

@@ -121,9 +121,18 @@ export function AccountantShell({ dashboardData, clientsData, operationsData, us
   }
 
   useEffect(() => {
-    const section = window.location.hash.replace("#", "");
-    if (allowedSections.has(section) && !isSectionRestricted(section))
-      setActive(section);
+    // Sincroniza a seção ativa com a hash da URL — tanto na carga inicial
+    // quanto sempre que o usuário aperta "voltar"/"avançar" (nativo do
+    // celular incluso). Sem o listener de popstate, navigate() empilhava a
+    // hash certinho, mas nada reagia ao voltar: a tela ficava presa na
+    // última seção até o histórico esgotar e sair do app de vez.
+    function syncFromHash() {
+      const section = window.location.hash.replace("#", "");
+      setActive(allowedSections.has(section) && !isSectionRestricted(section) ? section : "dashboard");
+    }
+    syncFromHash();
+    window.addEventListener("popstate", syncFromHash);
+    return () => window.removeEventListener("popstate", syncFromHash);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -282,7 +291,10 @@ export function AccountantShell({ dashboardData, clientsData, operationsData, us
     setMobile(false);
     setAccountMenuOpen(false);
     setNotificationOpen(false);
-    window.history.replaceState(null, "", `#${id}`);
+    // pushState (não replaceState) empilha uma entrada de histórico por
+    // navegação — é o que faz o botão "voltar" do celular voltar pra seção
+    // anterior do app em vez de sair direto pro site público.
+    if (window.location.hash !== `#${id}`) window.history.pushState(null, "", `#${id}`);
   }
 
   const initials = currentUser.name.split(/\s+/).filter(Boolean).slice(0, 2).map(part => part[0]).join("").toUpperCase() || "OC";
