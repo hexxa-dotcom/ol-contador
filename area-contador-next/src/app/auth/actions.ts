@@ -9,7 +9,7 @@ import { transcreverAudio } from "@/lib/ia";
 export async function signOut() {
   const supabase = await createClient();
   if (supabase) await supabase.auth.signOut();
-  redirect("/login");
+  redirect("/");
 }
 
 export type ProfessionalProfileInput = { name: string; crc: string; tags: string; bio: string; education: string; logoDataUrl: string; assinaturaDataUrl: string };
