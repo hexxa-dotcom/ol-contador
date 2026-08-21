@@ -49,6 +49,7 @@ import {
   Send,
   ShieldCheck,
   Save,
+  Smartphone,
   Sparkles,
   Square,
   Trash2,
@@ -119,6 +120,7 @@ import {
   saveSystemSetting,
   sendMailMessage,
   sendMessage,
+  sendWhatsAppMessage,
   setCaixaPostalThreadStatus,
   setReportDocument,
   addManualReportAttachment,
@@ -876,7 +878,7 @@ export function AtendimentoView({
   filaRestrita?: boolean;
 }) {
   const [queue, setQueue] = useState<"Chats" | "Agenda do dia">("Chats");
-  const [tool, setTool] = useState<"fila" | "copilot">("fila");
+  const [tool, setTool] = useState<"fila" | "copilot" | "whatsapp">("fila");
   const [mobileChatView, setMobileChatView] = useState<"queue" | "chat" | "copilot">("queue");
   const [mobileActionsOpen, setMobileActionsOpen] = useState(false);
   const [panelCollapsed, setPanelCollapsed] = useState(false);
@@ -1050,8 +1052,16 @@ export function AtendimentoView({
       ? String(selectedTriage.id).padStart(4, "0")
       : (selectedClient ? String(selectedClient.id).replace(/\D/g, "").slice(0, 6) || "2026-001" : "2026-001");
   const selectedMessages = messages
-    .filter((item) => item.cliente_id === selectedClientId)
+    .filter((item) => item.cliente_id === selectedClientId && (tool === "whatsapp" ? item.canal === "whatsapp" : item.canal !== "whatsapp"))
     .sort((a, b) => a.seq - b.seq);
+  const whatsappConversas = clientsData.clients
+    .map((client) => {
+      const msgs = messages.filter((m) => m.cliente_id === client.id && m.canal === "whatsapp").sort((a, b) => a.seq - b.seq);
+      const unread = msgs.filter((m) => m.sender === "client" && !m.read_at).length;
+      return { client, last: msgs[msgs.length - 1], unread };
+    })
+    .filter((item) => item.last)
+    .sort((a, b) => new Date(b.last?.created_at || 0).getTime() - new Date(a.last?.created_at || 0).getTime());
   const displayedSeconds = timerConfig.direcao === "decrescente"
     ? Math.max(0, timerConfig.duracaoMinutos * 60 - elapsed)
     : elapsed;
@@ -1292,14 +1302,13 @@ export function AtendimentoView({
     });
   }
   function submitMessage() {
-    if (!selectedClientId || !messageText.trim() || chatLocked) return;
+    if (!selectedClientId || !messageText.trim() || (chatLocked && tool !== "whatsapp")) return;
     const value = messageText;
     setMessageText("");
     startSending(async () => {
-      const result = await sendMessage({
-        clientId: selectedClientId,
-        text: value,
-      });
+      const result = tool === "whatsapp"
+        ? await sendWhatsAppMessage({ clientId: selectedClientId, text: value })
+        : await sendMessage({ clientId: selectedClientId, text: value });
       if (result.ok) {
         setMessages((items) =>
           items.some((item) => item.id === result.data.id)
@@ -1527,13 +1536,14 @@ export function AtendimentoView({
     }
   }
 
-  function selectTool(nextTool: "fila" | "copilot") {
+  function selectTool(nextTool: "fila" | "copilot" | "whatsapp") {
     if (tool === nextTool) {
       setPanelCollapsed((value) => !value);
       return;
     }
     setTool(nextTool);
     setPanelCollapsed(false);
+    if (nextTool !== tool) setSelectedClientId(null);
     if (nextTool === "copilot") {
       setMobileChatView("copilot");
     } else {
@@ -1560,6 +1570,15 @@ export function AtendimentoView({
         >
           <MessageCircle size={20} />
           <span>Fila</span>
+        </button>
+        <button
+          className={tool === "whatsapp" && !panelCollapsed ? "active" : ""}
+          onClick={() => selectTool("whatsapp")}
+          aria-label="WhatsApp"
+          data-tooltip="WhatsApp"
+        >
+          <Smartphone size={20} />
+          <span>WhatsApp</span>
         </button>
         <button
           className={tool === "copilot" && !panelCollapsed ? "active" : ""}
@@ -1592,9 +1611,40 @@ export function AtendimentoView({
 
       <aside
         className={`chat-side-panel ${tool === "copilot" ? "copilot-panel" : "queue-panel"}`}
-        aria-label={tool === "fila" ? "Fila de atendimento" : "Copiloto IA"}
+        aria-label={tool === "fila" ? "Fila de atendimento" : tool === "whatsapp" ? "WhatsApp" : "Copiloto IA"}
       >
-        {tool === "fila" ? (
+        {tool === "whatsapp" ? (
+          <>
+            <div className="side-panel-heading">
+              <div>
+                <strong>WhatsApp</strong>
+                <small>Conversas recebidas pelo número da empresa</small>
+              </div>
+            </div>
+            <div className="queue-content">
+              {whatsappConversas.length ? (
+                <div className="queue-real-list">
+                  {whatsappConversas.map(({ client, last, unread }) => (
+                    <button
+                      className={selectedClientId === client.id ? "selected" : ""}
+                      key={client.id}
+                      onClick={() => setSelectedClientId(client.id)}
+                    >
+                      <div className="avatar small">{client.name.slice(0, 2).toUpperCase()}</div>
+                      <span>
+                        <strong>{client.name}</strong>
+                        <small>{last?.text || "Mensagem"}</small>
+                      </span>
+                      {unread > 0 && <Badge className="attention">{unread}</Badge>}
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <EmptyState>Nenhuma conversa por WhatsApp ainda.</EmptyState>
+              )}
+            </div>
+          </>
+        ) : tool === "fila" ? (
           <>
             <div className="side-panel-heading">
               <div>
@@ -1873,7 +1923,7 @@ export function AtendimentoView({
           </div>
 
           {/* Ações Mobile: Timer compacto + Menu 3 pontinhos */}
-          <div className="chat-actions-mobile">
+          {tool !== "whatsapp" && <div className="chat-actions-mobile">
             <div className={`timer-capsule compact ${timerRunning ? "running" : ""}`}>
               <Clock3 size={13} />
               <strong>{formattedElapsed}</strong>
@@ -1979,10 +2029,10 @@ export function AtendimentoView({
                 </>
               )}
             </div>
-          </div>
+          </div>}
 
           {/* Ações Desktop (barra completa tradicional) */}
-          <div className="chat-actions chat-actions-desktop">
+          {tool !== "whatsapp" && <div className="chat-actions chat-actions-desktop">
             <div className={`timer-capsule ${timerRunning ? "running" : ""}`}>
               <Clock3 size={14} />
               <strong>{formattedElapsed}</strong>
@@ -2036,9 +2086,9 @@ export function AtendimentoView({
               <CircleCheckBig size={16} />
               <span>Encerrar</span>
             </button>
-          </div>
+          </div>}
         </header>
-        {selectedClient && (
+        {selectedClient && tool !== "whatsapp" && (
           <div className="chat-assunto-faixa">
             <div className="chat-assunto-info">
               <span className="chat-assunto-tag">Caso:</span>
@@ -2111,7 +2161,7 @@ export function AtendimentoView({
           </div>
         )}
         <footer className="composer">
-          <div className="chat-shortcuts" aria-label="Atalhos de mensagem">
+          {tool !== "whatsapp" && <div className="chat-shortcuts" aria-label="Atalhos de mensagem">
             {chatShortcuts.map((shortcut) => (
               <button key={shortcut.id} disabled={!selectedClient || isSending || chatLocked} onClick={() => useChatShortcut(shortcut)}>
                 {shortcut.label}
@@ -2126,8 +2176,8 @@ export function AtendimentoView({
                 <Mic size={14} /> Gravar áudio
               </button>
             )}
-          </div>
-          <Button
+          </div>}
+          {tool !== "whatsapp" && <Button
             className="icon ai-assist"
             title="Pedir sugestão ao Copiloto IA"
             aria-label="Pedir sugestão ao Copiloto IA"
@@ -2143,15 +2193,15 @@ export function AtendimentoView({
             }}
           >
             <OlaSymbol size={18} />
-          </Button>
-          <input
+          </Button>}
+          {tool !== "whatsapp" && <input
             ref={attachmentRef}
             className="sr-only"
             type="file"
             accept="application/pdf,image/png,image/jpeg"
             onChange={uploadAttachment}
-          />
-          <Button
+          />}
+          {tool !== "whatsapp" && <Button
             className="icon secondary"
             title="Anexar arquivo"
             aria-label="Anexar arquivo"
@@ -2159,7 +2209,7 @@ export function AtendimentoView({
             onClick={() => attachmentRef.current?.click()}
           >
             {uploading ? <Upload size={17} /> : <Paperclip size={17} />}
-          </Button>
+          </Button>}
           <Input
             value={messageText}
             onChange={(event) => {
@@ -2173,16 +2223,16 @@ export function AtendimentoView({
               }
             }}
             placeholder={
-              chatLocked ? "Chat bloqueado" : "Digite uma mensagem ou '/'..."
+              chatLocked && tool !== "whatsapp" ? "Chat bloqueado" : "Digite uma mensagem..."
             }
-            disabled={!selectedClient || chatLocked || isSending}
+            disabled={!selectedClient || (chatLocked && tool !== "whatsapp") || isSending}
           />
           <Button
             className="icon orange-action"
             aria-label="Enviar mensagem"
             onClick={submitMessage}
             disabled={
-              !selectedClient || chatLocked || isSending || !messageText.trim()
+              !selectedClient || (chatLocked && tool !== "whatsapp") || isSending || !messageText.trim()
             }
           >
             <Send size={17} />

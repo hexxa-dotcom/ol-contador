@@ -984,6 +984,7 @@ export type Database = {
       }
       mensagens: {
         Row: {
+          canal: string
           cliente_id: string
           created_at: string | null
           diagnosis: string | null
@@ -997,8 +998,11 @@ export type Database = {
           time: string | null
           transcricao: string | null
           type: string | null
+          wa_message_id: string | null
+          wa_status: string | null
         }
         Insert: {
+          canal?: string
           cliente_id: string
           created_at?: string | null
           diagnosis?: string | null
@@ -1012,8 +1016,11 @@ export type Database = {
           time?: string | null
           transcricao?: string | null
           type?: string | null
+          wa_message_id?: string | null
+          wa_status?: string | null
         }
         Update: {
+          canal?: string
           cliente_id?: string
           created_at?: string | null
           diagnosis?: string | null
@@ -1027,6 +1034,8 @@ export type Database = {
           time?: string | null
           transcricao?: string | null
           type?: string | null
+          wa_message_id?: string | null
+          wa_status?: string | null
         }
         Relationships: [
           {

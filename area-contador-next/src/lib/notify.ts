@@ -1,5 +1,7 @@
-// Camada de notificações externas: e-mail (Resend) e WhatsApp (Twilio).
+// Camada de notificações externas: e-mail (Resend) e WhatsApp (Meta Cloud API).
 // Cada canal tem seu próprio guard — envia só o que estiver configurado no .env.
+import { whatsappConfigured as waConfigured, templateConfigured as waTemplateConfigured, sendWhatsAppTemplate } from "./whatsapp";
+
 const RESEND_API_KEY = process.env.RESEND_API_KEY || "";
 const RESEND_FROM = process.env.RESEND_FROM || "Olá Contador <onboarding@resend.dev>";
 
@@ -22,41 +24,19 @@ async function sendEmail(to: string, subject: string, html: string) {
   return { ok: true, id: (data as { id?: string }).id };
 }
 
-const TWILIO_SID = process.env.TWILIO_ACCOUNT_SID || "";
-const TWILIO_TOKEN = process.env.TWILIO_AUTH_TOKEN || "";
-const TWILIO_WA_FROM = process.env.TWILIO_WHATSAPP_FROM || "";
-const TWILIO_WA_CONTENT_SID = process.env.TWILIO_WHATSAPP_CONTENT_SID || "";
-
 function whatsappConfigured() {
-  return !!(TWILIO_SID && TWILIO_TOKEN && TWILIO_WA_FROM);
+  return waConfigured();
 }
 function whatsappOutboundConfigured() {
-  return whatsappConfigured() && !!TWILIO_WA_CONTENT_SID;
+  return waTemplateConfigured();
 }
 
-async function sendWhatsApp(toPhone: string, body: string, options: { contentSid?: string; variables?: Record<string, string>; subject?: string } = {}) {
-  if (!whatsappConfigured() || !toPhone) return { skipped: true };
-  const url = `https://api.twilio.com/2010-04-01/Accounts/${TWILIO_SID}/Messages.json`;
-  const form = new URLSearchParams({ From: TWILIO_WA_FROM, To: `whatsapp:${toPhone}` });
-  const contentSid = options.contentSid || TWILIO_WA_CONTENT_SID;
-  if (contentSid) {
-    form.set("ContentSid", contentSid);
-    form.set("ContentVariables", JSON.stringify(options.variables || { "1": options.subject || "Olá, Contador", "2": body }));
-  } else {
-    form.set("Body", body);
-  }
-  const auth = Buffer.from(`${TWILIO_SID}:${TWILIO_TOKEN}`).toString("base64");
-  const res = await fetch(url, {
-    method: "POST",
-    headers: { Authorization: `Basic ${auth}`, "Content-Type": "application/x-www-form-urlencoded" },
-    body: form.toString(),
-  });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) {
-    console.error("[whatsapp] erro:", (data as { message?: string })?.message || JSON.stringify(data));
-    return { ok: false, error: data };
-  }
-  return { ok: true, sid: (data as { sid?: string }).sid };
+async function sendWhatsApp(toPhone: string, body: string, options: { subject?: string } = {}) {
+  if (!whatsappOutboundConfigured() || !toPhone) return { skipped: true };
+  const result = await sendWhatsAppTemplate(toPhone, { subject: options.subject, body });
+  if ("skipped" in result) return result;
+  if (!result.ok) return { ok: false, error: result.error };
+  return { ok: true, sid: result.messageId };
 }
 
 type ClienteNotify = { name?: string | null; email?: string | null; phone?: string | null; canal_resultado?: string | null };
