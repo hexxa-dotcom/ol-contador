@@ -9,7 +9,7 @@
 @media (max-width: 760px) { .section { padding: 48px 0; } }
 .sectionHead { max-width: 600px; margin-bottom: 48px; }
 .sectionLabel { font-size: .82rem; font-weight: 700; color: var(--pub-coral); text-transform: uppercase; letter-spacing: .2em; margin-bottom: 12px; display: block; }
-.sectionTitle { font-size: clamp(1.6rem, 3vw, 2.2rem); text-wrap: balance; }
+.sectionTitle { font-family: var(--font-sans), 'Plus Jakarta Sans', var(--font-hanken), sans-serif; font-weight: 800; font-size: clamp(1.6rem, 3vw, 2.2rem); letter-spacing: -0.03em; text-wrap: balance; }
 .sectionDesc { color: var(--pub-ink-soft); margin-top: 12px; font-size: 1.02rem; }
 
 /* Brilho verde-menta difuso — sem as linhas onduladas de antes, só o
@@ -131,7 +131,7 @@
 
 /* ---------- HERO GERAL ---------- */
 .hero { padding: 68px 0 60px; overflow: hidden; }
-.hero.superficieEscura .heroTitleBold { color: #ffffff; font-family: var(--font-bricolage), sans-serif; font-size: clamp(2.2rem, 4.8vw, 3.4rem); line-height: 1.12; margin-bottom: 20px; letter-spacing: -.02em; text-wrap: balance; }
+.hero.superficieEscura .heroTitleBold { color: #ffffff; font-family: var(--font-sans), 'Plus Jakarta Sans', var(--font-hanken), sans-serif; font-weight: 800; font-size: clamp(2.2rem, 4.8vw, 3.4rem); line-height: 1.12; margin-bottom: 20px; letter-spacing: -.035em; text-wrap: balance; }
 .heroGradientCoral {
   background: linear-gradient(135deg, #FF9C7E 0%, #FF6B4A 50%, #FFA88B 100%);
   -webkit-background-clip: text;
@@ -373,7 +373,7 @@
 }
 .mockupHeaderInfo { flex: 1; display: flex; flex-direction: column; gap: 2px; }
 .mockupHeaderTitle { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.mockupHeaderTitle strong { font-size: 0.95rem; color: #ffffff; font-family: var(--font-bricolage), sans-serif; }
+.mockupHeaderTitle strong { font-size: 0.95rem; color: #ffffff; font-family: var(--font-sans), 'Plus Jakarta Sans', sans-serif; font-weight: 750; }
 .crcBadge {
   font-size: 0.68rem;
   font-weight: 750;
@@ -541,7 +541,7 @@
   flex-shrink: 0;
 }
 .fintechCardText { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
-.fintechCardText strong { font-size: 0.96rem; color: #ffffff; font-family: var(--font-bricolage), sans-serif; font-weight: 750; }
+.fintechCardText strong { font-size: 0.96rem; color: #ffffff; font-family: var(--font-sans), 'Plus Jakarta Sans', sans-serif; font-weight: 750; }
 .fintechCardText span { font-size: 0.8rem; color: rgba(255, 255, 255, 0.7); line-height: 1.35; }
 .fintechBadgeFast {
   font-size: 0.72rem;
@@ -618,7 +618,7 @@
   flex-shrink: 0;
 }
 .issueCardTag { font-size: 0.72rem; font-weight: 750; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; display: block; margin-bottom: 2px; }
-.issueCardTitle { margin: 0; font-family: var(--font-bricolage), sans-serif; font-size: 1.12rem; font-weight: 800; color: #ffffff; }
+.issueCardTitle { margin: 0; font-family: var(--font-sans), 'Plus Jakarta Sans', sans-serif; font-size: 1.12rem; font-weight: 800; color: #ffffff; }
 .issueCardDesc { margin: 0 0 16px; font-size: 0.88rem; color: rgba(255, 255, 255, 0.82); line-height: 1.5; }
 .issueStepsList { display: flex; flex-direction: column; gap: 10px; }
 .issueStepItem { display: flex; align-items: flex-start; gap: 10px; font-size: 0.82rem; color: #cbd5e1; }
@@ -677,7 +677,7 @@
   align-items: center; 
   background: rgba(17,35,34,.02);
 }
-.protocolId { font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 1rem; color: var(--pub-ink-soft); letter-spacing: 0.05em; }
+.protocolId { font-family: var(--font-sans), 'Plus Jakarta Sans', sans-serif; font-weight: 800; font-size: 1rem; color: var(--pub-ink-soft); letter-spacing: 0.03em; }
 .protocolStatus { font-family: 'Hanken Grotesk', sans-serif; font-size: .85rem; background: rgba(242, 122, 98, 0.1); color: var(--pub-coral); padding: 6px 14px; border-radius: 99px; font-weight: 700; transition: all .3s ease; text-transform: uppercase; letter-spacing: 0.05em; }
 .protocolStatus.concluido { background: var(--pub-green); color: #fff; box-shadow: 0 4px 12px rgba(47, 122, 84, 0.3); }
 .protocolBody { padding: 32px; }
@@ -704,7 +704,7 @@
 @media (max-width: 760px) { .stepsGrid { grid-template-columns: 1fr; } }
 .stepCard { background: #FFFFFF; border: none; border-radius: 24px; padding: 36px 32px 44px; position: relative; box-shadow: 0 4px 12px rgba(17,35,34,.02), 0 24px 48px -12px rgba(17,35,34,.06); transition: transform .3s cubic-bezier(.2,.8,.2,1), box-shadow .3s ease; }
 .stepCard:hover { transform: translateY(-8px); box-shadow: 0 6px 16px rgba(17,35,34,.04), 0 32px 64px -16px rgba(17,35,34,.1); }
-.stepNum { width: 44px; height: 44px; border-radius: 12px; background: rgba(242, 122, 98, 0.1); color: var(--pub-coral); display: flex; align-items: center; justify-content: center; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 1.15rem; margin-bottom: 24px; }
+.stepNum { width: 44px; height: 44px; border-radius: 12px; background: rgba(242, 122, 98, 0.1); color: var(--pub-coral); display: flex; align-items: center; justify-content: center; font-family: var(--font-sans), 'Plus Jakarta Sans', sans-serif; font-weight: 800; font-size: 1.15rem; margin-bottom: 24px; }
 .stepCard h3 { font-family: 'Hanken Grotesk', sans-serif; font-weight: 800; font-size: 1.2rem; margin-bottom: 10px; color: var(--pub-ink); }
 .stepCard p { font-size: 0.95rem; color: var(--pub-ink-soft); line-height: 1.5; }
 
@@ -737,7 +737,7 @@
 .priceCard.featured h3 { color: var(--pub-ink); }
 .modalities { font-size: .85rem; color: var(--pub-ink-soft); margin-bottom: 24px; }
 .priceCard.featured .modalities { color: var(--pub-ink-soft); }
-.priceValue { font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 2.4rem; margin-bottom: 4px; letter-spacing: -0.02em; color: var(--pub-ink); }
+.priceValue { font-family: var(--font-sans), 'Plus Jakarta Sans', sans-serif; font-weight: 800; font-size: 2.4rem; margin-bottom: 4px; letter-spacing: -0.03em; color: var(--pub-ink); }
 .priceCard.featured .priceValue { color: var(--pub-ink); }
 .priceValueEyebrow { display: block; font-family: 'Hanken Grotesk', sans-serif; font-size: .78rem; font-weight: 600; color: var(--pub-ink-soft); }
 .priceCard.featured .priceValueEyebrow { color: var(--pub-ink-soft); }
@@ -796,7 +796,7 @@
 @media (max-width: 760px) { .bannerBold { padding: 44px 24px; } }
 .bannerAstTl { top: 20px; left: 24px; color: rgba(255,255,255,.5); font-size: 2rem; }
 .bannerAstBr { bottom: 20px; right: 24px; color: rgba(255,255,255,.5); font-size: 2rem; }
-.bannerTitle { position: relative; z-index: 1; color: #fff; font-size: clamp(1.8rem, 4vw, 2.8rem); text-transform: uppercase; line-height: 1.05; margin-bottom: 14px; text-wrap: balance; }
+.bannerTitle { position: relative; z-index: 1; color: #fff; font-family: var(--font-sans), 'Plus Jakarta Sans', var(--font-hanken), sans-serif; font-weight: 800; font-size: clamp(1.8rem, 4vw, 2.8rem); text-transform: uppercase; line-height: 1.05; margin-bottom: 14px; letter-spacing: -0.025em; text-wrap: balance; }
 .bannerSub { position: relative; z-index: 1; color: rgba(255,255,255,.9); max-width: 480px; margin: 0 auto 28px; font-size: 1.02rem; }
 
 /* ---------- Pra que serve ---------- */
@@ -926,7 +926,7 @@
 .caseCard:hover::before { transform: scaleY(1); }
 .caseGhostNum {
   position: absolute; right: 14px; bottom: -6px; z-index: 0; pointer-events: none;
-  font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 4.6rem;
+  font-family: var(--font-sans), 'Plus Jakarta Sans', sans-serif; font-weight: 800; font-size: 4.6rem;
   line-height: 1; color: rgba(52,76,75,.06);
 }
 .caseHead { position: relative; z-index: 1; display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; }
@@ -997,13 +997,13 @@
 @media (max-width: 760px) { .proofStats { grid-template-columns: 1fr; } }
 .stat { text-align: left; padding-top: 16px; transition: transform .3s cubic-bezier(.2,.8,.2,1); position: relative; }
 .stat:hover { transform: translateY(-4px); }
-.statNum { font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 2.4rem; color: #112322; font-variant-numeric: tabular-nums; }
+.statNum { font-family: var(--font-sans), 'Plus Jakarta Sans', sans-serif; font-weight: 800; font-size: 2.4rem; color: #112322; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
 .statLabel { font-size: .9rem; color: var(--pub-ink-soft); margin-top: 4px; }
 
 .reportPreview { display: flex; gap: 40px; align-items: center; background: linear-gradient(165deg, rgba(255,255,255,1) 0%, rgba(240,247,242,1) 100%); border: 1px solid rgba(0,0,0,0.08); border-radius: 22px; padding: 40px; box-shadow: 0 12px 32px rgba(52,76,75,.08); }
 @media (max-width: 760px) { .reportPreview { flex-direction: column; } }
 .reportDoc { flex-shrink: 0; width: 200px; height: 260px; background: #fff; border-radius: 8px; box-shadow: 0 20px 40px -10px rgba(0,0,0,.2), 0 0 0 1px rgba(0,0,0,.08); padding: 20px; font-size: .6rem; color: var(--pub-ink-soft); position: relative; }
-.rTitle { font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: .8rem; color: var(--pub-ink); margin-bottom: 10px; }
+.rTitle { font-family: var(--font-sans), 'Plus Jakarta Sans', sans-serif; font-weight: 800; font-size: .8rem; color: var(--pub-ink); margin-bottom: 10px; }
 .rLine { height: 5px; background: var(--pub-line); border-radius: 3px; margin-bottom: 7px; }
 .rSeal { position: absolute; bottom: 18px; right: 18px; width: 40px; height: 40px; border-radius: 50%; border: 2px solid var(--pub-coral); color: var(--pub-coral); display: flex; align-items: center; justify-content: center; font-size: .55rem; font-family: ui-monospace, monospace; font-weight: 700; transform: rotate(-8deg); }
 .reportText h3 { margin-bottom: 10px; font-size: 1.15rem; }
@@ -1152,12 +1152,13 @@
 .finalCta h2 {
   position: relative;
   z-index: 1;
-  font-family: var(--font-bricolage), sans-serif;
+  font-family: var(--font-sans), 'Plus Jakarta Sans', var(--font-hanken), sans-serif;
   font-size: clamp(1.8rem, 4vw, 2.6rem);
   font-weight: 800;
   line-height: 1.15;
   margin-bottom: 16px;
   color: #ffffff;
+  letter-spacing: -0.03em;
   text-wrap: balance;
 }
 .finalCta p {
