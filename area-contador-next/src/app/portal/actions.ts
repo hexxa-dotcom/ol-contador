@@ -132,6 +132,33 @@ async function transcreverAudioDocumento(document: { storage_path: string; file_
   return transcreverAudio(admin, buffer, document.mime || "audio/webm", document.file_name);
 }
 
+// O áudio em si já foi enviado pro Storage + inserido em `documentos` pelo
+// browser (client RLS) antes de chamar esta action — aqui transcreve e
+// guarda o resultado em ai_extracted, no mesmo formato que a leitura de
+// documento por IA já usa (tipo/resumo), pra aparecer no prontuário do
+// contador sem precisar de UI nova. Acessibilidade: cliente relata o caso
+// por voz na triagem em vez de digitar.
+export async function attachTriagemAudio(input: { fileName: string; duration: string }) {
+  const ctx = await requirePortalClient();
+  if (!ctx) return { ok: false as const, message: "Sessão expirada." };
+  if (!input.fileName) return { ok: false as const, message: "Áudio inválido." };
+  const { data: document } = await ctx.supabase
+    .from("documentos")
+    .select("id,cliente_ref,file_name,storage_path,mime")
+    .eq("cliente_ref", ctx.clientId)
+    .eq("file_name", input.fileName)
+    .maybeSingle();
+  if (!document) return { ok: false as const, message: "O áudio foi salvo, mas não foi possível processá-lo." };
+  const transcricao = await transcreverAudioDocumento(document);
+  const { error } = await ctx.supabase
+    .from("documentos")
+    .update({ ai_extracted: { tipo: "Relato em áudio", resumo: transcricao || "Não foi possível transcrever este áudio." } as never })
+    .eq("id", document.id);
+  if (error) return { ok: false as const, message: "Áudio salvo, mas não foi possível registrar a transcrição." };
+  revalidatePath("/portal");
+  return { ok: true as const, transcricao, message: transcricao ? "Áudio enviado e transcrito." : "Áudio enviado, mas a transcrição não ficou pronta." };
+}
+
 export async function sendPortalMailMessage(input: { assunto: string; mensagem: string }) {
   const ctx = await requirePortalClient();
   if (!ctx) return { ok: false as const, message: "Sessão expirada." };

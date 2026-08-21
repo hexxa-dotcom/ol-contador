@@ -10,7 +10,7 @@ import {
 import { Badge, Button, Card, EmptyState, Input } from "@/components/ui/primitives";
 import { PageTitle } from "@/components/views";
 import type { PortalAppointment, PortalAtendimentoExpress, PortalAvaliacao, PortalContador, PortalData, PortalDocument, PortalMailItem, PortalMessage, PortalObrigacao, PortalOcupado, PortalReport, PortalServico, PortalTriagem } from "@/lib/portal";
-import { getDocumentDownloadUrl, markMailRead, markPortalMessagesRead, saveTriagem, sendPortalAudioMessage, sendPortalMailMessage, sendPortalMessage, submitAvaliacao } from "@/app/portal/actions";
+import { attachTriagemAudio, getDocumentDownloadUrl, markMailRead, markPortalMessagesRead, saveTriagem, sendPortalAudioMessage, sendPortalMailMessage, sendPortalMessage, submitAvaliacao } from "@/app/portal/actions";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import { createClient as createBrowserClient } from "@/lib/supabase/client";
 import { acharAssunto, completude, type TriagemAssunto, type TriagemPergunta, type TriagemRegras } from "@/lib/triagemCatalogo";
@@ -2200,6 +2200,13 @@ export function PortalTriagemView({
   const [uploadingItem, setUploadingItem] = useState<string | null>(null);
   const montado = useRef(false);
   const salvoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [gravandoRelato, setGravandoRelato] = useState(false);
+  const [relatoSegundos, setRelatoSegundos] = useState(0);
+  const [transcrevendoRelato, setTranscrevendoRelato] = useState(false);
+  const relatoRecorderRef = useRef<MediaRecorder | null>(null);
+  const relatoChunksRef = useRef<Blob[]>([]);
+  const relatoTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const RELATO_AUDIO_MAX_SEGUNDOS = 60;
 
   const assunto = assuntoId ? acharAssunto(catalogo, assuntoId) : null;
   const minimo = regras.minimoRelato || 20;
@@ -2306,6 +2313,76 @@ export function PortalTriagemView({
       feedback("Não foi possível anexar esse arquivo agora.");
     } finally {
       setUploadingItem(null);
+    }
+  }
+
+  async function iniciarRelatoAudio() {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mimeType = ["audio/webm", "audio/mp4", "audio/ogg"].find((type) => MediaRecorder.isTypeSupported(type)) || "";
+      const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
+      relatoChunksRef.current = [];
+      recorder.ondataavailable = (event) => {
+        if (event.data.size > 0) relatoChunksRef.current.push(event.data);
+      };
+      recorder.onstop = () => {
+        stream.getTracks().forEach((track) => track.stop());
+        const blob = new Blob(relatoChunksRef.current, { type: mimeType || "audio/webm" });
+        void enviarRelatoAudio(blob);
+      };
+      relatoRecorderRef.current = recorder;
+      recorder.start();
+      setGravandoRelato(true);
+      setRelatoSegundos(0);
+      relatoTimerRef.current = setInterval(() => {
+        setRelatoSegundos((value) => {
+          const next = value + 1;
+          if (next >= RELATO_AUDIO_MAX_SEGUNDOS) pararRelatoAudio();
+          return next;
+        });
+      }, 1000);
+    } catch {
+      feedback("Não foi possível acessar o microfone. Verifique a permissão do navegador.");
+    }
+  }
+
+  function pararRelatoAudio() {
+    if (relatoTimerRef.current) clearInterval(relatoTimerRef.current);
+    setGravandoRelato(false);
+    relatoRecorderRef.current?.stop();
+  }
+
+  async function enviarRelatoAudio(blob: Blob) {
+    setTranscrevendoRelato(true);
+    try {
+      const supabase = createBrowserClient();
+      if (!supabase) return feedback("Conexão indisponível.");
+      const ext = blob.type.includes("mp4") ? "m4a" : blob.type.includes("ogg") ? "ogg" : "webm";
+      const fileName = `relato-${Date.now()}.${ext}`;
+      const path = `${clientId}/${fileName}`;
+      const { error: storageError } = await supabase.storage.from("documentos").upload(path, blob, { contentType: blob.type || "audio/webm", upsert: false });
+      if (storageError) return feedback("Não foi possível enviar o áudio agora.");
+      const { data: doc, error: documentError } = await supabase
+        .from("documentos")
+        .insert({ cliente_ref: clientId, file_name: fileName, mime: blob.type || "audio/webm", size_bytes: blob.size, storage_path: path, uploaded_by: "client", checklist_item: "Relato em áudio" })
+        .select("id,file_name,mime,size_bytes,uploaded_by,created_at,checklist_item,storage_path")
+        .single();
+      if (documentError || !doc) return feedback("Não foi possível salvar o áudio.");
+      setDocuments((items) => [
+        { id: doc.id, fileName: doc.file_name, mime: doc.mime, sizeBytes: doc.size_bytes, uploadedBy: doc.uploaded_by, createdAt: doc.created_at, checklistItem: doc.checklist_item, storagePath: doc.storage_path },
+        ...items,
+      ]);
+      const duracao = `${Math.floor(relatoSegundos / 60)}:${String(relatoSegundos % 60).padStart(2, "0")}`;
+      const result = await attachTriagemAudio({ fileName, duration: duracao });
+      if (!result.ok) return feedback(result.message);
+      if (result.transcricao) {
+        setDescricao((atual) => (atual.trim() ? `${atual.trim()}\n\n[Relatado por áudio]: ${result.transcricao}` : result.transcricao || ""));
+        feedback("Áudio transcrito e adicionado ao relato.");
+      } else {
+        feedback("Áudio enviado — a transcrição não ficou pronta, mas o contador pode ouvir o arquivo.");
+      }
+    } finally {
+      setTranscrevendoRelato(false);
     }
   }
 
@@ -2522,6 +2599,19 @@ export function PortalTriagemView({
                     />
                     <div className="triagem-textarea-counter">
                       <span>{descricao.trim().length} / {minimo} caracteres mínimos</span>
+                    </div>
+                    <div className="triagem-audio-relato">
+                      {gravandoRelato ? (
+                        <button type="button" className="triagem-doc-action-btn" onClick={pararRelatoAudio}>
+                          <Square size={13} />
+                          <span>Gravando {Math.floor(relatoSegundos / 60)}:{String(relatoSegundos % 60).padStart(2, "0")} — toque para enviar</span>
+                        </button>
+                      ) : (
+                        <button type="button" className="triagem-doc-action-btn" disabled={enviando || transcrevendoRelato} onClick={iniciarRelatoAudio}>
+                          <Mic size={13} />
+                          <span>{transcrevendoRelato ? "Transcrevendo…" : "Prefere contar por áudio? (até 1 min)"}</span>
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>
