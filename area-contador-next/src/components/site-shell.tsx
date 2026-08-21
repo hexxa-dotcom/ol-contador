@@ -273,10 +273,10 @@ export function SiteFooter() {
             </span>
           </div>
           <p className="public-rodape-desc">
-            Atendimento contábil sob demanda com contador de registro CRC ativo. Sem mensalidade, sem surpresas.
+            Atendimento contábil sob demanda com contadores de verdade. Sem mensalidade, sem surpresa.
           </p>
           <span className="public-rodape-crc-text">
-            CRC Ativo · Atendimento 100% online em todo o Brasil
+            Atendimento 100% online em todo o Brasil
           </span>
         </div>
 

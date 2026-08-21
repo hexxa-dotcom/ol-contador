@@ -55,10 +55,14 @@ export async function POST(request: Request) {
 
   const { data: servico } = await admin.from("servicos").select("*").eq("id", body.servicoId).single();
   if (!servico) return NextResponse.json({ error: "servico_not_found" }, { status: 404 });
-  if (servico.price_cents > credito.valor_cents) return NextResponse.json({ error: "credito_insuficiente" }, { status: 400 });
   const modo = body.modalidade === "sem_agendamento" ? "sem_agendamento" : "agendado";
   const canal = "email";
   if (modo === "agendado" && (!body.date || !body.time)) return NextResponse.json({ error: "invalid_params" }, { status: 400 });
+  // Atendimento com horário reserva uma conversa ao vivo de até 30min com o
+  // contador — por isso custa mais que o Express, e o crédito precisa cobrir
+  // esse valor, não o do Express.
+  const precoBaseCents = modo === "agendado" ? (servico.price_agendado_cents ?? servico.price_cents) : servico.price_cents;
+  if (precoBaseCents > credito.valor_cents) return NextResponse.json({ error: "credito_insuficiente" }, { status: 400 });
 
   try {
     const clientId = digitos;
@@ -76,7 +80,7 @@ export async function POST(request: Request) {
         cidade: body.cidade || null,
         estado: body.estado || null,
         tax_type: servico.name,
-        honorarios: Math.round(servico.price_cents / 100),
+        honorarios: Math.round(precoBaseCents / 100),
         status: "pending",
         onboarding_pendente: true,
         atendimento_modalidade: modo,
@@ -137,8 +141,8 @@ export async function POST(request: Request) {
       .insert({
         cliente_ref: clientId,
         servico_id: body.servicoId,
-        valor_cents: servico.price_cents,
-        valor_original_cents: servico.price_cents,
+        valor_cents: precoBaseCents,
+        valor_original_cents: precoBaseCents,
         desconto_cents: 0,
         desconto_tipo: "credito_atendimento",
         origem: "credito",
@@ -179,7 +183,7 @@ export async function POST(request: Request) {
       throw new Error("credito_ja_utilizado");
     }
     await registrarEventoFunil(admin, "credito_resgatado", { cobrancaId: cob.id, clienteRef: clientId, servicoId: body.servicoId, origem: "credito", metadata: { codigo: credito.codigo } });
-    await registrarEventoFunil(admin, "pagamento_confirmado", { cobrancaId: cob.id, clienteRef: clientId, servicoId: body.servicoId, origem: "credito", metadata: { valorCents: servico.price_cents } });
+    await registrarEventoFunil(admin, "pagamento_confirmado", { cobrancaId: cob.id, clienteRef: clientId, servicoId: body.servicoId, origem: "credito", metadata: { valorCents: precoBaseCents } });
 
     await admin.from("notificacoes").insert({
       text:
@@ -229,7 +233,7 @@ export async function POST(request: Request) {
       clientId,
       appointmentId: appt ? appt.id : null,
       servico: { id: servico.id, name: servico.name },
-      valor: servico.price_cents / 100,
+      valor: precoBaseCents / 100,
       status: "confirmado",
       autoLogin,
     });

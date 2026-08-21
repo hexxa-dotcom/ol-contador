@@ -6947,6 +6947,11 @@ tr:hover td { background: #f8fafc; }
 .public-slot-btn:disabled { opacity: .35; text-decoration: line-through; cursor: not-allowed; }
 .public-slot-vazio { font-size: 13px; color: var(--muted-foreground); grid-column: 1/-1; }
 
+.public-cartao-form { display: flex; flex-direction: column; gap: 12px; margin-bottom: 16px; padding: 16px; border: 1px solid var(--border); border-radius: var(--radius-control); background: rgba(15,23,42,.015); }
+.public-checkout-confianca { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
+.public-checkout-confianca > div { display: flex; align-items: flex-start; gap: 8px; font-size: 11.5px; line-height: 1.45; color: var(--muted-foreground); }
+.public-checkout-confianca svg { flex: 0 0 auto; margin-top: 1px; color: var(--orange-accent); }
+
 .public-link-credito { background: none; border: none; color: var(--orange-accent); font-size: 12.5px; font-weight: 700; cursor: pointer; padding: 0; }
 .public-pix-copia { display: flex; gap: 8px; }
 .public-pix-copia input { flex: 1; }

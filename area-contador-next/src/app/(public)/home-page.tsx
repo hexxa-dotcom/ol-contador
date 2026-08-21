@@ -21,13 +21,15 @@ import {
   TrendingUp,
   Clock,
   CheckCircle2,
+  Smartphone,
+  FileText,
 } from "lucide-react";
 import styles from "./home.module.css";
 
 const PASSOS = [
-  { n: "01", t: "Escolha o tipo de atendimento", d: "Atendimento Express para resolver no mesmo dia, ou agende um horário com calma." },
-  { n: "02", t: "Conte sua situação e envie os arquivos", d: "Direto pelo celular ou computador, sem burocracia de formulários longos." },
-  { n: "03", t: "Acompanhe tudo até a regularização", d: "Cada mensagem e documento fica registrado no seu histórico oficial — nada se perde." },
+  { n: "01", t: "Escolha o formato ideal", d: "Opte por Atendimento Express para resolver no mesmo dia por mensagens, ou agende um horário para conversar com calma." },
+  { n: "02", t: "Envie os dados direto pelo celular", d: "Tire fotos dos documentos e conte o que houve pelo navegador — sem baixar nenhum aplicativo e sem formulários chatos." },
+  { n: "03", t: "Acompanhe até a regularização oficial", d: "Cada etapa fica registrada com parecer técnico oficial do contador (média de resolução entre 24h e 48h)." },
 ];
 
 const ASSUNTOS = [
@@ -103,6 +105,13 @@ export function HomePage({ precos }: { precos: { pf: number; pj: number; consult
                 <Link className={styles.btnGhostGlass} href="#como-funciona">
                   Como funciona
                 </Link>
+              </div>
+
+              {/* Micro Badges de Confiança */}
+              <div className={styles.heroTrustBadges}>
+                <span><CheckCircle2 size={15} style={{ color: "#34D399" }} /> Sem baixar nada</span>
+                <span><CheckCircle2 size={15} style={{ color: "#34D399" }} /> Atendimento no mesmo dia</span>
+                <span><CheckCircle2 size={15} style={{ color: "#34D399" }} /> Contador com CRC</span>
               </div>
 
               {/* Prova Social com Avatares */}
@@ -192,16 +201,16 @@ export function HomePage({ precos }: { precos: { pf: number; pj: number; consult
               <div className={`${styles.priceCard} ${styles.featured}`}>
                 <span className={styles.featuredBadge}>Mais procurado</span>
                 <h3>Pessoa Física</h3>
-                <div className={styles.modalities}>Express ou agendamento</div>
+                <div className={styles.modalities}>Atendimento Express</div>
                 <div className={styles.priceValue}>R$ {money(precos.pf)}</div>
-                <div className={styles.priceNote}>por atendimento completo</div>
+                <div className={styles.priceNote}>por atendimento completo — agendar um horário com o contador sai por um valor à parte</div>
                 <Link className={styles.btnPrimary} href="/agendar?plano=pf">Resolver meu caso</Link>
               </div>
               <div className={styles.priceCard}>
                 <h3>Pessoa Jurídica</h3>
-                <div className={styles.modalities}>Express ou agendamento</div>
+                <div className={styles.modalities}>Atendimento Express</div>
                 <div className={styles.priceValue}>R$ {money(precos.pj)}</div>
-                <div className={styles.priceNote}>por atendimento completo</div>
+                <div className={styles.priceNote}>por atendimento completo — agendar um horário com o contador sai por um valor à parte</div>
                 <Link className={styles.btnPrimary} href="/agendar?plano=pj">Resolver meu caso</Link>
               </div>
               <div className={styles.priceCard}>
@@ -281,37 +290,51 @@ export function HomePage({ precos }: { precos: { pf: number; pj: number; consult
         <div className={styles.container}>
           <Reveal>
             <div className={styles.sectionHead}>
-              <span className={styles.sectionLabel}>Contador de verdade</span>
+              <span className={styles.sectionLabel}>Segurança & Agilidade</span>
               <h2 className={styles.sectionTitle}>O que garante a sua tranquilidade</h2>
+              <p className={styles.sectionDesc}>Sem pegadinhas, sem burocracia. Entenda como cuidamos da sua situação do início ao fim.</p>
             </div>
           </Reveal>
           <Reveal>
             <div className={styles.trustBlock}>
               <GlowCard className={styles.trustCard}>
                 <div className={styles.trustCardHead}>
-                  <div className={styles.check}>✓</div>
-                  <h3>Um contador de verdade, dedicado a você</h3>
+                  <div className={styles.check} style={{ background: "rgba(226, 91, 56, 0.12)", color: "#E25B38" }}>
+                    <Zap size={18} />
+                  </div>
+                  <h3>Atendimento Express no mesmo dia</h3>
                 </div>
-                <p className={styles.body}>Você não fala com um robô nem com uma fila de atendimento genérico. Um contador com registro profissional ativo (CRC) assume sua situação do início ao fim, e você pode conferir quem ele é.</p>
+                <p className={styles.body}>Sua pendência não pode esperar. No plano Express, o contador assume o atendimento hoje mesmo e inicia os levantamentos nas primeiras horas. A média de resolução do caso é de 24h a 48h.</p>
               </GlowCard>
+
               <GlowCard className={styles.trustCard}>
                 <div className={styles.trustCardHead}>
-                  <div className={styles.check}>✓</div>
-                  <h3>Por que usamos um chat próprio, e não WhatsApp</h3>
+                  <div className={styles.check} style={{ background: "rgba(37, 99, 235, 0.12)", color: "#2563EB" }}>
+                    <Smartphone size={18} />
+                  </div>
+                  <h3>100% pelo celular, sem baixar nada</h3>
                 </div>
-                <ul className={styles.trustList}>
-                  <li>Nada se perde: cada mensagem e arquivo fica vinculado ao seu protocolo.</li>
-                  <li>O que foi conversado vira parte do seu parecer técnico formal.</li>
-                  <li>Prazo visível: você acompanha em tempo real o andamento da sua solicitação.</li>
-                  <li>Sigilo bancário e fiscal: total proteção aos seus dados.</li>
-                </ul>
+                <p className={styles.body}>Zero aplicativos ocupando espaço na memória do seu aparelho. Você acessa sua área segura diretamente pelo navegador, envia fotos dos documentos em 2 cliques e conversa sem complicação.</p>
               </GlowCard>
+
               <GlowCard className={styles.trustCard}>
                 <div className={styles.trustCardHead}>
-                  <div className={styles.check}>✓</div>
-                  <h3>Sua senha nunca fica guardada</h3>
+                  <div className={styles.check} style={{ background: "rgba(16, 185, 129, 0.12)", color: "#10B981" }}>
+                    <ShieldCheck size={18} />
+                  </div>
+                  <h3>Contador com CRC e sigilo fiscal</h3>
                 </div>
-                <p className={styles.body}>Se for preciso acessar o portal da Receita pra resolver sua pendência, você informa o acesso temporário direto no atendimento — usado apenas naquela sessão e descartado em seguida.</p>
+                <p className={styles.body}>Você não fala com robôs. Um contador com registro ativo no Conselho Regional de Contabilidade assume sua situação. Suas senhas da Receita são temporárias e nunca ficam salvas.</p>
+              </GlowCard>
+
+              <GlowCard className={styles.trustCard}>
+                <div className={styles.trustCardHead}>
+                  <div className={styles.check} style={{ background: "rgba(245, 158, 11, 0.12)", color: "#D97706" }}>
+                    <FileText size={18} />
+                  </div>
+                  <h3>Tudo documentado e com garantia</h3>
+                </div>
+                <p className={styles.body}>Ao final, você recebe um parecer técnico formal assinado pelo contador. E se for identificado que não há como ajudar na sua situação, você recebe 100% do valor de volta na hora.</p>
               </GlowCard>
             </div>
           </Reveal>

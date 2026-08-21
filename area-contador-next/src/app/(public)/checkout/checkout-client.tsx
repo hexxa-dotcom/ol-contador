@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button, Input } from "@/components/ui/primitives";
+import { ShieldCheck, Undo2 } from "lucide-react";
 import { SiteHeader, SiteFooter, useFunilSessao, registrarEventoFunil } from "@/components/site-shell";
 import { createClient as createBrowserClient } from "@/lib/supabase/client";
 import { validarCpfCnpj } from "@/lib/documento";
@@ -36,6 +37,13 @@ function mascaraTelefone(v: string): string {
 function mascaraCep(v: string): string {
   return v.replace(/\D/g, "").slice(0, 8).replace(/(\d{5})(\d)/, "$1-$2");
 }
+function mascaraCartao(v: string): string {
+  return v.replace(/\D/g, "").slice(0, 16).replace(/(\d{4})(?=\d)/g, "$1 ");
+}
+function mascaraValidade(v: string): string {
+  const d = v.replace(/\D/g, "").slice(0, 4);
+  return d.length > 2 ? `${d.slice(0, 2)}/${d.slice(2)}` : d;
+}
 
 const ERROS: Record<string, string> = {
   cpf_cnpj_invalido: "CPF/CNPJ inválido — confira os números digitados.",
@@ -46,6 +54,7 @@ const ERROS: Record<string, string> = {
   credito_indisponivel: "Este crédito já foi usado ou cancelado.",
   credito_insuficiente: "O valor do crédito não cobre esse atendimento.",
   muitas_tentativas: "Muitas tentativas seguidas. Aguarde alguns minutos e tente de novo.",
+  cartao_recusado: "Cartão recusado pela operadora. Confira os dados ou tente outro cartão.",
 };
 
 export function CheckoutClient() {
@@ -70,6 +79,17 @@ export function CheckoutClient() {
   const [aceite, setAceite] = useState(false);
   const [cepStatus, setCepStatus] = useState("");
   const [cnpjStatus, setCnpjStatus] = useState("");
+
+  // Checkout transparente de cartão — só liga quando o toggle em
+  // Configurações > Integrações estiver ativo (a Asaas precisa ter liberado
+  // a função pra conta). Enquanto estiver false, tudo continua exatamente
+  // como era: cartão via invoiceUrl da Asaas.
+  const [cartaoTransparente, setCartaoTransparente] = useState(false);
+  const [ccNumero, setCcNumero] = useState("");
+  const [ccNome, setCcNome] = useState("");
+  const [ccValidade, setCcValidade] = useState("");
+  const [ccCvv, setCcCvv] = useState("");
+  const [parcelas, setParcelas] = useState(1);
 
   const [creditoAberto, setCreditoAberto] = useState(false);
   const [creditoCodigo, setCreditoCodigo] = useState("");
@@ -125,6 +145,13 @@ export function CheckoutClient() {
       setCreditoCodigo(cod);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    fetch("/api/checkout/config")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d: { cartaoTransparente?: boolean } | null) => setCartaoTransparente(Boolean(d?.cartaoTransparente)))
+      .catch(() => setCartaoTransparente(false));
   }, []);
 
   function salvarRascunho(campos: Record<string, string>) {
@@ -205,10 +232,21 @@ export function CheckoutClient() {
     return true;
   }
 
+  function usaCartaoTransparente(): boolean {
+    return cartaoTransparente && metodo === "cartao" && !coberto;
+  }
+
   function validarTudo(): boolean {
     if (!validarIdentidade()) return false;
     if (cep.replace(/\D/g, "").length !== 8) return false;
     if (!endereco.trim() || !numero.trim() || !bairro.trim() || !cidade.trim() || uf.trim().length !== 2) return false;
+    if (usaCartaoTransparente()) {
+      const [mm, aa] = ccValidade.split("/");
+      if (ccNumero.replace(/\D/g, "").length < 13) return false;
+      if (!ccNome.trim()) return false;
+      if (!mm || mm.length !== 2 || !aa || aa.length !== 2) return false;
+      if (ccCvv.length < 3) return false;
+    }
     return true;
   }
 
@@ -343,22 +381,38 @@ export function CheckoutClient() {
         return;
       }
 
+      const transparente = usaCartaoTransparente();
+      const [ccMes, ccAno] = ccValidade.split("/");
       const res = await fetch("/api/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...payloadBase, metodoPagamento: metodo }),
+        body: JSON.stringify({
+          ...payloadBase,
+          metodoPagamento: metodo,
+          ...(transparente
+            ? {
+                creditCard: { holderName: ccNome.trim(), number: ccNumero.replace(/\D/g, ""), expiryMonth: ccMes, expiryYear: `20${ccAno}`, ccv: ccCvv },
+                installmentCount: parcelas > 1 ? parcelas : undefined,
+              }
+            : {}),
+        }),
       });
       const data = await res.json();
       if (!res.ok) {
-        setAlerta(ERROS[data.error] || "Não consegui concluir agora. Tente novamente.");
+        setAlerta(data.error === "cartao_recusado" && data.detail ? `${ERROS.cartao_recusado} (${data.detail})` : ERROS[data.error] || "Não consegui concluir agora. Tente novamente.");
         setEnviando(false);
         return;
       }
       localStorage.removeItem(CHAVE_RASCUNHO);
       sessionStorage.removeItem(CHAVE);
       sessionStorage.removeItem(CHAVE_CREDITO);
+      // Checkout transparente autoriza na hora — sem invoiceUrl, sem
+      // polling, direto pra tela de "vamos começar agora?".
+      if (data.status === "paid") {
+        void finalizarComLoginAutomatico(payloadBase.email, data.autoLogin, true);
+        return;
+      }
       setPagamento({ cobrancaId: data.cobrancaId, pollToken: data.pollToken, pixImage: data.pixImage, pixPayload: data.pixPayload, invoiceUrl: data.invoiceUrl, metodoPagamento: data.metodoPagamento, valor: data.valor });
-      if (data.metodoPagamento === "cartao" && data.invoiceUrl) window.open(data.invoiceUrl, "_blank");
       iniciarPolling(data.cobrancaId, data.pollToken, payloadBase.email);
     } catch {
       setAlerta("Falha de conexão. Confira sua internet e tente novamente.");
@@ -436,7 +490,7 @@ export function CheckoutClient() {
                 <a className="public-btn-full" href={pagamento.invoiceUrl} target="_blank" rel="noopener noreferrer">
                   Abrir pagamento seguro
                 </a>
-                <p className="public-ajuda">Abrimos a página segura do Asaas em outra aba pra você inserir os dados do cartão. Depois de pagar, volte pra esta aba.</p>
+                <p className="public-ajuda">Clique acima para abrir a página segura da Asaas em outra aba e inserir os dados do cartão. Depois de pagar, volte pra esta aba — a confirmação aparece sozinha aqui.</p>
               </>
             ) : (
               <>
@@ -627,6 +681,52 @@ export function CheckoutClient() {
                   </label>
                 </div>
 
+                <div className="public-checkout-confianca">
+                  <div>
+                    <ShieldCheck size={16} />
+                    <span>
+                      {metodo === "cartao" && cartaoTransparente
+                        ? "Pagamento processado com segurança pela Asaas, com conexão criptografada de ponta a ponta."
+                        : "Pagamento processado com segurança pela Asaas — seus dados de cartão não passam pelos nossos servidores."}
+                    </span>
+                  </div>
+                  <div>
+                    <Undo2 size={16} />
+                    <span>Garantia total: se o contador analisar seu caso e não conseguir ajudar, você recebe 100% do valor de volta.</span>
+                  </div>
+                </div>
+
+                {metodo === "cartao" && cartaoTransparente && (
+                  <div className="public-cartao-form">
+                    <div className="public-field">
+                      <label>Número do cartão</label>
+                      <Input value={ccNumero} onChange={(e) => setCcNumero(mascaraCartao(e.target.value))} placeholder="0000 0000 0000 0000" inputMode="numeric" autoComplete="cc-number" />
+                    </div>
+                    <div className="public-field">
+                      <label>Nome impresso no cartão</label>
+                      <Input value={ccNome} onChange={(e) => setCcNome(e.target.value.toUpperCase())} placeholder="Como está no cartão" autoComplete="cc-name" />
+                    </div>
+                    <div className="public-dupla">
+                      <div className="public-field" style={{ flex: 1 }}>
+                        <label>Validade</label>
+                        <Input value={ccValidade} onChange={(e) => setCcValidade(mascaraValidade(e.target.value))} placeholder="MM/AA" inputMode="numeric" autoComplete="cc-exp" />
+                      </div>
+                      <div className="public-field" style={{ flex: 1 }}>
+                        <label>CVV</label>
+                        <Input value={ccCvv} onChange={(e) => setCcCvv(e.target.value.replace(/\D/g, "").slice(0, 4))} placeholder="123" inputMode="numeric" autoComplete="cc-csc" />
+                      </div>
+                      <div className="public-field" style={{ flex: 1 }}>
+                        <label>Parcelas</label>
+                        <select className="input" value={parcelas} onChange={(e) => setParcelas(Number(e.target.value))}>
+                          <option value={1}>À vista</option>
+                          <option value={2}>2x sem juros</option>
+                          <option value={3}>3x sem juros</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {!creditoAberto ? (
                   <button type="button" className="public-link-credito" onClick={() => setCreditoAberto(true)}>
                     Tenho um código de crédito de atendimento
@@ -656,7 +756,15 @@ export function CheckoutClient() {
             </label>
 
             <Button className="public-btn-full" disabled={enviando} onClick={enviar}>
-              {enviando ? "Enviando…" : coberto ? "Confirmar atendimento" : "Ir para o pagamento"}
+              {enviando
+                ? usaCartaoTransparente()
+                  ? "Processando pagamento…"
+                  : "Enviando…"
+                : coberto
+                  ? "Confirmar atendimento"
+                  : usaCartaoTransparente()
+                    ? "Pagar e confirmar"
+                    : "Ir para o pagamento"}
             </Button>
             <p className="public-note">O horário escolhido só fica reservado depois que o pagamento é confirmado.</p>
           </>

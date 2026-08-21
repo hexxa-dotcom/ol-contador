@@ -22,7 +22,7 @@ export async function GET() {
   const [servicosRes, configRes, apptRes, assuntosRes, diasBloqueadosRes] = await Promise.all([
     // Só avulso: a assessoria MEI é mensal e passa pelo fluxo de recorrência,
     // não por este Pix único.
-    admin.from("servicos").select("id,name,description,price_cents,itens").eq("active", true).eq("recurrence", "avulso").order("price_cents"),
+    admin.from("servicos").select("id,name,description,price_cents,price_agendado_cents,itens").eq("active", true).eq("recurrence", "avulso").order("price_cents"),
     admin.from("configuracoes").select("valor").eq("chave", "agenda_disponibilidade").maybeSingle(),
     // Só o pagamento confirmado vira linha em `agendamentos`, então é ela que
     // bloqueia horário — cobrança pendente continua liberando o slot.

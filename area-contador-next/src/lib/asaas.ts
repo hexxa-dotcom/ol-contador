@@ -128,6 +128,47 @@ export async function createCardPayment({
   });
 }
 
+// Checkout transparente: cobrança de cartão criada e autorizada na hora,
+// sem invoiceUrl/redirecionamento — o formulário de cartão fica na nossa
+// própria página. Só chamar isto com o toggle "Checkout transparente de
+// cartão" ligado em Configurações (a Asaas precisa liberar a função pra
+// conta antes; sem isso a API responde com erro). NUNCA logar/persistir o
+// objeto `creditCard` — ele carrega número, validade e CVV em texto puro.
+export async function createDirectCardPayment({
+  customerId,
+  value,
+  description,
+  dueDate,
+  remoteIp,
+  creditCard,
+  creditCardHolderInfo,
+  installmentCount,
+}: {
+  customerId: string;
+  value: number;
+  description?: string;
+  dueDate?: string;
+  remoteIp: string;
+  creditCard: { holderName: string; number: string; expiryMonth: string; expiryYear: string; ccv: string };
+  creditCardHolderInfo: { name: string; email: string; cpfCnpj: string; postalCode: string; addressNumber: string; phone?: string; addressComplement?: string; mobilePhone?: string };
+  installmentCount?: number;
+}) {
+  return asaasFetch("/payments", {
+    method: "POST",
+    body: JSON.stringify({
+      customer: customerId,
+      billingType: "CREDIT_CARD",
+      value,
+      description: description ? String(description).slice(0, 500) : undefined,
+      dueDate: dueDate || new Date().toISOString().slice(0, 10),
+      remoteIp,
+      creditCard,
+      creditCardHolderInfo,
+      ...(installmentCount && installmentCount > 1 ? { installmentCount, totalValue: value } : {}),
+    }),
+  });
+}
+
 export async function createSubscription({
   customerId,
   value,

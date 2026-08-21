@@ -5412,6 +5412,7 @@ export function ConfiguracoesIntegralView({
   });
   const [panelPreferences, setPanelPreferences] = useState({
     systemSounds: true,
+    checkoutCartaoTransparente: false,
     ...configObject(data, "painel_preferencias"),
   });
   const [clientArea, setClientArea] = useState({
@@ -6057,6 +6058,12 @@ export function ConfiguracoesIntegralView({
             <>
               <div className="settings-list">
                 <SettingSwitch
+                  label="Checkout transparente de cartão (Asaas)"
+                  note="Mostra os campos de cartão direto no nosso checkout, sem redirecionar pra Asaas. Só ligue depois que a Asaas confirmar por escrito que essa função está liberada pra conta de vocês — o número do cartão passa a trafegar pelo nosso servidor antes de ir pra Asaas, o que exige atenção redobrada com segurança (PCI-DSS)."
+                  checked={Boolean(panelPreferences.checkoutCartaoTransparente)}
+                  onChange={(value) => setPanelPreferences({ ...panelPreferences, checkoutCartaoTransparente: value })}
+                />
+                <SettingSwitch
                   label="Emitir NFS-e automaticamente"
                   note="Emite depois da confirmação do pagamento."
                   checked={Boolean(nfse.ativo)}
@@ -6159,7 +6166,15 @@ export function ConfiguracoesIntegralView({
                   />
                 </label>
               </div>
-              {footer("nota_fiscal_config", nfse)}
+              <div className="form-actions">
+                <small>As alterações valem para o sistema publicado.</small>
+                <Button disabled={pending} onClick={() => saveMany([
+                  { key: "nota_fiscal_config", value: nfse },
+                  { key: "painel_preferencias", value: panelPreferences },
+                ])}>
+                  <Save size={15} /> {pending ? "Salvando…" : "Salvar configurações"}
+                </Button>
+              </div>
             </>
           )}
           {tab === "Inteligência Artificial (AIA)" && (

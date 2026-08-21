@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/primitives";
 import { SiteHeader, SiteFooter, useFunilSessao, registrarEventoFunil } from "@/components/site-shell";
 
-type ServicoOpcao = { id: string; name: string; description: string | null; price_cents: number; itens: { id: string; titulo: string; resumo: string }[] };
+type ServicoOpcao = { id: string; name: string; description: string | null; price_cents: number; price_agendado_cents: number | null; itens: { id: string; titulo: string; resumo: string }[] };
 type Opcoes = { servicos: ServicoOpcao[]; horarios: string[]; ocupados: Record<string, string[]>; diasBloqueados: string[] };
 
 const APELIDOS: Record<string, string[]> = {
@@ -55,6 +55,14 @@ function labelDia(isoDate: string): { semana: string; data: string } {
 
 function money(cents: number): string {
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(cents / 100);
+}
+
+// Atendimento com horário reserva uma conversa ao vivo com o contador —
+// custa mais que o Express quando o serviço tem price_agendado_cents
+// cadastrado. Serviços sem essa coluna preenchida cobram o mesmo valor nos
+// dois formatos (fallback pro price_cents).
+function precoPorModalidade(servico: ServicoOpcao, modalidade: "sem_agendamento" | "agendado"): number {
+  return modalidade === "agendado" ? servico.price_agendado_cents ?? servico.price_cents : servico.price_cents;
 }
 
 export function AgendarClient() {
@@ -139,7 +147,7 @@ export function AgendarClient() {
       JSON.stringify({
         servicoId: servico.id,
         servicoNome: servico.name,
-        precoCents: servico.price_cents,
+        precoCents: precoPorModalidade(servico, modalidade),
         assuntoId: null,
         assuntoTitulo: "",
         modalidade,
@@ -194,30 +202,34 @@ export function AgendarClient() {
               </div>
               <div className="public-resumo-linha">
                 <strong>{servico.name}</strong>
-                <span className="public-resumo-preco">{money(servico.price_cents)}</span>
+                <span className="public-resumo-preco">{money(precoPorModalidade(servico, modalidade))}</span>
               </div>
             </div>
 
             <section className="public-bloco">
               <h2>Formato do atendimento</h2>
-              <p className="public-ajuda">O valor do serviço é o mesmo. Muda apenas a forma de acompanhamento.</p>
+              <p className="public-ajuda">
+                {servico.price_agendado_cents && servico.price_agendado_cents !== servico.price_cents
+                  ? "O Atendimento com horário inclui uma conversa ao vivo com o contador, por isso o valor é diferente do Express."
+                  : "O valor do serviço é o mesmo. Muda apenas a forma de acompanhamento."}
+              </p>
               <div className="public-metodo-pagamento">
                 <label className={`public-metodo-opcao ${modalidade === "sem_agendamento" ? "selecionado" : ""}`}>
                   <input type="radio" name="modalidade" checked={modalidade === "sem_agendamento"} onChange={() => setModalidade("sem_agendamento")} />
                   <span>
-                    <strong>Atendimento Express</strong>
+                    <strong>Atendimento Express — {money(servico.price_cents)}</strong>
                     <small>Envie tudo e acompanhe, sem marcar conversa.</small>
                   </span>
                 </label>
                 <label className={`public-metodo-opcao ${modalidade === "agendado" ? "selecionado" : ""}`}>
                   <input type="radio" name="modalidade" checked={modalidade === "agendado"} onChange={() => setModalidade("agendado")} />
                   <span>
-                    <strong>Atendimento com horário</strong>
+                    <strong>Atendimento com horário — {money(servico.price_agendado_cents ?? servico.price_cents)}</strong>
                     <small>Escolha um dia e um horário para falar com o contador.</small>
                   </span>
                 </label>
               </div>
-              {modalidade === "sem_agendamento" && (
+              {modalidade === "sem_agendamento" ? (
                 <div className="public-vantagens">
                   <div className="public-vantagens-eyebrow">Atendimento Express</div>
                   <strong>Prefere deixar o caso com a gente?</strong>
@@ -227,6 +239,17 @@ export function AgendarClient() {
                     <li>Envie tudo a qualquer hora, inclusive à noite ou no fim de semana.</li>
                     <li>Sem reunião, chamada ou conversa: acompanhe o andamento pelo portal.</li>
                     <li>Acompanhe pela área do cliente e receba o aviso do resultado por e-mail.</li>
+                  </ul>
+                </div>
+              ) : (
+                <div className="public-vantagens">
+                  <div className="public-vantagens-eyebrow">Atendimento com horário</div>
+                  <strong>Prefere conversar antes?</strong>
+                  <p>Você reserva até 30 minutos com o contador no dia e horário escolhidos, pra conversar sobre o seu caso, tirar dúvidas e entender exatamente o que vai precisar enviar.</p>
+                  <ul>
+                    <li>Até 30 minutos de conversa ao vivo, no horário marcado.</li>
+                    <li>Tire dúvidas em tempo real antes de enviar qualquer documento.</li>
+                    <li>Ideal para casos mais complexos ou quando você não sabe por onde começar.</li>
                   </ul>
                 </div>
               )}

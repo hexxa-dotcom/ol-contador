@@ -70,8 +70,8 @@ export function PricingGrid({ pfCents, pjCents, consultaCents }: PricingGridProp
               <span className={styles.moeda}>R$</span>
               <span className={styles.precoNum}>{money(pfCents)}</span>
             </div>
-            <div className={styles.precoUnidade}>por atendimento</div>
-            <div className={styles.precoPagamento}>no Pix ou em até 3x no cartão</div>
+            <div className={styles.precoUnidade}>por atendimento Express</div>
+            <div className={styles.precoPagamento}>no Pix ou em até 3x no cartão · agendar horário com o contador sai por um valor à parte</div>
           </div>
 
           <div className={styles.resolveSection}>
@@ -200,8 +200,8 @@ export function PricingGrid({ pfCents, pjCents, consultaCents }: PricingGridProp
               <span className={`${styles.moeda} ${styles.textCoral}`}>R$</span>
               <span className={`${styles.precoNum} ${styles.textCoral}`}>{money(pjCents)}</span>
             </div>
-            <div className={`${styles.precoUnidade} ${styles.textLightMuted}`}>por atendimento</div>
-            <div className={`${styles.precoPagamento} ${styles.textCoral}`}>no Pix ou em até 3x no cartão</div>
+            <div className={`${styles.precoUnidade} ${styles.textLightMuted}`}>por atendimento Express</div>
+            <div className={`${styles.precoPagamento} ${styles.textCoral}`}>no Pix ou em até 3x no cartão · agendar horário com o contador sai por um valor à parte</div>
           </div>
 
           <div className={styles.resolveSection}>

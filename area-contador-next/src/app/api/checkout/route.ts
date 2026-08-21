@@ -2,9 +2,10 @@ import { NextResponse } from "next/server";
 import { adminClient } from "@/lib/supabase/admin";
 import * as asaas from "@/lib/asaas";
 import { validarCpfCnpj } from "@/lib/documento";
-import { checarRateLimit } from "@/lib/rateLimit";
+import { checarRateLimit, ipDe } from "@/lib/rateLimit";
 import { registrarEventoFunil } from "@/lib/metricas";
 import { registrarErro } from "@/lib/observability";
+import { confirmCobranca, gerarAutoLogin } from "@/lib/pagamento";
 
 export const runtime = "nodejs";
 
@@ -37,6 +38,8 @@ export async function POST(request: Request) {
     assunto?: string;
     modalidade?: string;
     metodoPagamento?: string;
+    creditCard?: { holderName?: string; number?: string; expiryMonth?: string; expiryYear?: string; ccv?: string };
+    installmentCount?: number;
   } | null;
   if (!body?.name || !body.email || !body.phone || !body.servicoId) return NextResponse.json({ error: "invalid_params" }, { status: 400 });
   const { valido, digitos } = validarCpfCnpj(body.cpfCnpj);
@@ -52,11 +55,21 @@ export async function POST(request: Request) {
   const { data: servico } = await admin.from("servicos").select("*").eq("id", body.servicoId).single();
   if (!servico) return NextResponse.json({ error: "servico_not_found" }, { status: 404 });
 
+  // Nunca confia no que o cliente manda pra decidir se usa o checkout
+  // transparente — o toggle vem só do banco, igual ao que /api/checkout/config
+  // devolve pro front-end decidir qual formulário mostrar.
+  const { data: prefsRow } = await admin.from("configuracoes").select("valor").eq("chave", "painel_preferencias").maybeSingle();
+  const cartaoTransparenteLigado = (prefsRow?.valor as Record<string, unknown> | null)?.checkoutCartaoTransparente === true;
+
   const cartao = body.metodoPagamento === "cartao";
   const modo = body.modalidade === "sem_agendamento" ? "sem_agendamento" : "agendado";
   const canal = "email";
   if (modo === "agendado" && (!body.date || !body.time)) return NextResponse.json({ error: "invalid_params" }, { status: 400 });
-  const precoCents = cartao ? servico.price_cents : Math.round(servico.price_cents * (1 - DESCONTO_PIX));
+  // Atendimento com horário reserva uma conversa ao vivo de até 30min com o
+  // contador — por isso custa mais que o Express (sem reunião). Cai pro
+  // price_cents se o serviço não tiver preço diferenciado cadastrado.
+  const precoBaseCents = modo === "agendado" ? (servico.price_agendado_cents ?? servico.price_cents) : servico.price_cents;
+  const precoCents = cartao ? precoBaseCents : Math.round(precoBaseCents * (1 - DESCONTO_PIX));
 
   try {
     const clientId = digitos;
@@ -92,6 +105,74 @@ export async function POST(request: Request) {
     // seria adivinhável (id sequencial) e daria pra consultar, ou herdar o
     // login automático de, o pagamento de outra pessoa.
     const pollToken = crypto.randomUUID();
+
+    if (cartao && cartaoTransparenteLigado && body.creditCard?.number) {
+      // Checkout transparente: autoriza na hora, sem invoiceUrl. O cartão
+      // passa por aqui só de forma transiente — não entra em nenhum insert,
+      // log ou registrarErro deste bloco.
+      const cc = body.creditCard;
+      if (!cc.number || !cc.holderName || !cc.expiryMonth || !cc.expiryYear || !cc.ccv) return NextResponse.json({ error: "invalid_params" }, { status: 400 });
+      const payment = await asaas.createDirectCardPayment({
+        customerId,
+        value: precoCents / 100,
+        description: descricao,
+        remoteIp: ipDe(request),
+        creditCard: { holderName: cc.holderName, number: cc.number, expiryMonth: cc.expiryMonth, expiryYear: cc.expiryYear, ccv: cc.ccv },
+        creditCardHolderInfo: {
+          name: body.name,
+          email: body.email,
+          cpfCnpj: digitos,
+          postalCode: (body.cep || "").replace(/\D/g, ""),
+          addressNumber: body.numero || "S/N",
+          phone: body.phone,
+        },
+        installmentCount: body.installmentCount && body.installmentCount > 1 ? body.installmentCount : undefined,
+      });
+      const { data: cob, error } = await admin
+        .from("cobrancas")
+        .insert({
+          cliente_ref: clientId,
+          servico_id: body.servicoId,
+          asaas_customer_id: customerId,
+          asaas_payment_id: payment.id,
+          valor_cents: precoCents,
+          valor_original_cents: servico.price_cents,
+          desconto_cents: servico.price_cents - precoCents,
+          desconto_tipo: null,
+          origem: "checkout_publico",
+          status: "pending",
+          billing_type: "CREDIT_CARD",
+          appt_date: modo === "agendado" ? body.date : null,
+          appt_time: modo === "agendado" ? body.time : null,
+          dados_cliente: dadosCliente as never,
+          poll_token: pollToken,
+          modalidade: modo,
+          canal_resultado: canal,
+        })
+        .select()
+        .single();
+      if (error) throw error;
+      await registrarEventoFunil(admin, "cobranca_criada", { cobrancaId: cob.id, clienteRef: clientId, servicoId: body.servicoId, origem: "checkout_publico", metadata: { metodo: "cartao_transparente" } });
+
+      // createDirectCardPayment autoriza de forma síncrona — confirmCobranca
+      // confere de verdade com asaas.getPayment antes de liberar (nunca
+      // confia só na resposta imediata), e faz todo o resto que o webhook
+      // faria: cria o cliente, dispara Express/agendamento, notifica.
+      const resultado = await confirmCobranca(admin, cob);
+      if (resultado.status !== "paid") {
+        return NextResponse.json({ error: "cartao_recusado", detail: "O pagamento não foi autorizado pela operadora do cartão." }, { status: 402 });
+      }
+      const autoLogin = await gerarAutoLogin(admin, clientId);
+      return NextResponse.json({
+        clientId,
+        cobrancaId: cob.id,
+        servico: { id: servico.id, name: servico.name },
+        valor: precoCents / 100,
+        metodoPagamento: "cartao",
+        status: "paid",
+        autoLogin,
+      });
+    }
 
     if (cartao) {
       // Sem formulário de cartão aqui: o cliente completa em `invoiceUrl`, a
@@ -180,8 +261,13 @@ export async function POST(request: Request) {
       status: "pending",
     });
   } catch (e) {
-    const err = e as { code?: string; message: string };
+    const err = e as { code?: string; message: string; status?: number; body?: { errors?: Array<{ description?: string }> } };
     if (err.code === "asaas_not_configured") return NextResponse.json({ error: "asaas_not_configured" }, { status: 503 });
+    // Recusa de cartão no checkout transparente (a autorização acontece na
+    // hora — sem invoiceUrl, sem segunda chance de "tentar de novo lá fora").
+    if (cartao && body?.creditCard?.number && err.status === 400) {
+      return NextResponse.json({ error: "cartao_recusado", detail: err.body?.errors?.[0]?.description || err.message }, { status: 402 });
+    }
     await registrarErro(admin, {
       origem: "signup_checkout",
       codigo: err.code || "checkout_error",
