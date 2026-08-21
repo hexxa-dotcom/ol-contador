@@ -434,6 +434,13 @@ function PortalCriarSenhaCard({ clientId }: { clientId: string }) {
   );
 }
 
+function getSaudacao(): string {
+  const hora = new Date().getHours();
+  if (hora >= 5 && hora < 12) return "Bom dia";
+  if (hora >= 12 && hora < 18) return "Boa tarde";
+  return "Boa noite";
+}
+
 export function PortalDashboardView({ data, onNavigate }: { data: PortalData; onNavigate: (id: string) => void }) {
   const today = new Date().toISOString().slice(0, 10);
   const proximo = data.appointments
@@ -443,22 +450,24 @@ export function PortalDashboardView({ data, onNavigate }: { data: PortalData; on
   const triagemPendente = data.triagem && data.triagem.status !== "enviada" ? data.triagem : null;
   const ultimaMensagem = data.messages[data.messages.length - 1];
   const primeiroNome = data.client.name.split(" ")[0] || "Cliente";
+  const saudacao = getSaudacao();
 
   return (
     <div className="view-stack portal-dashboard-stack">
       {/* CABEÇALHO DO CLIENTE */}
       <div className="portal-hero-header">
         <div className="portal-hero-info">
+          <span className="portal-hero-welcome-tag">Espaço do Cliente</span>
           <h1 className="portal-hero-title">
-            Olá, {primeiroNome}! 👋
+            {saudacao}, <strong>{primeiroNome}</strong>.
           </h1>
           <p className="portal-hero-desc">
-            Acompanhe em tempo real o status do seu caso, mensagens e relatórios oficiais.
+            Tudo pronto para cuidar da sua situação fiscal. Acompanhe abaixo o status em tempo real, suas mensagens e relatórios oficiais.
           </p>
         </div>
         <div className="portal-hero-status-pill">
           <span className="portal-hero-status-dot" />
-          <span>Área do Cliente</span>
+          <span>Atendimento 100% Online</span>
         </div>
       </div>
 
@@ -1188,13 +1197,27 @@ export function PortalAtendimentoView({
             />
             {lock.mode === "none" &&
               (recording ? (
-                <button type="button" className="chat-recording-button" disabled={pending} onClick={stopRecording} title="Parar gravação e enviar" aria-label="Parar gravação e enviar áudio">
-                  <span className="chat-recording-rings" aria-hidden="true">
-                    <span className="chat-recording-ring" />
-                    <span className="chat-recording-ring" />
+                <button
+                  type="button"
+                  className="chat-recording-button"
+                  disabled={pending}
+                  onClick={stopRecording}
+                  title="Parar gravação e enviar áudio"
+                  aria-label="Parar gravação e enviar áudio"
+                >
+                  <span className="recording-rec-dot" aria-hidden="true" />
+                  <span className="recording-waveform" aria-hidden="true">
+                    <span className="recording-waveform-bar" />
+                    <span className="recording-waveform-bar" />
+                    <span className="recording-waveform-bar" />
+                    <span className="recording-waveform-bar" />
                   </span>
-                  <Square size={14} />
-                  <span className="chat-recording-time">{Math.floor(recordingSeconds / 60)}:{String(recordingSeconds % 60).padStart(2, "0")}</span>
+                  <span className="chat-recording-time">
+                    {Math.floor(recordingSeconds / 60)}:{String(recordingSeconds % 60).padStart(2, "0")}
+                  </span>
+                  <span className="recording-stop-icon" aria-hidden="true">
+                    <Square size={8} fill="currentColor" />
+                  </span>
                 </button>
               ) : (
                 <button type="button" className="composer-attach-btn" disabled={pending || !!text.trim()} onClick={() => void startRecording()} title="Gravar uma mensagem de áudio pelo microfone" aria-label="Gravar mensagem de áudio">
@@ -2602,9 +2625,21 @@ export function PortalTriagemView({
                     </div>
                     <div className="triagem-audio-relato">
                       {gravandoRelato ? (
-                        <button type="button" className="triagem-doc-action-btn" onClick={pararRelatoAudio}>
-                          <Square size={13} />
-                          <span>Gravando {Math.floor(relatoSegundos / 60)}:{String(relatoSegundos % 60).padStart(2, "0")} — toque para enviar</span>
+                        <button type="button" className="chat-recording-button" onClick={pararRelatoAudio} title="Parar e anexar áudio">
+                          <span className="recording-rec-dot" aria-hidden="true" />
+                          <span className="recording-waveform" aria-hidden="true">
+                            <span className="recording-waveform-bar" />
+                            <span className="recording-waveform-bar" />
+                            <span className="recording-waveform-bar" />
+                            <span className="recording-waveform-bar" />
+                          </span>
+                          <span className="chat-recording-time">
+                            {Math.floor(relatoSegundos / 60)}:{String(relatoSegundos % 60).padStart(2, "0")}
+                          </span>
+                          <span className="recording-stop-icon" aria-hidden="true">
+                            <Square size={8} fill="currentColor" />
+                          </span>
+                          <span style={{ fontSize: "12px", marginLeft: "2px", fontWeight: 750 }}>Concluir relato</span>
                         </button>
                       ) : (
                         <button type="button" className="triagem-doc-action-btn" disabled={enviando || transcrevendoRelato} onClick={iniciarRelatoAudio}>

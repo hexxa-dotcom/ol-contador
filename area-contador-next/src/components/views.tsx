@@ -2168,8 +2168,27 @@ export function AtendimentoView({
               </button>
             ))}
             {recording ? (
-              <button className="chat-recording-button" disabled={isSending} onClick={stopRecording} title="Parar gravação e enviar">
-                <Square size={14} /> Gravando {Math.floor(recordingSeconds / 60)}:{String(recordingSeconds % 60).padStart(2, "0")}
+              <button
+                type="button"
+                className="chat-recording-button"
+                disabled={isSending}
+                onClick={stopRecording}
+                title="Parar gravação e enviar áudio"
+                aria-label="Parar gravação e enviar áudio"
+              >
+                <span className="recording-rec-dot" aria-hidden="true" />
+                <span className="recording-waveform" aria-hidden="true">
+                  <span className="recording-waveform-bar" />
+                  <span className="recording-waveform-bar" />
+                  <span className="recording-waveform-bar" />
+                  <span className="recording-waveform-bar" />
+                </span>
+                <span className="chat-recording-time">
+                  {Math.floor(recordingSeconds / 60)}:{String(recordingSeconds % 60).padStart(2, "0")}
+                </span>
+                <span className="recording-stop-icon" aria-hidden="true">
+                  <Square size={8} fill="currentColor" />
+                </span>
               </button>
             ) : (
               <button disabled={!selectedClient || isSending || chatLocked} onClick={startRecording} title="Gravar uma mensagem de áudio pelo microfone">
