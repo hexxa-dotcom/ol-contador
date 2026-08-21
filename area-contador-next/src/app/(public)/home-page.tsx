@@ -23,13 +23,14 @@ import {
   CheckCircle2,
   Smartphone,
   FileText,
+  Lock,
 } from "lucide-react";
 import styles from "./home.module.css";
 
 const PASSOS = [
-  { n: "01", t: "Escolha o formato ideal", d: "Opte por Atendimento Express para resolver no mesmo dia por mensagens, ou agende um horário para conversar com calma." },
-  { n: "02", t: "Envie os dados direto pelo celular", d: "Tire fotos dos documentos e conte o que houve pelo navegador — sem baixar nenhum aplicativo e sem formulários chatos." },
-  { n: "03", t: "Acompanhe até a regularização oficial", d: "Cada etapa fica registrada com parecer técnico oficial do contador (média de resolução entre 24h e 48h)." },
+  { n: "01", t: "Escolha o formato ideal", d: "Escolha o Atendimento Express para resolver hoje mesmo por mensagens, ou Agende um horário para conversar com calma por vídeo/chat." },
+  { n: "02", t: "Envie seus dados direto pelo celular", d: "Tire foto dos documentos e conte o que houve direto no navegador — sem baixar nenhum aplicativo e sem formulários chatos." },
+  { n: "03", t: "Receba a solução e o parecer oficial", d: "Acompanhe cada etapa com o contador responsável até a regularização (média de resolução entre 24h e 48h)." },
 ];
 
 const ASSUNTOS = [
@@ -230,7 +231,7 @@ export function HomePage({ precos }: { precos: { pf: number; pj: number; consult
         <div className={styles.container}>
           <Reveal>
             <div className={styles.bannerBold}>
-              <h2 className={styles.bannerTitle}>GARANTIA TOTAL DE<br />DEVOLUÇÃO <span className={styles.heroDash}>——</span></h2>
+              <h2 className={styles.bannerTitle}>GARANTIA TOTAL DE<br />DEVOLUÇÃO</h2>
               <p className={styles.bannerSub}>Se o contador analisar seus dados e identificar que não há como ajudar na sua situação, você recebe 100% do valor de volta na hora. Sem burocracia, sem letras miúdas.</p>
               <div className={styles.pricingFooter}>
                 <div className={styles.pfItem}>
@@ -304,7 +305,7 @@ export function HomePage({ precos }: { precos: { pf: number; pj: number; consult
                   </div>
                   <h3>Atendimento Express no mesmo dia</h3>
                 </div>
-                <p className={styles.body}>Sua pendência não pode esperar. No plano Express, o contador assume o atendimento hoje mesmo e inicia os levantamentos nas primeiras horas. A média de resolução do caso é de 24h a 48h.</p>
+                <p className={styles.body}>Comece a resolver hoje mesmo. O contador analisa sua documentação e inicia os procedimentos nas primeiras horas.</p>
               </GlowCard>
 
               <GlowCard className={styles.trustCard}>
@@ -312,19 +313,19 @@ export function HomePage({ precos }: { precos: { pf: number; pj: number; consult
                   <div className={styles.check} style={{ background: "rgba(37, 99, 235, 0.12)", color: "#2563EB" }}>
                     <Smartphone size={18} />
                   </div>
-                  <h3>100% pelo celular, sem baixar nada</h3>
+                  <h3>100% no navegador, sem baixar nada</h3>
                 </div>
-                <p className={styles.body}>Zero aplicativos ocupando espaço na memória do seu aparelho. Você acessa sua área segura diretamente pelo navegador, envia fotos dos documentos em 2 cliques e conversa sem complicação.</p>
+                <p className={styles.body}>Zero aplicativos ocupando espaço. Acesse sua área protegida por um link simples no celular ou PC com 1 toque.</p>
               </GlowCard>
 
               <GlowCard className={styles.trustCard}>
                 <div className={styles.trustCardHead}>
                   <div className={styles.check} style={{ background: "rgba(16, 185, 129, 0.12)", color: "#10B981" }}>
-                    <ShieldCheck size={18} />
+                    <Lock size={18} />
                   </div>
-                  <h3>Contador com CRC e sigilo fiscal</h3>
+                  <h3>Contador com CRC Ativo &amp; Senhas temporárias</h3>
                 </div>
-                <p className={styles.body}>Você não fala com robôs. Um contador com registro ativo no Conselho Regional de Contabilidade assume sua situação. Suas senhas da Receita são temporárias e nunca ficam salvas.</p>
+                <p className={styles.body}>Profissional habilitado pelo Conselho Regional de Contabilidade. Seus acessos fiscais nunca ficam salvos.</p>
               </GlowCard>
 
               <GlowCard className={styles.trustCard}>
@@ -332,9 +333,9 @@ export function HomePage({ precos }: { precos: { pf: number; pj: number; consult
                   <div className={styles.check} style={{ background: "rgba(245, 158, 11, 0.12)", color: "#D97706" }}>
                     <FileText size={18} />
                   </div>
-                  <h3>Tudo documentado e com garantia</h3>
+                  <h3>Parecer Técnico Documentado</h3>
                 </div>
-                <p className={styles.body}>Ao final, você recebe um parecer técnico formal assinado pelo contador. E se for identificado que não há como ajudar na sua situação, você recebe 100% do valor de volta na hora.</p>
+                <p className={styles.body}>Tudo o que é feito vira um relatório formal assinado, com validade jurídica e garantia total de devolução.</p>
               </GlowCard>
             </div>
           </Reveal>
