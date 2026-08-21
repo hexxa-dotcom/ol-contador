@@ -37,11 +37,24 @@ const ASSUNTOS = [
   "Malha fina do Imposto de Renda",
   "CPF cancelado ou pendente",
   "CNPJ inapto ou suspenso",
-  "Ganho de capital na venda de bens",
+  "Ganho de capital & investimentos",
   "Serviços diversos para o MEI",
+  "Carnê-Leão & autônomos",
   "Declaração de Imposto de Renda",
-  "Regularização de pendências fiscais",
-  "Parcelamento de débitos na Receita",
+  "Parcelamento de débitos & CND",
+];
+
+const MAIS_SERVICOS = [
+  "Isenção de IRPF por moléstia",
+  "Desenquadramento de MEI",
+  "DARF em atraso",
+  "Criptomoedas & ações",
+  "Rendimentos do exterior & AdSense",
+  "Baixa de CNPJ com dívidas",
+  "Restituição travada na Receita",
+  "Certidão Negativa de Débitos (CND)",
+  "Declaração de espólio",
+  "Regularização de sócios & procurações",
 ];
 
 const CASOS = [
@@ -262,6 +275,23 @@ export function HomePage({ precos }: { precos: { pf: number; pj: number; consult
               {ASSUNTOS.map((a) => (
                 <div className={styles.bentoCard} key={a}>{a}</div>
               ))}
+            </div>
+          </Reveal>
+
+          {/* Faixa Ticker Marquee de Mais Especialidades */}
+          <Reveal>
+            <div className={styles.servicesTickerWrap}>
+              <div className={styles.servicesTickerLabel}>Também resolvemos:</div>
+              <div className={styles.servicesTickerTrack}>
+                <div className={styles.servicesTickerRow}>
+                  {[...MAIS_SERVICOS, ...MAIS_SERVICOS].map((servico, idx) => (
+                    <span key={idx} className={styles.serviceChip}>
+                      <span className={styles.chipDot} />
+                      {servico}
+                    </span>
+                  ))}
+                </div>
+              </div>
             </div>
           </Reveal>
         </div>
