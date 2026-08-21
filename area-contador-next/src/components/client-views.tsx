@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import {
   AlertTriangle, ArrowLeft, ArrowRight, BadgeCheck, CalendarCheck, CalendarClock, CalendarPlus, Camera, Check, CheckCheck,
   CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, CircleAlert, ClipboardList, Copy, CreditCard, Download, Eye, EyeOff, FileCheck2, FileDown, FilePlus2,
-  FileText, HelpCircle, Inbox, KeyRound, Landmark, ListChecks, Lock, Mail, MapPin, MessageCircle, Mic, Paperclip, Phone, Play, QrCode, Search, Send, ShieldAlert, ShieldCheck, Sparkles, Square, Star, Trash2, Upload, UserRound, Volume2, X, Zap,
+  FileText, HelpCircle, Inbox, KeyRound, Landmark, ListChecks, Lock, Mail, MapPin, MessageCircle, Mic, Phone, Play, QrCode, Search, Send, ShieldAlert, ShieldCheck, Sparkles, Square, Star, Trash2, Upload, UserRound, Volume2, X, Zap,
 } from "lucide-react";
 import { Badge, Button, Card, EmptyState, Input } from "@/components/ui/primitives";
 import { PageTitle } from "@/components/views";
@@ -149,7 +149,7 @@ const STATUS_EXPRESS_LABEL: Record<string, string> = {
 
 // Porte 1:1 de atualizarProximaAcao do cliente.js legado — árvore de 9
 // estados, primeiro que casar vence. A ordem dos `if`s é a regra.
-type ProximaAcaoTom = "coral" | "green" | "pine";
+type ProximaAcaoTom = "coral" | "green" | "pine" | "purple";
 type ProximaAcao = { Icon: typeof ListChecks; title: string; text: string; buttonLabel: string; target: string; tone: ProximaAcaoTom };
 
 function computeProximaAcao(data: PortalData): ProximaAcao {
@@ -175,30 +175,37 @@ function computeProximaAcao(data: PortalData): ProximaAcao {
   if (temRelatorio) {
     return { Icon: FileCheck2, title: "Seu relatório está pronto", text: "O atendimento foi concluído. Baixe seu relatório quando quiser.", buttonLabel: "Ver relatório", target: "documentos", tone: "green" };
   }
-  if (!triagemEnviada) {
-    return { Icon: ClipboardList, title: "Conte o que aconteceu", text: "Responda perguntas simples, do seu jeito. O rascunho fica salvo automaticamente.", buttonLabel: "Começar triagem", target: "triagem", tone: "coral" };
-  }
   if (semAgendamento && atendimentoExpress?.status === "aguardando_documentos") {
-    return { Icon: FilePlus2, title: "Precisamos de mais um documento", text: "Abra seu caso para ver exatamente o que falta e continuar a análise.", buttonLabel: "Ver o que falta", target: "documentos", tone: "coral" };
+    return { Icon: Zap, title: "Precisamos de mais um documento", text: "Abra seu caso para ver exatamente o que falta e continuar a análise express.", buttonLabel: "Ver o que falta", target: "triagem", tone: "purple" };
+  }
+  if (!triagemEnviada) {
+    return {
+      Icon: semAgendamento ? Zap : ClipboardList,
+      title: semAgendamento ? "Envie os dados do seu Atendimento Express" : "Conte o que aconteceu",
+      text: semAgendamento ? "Preencha as informações e anexe os comprovantes para o contador iniciar a execução." : "Responda perguntas simples, do seu jeito. O rascunho fica salvo automaticamente.",
+      buttonLabel: semAgendamento ? "Preencher formulário" : "Começar triagem",
+      target: "triagem",
+      tone: semAgendamento ? "purple" : "coral",
+    };
   }
   if (!qtdDocs) {
     return {
-      Icon: Camera,
+      Icon: semAgendamento ? Zap : Camera,
       title: "Envie os documentos que você já tiver",
       text: semAgendamento ? "Você pode fotografar pelo celular. Se não tiver algum agora, avisaremos caso ele seja necessário." : "Eles ajudam o contador a analisar o caso antes da conversa.",
       buttonLabel: "Tirar foto ou anexar",
       target: "triagem",
-      tone: "pine",
+      tone: semAgendamento ? "purple" : "pine",
     };
   }
   if (semAgendamento) {
     return {
-      Icon: CheckCircle2,
-      title: "Está tudo conosco agora",
-      text: "Você não precisa fazer nada neste momento." + (atendimentoExpress?.prazoConclusaoEm ? ` Previsão de conclusão: ${formatDate(atendimentoExpress.prazoConclusaoEm.slice(0, 10))}.` : " Avisaremos quando houver uma atualização."),
-      buttonLabel: "Ver meu caso",
+      Icon: Zap,
+      title: "Atendimento Express em andamento",
+      text: "Seu caso está em execução com a equipe contábil." + (atendimentoExpress?.prazoConclusaoEm ? ` Previsão de conclusão: ${formatDate(atendimentoExpress.prazoConclusaoEm.slice(0, 10))}.` : " Avisaremos quando houver uma atualização."),
+      buttonLabel: "Acompanhar meu caso",
       target: "triagem",
-      tone: "green",
+      tone: "purple",
     };
   }
   if (!temAppt) {
@@ -277,11 +284,12 @@ function computeTimeline(data: PortalData): { passos: PassoTimeline[]; ativoInde
 
 function PortalTimelineCard({ data }: { data: PortalData }) {
   const { passos, ativoIndex } = computeTimeline(data);
+  const semAgendamento = data.client.atendimentoModalidade === "sem_agendamento";
   const feitos = passos.filter((p) => p.feito).length;
   const pct = Math.round((feitos / passos.length) * 100);
 
   return (
-    <Card className="portal-timeline-box">
+    <Card className={`portal-timeline-box ${semAgendamento ? "is-express" : ""}`}>
       <div className="portal-timeline-header">
         <div className="portal-timeline-header-left">
           <h3 className="portal-timeline-title">Linha do tempo do seu caso</h3>
@@ -466,14 +474,14 @@ export function PortalDashboardView({ data, onNavigate }: { data: PortalData; on
           {/* TILE 1: PRÓXIMO ATENDIMENTO OU EXPRESS */}
           <button 
             type="button" 
-            className="portal-action-tile tile-agenda" 
-            onClick={() => onNavigate(proximo || !expressAtivo ? "agendamento" : "historico")}
+            className={`portal-action-tile tile-agenda ${expressAtivo && !proximo ? "is-express" : ""}`}
+            onClick={() => onNavigate(expressAtivo && !proximo ? "triagem" : proximo ? "agendamento" : "agendamento")}
           >
             <div className="portal-tile-top">
-              <div className="portal-tile-icon-box agenda">
-                <CalendarClock size={20} />
+              <div className={`portal-tile-icon-box ${expressAtivo && !proximo ? "express" : "agenda"}`}>
+                {expressAtivo && !proximo ? <Zap size={20} /> : <CalendarClock size={20} />}
               </div>
-              <span className="portal-tile-tag">
+              <span className={`portal-tile-tag ${expressAtivo && !proximo ? "express" : ""}`}>
                 {expressAtivo && !proximo ? "Express" : "Reunião"}
               </span>
             </div>
@@ -488,7 +496,7 @@ export function PortalDashboardView({ data, onNavigate }: { data: PortalData; on
                 </div>
               ) : expressAtivo ? (
                 <div className="portal-tile-snippet">
-                  <strong>{STATUS_EXPRESS_LABEL[expressAtivo.status] || expressAtivo.status}</strong>
+                  <strong className="text-express">{STATUS_EXPRESS_LABEL[expressAtivo.status] || expressAtivo.status}</strong>
                   <span>{expressAtivo.assunto || "Em andamento"} · previsão {formatDate(expressAtivo.prazoConclusaoEm.slice(0, 10))}</span>
                 </div>
               ) : (
@@ -499,7 +507,7 @@ export function PortalDashboardView({ data, onNavigate }: { data: PortalData; on
             </div>
             <div className="portal-tile-footer">
               <span className="portal-tile-action-label">
-                {proximo ? "Ver agendamento" : "Agendar consultoria"}
+                {expressAtivo && !proximo ? "Acompanhar caso" : proximo ? "Ver agendamento" : "Agendar consultoria"}
               </span>
               <ChevronRight size={16} className="portal-tile-arrow" />
             </div>
@@ -665,13 +673,16 @@ function useContadorPresence(clientId: string) {
 
 // Porta 1:1 a lógica de aplicarEstadoDoChat do cliente.js legado: "total"
 // (agendamento futuro pendente, vence sobre tudo), "parcial"
-// (clientes.status === 'locked', sem agendamento pendente) e "finalizado"
-// (clientes.status === 'done'). Só o "finalizado" desabilita o campo — nos
-// outros dois a mensagem digitada é redirecionada pra Caixa Postal.
+// (clientes.status === 'locked' OU atendimento Express em aberto, sem
+// agendamento pendente) e "finalizado" (clientes.status === 'done'). Só o
+// "finalizado" desabilita o campo — nos outros dois a mensagem digitada é
+// redirecionada pra Caixa Postal. Express fica preso a "parcial" porque, uma
+// vez contratado, o atendimento passa a rodar por fora do chat em tempo
+// real — o cliente só acompanha e manda recado pela Caixa Postal.
 type ChatLockMode = "none" | "total" | "parcial" | "finalizado";
 type ChatLockAppointment = { date: string | null; time: string | null; status: string | null };
 
-function computeChatLock(status: string | null, appointments: ChatLockAppointment[]): { mode: ChatLockMode; proximo: ChatLockAppointment | null } {
+function computeChatLock(status: string | null, appointments: ChatLockAppointment[], expressAtivo: boolean): { mode: ChatLockMode; proximo: ChatLockAppointment | null } {
   if (status === "done") return { mode: "finalizado", proximo: null };
   const now = Date.now();
   const proximo =
@@ -681,13 +692,14 @@ function computeChatLock(status: string | null, appointments: ChatLockAppointmen
       .filter(({ when }) => when > now)
       .sort((x, y) => x.when - y.when)[0]?.a ?? null;
   if (proximo) return { mode: "total", proximo };
-  if (status === "locked") return { mode: "parcial", proximo: null };
+  if (status === "locked" || expressAtivo) return { mode: "parcial", proximo: null };
   return { mode: "none", proximo: null };
 }
 
-function useChatLock(clientId: string, initialStatus: string | null, initialAppointments: PortalAppointment[]) {
+function useChatLock(clientId: string, initialStatus: string | null, initialAppointments: PortalAppointment[], initialExpressAtivo: boolean) {
   const [status, setStatus] = useState(initialStatus);
   const [appointments, setAppointments] = useState<ChatLockAppointment[]>(initialAppointments);
+  const [expressAtivo, setExpressAtivo] = useState(initialExpressAtivo);
 
   useEffect(() => {
     const supabase = createBrowserClient();
@@ -695,18 +707,23 @@ function useChatLock(clientId: string, initialStatus: string | null, initialAppo
 
     async function refetch() {
       if (!supabase) return;
-      const [clientResult, appointmentsResult] = await Promise.all([
+      const [clientResult, appointmentsResult, expressResult] = await Promise.all([
         supabase.from("clientes").select("status").eq("id", clientId).maybeSingle(),
         supabase.from("agendamentos").select("date,time,status").eq("cliente_ref", clientId),
+        supabase.from("atendimentos_express").select("status").eq("cliente_ref", clientId).not("status", "in", "(concluido,cancelado)"),
       ]);
       if (clientResult.data) setStatus(clientResult.data.status);
       if (appointmentsResult.data) setAppointments(appointmentsResult.data);
+      if (expressResult.data) setExpressAtivo(expressResult.data.length > 0);
     }
 
     const channel = supabase
       .channel(`oc-status-${clientId}`)
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "clientes", filter: `id=eq.${clientId}` }, (payload) => {
         setStatus((payload.new as { status: string | null }).status);
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "atendimentos_express", filter: `cliente_ref=eq.${clientId}` }, () => {
+        void refetch();
       })
       .subscribe();
 
@@ -725,7 +742,7 @@ function useChatLock(clientId: string, initialStatus: string | null, initialAppo
     };
   }, [clientId]);
 
-  return computeChatLock(status, appointments);
+  return computeChatLock(status, appointments, expressAtivo);
 }
 
 const TYPING_THROTTLE_MS = 2000;
@@ -836,6 +853,7 @@ export function PortalAtendimentoView({
   clientId,
   clientStatus,
   appointments,
+  atendimentosExpress = [],
   triagem,
   reports,
   catalogo,
@@ -847,6 +865,7 @@ export function PortalAtendimentoView({
   clientId: string;
   clientStatus: string | null;
   appointments: PortalAppointment[];
+  atendimentosExpress?: PortalAtendimentoExpress[];
   triagem: PortalTriagem | null;
   reports: PortalReport[];
   catalogo: TriagemAssunto[];
@@ -864,7 +883,8 @@ export function PortalAtendimentoView({
   const audioChunksRef = useRef<Blob[]>([]);
   const recordingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const presence = useContadorPresence(clientId);
-  const lock = useChatLock(clientId, clientStatus, appointments);
+  const expressAtivoInicial = atendimentosExpress.some((item) => item.status !== "concluido" && item.status !== "cancelado");
+  const lock = useChatLock(clientId, clientStatus, appointments, expressAtivoInicial);
   const typing = useTypingIndicator(clientId);
   useLiveMessages(clientId, setMessages);
   const initials = contador.name.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join("").toUpperCase() || "OC";
@@ -1151,17 +1171,6 @@ export function PortalAtendimentoView({
         </div>
         {lock.mode !== "finalizado" && (
           <div className="composer">
-            {onNavigate && (
-              <button
-                type="button"
-                className="composer-attach-btn"
-                onClick={() => onNavigate("documentos")}
-                title="Enviar documento ou comprovante"
-                aria-label="Enviar documento"
-              >
-                <Paperclip size={18} />
-              </button>
-            )}
             <Input
               value={text}
               onChange={(event) => {
@@ -1180,7 +1189,12 @@ export function PortalAtendimentoView({
             {lock.mode === "none" &&
               (recording ? (
                 <button type="button" className="chat-recording-button" disabled={pending} onClick={stopRecording} title="Parar gravação e enviar" aria-label="Parar gravação e enviar áudio">
-                  <Square size={14} /> {Math.floor(recordingSeconds / 60)}:{String(recordingSeconds % 60).padStart(2, "0")}
+                  <span className="chat-recording-rings" aria-hidden="true">
+                    <span className="chat-recording-ring" />
+                    <span className="chat-recording-ring" />
+                  </span>
+                  <Square size={14} />
+                  <span className="chat-recording-time">{Math.floor(recordingSeconds / 60)}:{String(recordingSeconds % 60).padStart(2, "0")}</span>
                 </button>
               ) : (
                 <button type="button" className="composer-attach-btn" disabled={pending || !!text.trim()} onClick={() => void startRecording()} title="Gravar uma mensagem de áudio pelo microfone" aria-label="Gravar mensagem de áudio">
@@ -2911,12 +2925,20 @@ export function PortalCaixaPostalView({ clientId, mailbox: initialMailbox }: { c
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "caixa_postal", filter: `cliente_ref=eq.${clientId}` },
         (payload) => {
-          const row = payload.new as { id: number; assunto: string | null; mensagem: string; remetente: string; lida: boolean; created_at: string };
+          const row = payload.new as { id: number; assunto: string | null; mensagem: string; remetente: string; lida: boolean; status: string; created_at: string };
           setMailbox((items) =>
             items.some((item) => item.id === row.id)
               ? items
-              : [...items, { id: row.id, assunto: row.assunto, mensagem: row.mensagem, remetente: row.remetente, lida: row.lida, createdAt: row.created_at }],
+              : [...items, { id: row.id, assunto: row.assunto, mensagem: row.mensagem, remetente: row.remetente, lida: row.lida, status: row.status, createdAt: row.created_at }],
           );
+        },
+      )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "caixa_postal", filter: `cliente_ref=eq.${clientId}` },
+        (payload) => {
+          const row = payload.new as { id: number; lida: boolean; status: string };
+          setMailbox((items) => items.map((item) => (item.id === row.id ? { ...item, lida: row.lida, status: row.status } : item)));
         },
       )
       .subscribe();
@@ -2962,10 +2984,16 @@ export function PortalCaixaPostalView({ clientId, mailbox: initialMailbox }: { c
 
   if (modo === "thread" || modo === "compose") {
     const mensagensDaThread = modo === "thread" ? threads.find((t) => (t[0]?.assunto || ASSUNTO_SEM_CATEGORIA) === threadAtiva) || [] : [];
+    const threadEncerrada = modo === "thread" && mensagensDaThread[mensagensDaThread.length - 1]?.status === "encerrado";
     return (
       <div className="view-stack">
         <PageTitle
           title={modo === "compose" ? "Nova mensagem" : threadAtiva || ASSUNTO_SEM_CATEGORIA}
+          badge={
+            modo === "thread" ? (
+              <span className={`portal-tile-badge ${threadEncerrada ? "ok" : "pending"}`}>{threadEncerrada ? "Encerrado" : "Em aberto"}</span>
+            ) : undefined
+          }
           description="Comunicação com o escritório contábil — resposta em até 1 dia útil."
           action={
             <button type="button" className="portal-back-btn" onClick={() => setModo("inbox")}>
@@ -3066,6 +3094,7 @@ export function PortalCaixaPostalView({ clientId, mailbox: initialMailbox }: { c
               const ultima = itens[itens.length - 1];
               const assunto = ultima.assunto || ASSUNTO_SEM_CATEGORIA;
               const naoLidas = itens.some((item) => !item.lida && item.remetente !== "cliente");
+              const encerrada = ultima.status === "encerrado";
               return (
                 <button
                   type="button"
@@ -3093,6 +3122,7 @@ export function PortalCaixaPostalView({ clientId, mailbox: initialMailbox }: { c
                     <p className="portal-mailbox-snippet">{ultima.mensagem}</p>
                     <div className="portal-mailbox-row-bottom">
                       <span className="portal-mailbox-count">{itens.length} mensagem(ns)</span>
+                      <span className={`portal-tile-badge ${encerrada ? "ok" : "pending"}`}>{encerrada ? "Encerrado" : "Em aberto"}</span>
                       {naoLidas && <span className="portal-tile-badge pending">Nova mensagem</span>}
                     </div>
                   </div>

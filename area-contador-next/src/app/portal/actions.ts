@@ -140,12 +140,14 @@ export async function sendPortalMailMessage(input: { assunto: string; mensagem: 
   if (!mensagem) return { ok: false as const, message: "Escreva uma mensagem." };
   const { data, error } = await ctx.supabase
     .from("caixa_postal")
-    .insert({ cliente_ref: ctx.clientId, remetente: "cliente", mensagem, assunto })
-    .select("id,assunto,mensagem,remetente,lida,created_at")
+    // Mensagem nova sempre reabre o assunto — status "aberto" por padrão
+    // mesmo que as mensagens anteriores da mesma conversa estejam "encerrado".
+    .insert({ cliente_ref: ctx.clientId, remetente: "cliente", mensagem, assunto, status: "aberto" })
+    .select("id,assunto,mensagem,remetente,lida,status,created_at")
     .single();
   if (error || !data) return { ok: false as const, message: "Não foi possível enviar sua mensagem agora." };
   revalidatePath("/portal");
-  return { ok: true as const, data: { id: data.id, assunto: data.assunto, mensagem: data.mensagem, remetente: data.remetente, lida: data.lida, createdAt: data.created_at } };
+  return { ok: true as const, data: { id: data.id, assunto: data.assunto, mensagem: data.mensagem, remetente: data.remetente, lida: data.lida, status: data.status, createdAt: data.created_at } };
 }
 
 export async function markPortalMessagesRead() {

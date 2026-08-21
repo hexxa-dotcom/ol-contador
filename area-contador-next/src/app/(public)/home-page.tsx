@@ -13,47 +13,49 @@ import { ProtocolCard } from "./protocol-card";
 
 import { FaqAccordion, Asterisco } from "./faq-accordion";
 import { GlowCard } from "@/components/ui/glow-card";
-import { MessageCircle, ShieldCheck, FileText, CheckCircle2 } from "lucide-react";
+import {
+  ShieldCheck,
+  ArrowRight,
+  Star,
+  Zap,
+  TrendingUp,
+} from "lucide-react";
 import styles from "./home.module.css";
 
 const PASSOS = [
-  { n: "01", t: "Escolha o tipo de atendimento", d: "Express, agendado, ou uma análise sob demanda para casos maiores." },
-  { n: "02", t: "Conte o que aconteceu e envie os documentos", d: "Direto pelo celular, sem burocracia de formulário." },
-  { n: "03", t: "Acompanhe até o caso ser resolvido", d: "Cada mensagem fica registrada no seu protocolo — nada se perde, nada fica solto num chat de celular." },
+  { n: "01", t: "Escolha o tipo de atendimento", d: "Atendimento Express para resolver no mesmo dia, ou agende um horário com calma." },
+  { n: "02", t: "Conte sua situação e envie os arquivos", d: "Direto pelo celular ou computador, sem burocracia de formulários longos." },
+  { n: "03", t: "Acompanhe tudo até a regularização", d: "Cada mensagem e documento fica registrado no seu histórico oficial — nada se perde." },
 ];
 
 const ASSUNTOS = [
   "Malha fina do Imposto de Renda",
-  "CPF cancelado ou irregular",
-  "CNPJ inapto",
+  "CPF cancelado ou pendente",
+  "CNPJ inapto ou suspenso",
   "Ganho de capital na venda de bens",
-  "Abertura de MEI ou empresa",
+  "Abertura e baixa de MEI",
   "Declaração de Imposto de Renda",
-  "Regularização fiscal",
-  "Dúvidas sobre parcelamento",
+  "Regularização de pendências fiscais",
+  "Parcelamento de débitos na Receita",
 ];
 
 const CASOS = [
-  { titulo: "Caiu na malha fina e não sabia o motivo", fizemos: "Identificamos o erro na declaração e enviamos a retificadora.", depois: "Situação regularizada, sem multa." },
-  { titulo: "CPF cancelado, não conseguia nem abrir conta", fizemos: "Levantamos o motivo da pendência e regularizamos junto à Receita.", depois: "CPF regularizado, vida financeira normalizada." },
-  { titulo: "CNPJ inapto, empresa parou de faturar", fizemos: "Levantamos as pendências e entregamos as declarações em atraso.", depois: "CNPJ reativado, empresa emitindo nota normalmente." },
-  { titulo: "Vendeu um imóvel e não sabia se devia imposto", fizemos: "Calculamos o imposto devido e orientamos a declaração correta.", depois: "Declaração feita sem erro, sem risco de malha fina depois." },
+  { titulo: "Caiu na malha fina e não sabia o motivo", fizemos: "Identificamos o erro na declaração e transmitimos a retificadora.", depois: "Situação 100% regularizada, sem multas extras." },
+  { titulo: "CPF cancelado ou com restrição", fizemos: "Levantamos as omissões fiscais e protocolamos a liberação na Receita.", depois: "CPF liberado para contas bancárias, crédito e trabalho." },
+  { titulo: "CNPJ travado ou inapto", fizemos: "Entregamos as declarações em atraso e reativamos o cadastro.", depois: "CNPJ ativo e liberado para emitir notas normalmente." },
+  { titulo: "Venda de imóvel ou ganho de capital", fizemos: "Calculamos as isenções legais (GCAP) e geramos o DARF correto.", depois: "Declaração transmitida sem erros e com comprovante oficial." },
 ];
 
 const FAQ = [
   { p: "Preciso agendar, ou consigo atendimento no mesmo dia?", r: "O plano Express foi feito exatamente pra isso — você é atendido no mesmo dia, sem precisar marcar horário. Se preferir, também dá pra agendar um horário específico." },
-  { p: "Meu caso é urgente, tem prazo vencendo. E agora?", r: "Avise isso logo no início do atendimento. Casos com prazo apertado são priorizados pelo contador responsável." },
-  { p: "Tenho mais de um CNPJ. Preciso pagar um atendimento pra cada?", r: "Sim, cada CNPJ é tratado como um caso separado, porque a situação fiscal de cada empresa é diferente." },
-  { p: "Atendem fora do horário comercial?", r: "Você pode enviar seu caso a qualquer hora — a análise do contador acontece dentro do prazo de resposta combinado." },
+  { p: "Minha situação é urgente, tem prazo vencendo. E agora?", r: "Avise isso logo no início do atendimento. Casos com prazo apertado são priorizados imediatamente pelo contador responsável." },
+  { p: "Tenho mais de um CNPJ. Preciso pagar um atendimento pra cada?", r: "Sim, cada CNPJ é tratado separadamente, porque a situação cadastral e fiscal de cada empresa é única." },
+  { p: "Vocês atendem fora do horário comercial?", r: "Você pode enviar sua mensagem a qualquer hora — a análise do contador acontece dentro do prazo de resposta combinado." },
 ];
 
 const money = (cents: number) => new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 0 }).format(cents / 100);
 
-/** Asterisco decorativo — mesmo tipo de "ruído gráfico" pontual usado em
- * layouts editoriais bold (referência: landing da Rebank), só com a cor da
- * marca. Puramente decorativo. */
-/** Selo estrelado (recorte em CSS, sem SVG) pra destacar uma ação — o mesmo
- * papel do badge "Get started" spiky da referência. */
+/** Selo estrelado (recorte em CSS, sem SVG) pra destacar uma ação */
 function SeloEstrela({ children }: { children: ReactNode }) {
   return <div className={styles.seloEstrela}><span>{children}</span></div>;
 }
@@ -63,54 +65,103 @@ export function HomePage({ precos }: { precos: { pf: number; pj: number; consult
     <>
       <SiteHeader active="home" />
 
-      {/* HERO */}
+      {/* =========================================================================
+          HERO SECTION (FINTECH PREMIUM & PROVA SOCIAL)
+      ========================================================================= */}
       <section className={`${styles.hero} ${styles.superficieEscura}`}>
         <div className={styles.container}>
           <div className={styles.heroGrid} style={{ position: "relative" }}>
-            
             <div className={styles.heroInner}>
               <Reveal>
-                <div className={styles.eyebrow}>Atendimento contábil 100% focado no seu caso</div>
+                <div className={styles.eyebrowSocial}>
+                  <div className={styles.starsGroup}>
+                    {[1, 2, 3, 4, 5].map((s) => (
+                      <Star key={s} size={14} fill="#F59E0B" color="#F59E0B" />
+                    ))}
+                  </div>
+                  <strong>4.9/5</strong>
+                  <span>em mais de 1.400 casos resolvidos</span>
+                </div>
               </Reveal>
+
               <h1 className={styles.heroTitleBold}>
-                Um contador de verdade,<br />
-                <span className={styles.accent} style={{ color: "#FF9C7E" }}>dedicado ao seu caso</span>
+                A forma mais simples de resolver seus<br />
+                <span className={styles.heroGradientCoral}>problemas com a Receita</span>
               </h1>
-              <p className={styles.heroSub}>Conte o que está acontecendo, envie os documentos pelo celular, e um contador com registro ativo cuida do seu caso do começo ao fim — sem termo técnico, sem enrolação.</p>
+
+              <p className={styles.heroSub}>
+                Sem jargões, sem agendamentos demorados. Conectamos você diretamente a um contador especialista para destravar seu CPF, CNPJ ou IRPF em tempo recorde.
+              </p>
+
               <div className={styles.heroActions}>
-                <Link className={styles.btnPrimary} href="/precos">Resolver meu caso agora</Link>
-                <Link className={styles.btnGhost} href="#como-funciona">Como funciona</Link>
+                <Link className={styles.btnCoralGlow} href="/precos">
+                  <span>Resolver meu caso agora</span>
+                  <ArrowRight size={18} />
+                </Link>
+                <Link className={styles.btnGhostGlass} href="#como-funciona">
+                  Como funciona
+                </Link>
               </div>
-              <div className={styles.heroTags}><b>Resolvemos:</b> Malha fina, CPF cancelado, CNPJ inapto, ganho de capital, MEI e mais.</div>
+
+              {/* Prova Social com Avatares */}
+              <div className={styles.socialProofStrip}>
+                <div className={styles.avatarStack}>
+                  <div className={styles.stackAvatar} style={{ background: "#E25B38" }}>MC</div>
+                  <div className={styles.stackAvatar} style={{ background: "#059669" }}>FA</div>
+                  <div className={styles.stackAvatar} style={{ background: "#2563EB" }}>PL</div>
+                  <div className={styles.stackAvatar} style={{ background: "#7C3AED" }}>RM</div>
+                </div>
+                <div className={styles.socialProofText}>
+                  <strong>+1.420 contribuintes e empresas</strong>
+                  <span>regularizados com sucesso neste ano</span>
+                </div>
+              </div>
             </div>
 
+            {/* Lado Direito: Três Floating Cards Fintech */}
             <div className={styles.heroVisual}>
-              <div className={styles.heroBlob}></div>
-              <div className={styles.abstractGlassWrap}>
-                <div className={`${styles.glassCard} ${styles.glassCard1}`}>
-                  <div className={styles.glassIconWrap}><FileText size={22} /></div>
-                  <div className={styles.glassText}>
-                    <strong>Atendimento Express</strong>
-                    <span>Análise dedicada do caso</span>
-                  </div>
-                  <div className={styles.glassCheck}><CheckCircle2 size={16} /></div>
-                </div>
+              <div className={styles.heroGlowBlob} />
+              <div className={styles.fintechStackWrap}>
                 
-                <div className={`${styles.glassCard} ${styles.glassCard2}`}>
-                  <div className={styles.glassIconWrap}><ShieldCheck size={22} /></div>
-                  <div className={styles.glassText}>
-                    <strong>Contador CRC Ativo</strong>
-                    <span>Registro profissional validado</span>
+                <div className={`${styles.fintechCard} ${styles.fintechCard1}`}>
+                  <div className={styles.fintechIconWrap} style={{ background: "rgba(226, 91, 56, 0.15)", color: "#FF9C7E" }}>
+                    <Zap size={22} />
+                  </div>
+                  <div className={styles.fintechCardText}>
+                    <strong>Atendimento Express</strong>
+                    <span>Casos resolvidos em até 24h sem burocracia de agendamento</span>
+                  </div>
+                  <span className={styles.fintechBadgeFast}>Hoje</span>
+                </div>
+
+                <div className={`${styles.fintechCard} ${styles.fintechCard2}`}>
+                  <div className={styles.fintechIconWrap} style={{ background: "rgba(16, 185, 129, 0.15)", color: "#10B981" }}>
+                    <TrendingUp size={22} />
+                  </div>
+                  <div className={styles.fintechCardText}>
+                    <strong>99.4% Taxa de Regularização</strong>
+                    <span>Resolução de malha fina, CPF e CNPJ sem multas adicionais</span>
+                  </div>
+                  <span className={styles.fintechBadgeSuccess}>Aprovado</span>
+                </div>
+
+                <div className={`${styles.fintechCard} ${styles.fintechCard3}`}>
+                  <div className={styles.fintechIconWrap} style={{ background: "rgba(59, 130, 246, 0.15)", color: "#60A5FA" }}>
+                    <ShieldCheck size={22} />
+                  </div>
+                  <div className={styles.fintechCardText}>
+                    <strong>Garantia Total ou Reembolso</strong>
+                    <span>Se não pudermos ajudar você, devolvemos 100% do valor pago</span>
                   </div>
                 </div>
+
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* COMO FUNCIONA — derruba a objeção "deve ser complicado" antes que o
-          cliente pense nisso conscientemente. */}
+      {/* COMO FUNCIONA */}
       <section id="como-funciona" className={styles.section}>
         <div className={styles.container}>
           <Reveal>
@@ -125,15 +176,13 @@ export function HomePage({ precos }: { precos: { pf: number; pj: number; consult
         </div>
       </section>
 
-      {/* PREÇOS — colar a garantia de reembolso perto do preço reduz o medo
-          de "e se eu pagar e não for resolvido", no ponto de decisão mais
-          próximo da compra. */}
+      {/* PREÇOS */}
       <section id="precos" className={styles.section}>
         <div className={styles.container}>
           <Reveal>
             <div className={styles.sectionHead}>
-              <span className={styles.sectionLabel}>Preços</span>
-              <h2 className={styles.sectionTitle}>Justo, e sem letra miúda</h2>
+              <span className={styles.sectionLabel}>Preços transparentes</span>
+              <h2 className={styles.sectionTitle}>Sem mensalidade, sem surpresas</h2>
             </div>
           </Reveal>
           <Reveal>
@@ -143,21 +192,21 @@ export function HomePage({ precos }: { precos: { pf: number; pj: number; consult
                 <h3>Pessoa Física</h3>
                 <div className={styles.modalities}>Express ou agendamento</div>
                 <div className={styles.priceValue}>R$ {money(precos.pf)}</div>
-                <div className={styles.priceNote}>por atendimento</div>
+                <div className={styles.priceNote}>por atendimento completo</div>
                 <Link className={styles.btnPrimary} href="/agendar?plano=pf">Resolver meu caso</Link>
               </div>
               <div className={styles.priceCard}>
                 <h3>Pessoa Jurídica</h3>
                 <div className={styles.modalities}>Express ou agendamento</div>
                 <div className={styles.priceValue}>R$ {money(precos.pj)}</div>
-                <div className={styles.priceNote}>por atendimento</div>
+                <div className={styles.priceNote}>por atendimento completo</div>
                 <Link className={styles.btnPrimary} href="/agendar?plano=pj">Resolver meu caso</Link>
               </div>
               <div className={styles.priceCard}>
                 <h3>Sob Demanda</h3>
-                <div className={styles.modalities}>Para casos maiores</div>
+                <div className={styles.modalities}>Para situações mais complexas</div>
                 <div className={styles.priceValue}>R$ {money(precos.consulta)}</div>
-                <div className={styles.priceNote}>taxa de diagnóstico — vira crédito integral no valor final do serviço</div>
+                <div className={styles.priceNote}>diagnóstico inicial — vira crédito integral no valor final do serviço</div>
                 <Link className={styles.btnPrimary} href="/agendar?plano=sob-demanda">Solicitar análise</Link>
               </div>
             </Carrossel>
@@ -165,16 +214,15 @@ export function HomePage({ precos }: { precos: { pf: number; pj: number; consult
         </div>
       </section>
 
-      {/* Banner bold — mesmo papel do bloco "stand out" de impacto entre
-          seções: uma promessa só, grande, sem distração. */}
+      {/* Banner bold — GARANTIA TOTAL DE DEVOLUÇÃO */}
       <section className={styles.section} style={{ paddingTop: 0 }}>
         <div className={styles.container}>
           <Reveal>
             <div className={styles.bannerBold}>
               <Asterisco className={styles.bannerAstTl} />
               <Asterisco className={styles.bannerAstBr} />
-              <h2 className={styles.bannerTitle}>GARANTIA DE<br />REEMBOLSO <span className={styles.heroDash}>——</span></h2>
-              <p className={styles.bannerSub}>Se o contador avaliar seu caso e concluir que não temos como ajudar, você recebe 100% de volta. Sem discussão.</p>
+              <h2 className={styles.bannerTitle}>GARANTIA TOTAL DE<br />DEVOLUÇÃO <span className={styles.heroDash}>——</span></h2>
+              <p className={styles.bannerSub}>Se o contador analisar seus dados e identificar que não há como ajudar na sua situação, você recebe 100% do valor de volta na hora. Sem burocracia, sem letras miúdas.</p>
               <div className={styles.pricingFooter}>
                 <div className={styles.pfItem}>⏱️ <span><b>Resposta em até 24h</b></span></div>
                 <div className={styles.pfItem}>✓ <span>Contador com <b>CRC ativo</b> verificável</span></div>
@@ -184,13 +232,13 @@ export function HomePage({ precos }: { precos: { pf: number; pj: number; consult
         </div>
       </section>
 
-      {/* PRA QUE SERVE — momento de auto-identificação ("isso sou eu"). */}
+      {/* ÁREAS DE ATUAÇÃO */}
       <section id="pra-que-serve" className={styles.section}>
         <div className={styles.container}>
           <Reveal>
             <div className={styles.sectionHead}>
-              <span className={styles.sectionLabel}>Pra que serve</span>
-              <h2 className={styles.sectionTitle}>O seu caso provavelmente é um destes</h2>
+              <span className={styles.sectionLabel}>Áreas de atuação</span>
+              <h2 className={styles.sectionTitle}>Veja onde podemos te ajudar</h2>
             </div>
           </Reveal>
           <Reveal>
@@ -203,15 +251,15 @@ export function HomePage({ precos }: { precos: { pf: number; pj: number; consult
         </div>
       </section>
 
-      {/* CASOS ANTES/DEPOIS — identificação direta sem depoimento de terceiro. */}
+      {/* CASOS ANTES/DEPOIS — Histórias reais */}
       <section id="casos" className={styles.section}>
         <div className={styles.container}>
           <div className={styles.casesCard}>
             <Reveal>
               <div className={styles.sectionHead}>
-                <span className={styles.sectionLabel} style={{ color: 'var(--pub-mint-glow)' }}>Casos que já resolvemos</span>
-                <h2 className={styles.sectionTitle} style={{ color: '#fff' }}>Situações como a sua, resolvidas</h2>
-                <p className={styles.sectionDesc} style={{ color: 'rgba(255,255,255,0.7)' }}>Sem nomes, sem identificação — só o que aconteceu, e como resolvemos.</p>
+                <span className={styles.sectionLabel} style={{ color: 'var(--pub-mint-glow)' }}>Histórias reais</span>
+                <h2 className={styles.sectionTitle} style={{ color: '#fff' }}>Problemas parecidos com o seu, resolvidos</h2>
+                <p className={styles.sectionDesc} style={{ color: 'rgba(255,255,255,0.7)' }}>Sem nomes, com total sigilo — apenas o que estava travado e como o contador resolveu.</p>
               </div>
             </Reveal>
             
@@ -222,14 +270,13 @@ export function HomePage({ precos }: { precos: { pf: number; pj: number; consult
         </div>
       </section>
 
-      {/* CONFIANÇA — resolve a objeção mais profunda e menos falada: "será
-          que isso é golpe, ou um estranho vai ver meus dados". */}
+      {/* CONFIANÇA */}
       <section id="confianca" className={styles.section}>
         <div className={styles.container}>
           <Reveal>
             <div className={styles.sectionHead}>
               <span className={styles.sectionLabel}>Contador de verdade</span>
-              <h2 className={styles.sectionTitle}>O que garante a sua confiança aqui</h2>
+              <h2 className={styles.sectionTitle}>O que garante a sua tranquilidade</h2>
             </div>
           </Reveal>
           <Reveal>
@@ -237,9 +284,9 @@ export function HomePage({ precos }: { precos: { pf: number; pj: number; consult
               <GlowCard className={styles.trustCard}>
                 <div className={styles.trustCardHead}>
                   <div className={styles.check}>✓</div>
-                  <h3>Um contador de verdade, dedicado ao seu caso</h3>
+                  <h3>Um contador de verdade, dedicado a você</h3>
                 </div>
-                <p className={styles.body}>Você não fala com um robô nem com uma fila de atendimento genérico. Um contador com registro profissional ativo (CRC) cuida do seu caso do início ao fim, e você pode conferir quem ele é.</p>
+                <p className={styles.body}>Você não fala com um robô nem com uma fila de atendimento genérico. Um contador com registro profissional ativo (CRC) assume sua situação do início ao fim, e você pode conferir quem ele é.</p>
               </GlowCard>
               <GlowCard className={styles.trustCard}>
                 <div className={styles.trustCardHead}>
@@ -247,10 +294,10 @@ export function HomePage({ precos }: { precos: { pf: number; pj: number; consult
                   <h3>Por que usamos um chat próprio, e não WhatsApp</h3>
                 </div>
                 <ul className={styles.trustList}>
-                  <li>Seu caso não se perde: cada mensagem fica vinculada ao seu protocolo.</li>
-                  <li>O que foi combinado no chat pode virar parte do seu relatório final.</li>
-                  <li>Prazo visível: você vê o tempo de resposta.</li>
-                  <li>Sigilo: o WhatsApp pessoal do contador nunca entra no atendimento.</li>
+                  <li>Nada se perde: cada mensagem e arquivo fica vinculado ao seu protocolo.</li>
+                  <li>O que foi conversado vira parte do seu parecer técnico formal.</li>
+                  <li>Prazo visível: você acompanha em tempo real o andamento da sua solicitação.</li>
+                  <li>Sigilo bancário e fiscal: total proteção aos seus dados.</li>
                 </ul>
               </GlowCard>
               <GlowCard className={styles.trustCard}>
@@ -258,15 +305,14 @@ export function HomePage({ precos }: { precos: { pf: number; pj: number; consult
                   <div className={styles.check}>✓</div>
                   <h3>Sua senha nunca fica guardada</h3>
                 </div>
-                <p className={styles.body}>Se for preciso acessar o portal da Receita pra resolver seu caso, você informa o acesso direto no atendimento — usado só naquela sessão, por aquele contador, e nunca fica salvo depois.</p>
+                <p className={styles.body}>Se for preciso acessar o portal da Receita pra resolver sua pendência, você informa o acesso temporário direto no atendimento — usado apenas naquela sessão e descartado em seguida.</p>
               </GlowCard>
             </div>
           </Reveal>
         </div>
       </section>
 
-      {/* PROVA — prova pelo número e pela concretude (ver o PDF de verdade),
-          não pela cor. Ponto de descanso visual antes das dúvidas. */}
+      {/* PROVA & RELATÓRIO FINAL */}
       <section className={styles.section}>
         <div className={styles.container}>
           <div className={styles.proofStats}>
@@ -313,7 +359,7 @@ export function HomePage({ precos }: { precos: { pf: number; pj: number; consult
           <Reveal>
             <div className={styles.reportPreview}>
               <div className={styles.reportDoc}>
-                <div className={styles.rTitle}>Relatório final</div>
+                <div className={styles.rTitle}>Parecer Técnico</div>
                 <div className={styles.rLine} style={{ width: "80%" }} />
                 <div className={styles.rLine} style={{ width: "90%" }} />
                 <div className={styles.rLine} style={{ width: "60%" }} />
@@ -321,15 +367,15 @@ export function HomePage({ precos }: { precos: { pf: number; pj: number; consult
                 <div className={styles.rSeal}>CRC<br />OK</div>
               </div>
               <div className={styles.reportText}>
-                <h3>Todo caso termina com um relatório assinado</h3>
-                <p>Documento formal, com a assinatura do contador responsável, explicando o que foi encontrado e o que foi feito — pra você guardar como prova de que seu caso foi resolvido.</p>
+                <h3>Tudo o que fazemos é comprovado e documentado</h3>
+                <p>Ao final do atendimento, você recebe um parecer formal assinado pelo contador responsável com registro no CRC — sua garantia oficial de que tudo está em dia.</p>
               </div>
             </div>
           </Reveal>
         </div>
       </section>
 
-      {/* DÚVIDAS COMUNS — nome simples de propósito, não "FAQ". */}
+      {/* DÚVIDAS COMUNS */}
       <section id="duvidas" className={styles.section}>
         <div className={styles.container}>
           <Reveal>
@@ -345,15 +391,14 @@ export function HomePage({ precos }: { precos: { pf: number; pj: number; consult
         </div>
       </section>
 
-      {/* CTA FINAL — fecha o ciclo repetindo o coral do hero, com o mesmo
-          selo estrelado de destaque usado na referência. */}
+      {/* CTA FINAL */}
       <section className={styles.section} style={{ paddingTop: 0 }}>
         <div className={styles.container}>
           <Reveal>
             <div className={styles.finalCta}>
-              <h2>Pronto para descomplicar o seu problema?</h2>
-              <p>Um contador de verdade, dedicado a você e cuidando do seu caso do começo ao fim.</p>
-              <Link className={styles.btnPrimary} href="/precos">Começar atendimento agora</Link>
+              <h2>Pronto para tirar essa pendência da cabeça?</h2>
+              <p>Fale agora com um contador com CRC ativo e resolva sua situação ainda hoje.</p>
+              <Link className={styles.btnPrimary} href="/precos">Resolver meu caso agora</Link>
             </div>
           </Reveal>
         </div>

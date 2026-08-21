@@ -352,28 +352,34 @@ export type Database = {
           assunto: string | null
           cliente_ref: string
           created_at: string
+          encerrado_em: string | null
           id: number
           lida: boolean
           mensagem: string
           remetente: string
+          status: string
         }
         Insert: {
           assunto?: string | null
           cliente_ref: string
           created_at?: string
+          encerrado_em?: string | null
           id?: never
           lida?: boolean
           mensagem: string
           remetente: string
+          status?: string
         }
         Update: {
           assunto?: string | null
           cliente_ref?: string
           created_at?: string
+          encerrado_em?: string | null
           id?: never
           lida?: boolean
           mensagem?: string
           remetente?: string
+          status?: string
         }
         Relationships: [
           {

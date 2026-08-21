@@ -15,27 +15,50 @@ import type { ClientsData } from "@/lib/clients";
 import type { OperationsData } from "@/lib/operations";
 import { signOut } from "@/app/auth/actions";
 import { createClient as createBrowserClient } from "@/lib/supabase/client";
+import { playNotificationChime } from "@/lib/notificationSound";
 
 type NavItem = { id: string; label: string; icon: ElementType; badge?: number };
 
-const navItems: NavItem[] = [
-  { id: "dashboard", label: "Dashboard", icon: House },
-  { id: "atendimento", label: "Atendimentos", icon: MessageCircle, badge: 0 },
-  { id: "clientes", label: "Clientes", icon: Users },
-  { id: "acompanhamento", label: "Acompanhamento", icon: ClipboardList },
-  { id: "relatorios", label: "Relatórios", icon: FileText },
-  { id: "agendamentos", label: "Agendamentos", icon: CalendarDays },
-  { id: "financeiro", label: "Financeiro", icon: CircleDollarSign },
-  { id: "radar", label: "Radar Fiscal", icon: Landmark },
-  { id: "insights", label: "Insights", icon: BarChart3 },
-  { id: "notificacoes", label: "Notificações", icon: Bell },
-  { id: "equipe", label: "Equipe", icon: Users2 },
+type NavGroup = {
+  groupLabel?: string;
+  items: NavItem[];
+};
+
+const navGroups: NavGroup[] = [
+  {
+    groupLabel: "Operacional",
+    items: [
+      { id: "dashboard", label: "Dashboard", icon: House },
+      { id: "atendimento", label: "Fila de Atendimento", icon: MessageCircle, badge: 0 },
+      { id: "clientes", label: "Clientes", icon: Users },
+      { id: "acompanhamento", label: "Processos & Dossiês", icon: ClipboardList },
+      { id: "agendamentos", label: "Agendamentos", icon: CalendarDays },
+    ],
+  },
+  {
+    groupLabel: "Gestão & Análise",
+    items: [
+      { id: "relatorios", label: "Relatórios & Pareceres", icon: FileText },
+      { id: "financeiro", label: "Financeiro", icon: CircleDollarSign },
+      { id: "radar", label: "Radar Fiscal", icon: Landmark },
+      { id: "insights", label: "Insights & Funil", icon: BarChart3 },
+    ],
+  },
+  {
+    groupLabel: "Sistema",
+    items: [
+      { id: "notificacoes", label: "Notificações", icon: Bell },
+      { id: "equipe", label: "Equipe", icon: Users2 },
+      { id: "configuracoes", label: "Configurações", icon: Settings },
+    ],
+  },
 ];
 
+const allNavItems = navGroups.flatMap((g) => g.items);
+
 const allowedSections = new Set([
-  ...navItems.map((item) => item.id),
+  ...allNavItems.map((item) => item.id),
   "perfil",
-  "configuracoes",
 ]);
 
 // RBAC: seções restritas para o papel "parceiro" (paridade com app.js:175-182 legado).
@@ -160,22 +183,7 @@ export function AccountantShell({ dashboardData, clientsData, operationsData, us
             return;
           }
           const incoming = payload.new as NotificationItem;
-          if (payload.eventType === "INSERT" && systemSoundsEnabled) {
-            try {
-              const context = new AudioContext();
-              const oscillator = context.createOscillator();
-              const gain = context.createGain();
-              oscillator.type = "sine";
-              oscillator.frequency.setValueAtTime(523.25, context.currentTime);
-              oscillator.frequency.setValueAtTime(659.25, context.currentTime + 0.1);
-              gain.gain.setValueAtTime(0.001, context.currentTime);
-              gain.gain.linearRampToValueAtTime(0.08, context.currentTime + 0.04);
-              gain.gain.exponentialRampToValueAtTime(0.001, context.currentTime + 0.38);
-              oscillator.connect(gain).connect(context.destination);
-              oscillator.start();
-              oscillator.stop(context.currentTime + 0.4);
-            } catch { /* alguns navegadores exigem interação antes do áudio */ }
-          }
+          if (payload.eventType === "INSERT" && systemSoundsEnabled) playNotificationChime();
           setCurrentNotifications((items) => {
             const next = items.some((item) => item.id === incoming.id)
               ? items.map((item) =>
@@ -279,8 +287,6 @@ export function AccountantShell({ dashboardData, clientsData, operationsData, us
 
   const initials = currentUser.name.split(/\s+/).filter(Boolean).slice(0, 2).map(part => part[0]).join("").toUpperCase() || "OC";
   const unreadCount = currentNotifications.filter(item => item.unread).length;
-  const visibleNavItems = navItems.filter(item => !isSectionRestricted(item.id));
-
   return (
     <div className={`app-shell ${darkModeEnabled ? "dark-mode" : ""} view-${active} ${active !== "dashboard" ? "hide-mobile-topbar" : "show-mobile-topbar"} ${active === "atendimento" ? "chat-view-active" : ""}`}>
       <div className="preview-banner">
@@ -306,24 +312,39 @@ export function AccountantShell({ dashboardData, clientsData, operationsData, us
           )}
         </div>
         <nav>
-          {visibleNavItems.map(({ id, label, icon: Icon, badge }) => {
-            const count = id === "notificacoes" ? unreadCount : id === "atendimento" ? unreadMessagesCount : badge;
+          {navGroups.map((group, groupIdx) => {
+            const visibleItems = group.items.filter((item) => !isSectionRestricted(item.id));
+            if (!visibleItems.length) return null;
+
             return (
-              <button
-                className={active === id ? "active" : ""}
-                key={id}
-                onClick={() => navigate(id)}
-                title={collapsed && !mobile ? label : undefined}
-                data-tooltip={collapsed && !mobile ? label : undefined}
-                aria-label={collapsed && !mobile ? label : undefined}
-                aria-current={active === id ? "page" : undefined}
-              >
-                <Icon size={20} strokeWidth={1.9} />
-                {(!collapsed || mobile) && <span>{label}</span>}
-                {typeof count === "number" && count > 0 && (
-                  <Badge className="nav-count">{count > 99 ? "99+" : count}</Badge>
+              <div key={group.groupLabel || groupIdx} className="nav-group-block">
+                {group.groupLabel && (!collapsed || mobile) && (
+                  <span className="nav-group-label">{group.groupLabel}</span>
                 )}
-              </button>
+                {group.groupLabel && collapsed && !mobile && groupIdx > 0 && (
+                  <div className="nav-group-divider" />
+                )}
+                {visibleItems.map(({ id, label, icon: Icon, badge }) => {
+                  const count = id === "notificacoes" ? unreadCount : id === "atendimento" ? unreadMessagesCount : badge;
+                  return (
+                    <button
+                      className={active === id ? "active" : ""}
+                      key={id}
+                      onClick={() => navigate(id)}
+                      title={collapsed && !mobile ? label : undefined}
+                      data-tooltip={collapsed && !mobile ? label : undefined}
+                      aria-label={collapsed && !mobile ? label : undefined}
+                      aria-current={active === id ? "page" : undefined}
+                    >
+                      <Icon size={20} strokeWidth={1.9} />
+                      {(!collapsed || mobile) && <span>{label}</span>}
+                      {typeof count === "number" && count > 0 && (
+                        <Badge className="nav-count">{count > 99 ? "99+" : count}</Badge>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
             );
           })}
         </nav>
@@ -446,7 +467,7 @@ export function AccountantShell({ dashboardData, clientsData, operationsData, us
             ) : active === "atendimento" ? (
               <AtendimentoView clientsData={clientsData} operationsData={operationsData} currentStaffId={currentUser.id} filaRestrita={currentUser.filaRestrita} />
             ) : active === "acompanhamento" ? (
-              <AcompanhamentoView data={operationsData} clientsData={clientsData} />
+              <AcompanhamentoView data={operationsData} clientsData={clientsData} onNavigate={navigate} />
             ) : active === "relatorios" ? (
               isSectionRestricted("relatorios") ? <DashboardView data={dashboardData} onNavigate={navigate} /> : <RelatoriosView data={operationsData} />
             ) : active === "agendamentos" ? (

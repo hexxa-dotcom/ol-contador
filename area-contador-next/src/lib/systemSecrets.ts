@@ -62,6 +62,12 @@ export const CHAVES_EDITAVEIS: ChaveEditavel[] = [
   { chave: "OPENROUTER_API_KEY", label: "OpenRouter (IA alternativa)", grupo: "Inteligência Artificial", usosDisponiveis: ["chat", "documentos"], testavel: true },
   { chave: "OPENROUTER_MODEL", label: "Modelo OpenRouter", grupo: "Inteligência Artificial", nota: "Nome do modelo, não é uma chave de acesso — segue o uso do OpenRouter acima." },
   { chave: "OPENAI_API_KEY", label: "OpenAI (embeddings das skills)", grupo: "Inteligência Artificial", usosDisponiveis: ["embeddings"], testavel: true },
+  {
+    chave: "NEXT_PUBLIC_GA_MEASUREMENT_ID",
+    label: "Google Analytics 4 (Measurement ID)",
+    grupo: "Marketing & Analytics",
+    nota: "Formato G-XXXXXXXXXX. Não é segredo — aparece no código-fonte público do site — mas fica aqui pra trocar sem precisar mexer nas variáveis de ambiente da Vercel.",
+  },
 ];
 
 const CONFIG_USOS_CHAVE = "ia_chave_usos";

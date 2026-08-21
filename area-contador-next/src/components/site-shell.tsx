@@ -63,93 +63,105 @@ export function SiteHeader({ active }: { active?: "home" | "precos" | "radar" })
     <header className="public-nav-wrap">
       <div className="public-nav-container">
         <Link className="public-brand" href="/" aria-label="Voltar para a página inicial" onClick={() => setMenuMobileAberto(false)}>
-          <Image src="/logo.svg" alt="Olá, Contador" width={34} height={35} priority />
+          <Image src="/logo-light.svg" alt="Olá, Contador" width={34} height={35} priority />
           <span>
             Olá<i>,</i> Contador<i>.</i>
           </span>
         </Link>
 
-        {/* NAVEGAÇÃO DESKTOP */}
-        <nav className="public-nav-links" aria-label="Navegação principal">
-          <Link className="public-lk" href="/" aria-current={active === "home" ? "page" : undefined}>
-            Início
-          </Link>
-          <Link className="public-lk" href="/precos" aria-current={active === "precos" ? "page" : undefined}>
-            Preços
-          </Link>
-          <Link className="public-lk" href="/radar" aria-current={active === "radar" ? "page" : undefined}>
-            Radar Fiscal
-          </Link>
-          <EntrarMenu />
-        </nav>
+          {/* NAVEGAÇÃO DESKTOP */}
+          <nav className="public-nav-links" aria-label="Navegação principal">
+            <Link className="public-lk" href="/" aria-current={active === "home" ? "page" : undefined}>
+              Início
+            </Link>
+            <Link className="public-lk" href="/#como-funciona">
+              Como funciona
+            </Link>
+            <Link className="public-lk" href="/radar" aria-current={active === "radar" ? "page" : undefined}>
+              Radar Fiscal
+            </Link>
+            <EntrarMenu />
+            <Link className="public-lk-highlight" href="/precos" aria-current={active === "precos" ? "page" : undefined}>
+              <span>Resolver meu caso</span>
+              <ArrowUpRight size={14} />
+            </Link>
+          </nav>
 
-        {/* BOTÃO TOGGLE MOBILE */}
-        <button
-          type="button"
-          className={`public-mobile-toggle ${menuMobileAberto ? "is-active" : ""}`}
-          aria-label={menuMobileAberto ? "Fechar menu" : "Abrir menu"}
-          aria-expanded={menuMobileAberto}
-          onClick={() => setMenuMobileAberto((v) => !v)}
+          {/* BOTÃO TOGGLE MOBILE */}
+          <button
+            type="button"
+            className={`public-mobile-toggle ${menuMobileAberto ? "is-active" : ""}`}
+            aria-label={menuMobileAberto ? "Fechar menu" : "Abrir menu"}
+            aria-expanded={menuMobileAberto}
+            onClick={() => setMenuMobileAberto((v) => !v)}
+          >
+            {menuMobileAberto ? <X size={22} /> : <Menu size={22} />}
+          </button>
+        </div>
+
+        {/* MENU DRAWER MOBILE COM ANIMAÇÃO SUAVE */}
+        <div 
+          className={`public-mobile-menu-overlay ${menuMobileAberto ? "is-open" : ""}`} 
+          onClick={() => setMenuMobileAberto(false)}
+          aria-hidden={!menuMobileAberto}
         >
-          {menuMobileAberto ? <X size={22} /> : <Menu size={22} />}
-        </button>
-      </div>
+          <div className="public-mobile-menu-drawer" onClick={(e) => e.stopPropagation()}>
+            <div className="public-mobile-menu-links">
+              <Link 
+                className={`public-mobile-lk ${active === "home" ? "active" : ""}`} 
+                href="/" 
+                onClick={() => setMenuMobileAberto(false)}
+              >
+                <span>Início</span>
+              </Link>
+              <Link 
+                className="public-mobile-lk" 
+                href="/#como-funciona" 
+                onClick={() => setMenuMobileAberto(false)}
+              >
+                <span>Como funciona</span>
+              </Link>
+              <Link 
+                className={`public-mobile-lk ${active === "radar" ? "active" : ""}`} 
+                href="/radar" 
+                onClick={() => setMenuMobileAberto(false)}
+              >
+                <span>Radar Fiscal</span>
+              </Link>
+              <Link 
+                className={`public-mobile-lk public-mobile-lk-highlight ${active === "precos" ? "active" : ""}`} 
+                href="/precos" 
+                onClick={() => setMenuMobileAberto(false)}
+              >
+                <span>Resolver meu caso</span>
+                <ArrowUpRight size={16} />
+              </Link>
+            </div>
 
-      {/* MENU DRAWER MOBILE COM ANIMAÇÃO SUAVE */}
-      <div 
-        className={`public-mobile-menu-overlay ${menuMobileAberto ? "is-open" : ""}`} 
-        onClick={() => setMenuMobileAberto(false)}
-        aria-hidden={!menuMobileAberto}
-      >
-        <div className="public-mobile-menu-drawer" onClick={(e) => e.stopPropagation()}>
-          <div className="public-mobile-menu-links">
-            <Link 
-              className={`public-mobile-lk ${active === "home" ? "active" : ""}`} 
-              href="/" 
-              onClick={() => setMenuMobileAberto(false)}
-            >
-              <span>Início</span>
-            </Link>
-            <Link 
-              className={`public-mobile-lk ${active === "precos" ? "active" : ""}`} 
-              href="/precos" 
-              onClick={() => setMenuMobileAberto(false)}
-            >
-              <span>Preços</span>
-            </Link>
-            <Link 
-              className={`public-mobile-lk ${active === "radar" ? "active" : ""}`} 
-              href="/radar" 
-              onClick={() => setMenuMobileAberto(false)}
-            >
-              <span>Radar Fiscal</span>
-            </Link>
-          </div>
+            <div className="public-mobile-menu-divider" />
 
-          <div className="public-mobile-menu-divider" />
-
-          <div className="public-mobile-auth-section">
-            <span className="public-mobile-auth-title">Acesso ao Sistema</span>
-            <Link 
-              className="public-mobile-auth-btn client" 
-              href="/login?role=cliente" 
-              onClick={() => setMenuMobileAberto(false)}
-            >
-              <UserCheck size={18} />
-              <span>Sou cliente</span>
-            </Link>
-            <Link 
-              className="public-mobile-auth-btn accountant" 
-              href="/login?role=contador" 
-              onClick={() => setMenuMobileAberto(false)}
-            >
-              <Building2 size={18} />
-              <span>Sou contador</span>
-            </Link>
+            <div className="public-mobile-auth-section">
+              <span className="public-mobile-auth-title">Acesso ao Sistema</span>
+              <Link 
+                className="public-mobile-auth-btn client" 
+                href="/login?role=cliente" 
+                onClick={() => setMenuMobileAberto(false)}
+              >
+                <UserCheck size={18} />
+                <span>Sou cliente</span>
+              </Link>
+              <Link 
+                className="public-mobile-auth-btn accountant" 
+                href="/login?role=contador" 
+                onClick={() => setMenuMobileAberto(false)}
+              >
+                <Building2 size={18} />
+                <span>Sou contador</span>
+              </Link>
+            </div>
           </div>
         </div>
-      </div>
-    </header>
+      </header>
   );
 }
 
@@ -189,13 +201,15 @@ function EntrarMenu() {
           role="menu"
           style={{
             position: "absolute",
-            top: "calc(100% + 10px)",
+            top: "calc(100% + 12px)",
             right: 0,
-            minWidth: "200px",
-            background: "#FFFFFF",
-            border: "1px solid rgba(34, 49, 47, 0.12)",
+            minWidth: "210px",
+            background: "rgba(15, 23, 42, 0.95)",
+            backdropFilter: "blur(20px)",
+            WebkitBackdropFilter: "blur(20px)",
+            border: "1px solid rgba(255, 255, 255, 0.15)",
             borderRadius: "16px",
-            boxShadow: "0 16px 40px -10px rgba(7, 50, 42, 0.18)",
+            boxShadow: "0 20px 48px rgba(0, 0, 0, 0.6)",
             padding: "8px",
             zIndex: 100,
           }}
@@ -209,7 +223,7 @@ function EntrarMenu() {
               gap: "10px", 
               padding: "12px 14px", 
               borderRadius: "10px", 
-              color: "var(--pub-ink, #22312F)", 
+              color: "#ffffff", 
               textDecoration: "none", 
               fontSize: "14px",
               fontWeight: "600",
@@ -217,7 +231,7 @@ function EntrarMenu() {
             }}
             className="public-menu-item"
           >
-            <UserCheck size={18} style={{ color: "var(--pub-green, #0C5446)" }} />
+            <UserCheck size={18} style={{ color: "#34D399" }} />
             <span>Sou cliente</span>
           </Link>
           <Link
@@ -229,7 +243,7 @@ function EntrarMenu() {
               gap: "10px", 
               padding: "12px 14px", 
               borderRadius: "10px", 
-              color: "var(--pub-ink, #22312F)", 
+              color: "#ffffff", 
               textDecoration: "none", 
               fontSize: "14px",
               fontWeight: "600",
@@ -253,7 +267,7 @@ export function SiteFooter() {
         {/* COLUNA 1: MARCA */}
         <div className="public-rodape-brand-col">
           <div className="public-brand" style={{ marginBottom: "12px" }}>
-            <Image src="/logo.svg" alt="Olá, Contador" width={28} height={29} />
+            <Image src="/logo-light.svg" alt="Olá, Contador" width={28} height={29} />
             <span style={{ color: "#FFFFFF", fontSize: "18px" }}>
               Olá<i>,</i> Contador<i>.</i>
             </span>

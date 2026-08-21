@@ -51,6 +51,7 @@ export type PortalMailItem = {
   mensagem: string;
   remetente: string;
   lida: boolean;
+  status: string;
   createdAt: string;
 };
 
@@ -217,7 +218,7 @@ export async function loadPortalData(supabase: SupabaseClient<Database>, clientI
     // /api/triagem do legado: é uma linha só por vez, não uma lista.
     supabase.from("triagens").select("id,assunto,descricao,status,respostas,enviada_at").eq("cliente_ref", clientId).neq("status", "arquivada").order("created_at", { ascending: false }).limit(1),
     supabase.from("documentos").select("id,file_name,mime,size_bytes,uploaded_by,created_at,checklist_item,storage_path").eq("cliente_ref", clientId).order("created_at", { ascending: false }).limit(100),
-    supabase.from("caixa_postal").select("id,assunto,mensagem,remetente,lida,created_at").eq("cliente_ref", clientId).order("created_at", { ascending: false }).limit(100),
+    supabase.from("caixa_postal").select("id,assunto,mensagem,remetente,lida,status,created_at").eq("cliente_ref", clientId).order("created_at", { ascending: false }).limit(100),
     supabase
       .from("relatorios")
       .select("id,titulo,status,tipo_relatorio,entregue_em,created_at,codigo_validacao,caso_ref,cliente_nome,cliente_cpf,problema,solucao,oque_feito,como_feito,pendencias,contador_assinatura,contador_nome,contador_crc,versao,prazo_proximo_passo")
@@ -327,7 +328,7 @@ export async function loadPortalData(supabase: SupabaseClient<Database>, clientI
         })()
       : null,
     documents: (documentsResult.data ?? []).map((d) => ({ id: d.id, fileName: d.file_name, mime: d.mime, sizeBytes: d.size_bytes, uploadedBy: d.uploaded_by, createdAt: d.created_at, checklistItem: d.checklist_item, storagePath: d.storage_path })),
-    mailbox: (mailResult.data ?? []).map((m) => ({ id: m.id, assunto: m.assunto, mensagem: m.mensagem, remetente: m.remetente, lida: m.lida, createdAt: m.created_at })),
+    mailbox: (mailResult.data ?? []).map((m) => ({ id: m.id, assunto: m.assunto, mensagem: m.mensagem, remetente: m.remetente, lida: m.lida, status: m.status, createdAt: m.created_at })),
     unreadMail: (mailResult.data ?? []).filter((m) => !m.lida).length,
     reports: (reportsResult.data ?? []).map((r) => ({
       id: r.id,

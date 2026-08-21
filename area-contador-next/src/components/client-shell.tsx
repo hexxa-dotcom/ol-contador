@@ -22,13 +22,13 @@ type NavItem = { id: string; label: string; icon: ElementType; badge?: number };
 export function ClientShell({ data }: { data: PortalData }) {
   const navItems: NavItem[] = [
     { id: "dashboard", label: "Início", icon: House },
-    { id: "atendimento", label: "Atendimento", icon: MessageCircle, badge: data.unreadMessages },
-    { id: "agendamento", label: "Agendamento", icon: CalendarDays },
-    { id: "triagem", label: "Pré-atendimento", icon: ClipboardList, badge: !data.triagem || data.triagem.status !== "enviada" ? 1 : undefined },
-    { id: "documentos", label: "Documentos", icon: FolderOpen },
-    { id: "caixa-postal", label: "Caixa Postal", icon: Inbox, badge: data.unreadMail },
-    { id: "radar", label: "Radar Fiscal", icon: Landmark },
-    { id: "historico", label: "Histórico", icon: History },
+    { id: "atendimento", label: "Falar com Contador", icon: MessageCircle, badge: data.unreadMessages },
+    { id: "triagem", label: "O que você precisa", icon: ClipboardList, badge: !data.triagem || data.triagem.status !== "enviada" ? 1 : undefined },
+    { id: "caixa-postal", label: "Mensagens", icon: Inbox, badge: data.unreadMail },
+    { id: "documentos", label: "Meus Documentos", icon: FolderOpen },
+    { id: "agendamento", label: "Agendar Horário", icon: CalendarDays },
+    { id: "radar", label: "Consultar CPF/CNPJ", icon: Landmark },
+    { id: "historico", label: "Histórico de Atendimentos", icon: History },
   ];
   const allowedSections = new Set([...navItems.map((item) => item.id), "perfil", "faq"]);
   // Onboarding obrigatório: cliente que acabou de pagar pela primeira vez
@@ -240,7 +240,7 @@ export function ClientShell({ data }: { data: PortalData }) {
             {active === "dashboard" ? (
               <PortalDashboardView data={data} onNavigate={navigate} />
             ) : active === "atendimento" ? (
-              <PortalAtendimentoView messages={data.messages} contador={data.contador} clientId={data.client.id} clientStatus={data.client.status} appointments={data.appointments} triagem={data.triagem} reports={data.reports} catalogo={data.triagemCatalogo} documents={data.documents} onNavigate={navigate} />
+              <PortalAtendimentoView messages={data.messages} contador={data.contador} clientId={data.client.id} clientStatus={data.client.status} appointments={data.appointments} atendimentosExpress={data.atendimentosExpress} triagem={data.triagem} reports={data.reports} catalogo={data.triagemCatalogo} documents={data.documents} onNavigate={navigate} />
             ) : active === "agendamento" ? (
               <PortalAgendaView
                 clientId={data.client.id}

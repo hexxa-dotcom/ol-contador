@@ -15,6 +15,7 @@ import {
   ArrowUpRight,
   Bot,
   Brain,
+  CalendarClock,
   CalendarDays,
   Check,
   CheckCircle2,
@@ -76,6 +77,7 @@ import {
 } from "@/lib/clients";
 import {
   emptyOperationsData,
+  type ExpressItem,
   type MailItem,
   type OperationsData,
   type ServicePlan,
@@ -117,6 +119,7 @@ import {
   saveSystemSetting,
   sendMailMessage,
   sendMessage,
+  setCaixaPostalThreadStatus,
   setReportDocument,
   addManualReportAttachment,
   removeManualReportAttachment,
@@ -128,6 +131,7 @@ import {
   type ClientDossierInput,
 } from "@/app/auth/actions";
 import { createClient as createBrowserClient } from "@/lib/supabase/client";
+import { playNotificationChime, playTimerWarningSound } from "@/lib/notificationSound";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 
 export type NotificationItem = {
@@ -138,6 +142,25 @@ export type NotificationItem = {
   unread: boolean | null;
   cliente_ref: string | null;
 };
+
+export function OlaSymbol({ size = 20, className = "" }: { size?: number; className?: string }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 616 640"
+      fill="currentColor"
+      className={`ola-logo-symbol ${className}`}
+      style={{ flexShrink: 0, display: "inline-block", verticalAlign: "middle" }}
+      aria-hidden="true"
+    >
+      <path d="M287 64.93C289.21 64.66 293.62 64.17 296.94 64.02C300.27 63.86 303.61 64 306.94 64C310.28 64 313.61 64 316.94 64C320.28 64 323.61 64 326.94 64C330.28 64 333.61 64 336.94 64C340.28 64 343.62 63.84 346.94 64.02C350.27 64.19 353.59 64.51 356.87 65.06C360.15 65.61 363.34 66.69 366.61 67.32C369.88 67.95 373.24 68.15 376.5 68.83C379.75 69.51 382.94 70.52 386.15 71.4C389.37 72.29 392.57 73.22 395.77 74.17C398.96 75.12 402.16 76.05 405.32 77.11C408.48 78.17 411.62 79.3 414.73 80.51C417.83 81.71 420.93 82.97 423.97 84.32C427.02 85.67 430.02 87.13 433 88.61C435.98 90.1 438.94 91.65 441.87 93.22C444.81 94.79 447.75 96.38 450.62 98.06C453.5 99.74 456.33 101.5 459.14 103.3C461.94 105.11 464.71 106.97 467.44 108.88C470.17 110.79 472.85 112.78 475.52 114.77C478.19 116.76 480.8 118.83 483.46 120.85C486.12 122.86 488.88 124.74 491.45 126.86C494.02 128.97 496.48 131.24 498.9 133.52C501.32 135.81 503.65 138.2 505.99 140.58C508.32 142.96 510.72 145.29 512.9 147.8C515.08 150.31 517.05 153.01 519.09 155.65C521.12 158.29 523.1 160.97 525.11 163.63C527.12 166.29 529.21 168.89 531.13 171.62C533.04 174.34 534.84 177.16 536.61 179.98C538.38 182.8 540.17 185.63 541.75 188.56C543.34 191.48 544.86 194.47 546.12 197.54C547.38 200.62 548.52 203.79 549.32 207.01C550.12 210.23 550.69 213.56 550.92 216.86C551.14 220.17 551.09 223.56 550.68 226.85C550.27 230.14 549.39 233.39 548.46 236.58C547.52 239.77 546.42 242.95 545.07 245.98C543.71 249.02 542.19 252.03 540.34 254.78C538.5 257.53 536.28 260.08 534 262.5C531.71 264.91 529.26 267.21 526.65 269.27C524.04 271.32 521.26 273.24 518.35 274.83C515.44 276.41 512.31 277.65 509.19 278.79C506.06 279.93 502.86 280.99 499.61 281.67C496.37 282.36 493.01 282.91 489.71 282.89C486.42 282.86 483.08 282.21 479.83 281.53C476.58 280.85 473.35 279.89 470.21 278.8C467.07 277.72 463.91 276.55 460.98 275C458.05 273.45 455.26 271.54 452.64 269.51C450.02 267.47 447.56 265.17 445.26 262.77C442.96 260.37 440.83 257.78 438.84 255.11C436.84 252.45 435.15 249.56 433.3 246.79C431.45 244.02 429.73 241.14 427.74 238.48C425.75 235.82 423.58 233.27 421.33 230.81C419.09 228.35 416.68 226.04 414.27 223.73C411.87 221.42 409.45 219.12 406.9 216.97C404.36 214.83 401.7 212.8 399 210.86C396.29 208.92 393.5 207.09 390.65 205.35C387.8 203.62 384.89 201.98 381.92 200.47C378.95 198.96 375.92 197.56 372.84 196.29C369.76 195.03 366.61 193.91 363.45 192.87C360.28 191.83 357.06 190.95 353.84 190.08C350.63 189.21 347.43 188.16 344.15 187.64C340.88 187.13 337.51 187.11 334.19 187C330.86 186.89 327.52 187 324.19 187C320.85 187 317.52 186.99 314.19 187C310.85 187.01 307.5 186.8 304.19 187.08C300.88 187.35 297.59 187.95 294.33 188.64C291.08 189.33 287.87 190.29 284.67 191.22C281.47 192.14 278.25 193.03 275.12 194.17C272 195.31 268.94 196.67 265.92 198.08C262.9 199.48 259.89 200.93 257.01 202.59C254.12 204.25 251.36 206.14 248.62 208.03C245.88 209.92 243.22 211.93 240.56 213.95C237.91 215.96 235.23 217.95 232.71 220.13C230.19 222.31 227.77 224.62 225.44 227C223.12 229.39 220.87 231.86 218.76 234.43C216.64 237 214.69 239.72 212.76 242.43C210.83 245.14 208.87 247.86 207.16 250.71C205.44 253.56 203.94 256.55 202.45 259.53C200.96 262.51 199.53 265.52 198.22 268.59C196.92 271.65 195.7 274.76 194.64 277.92C193.57 281.07 192.54 284.26 191.83 287.5C191.11 290.75 190.95 294.12 190.34 297.39C189.72 300.66 188.69 303.86 188.14 307.14C187.58 310.42 187.19 313.75 187.03 317.07C186.88 320.38 186.86 323.76 187.21 327.06C187.55 330.36 188.46 333.6 189.09 336.86C189.73 340.13 190.34 343.41 191.01 346.67C191.68 349.93 192.21 353.23 193.1 356.44C193.98 359.64 195.15 362.79 196.34 365.9C197.53 369.01 198.85 372.08 200.26 375.09C201.68 378.11 203.2 381.08 204.82 383.99C206.44 386.9 208.18 389.75 209.99 392.55C211.81 395.34 213.7 398.1 215.71 400.75C217.72 403.4 219.84 405.99 222.07 408.46C224.29 410.94 226.84 413.14 229.07 415.6C231.29 418.07 234.24 420.36 235.44 423.26C236.64 426.15 236.53 429.76 236.25 433C235.97 436.23 234.64 439.46 233.78 442.68C232.92 445.9 231.99 449.11 231.11 452.32C230.22 455.53 229.06 458.71 228.46 461.97C227.87 465.22 226.54 469.23 227.51 471.85C228.49 474.46 231.62 477.29 234.29 477.66C236.97 478.03 240.54 475.43 243.57 474.07C246.6 472.71 249.51 471.03 252.47 469.51C255.43 467.99 258.41 466.48 261.35 464.92C264.3 463.36 267.2 461.72 270.14 460.15C273.08 458.59 275.98 456.91 279.01 455.53C282.03 454.15 285.09 452.55 288.29 451.88C291.49 451.2 294.91 451.45 298.23 451.47C301.55 451.49 304.88 451.91 308.21 452C311.54 452.08 314.88 452 318.21 452C321.55 452 324.88 452.01 328.21 452C331.55 451.99 334.9 452.21 338.21 451.93C341.52 451.65 344.81 451.04 348.06 450.33C351.31 449.62 354.5 448.61 357.7 447.67C360.9 446.74 364.11 445.83 367.25 444.71C370.38 443.58 373.48 442.33 376.5 440.93C379.52 439.53 382.47 437.95 385.37 436.33C388.28 434.7 391.13 432.97 393.95 431.18C396.76 429.39 399.58 427.6 402.24 425.6C404.9 423.6 407.43 421.41 409.92 419.2C412.41 416.98 414.84 414.69 417.17 412.31C419.5 409.94 421.81 407.51 423.92 404.94C426.03 402.37 427.91 399.6 429.85 396.89C431.79 394.18 433.61 391.39 435.55 388.67C437.48 385.96 439.31 383.15 441.46 380.61C443.61 378.08 445.96 375.68 448.44 373.47C450.92 371.26 453.58 369.2 456.35 367.36C459.12 365.53 462.03 363.83 465.05 362.45C468.07 361.08 471.28 360.09 474.47 359.13C477.65 358.16 480.88 357.1 484.15 356.65C487.42 356.2 490.82 356.12 494.11 356.44C497.39 356.76 500.65 357.72 503.86 358.59C507.07 359.47 510.32 360.39 513.36 361.69C516.41 363 519.38 364.61 522.16 366.43C524.93 368.25 527.54 370.38 530.01 372.61C532.47 374.83 534.83 377.23 536.96 379.78C539.09 382.33 541.11 385.03 542.78 387.89C544.46 390.75 545.8 393.85 547 396.95C548.2 400.05 549.31 403.24 549.98 406.48C550.64 409.73 550.86 413.09 550.99 416.41C551.11 419.73 551.16 423.12 550.72 426.4C550.29 429.69 549.4 432.94 548.4 436.1C547.39 439.27 546.1 442.37 544.68 445.38C543.26 448.39 541.59 451.29 539.89 454.15C538.19 457.01 536.34 459.79 534.47 462.55C532.6 465.31 530.69 468.05 528.68 470.71C526.68 473.37 524.51 475.9 522.44 478.51C520.36 481.12 518.33 483.76 516.25 486.37C514.17 488.97 512.15 491.63 509.95 494.13C507.75 496.63 505.39 499 503.04 501.36C500.69 503.72 498.33 506.09 495.84 508.3C493.34 510.5 490.68 512.51 488.07 514.59C485.47 516.67 482.84 518.71 480.23 520.79C477.61 522.86 475.1 525.06 472.41 527.02C469.72 528.99 466.9 530.77 464.11 532.59C461.31 534.4 458.48 536.17 455.64 537.91C452.79 539.64 449.93 541.35 447.02 542.98C444.11 544.61 441.16 546.15 438.2 547.68C435.24 549.22 432.29 550.78 429.28 552.19C426.26 553.6 423.18 554.88 420.1 556.14C417.01 557.41 413.91 558.62 410.78 559.77C407.65 560.92 404.5 562.01 401.33 563.05C398.17 564.09 394.98 565.06 391.78 566.02C388.59 566.97 385.41 568 382.18 568.81C378.95 569.61 375.68 570.24 372.41 570.85C369.13 571.46 365.82 571.85 362.55 572.47C359.28 573.1 356.08 574.19 352.79 574.61C349.5 575.03 346.13 574.94 342.8 575C339.47 575.06 336.13 575 332.8 575C329.47 575 326.13 575 322.8 575C319.47 575 316.13 575 312.8 575C309.47 575 306.13 575.02 302.8 575C299.47 574.98 296.11 575.15 292.8 574.86C289.5 574.56 286.23 573.82 282.96 573.22C279.68 572.62 276.43 571.88 273.16 571.25C269.89 570.62 266.58 570.17 263.33 569.43C260.09 568.7 256.89 567.73 253.67 566.85C250.46 565.98 247.22 565.17 244.04 564.17C240.86 563.18 237.74 562 234.6 560.87C231.47 559.74 228.33 558.62 225.23 557.38C222.14 556.15 219.06 554.85 216.03 553.47C213 552.08 210.03 550.58 207.05 549.07C204.08 547.56 201.13 546.02 198.2 544.42C195.28 542.82 192.36 541.2 189.5 539.48C186.65 537.77 183.84 535.97 181.05 534.15C178.26 532.32 175.49 530.46 172.78 528.53C170.06 526.59 167.42 524.56 164.77 522.55C162.11 520.53 159.47 518.49 156.86 516.42C154.25 514.35 151.59 512.34 149.08 510.14C146.58 507.94 144.21 505.59 141.84 503.24C139.48 500.9 137.11 498.54 134.88 496.07C132.64 493.6 130.56 491 128.46 488.41C126.36 485.82 124.36 483.15 122.28 480.55C120.19 477.95 117.98 475.45 115.94 472.81C113.9 470.18 111.94 467.48 110.03 464.75C108.12 462.02 106.27 459.24 104.48 456.43C102.69 453.62 100.96 450.77 99.28 447.89C97.6 445.01 95.94 442.12 94.4 439.16C92.85 436.21 91.44 433.19 90.03 430.17C88.61 427.15 87.23 424.12 85.91 421.06C84.6 418 83.37 414.9 82.14 411.8C80.92 408.7 79.67 405.6 78.56 402.46C77.46 399.32 76.47 396.13 75.52 392.94C74.57 389.74 73.61 386.55 72.84 383.31C72.07 380.07 71.61 376.75 70.9 373.5C70.19 370.24 69.11 367.05 68.58 363.77C68.05 360.49 68.13 357.12 67.72 353.82C67.31 350.51 66.64 347.24 66.12 343.95C65.6 340.66 64.95 337.38 64.61 334.07C64.26 330.76 64.14 327.42 64.04 324.09C63.94 320.76 63.93 317.42 64.01 314.09C64.08 310.76 64.11 307.41 64.5 304.11C64.89 300.81 65.8 297.57 66.36 294.29C66.91 291 67.47 287.71 67.83 284.41C68.19 281.1 68.04 277.72 68.53 274.44C69.02 271.15 70.04 267.95 70.78 264.7C71.53 261.45 72.16 258.17 73.01 254.95C73.86 251.73 74.89 248.56 75.88 245.37C76.87 242.19 77.9 239.02 78.98 235.87C80.06 232.71 81.16 229.57 82.37 226.46C83.58 223.36 84.9 220.3 86.23 217.24C87.55 214.18 88.86 211.11 90.29 208.1C91.72 205.09 93.25 202.13 94.83 199.19C96.41 196.26 98.04 193.35 99.75 190.49C101.47 187.64 103.32 184.86 105.12 182.06C106.93 179.25 108.71 176.43 110.57 173.67C112.44 170.91 114.36 168.18 116.32 165.49C118.29 162.8 120.33 160.16 122.36 157.52C124.4 154.88 126.37 152.19 128.53 149.65C130.69 147.11 133 144.71 135.31 142.31C137.62 139.9 139.99 137.55 142.38 135.23C144.77 132.91 147.15 130.56 149.67 128.39C152.18 126.21 154.87 124.22 157.49 122.16C160.11 120.1 162.73 118.04 165.39 116.04C168.06 114.03 170.75 112.07 173.47 110.14C176.18 108.21 178.92 106.31 181.7 104.46C184.48 102.62 187.27 100.79 190.13 99.09C192.99 97.38 195.95 95.83 198.88 94.25C201.82 92.67 204.75 91.09 207.74 89.61C210.72 88.13 213.75 86.73 216.79 85.37C219.83 84.01 222.91 82.72 226 81.47C229.09 80.22 232.21 79.04 235.32 77.86C238.44 76.69 241.53 75.41 244.71 74.41C247.89 73.42 251.15 72.72 254.38 71.89C257.61 71.06 260.82 70.15 264.08 69.45C267.33 68.74 270.64 68.3 273.91 67.66C277.18 67.03 281.52 66.11 283.7 65.66C285.88 65.2 284.79 65.2 287 64.93Z" />
+      <circle cx="259.5" cy="307.5" r="27.5" />
+      <circle cx="331.5" cy="307.5" r="27.5" />
+      <circle cx="403.5" cy="307.5" r="27.5" />
+    </svg>
+  );
+}
 
 function feedback(message: string) {
   window.dispatchEvent(new CustomEvent("app-feedback", { detail: message }));
@@ -156,6 +179,12 @@ const radarSistemasPorAba: Record<string, string[]> = {
 };
 
 const tabsByView: Record<string, string[]> = {
+  agenda: [
+    "Agenda do Dia",
+    "Calendário Geral & Lista",
+    "Disponibilidade & Consulta Manual",
+  ],
+  acompanhamento: ["Fila de Atendimento", "Acompanhamento"],
   clientes: ["Visão Geral", "Clientes Recorrentes"],
   relatorios: [
     "Aguardando Relatório",
@@ -1062,19 +1091,7 @@ export function AtendimentoView({
     const key = `${selectedClientId}:${timerConfig.duracaoMinutos}:${timerConfig.avisoMinutosAntes}`;
     if (elapsed < threshold || warnedTimersRef.current.has(key)) return;
     warnedTimersRef.current.add(key);
-    if (timerConfig.avisoSonoro) {
-      try {
-        const context = new AudioContext();
-        const oscillator = context.createOscillator();
-        const gain = context.createGain();
-        oscillator.frequency.value = 740;
-        gain.gain.setValueAtTime(0.08, context.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.001, context.currentTime + 0.35);
-        oscillator.connect(gain).connect(context.destination);
-        oscillator.start();
-        oscillator.stop(context.currentTime + 0.35);
-      } catch { /* o navegador pode bloquear áudio sem interação */ }
-    }
+    if (timerConfig.avisoSonoro) playTimerWarningSound();
     if (timerConfig.avisarCliente) {
       void sendChatTimerWarning({
         clientId: selectedClientId,
@@ -1106,22 +1123,7 @@ export function AtendimentoView({
               ? items
               : [...items, incoming],
           );
-          if (incoming.sender === "client" && systemSoundsEnabled) {
-            try {
-              const context = new AudioContext();
-              const oscillator = context.createOscillator();
-              const gain = context.createGain();
-              oscillator.type = "sine";
-              oscillator.frequency.setValueAtTime(523.25, context.currentTime);
-              oscillator.frequency.setValueAtTime(659.25, context.currentTime + 0.1);
-              gain.gain.setValueAtTime(0.001, context.currentTime);
-              gain.gain.linearRampToValueAtTime(0.08, context.currentTime + 0.04);
-              gain.gain.exponentialRampToValueAtTime(0.001, context.currentTime + 0.38);
-              oscillator.connect(gain).connect(context.destination);
-              oscillator.start();
-              oscillator.stop(context.currentTime + 0.4);
-            } catch { /* alguns navegadores exigem interação antes do áudio */ }
-          }
+          if (incoming.sender === "client" && systemSoundsEnabled) playNotificationChime();
         },
       )
       .on(
@@ -1556,7 +1558,7 @@ export function AtendimentoView({
           aria-label="Fila de atendimento"
           data-tooltip="Fila de atendimento"
         >
-          <MessageCircle size={19} />
+          <MessageCircle size={20} />
           <span>Fila</span>
         </button>
         <button
@@ -1565,7 +1567,7 @@ export function AtendimentoView({
           aria-label="Copiloto IA"
           data-tooltip="Copiloto IA"
         >
-          <Bot size={19} />
+          <OlaSymbol size={20} />
           <span>Copiloto</span>
         </button>
         <div className="chat-tool-spacer" />
@@ -1714,7 +1716,7 @@ export function AtendimentoView({
             <div className="side-panel-heading">
               <div>
                 <strong>
-                  <Sparkles size={15} /> Copiloto IA
+                  <OlaSymbol size={16} /> Copiloto IA
                 </strong>
                 <small>Apoio durante o atendimento</small>
               </div>
@@ -1742,7 +1744,7 @@ export function AtendimentoView({
             <div className="copilot-body">
               <div className="copilot-welcome">
                 <div className="copilot-avatar">
-                  <Bot size={15} />
+                  <OlaSymbol size={16} />
                 </div>
                 <p>
                   {copilotLoading
@@ -1915,7 +1917,7 @@ export function AtendimentoView({
                       }}
                       role="menuitem"
                     >
-                      <Bot size={16} />
+                      <OlaSymbol size={16} />
                       <span>Copiloto IA</span>
                     </button>
 
@@ -2127,8 +2129,8 @@ export function AtendimentoView({
           </div>
           <Button
             className="icon ai-assist"
-            title="Pedir sugestão à IA"
-            aria-label="Pedir sugestão à IA"
+            title="Pedir sugestão ao Copiloto IA"
+            aria-label="Pedir sugestão ao Copiloto IA"
             onClick={() => {
               if (selectedClient) {
                 setTool("copilot");
@@ -2140,7 +2142,7 @@ export function AtendimentoView({
                 );
             }}
           >
-            <Sparkles size={17} />
+            <OlaSymbol size={18} />
           </Button>
           <input
             ref={attachmentRef}
@@ -4534,46 +4536,6 @@ export function InsightsView({
   >("ano");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
-  const [operationalErrors, setOperationalErrors] = useState<Array<{
-    id: number;
-    codigo: string | null;
-    origem: string;
-    mensagem: string;
-    rota: string | null;
-    ocorrencias: number;
-    ultimo_em: string;
-    severidade: string;
-  }>>([]);
-  const [errorsLoading, setErrorsLoading] = useState(true);
-  async function loadOperationalErrors() {
-    setErrorsLoading(true);
-    try {
-      const response = await fetch("/api/operational-errors", { cache: "no-store" });
-      const result = (await response.json().catch(() => ({}))) as {
-        erros?: typeof operationalErrors;
-      };
-      if (!response.ok) throw new Error("monitoring_unavailable");
-      setOperationalErrors(result.erros || []);
-    } catch {
-      feedback("Não foi possível carregar os erros operacionais agora.");
-    } finally {
-      setErrorsLoading(false);
-    }
-  }
-  async function resolveOperationalError(id: number) {
-    const response = await fetch("/api/operational-errors", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id }),
-    });
-    if (response.ok) {
-      setOperationalErrors((items) => items.filter((item) => item.id !== id));
-      feedback("Erro marcado como resolvido.");
-    } else feedback("Não foi possível resolver este registro.");
-  }
-  useEffect(() => {
-    void loadOperationalErrors();
-  }, []);
   const now = new Date();
   let start: Date | null = null;
   let end: Date | null = null;
@@ -4601,6 +4563,23 @@ export function InsightsView({
       ? new Date(new Date(`${dateTo}T00:00:00`).getTime() + 86400000)
       : null;
   }
+  const [funil, setFunil] = useState<{ iniciou: number; cobrancaGerada: number; conversaoConcluida: number } | null>(null);
+  const [funilLoading, setFunilLoading] = useState(true);
+  useEffect(() => {
+    setFunilLoading(true);
+    const params = new URLSearchParams();
+    if (start) params.set("from", start.toISOString());
+    if (end) params.set("to", end.toISOString());
+    fetch(`/api/insights/funnel?${params.toString()}`, { cache: "no-store" })
+      .then(async (response) => {
+        if (!response.ok) throw new Error("funnel_unavailable");
+        return response.json();
+      })
+      .then((result: { estagios: { iniciou: number; cobrancaGerada: number; conversaoConcluida: number } }) => setFunil(result.estagios))
+      .catch(() => setFunil(null))
+      .finally(() => setFunilLoading(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [period, dateFrom, dateTo]);
   const history = clientsData.history.filter((item) => {
     const value = new Date(item.finalizado_em);
     return (!start || value >= start) && (!end || value < end);
@@ -4828,41 +4807,55 @@ export function InsightsView({
           </Card>
         ))}
       </div>
-      <Card className="operational-errors-card">
+      <Card className="funnel-insights-card">
         <div className="card-heading">
           <div>
-            <AlertTriangle size={18} />
-            <strong>Erros operacionais</strong>
+            <ArrowUpRight size={18} />
+            <strong>Funil de conversão</strong>
           </div>
-          <Button className="secondary compact" disabled={errorsLoading} onClick={() => void loadOperationalErrors()}>
-            <RotateCcw size={14} /> {errorsLoading ? "Atualizando…" : "Atualizar"}
-          </Button>
+          <Badge className="success">Dados internos</Badge>
         </div>
-        {errorsLoading ? (
-          <EmptyState>Carregando monitoramento…</EmptyState>
-        ) : operationalErrors.length ? (
-          <div className="records-list">
-            {operationalErrors.map((error) => (
-              <article key={error.id}>
-                <div className="record-icon"><AlertTriangle size={16} /></div>
-                <div>
-                  <strong>{error.codigo || "Erro"} · {error.origem}</strong>
-                  <span>{error.mensagem}{error.rota ? ` · ${error.rota}` : ""}</span>
-                  <small>{error.ocorrencias || 1} ocorrência(s) · {new Date(error.ultimo_em).toLocaleString("pt-BR")}</small>
-                </div>
-                <Button className="secondary compact" onClick={() => void resolveOperationalError(error.id)}>
-                  <Check size={14} /> Resolvido
-                </Button>
-              </article>
-            ))}
-          </div>
+        {funilLoading ? (
+          <EmptyState>Carregando funil…</EmptyState>
+        ) : !funil || funil.iniciou + funil.cobrancaGerada + funil.conversaoConcluida === 0 ? (
+          <EmptyState>Nenhum evento de funil registrado nesse período.</EmptyState>
         ) : (
-          <EmptyState>Nenhum erro operacional aberto nos últimos 30 dias.</EmptyState>
+          <div className="funnel-stages">
+            {(() => {
+              const estagios = [
+                { label: "Iniciaram checkout ou agendamento", value: funil.iniciou },
+                { label: "Cobrança gerada", value: funil.cobrancaGerada },
+                { label: "Conversão concluída", value: funil.conversaoConcluida },
+              ];
+              const topo = estagios[0].value || 1;
+              return estagios.map((estagio, index) => {
+                const largura = Math.round((estagio.value / topo) * 100);
+                const anterior = index > 0 ? estagios[index - 1].value : null;
+                const taxaEtapa = anterior ? Math.round((estagio.value / anterior) * 100) : null;
+                return (
+                  <div className="funnel-stage-row" key={estagio.label}>
+                    <div className="funnel-stage-label">
+                      <strong>{estagio.label}</strong>
+                      <span>
+                        {estagio.value}
+                        {taxaEtapa !== null && ` · ${taxaEtapa}% da etapa anterior`}
+                      </span>
+                    </div>
+                    <div className="funnel-stage-bar-track">
+                      <div className="funnel-stage-bar-fill" style={{ width: `${estagio.value ? Math.max(largura, 4) : 0}%` }} />
+                    </div>
+                  </div>
+                );
+              });
+            })()}
+          </div>
         )}
       </Card>
     </div>
   );
 }
+
+const MAIL_ASSUNTO_SEM_CATEGORIA = "Outro assunto";
 
 export function NotificacoesIntegralView({
   notifications = [],
@@ -4885,6 +4878,7 @@ export function NotificacoesIntegralView({
   const [subject, setSubject] = useState("");
   const [message, setMessage] = useState("");
   const [pending, startTransition] = useTransition();
+  const [statusPending, startStatusTransition] = useTransition();
   useEffect(() => {
     setNotices(notifications);
   }, [notifications]);
@@ -4917,7 +4911,7 @@ export function NotificacoesIntegralView({
         { event: "UPDATE", schema: "public", table: "caixa_postal" },
         (payload) => {
           const updated = payload.new as MailItem;
-          setMail((items) => items.map((item) => (item.id === updated.id ? { ...item, lida: updated.lida } : item)));
+          setMail((items) => items.map((item) => (item.id === updated.id ? { ...item, lida: updated.lida, status: updated.status, encerrado_em: updated.encerrado_em } : item)));
         },
       )
       .subscribe();
@@ -4940,6 +4934,33 @@ export function NotificacoesIntegralView({
       (a, b) =>
         new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
     );
+  // Não existe thread_id no banco — o assunto agrupa as mensagens em
+  // "conversas", igual à Caixa Postal do cliente. O status "aberto"/
+  // "encerrado" mostrado é o da última mensagem do grupo.
+  const threadGroups = Object.values(
+    thread.reduce<Record<string, MailItem[]>>((acc, item) => {
+      const chave = item.assunto || MAIL_ASSUNTO_SEM_CATEGORIA;
+      (acc[chave] ||= []).push(item);
+      return acc;
+    }, {}),
+  ).sort((a, b) => new Date(b[b.length - 1].created_at).getTime() - new Date(a[a.length - 1].created_at).getTime());
+  function toggleThreadStatus(assunto: string, currentStatus: string) {
+    if (!selected) return;
+    const nextStatus = currentStatus === "encerrado" ? "aberto" : "encerrado";
+    startStatusTransition(async () => {
+      const result = await setCaixaPostalThreadStatus({ clientId: selected, assunto, status: nextStatus });
+      if (result.ok) {
+        setMail((items) =>
+          items.map((item) =>
+            item.cliente_ref === selected && (item.assunto || MAIL_ASSUNTO_SEM_CATEGORIA) === assunto
+              ? { ...item, status: nextStatus, encerrado_em: nextStatus === "encerrado" ? new Date().toISOString() : null }
+              : item,
+          ),
+        );
+      }
+      feedback(result.message);
+    });
+  }
   function markAll() {
     startTransition(async () => {
       const result = await markNotificationsRead();
@@ -5108,6 +5129,15 @@ export function NotificacoesIntegralView({
                     item.remetente === "cliente" &&
                     !item.lida,
                 ).length;
+                const abertos = Object.values(
+                  mail
+                    .filter((item) => item.cliente_ref === id)
+                    .reduce<Record<string, MailItem[]>>((acc, item) => {
+                      const chave = item.assunto || MAIL_ASSUNTO_SEM_CATEGORIA;
+                      (acc[chave] ||= []).push(item);
+                      return acc;
+                    }, {}),
+                ).filter((grupo) => grupo[grupo.length - 1].status !== "encerrado").length;
                 return (
                   <button
                     className={selected === id ? "active" : ""}
@@ -5124,6 +5154,9 @@ export function NotificacoesIntegralView({
                         mensagens
                       </small>
                     </span>
+                    {abertos > 0 && (
+                      <span className="portal-tile-badge pending">{abertos} em aberto</span>
+                    )}
                     {unread > 0 && (
                       <Badge className="attention">{unread}</Badge>
                     )}
@@ -5145,20 +5178,36 @@ export function NotificacoesIntegralView({
             {selected ? (
               <>
                 <div className="chat-messages">
-                  {thread.map((item) => (
-                    <article
-                      className={`chat-message ${item.remetente === "cliente" ? "client" : "agent"}`}
-                      key={item.id}
-                    >
-                      <div>
-                        <strong>{item.assunto || item.remetente}</strong>
-                        <p>{item.mensagem}</p>
-                        <small>
-                          {new Date(item.created_at).toLocaleString("pt-BR")}
-                        </small>
+                  {threadGroups.map((grupo) => {
+                    const assunto = grupo[0].assunto || MAIL_ASSUNTO_SEM_CATEGORIA;
+                    const ultima = grupo[grupo.length - 1];
+                    const encerrado = ultima.status === "encerrado";
+                    return (
+                      <div className="mail-thread-group" key={assunto}>
+                        <div className="mail-thread-group-header">
+                          <strong>{assunto}</strong>
+                          <span className={`portal-tile-badge ${encerrado ? "ok" : "pending"}`}>{encerrado ? "Encerrado" : "Em aberto"}</span>
+                          <Button className="secondary" disabled={statusPending} onClick={() => toggleThreadStatus(assunto, ultima.status)}>
+                            {encerrado ? <UnlockKeyhole size={13} /> : <LockKeyhole size={13} />}
+                            <span>{encerrado ? "Reabrir" : "Encerrar"}</span>
+                          </Button>
+                        </div>
+                        {grupo.map((item) => (
+                          <article
+                            className={`chat-message ${item.remetente === "cliente" ? "client" : "agent"}`}
+                            key={item.id}
+                          >
+                            <div>
+                              <p>{item.mensagem}</p>
+                              <small>
+                                {new Date(item.created_at).toLocaleString("pt-BR")}
+                              </small>
+                            </div>
+                          </article>
+                        ))}
                       </div>
-                    </article>
-                  ))}
+                    );
+                  })}
                   {!thread.length && (
                     <EmptyState>Inicie a conversa abaixo.</EmptyState>
                   )}
@@ -7554,15 +7603,36 @@ const integralStages = [
   // é atendimento avulso, não tem conceito de mensalidade).
   { label: "Recorrência", express: null, legacy: "recorrencia" },
 ] as const;
+// "Pendente de Início" saiu do quadro — agora vive só na aba Fila de
+// Atendimento. Continua em integralStages pra não sumir das opções de
+// mover-para-trás nos selects dos cards.
+const kanbanStages = integralStages.filter((stage) => stage.label !== "Pendente de Início");
+function tempoDesde(iso: string): string {
+  const min = Math.floor((Date.now() - new Date(iso).getTime()) / 60000);
+  if (min < 1) return "agora mesmo";
+  if (min < 60) return `há ${min} min`;
+  const horas = Math.floor(min / 60);
+  if (horas < 24) return `há ${horas} h`;
+  const dias = Math.floor(horas / 24);
+  return `há ${dias} dia${dias > 1 ? "s" : ""}`;
+}
+function formatDataHora(iso: string): string {
+  return new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" }).format(new Date(iso));
+}
+
 export function AcompanhamentoIntegralView({
   data = emptyOperationsData,
   clientsData = emptyClientsData,
+  onNavigate,
 }: {
   data?: OperationsData;
   clientsData?: ClientsData;
+  onNavigate?: (id: string, clientId?: string | null) => void;
 }) {
   const [express, setExpress] = useState(data.express);
   const [moving, setMoving] = useState<string | null>(null);
+  const [tab, setTab] = useState(tabsByView.acompanhamento[0]);
+  const [detalhes, setDetalhes] = useState<ExpressItem | null>(null);
   const [assignees, setAssignees] = useState<Array<{id:string;name:string}>>([]);
   const kanbanValue = data.settings.find(
     (item) => item.chave === "kanban_etapas",
@@ -7605,12 +7675,13 @@ export function AcompanhamentoIntegralView({
           ? "Entregue o relatório antes de concluir o caso."
           : "Não foi possível mover este atendimento.",
       );
-      return;
+      return false;
     }
     setExpress((items) =>
       items.map((item) => (item.id === id ? { ...item, status } : item)),
     );
     feedback("Etapa atualizada e cliente notificado.");
+    return true;
   }
   async function moveLegacy(clientId: string, status: string) {
     setMoving(`l-${clientId}`);
@@ -7650,19 +7721,92 @@ export function AcompanhamentoIntegralView({
     } : item));
     feedback(result.responsavel_nome ? `Caso atribuído a ${result.responsavel_nome}.` : "Responsável removido do caso.");
   }
+  // Fila = casos ainda não iniciados (Express "aguardando_triagem" +
+  // equivalente legado "pending"), em ordem de chegada. Some da esteira: só
+  // aparece na esteira depois que "Iniciar atendimento" move o status.
+  const filaExpress = express
+    .filter((item) => item.status === "aguardando_triagem")
+    .sort((a, b) => new Date(a.contratado_em).getTime() - new Date(b.contratado_em).getTime());
+  const filaLegacy = Object.entries(legacyMap).filter(([, status]) => status === "pending");
+  function iniciarExpress(item: ExpressItem) {
+    void moveExpress(item.id, "em_analise").then((ok) => {
+      if (ok) onNavigate?.("atendimento", item.cliente_ref);
+    });
+  }
+  // moveLegacy recarrega a página no sucesso (comportamento pré-existente),
+  // então não dá pra encadear navegação depois — perderia o SPA state.
+  function iniciarLegacy(clientId: string) {
+    void moveLegacy(clientId, "active");
+  }
   return (
     <div className="view-stack">
       <PageTitle
-        title="Esteira de Acompanhamento"
-        description="Movimente casos, atribua execução e acompanhe os prazos de entrega até a conclusão."
+        title={tab === "Fila de Atendimento" ? "Fila de Atendimento" : "Esteira de Acompanhamento"}
+        description={
+          tab === "Fila de Atendimento"
+            ? "Casos já contratados que ainda não começaram a ser trabalhados, em ordem de chegada. Inicie para mover para a esteira."
+            : "Movimente casos, atribua execução e acompanhe os prazos de entrega até a conclusão."
+        }
         action={
-          <Badge className="success">
-            {express.length + Object.keys(legacyMap).length} processos
-          </Badge>
+          tab === "Fila de Atendimento" ? (
+            <Badge className={filaExpress.length + filaLegacy.length ? "attention" : "success"}>
+              {filaExpress.length + filaLegacy.length} na fila
+            </Badge>
+          ) : (
+            <Badge className="success">
+              {express.length + Object.keys(legacyMap).length} processos
+            </Badge>
+          )
         }
       />
+      <Tabs view="acompanhamento" active={tab} onChange={setTab} />
+      {tab === "Fila de Atendimento" ? (
+        <Card className="fila-atendimento-list">
+          {filaExpress.map((item, index) => (
+            <div className="fila-atendimento-row" key={`e-${item.id}`}>
+              <span className="fila-atendimento-posicao">{index + 1}</span>
+              <div className="fila-atendimento-corpo">
+                <strong>{clientName(item.cliente_ref)}</strong>
+                <span>{item.assunto || item.servico_id || `Express #${item.id}`}</span>
+                <small>
+                  <Badge className="attention">Express</Badge> aguardando desde {tempoDesde(item.contratado_em)}
+                </small>
+                <small className="fila-atendimento-prazos">
+                  Contratado em {formatDataHora(item.contratado_em)} · Prazo final {formatDataHora(item.prazo_conclusao_em)}
+                </small>
+              </div>
+              <div className="fila-atendimento-acoes">
+                <Button className="secondary" onClick={() => setDetalhes(item)}>
+                  <ArrowUpRight size={14} />
+                  <span>Ver detalhes</span>
+                </Button>
+                <Button className="orange-action" disabled={moving === `e-${item.id}`} onClick={() => iniciarExpress(item)}>
+                  <Play size={14} />
+                  <span>Iniciar atendimento</span>
+                </Button>
+              </div>
+            </div>
+          ))}
+          {filaLegacy.map(([clientId]) => (
+            <div className="fila-atendimento-row" key={`l-${clientId}`}>
+              <span className="fila-atendimento-posicao">—</span>
+              <div className="fila-atendimento-corpo">
+                <strong>{clientName(clientId)}</strong>
+                <span>Fluxo originado no atendimento</span>
+              </div>
+              <Button className="orange-action" disabled={moving === `l-${clientId}`} onClick={() => iniciarLegacy(clientId)}>
+                <Play size={14} />
+                <span>Iniciar atendimento</span>
+              </Button>
+            </div>
+          ))}
+          {!filaExpress.length && !filaLegacy.length && (
+            <EmptyState>Fila vazia. Nenhum caso aguardando início.</EmptyState>
+          )}
+        </Card>
+      ) : (
       <div className="kanban integral-kanban">
-        {integralStages.map((stage, index) => {
+        {kanbanStages.map((stage, index) => {
           const expressItems = express.filter(
             (item) =>
               item.status === stage.express ||
@@ -7812,6 +7956,84 @@ export function AcompanhamentoIntegralView({
           );
         })}
       </div>
+      )}
+      {detalhes && (
+        <div className="dialog-backdrop" onMouseDown={(event) => event.target === event.currentTarget && setDetalhes(null)}>
+          <Card className="fila-detalhes-dialog" role="dialog" aria-modal="true">
+            <div className="dialog-head">
+              <div>
+                <h2>{clientName(detalhes.cliente_ref)}</h2>
+                <p>{detalhes.assunto || detalhes.servico_id || `Express #${detalhes.id}`}</p>
+              </div>
+              <Button className="icon ghost" onClick={() => setDetalhes(null)}>
+                <X size={18} />
+              </Button>
+            </div>
+            <div className="dossier-body">
+              <div className="team-profile-stats">
+                <div>
+                  <strong>{integralStages.find((stage) => stage.express === detalhes.status)?.label || detalhes.status}</strong>
+                  <small>Status atual</small>
+                </div>
+                <div>
+                  <strong>{formatDataHora(detalhes.contratado_em)}</strong>
+                  <small>Contratado em</small>
+                </div>
+                <div>
+                  <strong>{formatDataHora(detalhes.prazo_conclusao_em)}</strong>
+                  <small>Prazo final</small>
+                </div>
+              </div>
+              {(() => {
+                const cliente = clientsData.clients.find((item) => item.id === detalhes.cliente_ref);
+                return (
+                  <p className="fila-detalhes-contato">
+                    {cliente?.email || "sem e-mail cadastrado"} · {cliente?.phone || "sem telefone cadastrado"}
+                  </p>
+                );
+              })()}
+              <h3>Documentos enviados pelo cliente</h3>
+              <div className="client-document-list">
+                {data.documents
+                  .filter((doc) => doc.cliente_ref === detalhes.cliente_ref)
+                  .map((doc) => (
+                    <a key={doc.id} href={`/api/documents/${doc.id}`} target="_blank" rel="noreferrer">
+                      <FileText size={16} />
+                      <span>
+                        <strong>{doc.file_name}</strong>
+                        <small>
+                          {doc.mime || "Arquivo"}
+                          {doc.size_bytes ? ` · ${Math.ceil(doc.size_bytes / 1024)} KB` : ""}
+                        </small>
+                      </span>
+                      <ArrowUpRight size={15} />
+                    </a>
+                  ))}
+                {!data.documents.some((doc) => doc.cliente_ref === detalhes.cliente_ref) && (
+                  <EmptyState>Nenhum documento enviado ainda.</EmptyState>
+                )}
+              </div>
+            </div>
+            <div className="dialog-actions">
+              <Button className="secondary" onClick={() => setDetalhes(null)}>
+                Fechar
+              </Button>
+              <Button
+                className="orange-action"
+                disabled={moving === `e-${detalhes.id}`}
+                onClick={() => {
+                  const item = detalhes;
+                  setDetalhes(null);
+                  iniciarExpress(item);
+                }}
+              >
+                <Play size={14} />
+                <span>Iniciar atendimento</span>
+              </Button>
+            </div>
+          </Card>
+        </div>
+      )}
     </div>
   );
 }
@@ -8801,6 +9023,7 @@ export function AgendaIntegralView({
   const today = new Intl.DateTimeFormat("en-CA", {
     timeZone: "America/Sao_Paulo",
   }).format(new Date());
+  const [subTab, setSubTab] = useState<"dia" | "geral" | "disponibilidade">("dia");
   const [month, setMonth] = useState(() => {
     const value = new Date();
     return new Date(value.getFullYear(), value.getMonth(), 1);
@@ -8837,6 +9060,7 @@ export function AgendaIntegralView({
   });
   const [message, setMessage] = useState("");
   const [pending, startTransition] = useTransition();
+
   const key = (date: Date) => new Intl.DateTimeFormat("en-CA").format(date);
   const monthStart = new Date(month.getFullYear(), month.getMonth(), 1);
   const gridStart = new Date(monthStart);
@@ -8846,9 +9070,12 @@ export function AgendaIntegralView({
     date.setDate(gridStart.getDate() + index);
     return date;
   });
+
   const appointmentsFor = (day: string) =>
     data.appointments.filter((item) => item.date === day);
   const dayItems = appointmentsFor(selectedDay);
+  const todayItems = appointmentsFor(today);
+
   const list = data.appointments.filter(
     (item) =>
       filter === "todos" ||
@@ -8857,6 +9084,25 @@ export function AgendaIntegralView({
       (filter === "proximos" &&
         Boolean(item.date && item.date >= today && item.status !== "done")),
   );
+
+  function shiftDay(offset: number) {
+    const d = new Date(`${selectedDay}T12:00:00`);
+    d.setDate(d.getDate() + offset);
+    setSelectedDay(new Intl.DateTimeFormat("en-CA").format(d));
+  }
+
+  function formatDayTitle(dayStr: string) {
+    const isToday = dayStr === today;
+    const dateObj = new Date(`${dayStr}T12:00:00`);
+    const formatted = new Intl.DateTimeFormat("pt-BR", {
+      weekday: "long",
+      day: "2-digit",
+      month: "long",
+      year: "numeric",
+    }).format(dateObj);
+    return isToday ? `Hoje, ${formatted}` : formatted;
+  }
+
   function saveAvailability() {
     startTransition(async () => {
       const result = await saveAgendaAvailability({
@@ -8867,12 +9113,14 @@ export function AgendaIntegralView({
       feedback(result.message);
     });
   }
+
   function addTime() {
     if (/^([01]\d|2[0-3]):[0-5]\d$/.test(newTime) && !times.includes(newTime)) {
       setTimes((value) => [...value, newTime].sort());
       setNewTime("");
     }
   }
+
   function addBlocked() {
     if (
       /^\d{4}-\d{2}-\d{2}$/.test(newBlocked) &&
@@ -8882,6 +9130,7 @@ export function AgendaIntegralView({
       setNewBlocked("");
     }
   }
+
   function createAppointment() {
     startTransition(async () => {
       const selected = data.radarClients.find(
@@ -8896,6 +9145,7 @@ export function AgendaIntegralView({
       if (result.ok) window.location.reload();
     });
   }
+
   function setStatus(
     id: number,
     status: "pending" | "confirmed" | "done" | "cancelled",
@@ -8906,6 +9156,7 @@ export function AgendaIntegralView({
       if (result.ok) window.location.reload();
     });
   }
+
   function removeAppointment(id: number) {
     if (!window.confirm("Excluir definitivamente este agendamento?")) return;
     startTransition(async () => {
@@ -8914,143 +9165,116 @@ export function AgendaIntegralView({
       if (result.ok) window.location.reload();
     });
   }
+
   return (
     <div className="view-stack">
       <PageTitle
-        title="Agenda"
-        description="Calendário, disponibilidade pública, bloqueios e consultas manuais."
+        title="Agenda Operacional"
+        description="Gestão diária de consultas, calendário geral, horários públicos e bloqueios."
         action={
           <Badge className="success">
-            {data.appointments.length} registros
+            {data.appointments.length} agendamentos
           </Badge>
         }
       />
-      <div className="agenda-integral">
-        <Card className="agenda-main">
-          <div className="calendar-head">
-            <Button
-              className="secondary"
-              onClick={() => {
-                const now = new Date();
-                setMonth(new Date(now.getFullYear(), now.getMonth(), 1));
-                setSelectedDay(today);
-              }}
-            >
-              Hoje
-            </Button>
-            <div>
-              <Button
-                className="icon ghost"
-                onClick={() =>
-                  setMonth(
-                    (value) =>
-                      new Date(value.getFullYear(), value.getMonth() - 1, 1),
-                  )
-                }
-              >
-                <ChevronLeft size={17} />
-              </Button>
-              <strong>
-                {new Intl.DateTimeFormat("pt-BR", {
-                  month: "long",
-                  year: "numeric",
-                }).format(month)}
-              </strong>
-              <Button
-                className="icon ghost"
-                onClick={() =>
-                  setMonth(
-                    (value) =>
-                      new Date(value.getFullYear(), value.getMonth() + 1, 1),
-                  )
-                }
-              >
-                <ChevronRight size={17} />
-              </Button>
+
+      <Tabs
+        view="agenda"
+        active={
+          subTab === "dia"
+            ? "Agenda do Dia"
+            : subTab === "geral"
+            ? "Calendário Geral & Lista"
+            : "Disponibilidade & Consulta Manual"
+        }
+        onChange={(val) => {
+          if (val === "Agenda do Dia") setSubTab("dia");
+          else if (val === "Calendário Geral & Lista") setSubTab("geral");
+          else setSubTab("disponibilidade");
+        }}
+      />
+
+      {subTab === "dia" && (
+        <div className="agenda-day-view-layout">
+          <Card className="agenda-day-header-card">
+            <div className="agenda-day-controls">
+              <div className="agenda-day-nav-group">
+                <Button
+                  className="secondary"
+                  onClick={() => shiftDay(-1)}
+                  title="Dia anterior"
+                >
+                  <ChevronLeft size={16} /> Anterior
+                </Button>
+                <Button
+                  className={selectedDay === today ? "primary" : "secondary"}
+                  onClick={() => setSelectedDay(today)}
+                >
+                  Hoje
+                </Button>
+                <Button
+                  className="secondary"
+                  onClick={() => shiftDay(1)}
+                  title="Próximo dia"
+                >
+                  Próximo <ChevronRight size={16} />
+                </Button>
+                <div className="agenda-date-picker-wrap">
+                  <input
+                    type="date"
+                    value={selectedDay}
+                    onChange={(e) => setSelectedDay(e.target.value)}
+                    className="agenda-native-date-input"
+                  />
+                </div>
+              </div>
+
+              <div className="agenda-day-actions">
+                <Button
+                  className="primary"
+                  onClick={() => setSubTab("disponibilidade")}
+                >
+                  <Plus size={16} /> Nova Consulta Manual
+                </Button>
+              </div>
             </div>
-            <div className="period-capsule">
-              <button
-                className={mode === "mes" ? "active" : ""}
-                onClick={() => setMode("mes")}
-              >
-                Mês
-              </button>
-              <button
-                className={mode === "lista" ? "active" : ""}
-                onClick={() => setMode("lista")}
-              >
-                Lista
-              </button>
+
+            <div className="agenda-day-title-row">
+              <h3>
+                <CalendarClock size={20} />
+                <span>{formatDayTitle(selectedDay)}</span>
+              </h3>
             </div>
-          </div>
-          {mode === "mes" ? (
-            <>
-              <div className="calendar-weekdays">
-                {["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"].map(
-                  (day) => (
-                    <span key={day}>{day}</span>
-                  ),
-                )}
+
+            <div className="agenda-day-stats-row">
+              <div className="agenda-stat-pill">
+                <span className="stat-label">Total do dia</span>
+                <strong>{dayItems.length}</strong>
               </div>
-              <div className="calendar-month-grid">
-                {days.map((day) => {
-                  const value = key(day);
-                  const items = appointmentsFor(value);
-                  return (
-                    <button
-                      key={value}
-                      className={`${day.getMonth() !== month.getMonth() ? "outside " : ""}${selectedDay === value ? "selected " : ""}${blocked.includes(value) ? "blocked" : ""}`}
-                      onClick={() => setSelectedDay(value)}
-                    >
-                      <span>{day.getDate()}</span>
-                      {items.slice(0, 3).map((item) => (
-                        <small key={item.id}>
-                          {item.time} · {item.client_name}
-                        </small>
-                      ))}
-                      {items.length > 3 && <em>+{items.length - 3}</em>}
-                    </button>
-                  );
-                })}
+              <div className="agenda-stat-pill tone-green">
+                <span className="stat-label">Confirmados</span>
+                <strong>{dayItems.filter((i) => i.status === "confirmed").length}</strong>
               </div>
-            </>
-          ) : (
-            <>
-              <div className="period-capsule agenda-list-filter">
-                {["proximos", "hoje", "concluidos", "todos"].map((value) => (
-                  <button
-                    key={value}
-                    className={filter === value ? "active" : ""}
-                    onClick={() => setFilter(value)}
-                  >
-                    {value[0].toUpperCase() + value.slice(1)}
-                  </button>
-                ))}
+              <div className="agenda-stat-pill tone-amber">
+                <span className="stat-label">Pendentes</span>
+                <strong>{dayItems.filter((i) => !i.status || i.status === "pending").length}</strong>
               </div>
-              <AppointmentList
-                items={list}
-                pending={pending}
-                setStatus={setStatus}
-                remove={removeAppointment}
-              />
-            </>
-          )}
-        </Card>
-        <aside className="agenda-sidebar">
-          <Card>
+              <div className="agenda-stat-pill tone-slate">
+                <span className="stat-label">Concluídos</span>
+                <strong>{dayItems.filter((i) => i.status === "done").length}</strong>
+              </div>
+            </div>
+          </Card>
+
+          <Card className="agenda-day-list-card">
             <div className="card-heading">
               <div>
-                <CalendarDays size={18} />
-                <strong>
-                  Agenda de{" "}
-                  {new Intl.DateTimeFormat("pt-BR", {
-                    day: "2-digit",
-                    month: "short",
-                  }).format(new Date(`${selectedDay}T12:00:00`))}
-                </strong>
+                <ListChecks size={18} />
+                <strong>Compromissos Agendados</strong>
               </div>
-              <Badge>{dayItems.length}</Badge>
+              <Badge>{dayItems.length} {dayItems.length === 1 ? "atendimento" : "atendimentos"}</Badge>
             </div>
+
             <AppointmentList
               items={dayItems}
               pending={pending}
@@ -9058,71 +9282,253 @@ export function AgendaIntegralView({
               remove={removeAppointment}
             />
           </Card>
-          <Card>
+        </div>
+      )}
+
+      {subTab === "geral" && (
+        <div className="agenda-general-layout">
+          <Card className="agenda-main-card">
+            <div className="calendar-head">
+              <Button
+                className="secondary"
+                onClick={() => {
+                  const now = new Date();
+                  setMonth(new Date(now.getFullYear(), now.getMonth(), 1));
+                  setSelectedDay(today);
+                }}
+              >
+                Mês Atual
+              </Button>
+              <div className="calendar-month-nav">
+                <Button
+                  className="icon ghost"
+                  onClick={() =>
+                    setMonth(
+                      (value) =>
+                        new Date(value.getFullYear(), value.getMonth() - 1, 1),
+                    )
+                  }
+                >
+                  <ChevronLeft size={18} />
+                </Button>
+                <strong>
+                  {new Intl.DateTimeFormat("pt-BR", {
+                    month: "long",
+                    year: "numeric",
+                  }).format(month)}
+                </strong>
+                <Button
+                  className="icon ghost"
+                  onClick={() =>
+                    setMonth(
+                      (value) =>
+                        new Date(value.getFullYear(), value.getMonth() + 1, 1),
+                    )
+                  }
+                >
+                  <ChevronRight size={18} />
+                </Button>
+              </div>
+              <div className="period-capsule">
+                <button
+                  className={mode === "mes" ? "active" : ""}
+                  onClick={() => setMode("mes")}
+                >
+                  Mês
+                </button>
+                <button
+                  className={mode === "lista" ? "active" : ""}
+                  onClick={() => setMode("lista")}
+                >
+                  Lista
+                </button>
+              </div>
+            </div>
+
+            {mode === "mes" ? (
+              <>
+                <div className="calendar-weekdays">
+                  {["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"].map(
+                    (day) => (
+                      <span key={day}>{day}</span>
+                    ),
+                  )}
+                </div>
+                <div className="calendar-month-grid">
+                  {days.map((day) => {
+                    const value = key(day);
+                    const items = appointmentsFor(value);
+                    const isSelected = selectedDay === value;
+                    const isBlocked = blocked.includes(value);
+                    const isCurrentMonth = day.getMonth() === month.getMonth();
+                    return (
+                      <button
+                        key={value}
+                        className={`${!isCurrentMonth ? "outside " : ""}${isSelected ? "selected " : ""}${isBlocked ? "blocked" : ""}`}
+                        onClick={() => {
+                          setSelectedDay(value);
+                        }}
+                      >
+                        <span className="cal-day-num">{day.getDate()}</span>
+                        <div className="cal-items-list">
+                          {items.slice(0, 3).map((item) => (
+                            <small key={item.id} title={`${item.time} - ${item.client_name}`}>
+                              {item.time} · {item.client_name}
+                            </small>
+                          ))}
+                          {items.length > 3 && <em>+{items.length - 3} mais</em>}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {selectedDay && (
+                  <div className="calendar-selected-day-preview">
+                    <div className="preview-head">
+                      <strong>
+                        <CalendarClock size={16} /> Agendamentos em{" "}
+                        {new Intl.DateTimeFormat("pt-BR", {
+                          day: "2-digit",
+                          month: "long",
+                          year: "numeric",
+                        }).format(new Date(`${selectedDay}T12:00:00`))}
+                      </strong>
+                      <Button
+                        className="secondary"
+                        onClick={() => setSubTab("dia")}
+                      >
+                        Abrir na Agenda do Dia <ArrowUpRight size={14} />
+                      </Button>
+                    </div>
+                    <AppointmentList
+                      items={dayItems}
+                      pending={pending}
+                      setStatus={setStatus}
+                      remove={removeAppointment}
+                    />
+                  </div>
+                )}
+              </>
+            ) : (
+              <>
+                <div className="agenda-list-filters-bar">
+                  <div className="period-capsule agenda-list-filter">
+                    {["proximos", "hoje", "concluidos", "todos"].map((value) => (
+                      <button
+                        key={value}
+                        className={filter === value ? "active" : ""}
+                        onClick={() => setFilter(value)}
+                      >
+                        {value === "proximos"
+                          ? "Próximos"
+                          : value === "hoje"
+                          ? "Hoje"
+                          : value === "concluidos"
+                          ? "Concluídos"
+                          : "Todos"}
+                      </button>
+                    ))}
+                  </div>
+                  <Badge>{list.length} registros</Badge>
+                </div>
+                <AppointmentList
+                  items={list}
+                  pending={pending}
+                  setStatus={setStatus}
+                  remove={removeAppointment}
+                />
+              </>
+            )}
+          </Card>
+        </div>
+      )}
+
+      {subTab === "disponibilidade" && (
+        <div className="agenda-config-grid">
+          <Card className="agenda-config-card">
             <div className="card-heading">
               <div>
                 <Clock3 size={18} />
-                <strong>Disponibilidade</strong>
+                <strong>Horários de Atendimento & Bloqueios</strong>
               </div>
             </div>
-            <div className="availability-pills">
-              {times.map((time) => (
-                <button
-                  key={time}
-                  onClick={() =>
-                    setTimes((value) => value.filter((item) => item !== time))
-                  }
-                >
-                  {time}
-                  <X size={12} />
-                </button>
-              ))}
+            
+            <div className="config-section">
+              <label className="section-title">Horários Disponíveis para Agendamento</label>
+              <div className="availability-pills">
+                {times.map((time) => (
+                  <button
+                    key={time}
+                    title="Remover horário"
+                    onClick={() =>
+                      setTimes((value) => value.filter((item) => item !== time))
+                    }
+                  >
+                    {time}
+                    <X size={13} />
+                  </button>
+                ))}
+              </div>
+              <div className="inline-form">
+                <Input
+                  type="time"
+                  value={newTime}
+                  placeholder="00:00"
+                  onChange={(event) => setNewTime(event.target.value)}
+                />
+                <Button className="secondary" onClick={addTime}>
+                  <Plus size={15} /> Adicionar Horário
+                </Button>
+              </div>
             </div>
-            <div className="inline-form">
-              <Input
-                type="time"
-                value={newTime}
-                onChange={(event) => setNewTime(event.target.value)}
-              />
-              <Button className="secondary" onClick={addTime}>
-                <Plus size={15} /> Horário
+
+            <div className="config-section">
+              <label className="section-title">Dias Bloqueados (Sem Atendimento)</label>
+              <div className="availability-pills blocked">
+                {blocked.length ? (
+                  blocked.map((day) => (
+                    <button
+                      key={day}
+                      title="Desbloquear dia"
+                      onClick={() =>
+                        setBlocked((value) => value.filter((item) => item !== day))
+                      }
+                    >
+                      {new Intl.DateTimeFormat("pt-BR").format(
+                        new Date(`${day}T12:00:00`),
+                      )}
+                      <X size={13} />
+                    </button>
+                  ))
+                ) : (
+                  <small className="muted">Nenhum dia bloqueado no momento.</small>
+                )}
+              </div>
+              <div className="inline-form">
+                <Input
+                  type="date"
+                  value={newBlocked}
+                  onChange={(event) => setNewBlocked(event.target.value)}
+                />
+                <Button className="secondary" onClick={addBlocked}>
+                  <Plus size={15} /> Bloquear Data
+                </Button>
+              </div>
+            </div>
+
+            <div className="form-actions">
+              <Button
+                className="primary full"
+                disabled={pending}
+                onClick={saveAvailability}
+              >
+                <Save size={15} /> Salvar Disponibilidade
               </Button>
             </div>
-            <p className="muted">Dias bloqueados</p>
-            <div className="availability-pills blocked">
-              {blocked.map((day) => (
-                <button
-                  key={day}
-                  onClick={() =>
-                    setBlocked((value) => value.filter((item) => item !== day))
-                  }
-                >
-                  {new Intl.DateTimeFormat("pt-BR").format(
-                    new Date(`${day}T12:00:00`),
-                  )}
-                  <X size={12} />
-                </button>
-              ))}
-            </div>
-            <div className="inline-form">
-              <Input
-                type="date"
-                value={newBlocked}
-                onChange={(event) => setNewBlocked(event.target.value)}
-              />
-              <Button className="secondary" onClick={addBlocked}>
-                <Plus size={15} /> Bloquear
-              </Button>
-            </div>
-            <Button
-              className="full"
-              disabled={pending}
-              onClick={saveAvailability}
-            >
-              <Save size={15} /> Salvar disponibilidade
-            </Button>
           </Card>
-          <Card>
+
+          <Card className="agenda-config-card">
             <div className="card-heading">
               <div>
                 <Plus size={18} />
@@ -9131,7 +9537,7 @@ export function AgendaIntegralView({
             </div>
             <div className="profile-form">
               <label>
-                Cliente cadastrado
+                Cliente Cadastrado
                 <select
                   value={form.clientId}
                   onChange={(event) =>
@@ -9152,9 +9558,10 @@ export function AgendaIntegralView({
               </label>
               {!form.clientId && (
                 <label>
-                  Contribuinte
+                  Nome do Contribuinte / Cliente
                   <Input
                     value={form.clientName}
+                    placeholder="Ex: João da Silva"
                     onChange={(event) =>
                       setForm((value) => ({
                         ...value,
@@ -9165,9 +9572,10 @@ export function AgendaIntegralView({
                 </label>
               )}
               <label>
-                Assunto
+                Assunto / Tipo de Atendimento
                 <Input
                   value={form.taxType}
+                  placeholder="Ex: Declaração de IRPF, Consultoria..."
                   onChange={(event) =>
                     setForm((value) => ({
                       ...value,
@@ -9208,24 +9616,27 @@ export function AgendaIntegralView({
                 </label>
               </div>
               {message && <div className="form-message">{message}</div>}
-              <Button
-                disabled={
-                  pending || (!form.clientId && !form.clientName.trim())
-                }
-                onClick={createAppointment}
-              >
-                <CalendarDays size={15} />
-                {pending ? "Salvando…" : "Agendar consulta"}
-              </Button>
+              <div className="form-actions">
+                <Button
+                  className="primary full"
+                  disabled={
+                    pending || (!form.clientId && !form.clientName.trim())
+                  }
+                  onClick={createAppointment}
+                >
+                  <CalendarDays size={15} />
+                  {pending ? "Salvando…" : "Agendar Consulta"}
+                </Button>
+              </div>
             </div>
           </Card>
-        </aside>
-      </div>
+        </div>
+      )}
     </div>
   );
 }
 
-function AppointmentList({
+export function AppointmentList({
   items,
   pending,
   setStatus,
@@ -9242,7 +9653,7 @@ function AppointmentList({
   return items.length ? (
     <div className="records-list appointment-list">
       {items.map((item) => (
-        <article key={item.id}>
+        <article key={item.id} className="appointment-card-row">
           <div className="record-date">
             <strong>
               {item.date
@@ -9254,13 +9665,36 @@ function AppointmentList({
             </strong>
             <small>{item.time || "A definir"}</small>
           </div>
-          <div>
-            <strong>{item.client_name}</strong>
-            <span>{item.tax_type || "Atendimento"}</span>
-            <small>Status: {item.status || "pending"}</small>
+          <div className="appointment-details">
+            <div className="appointment-title-row">
+              <strong>{item.client_name}</strong>
+              <span className={`appointment-status-pill status-${item.status || "pending"}`}>
+                {item.status === "confirmed"
+                  ? "Confirmado"
+                  : item.status === "done"
+                  ? "Concluído"
+                  : item.status === "cancelled"
+                  ? "Cancelado"
+                  : "Pendente"}
+              </span>
+            </div>
+            <div className="appointment-meta-row">
+              <span>{item.tax_type || "Atendimento Geral"}</span>
+              {item.date && (
+                <small>
+                  •{" "}
+                  {new Intl.DateTimeFormat("pt-BR", {
+                    weekday: "short",
+                    day: "2-digit",
+                    month: "long",
+                  }).format(new Date(`${item.date}T12:00:00`))}
+                </small>
+              )}
+            </div>
           </div>
-          <div className="table-actions">
+          <div className="appointment-actions-wrap">
             <select
+              className="appointment-status-select"
               disabled={pending}
               value={item.status || "pending"}
               onChange={(event) =>
@@ -9279,15 +9713,21 @@ function AppointmentList({
               <option value="done">Concluído</option>
               <option value="cancelled">Cancelado</option>
             </select>
-            <Button className="icon ghost danger-text" aria-label={`Excluir agendamento de ${item.client_name}`} disabled={pending} onClick={() => remove(item.id)}>
-              <X size={15} />
+            <Button
+              className="icon ghost danger-text"
+              aria-label={`Excluir agendamento de ${item.client_name}`}
+              title="Excluir agendamento"
+              disabled={pending}
+              onClick={() => remove(item.id)}
+            >
+              <X size={16} />
             </Button>
           </div>
         </article>
       ))}
     </div>
   ) : (
-    <EmptyState>Nenhum agendamento neste filtro.</EmptyState>
+    <EmptyState>Nenhum agendamento encontrado.</EmptyState>
   );
 }
 

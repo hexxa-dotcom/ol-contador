@@ -363,6 +363,33 @@ export async function markMailThreadRead(clientId:string){if(!clientId)return {o
 
 export async function sendMailMessage(input:{clientId:string;subject:string;message:string}){const message=input.message.trim().slice(0,5000);if(!input.clientId||!message)return {ok:false as const,message:"Escolha o cliente e escreva a mensagem."};const supabase=await createClient();if(!supabase)return {ok:false as const,message:"Conexão indisponível."};const {data:claims}=await supabase.auth.getClaims();const userId=claims?.claims?.sub;if(!userId)return {ok:false as const,message:"Sessão expirada."};const [{data:staff},{data:client}]=await Promise.all([supabase.from("staff").select("id").eq("id",userId).maybeSingle(),supabase.from("clientes").select("id").eq("id",input.clientId).maybeSingle()]);if(!staff)return {ok:false as const,message:"Ação não autorizada."};if(!client)return {ok:false as const,message:"Cliente não encontrado."};const {data,error}=await supabase.from("caixa_postal").insert({cliente_ref:input.clientId,assunto:input.subject.trim().slice(0,180)||null,mensagem:message,remetente:"contador",lida:false}).select("*").single();if(error||!data)return {ok:false as const,message:"Não foi possível enviar o aviso."};revalidatePath("/");return {ok:true as const,data,message:"Mensagem enviada para a área do cliente."};}
 
+// Assunto não tem coluna própria — é agrupado pelo texto igual ao resto da
+// Caixa Postal (client-views.tsx), então "encerrar" atualiza todas as linhas
+// daquele cliente com aquele mesmo assunto (null/"" caem no fallback usado
+// pelo cliente, "Outro assunto"). Mandar mensagem nova sempre volta a
+// "aberto" (default da coluna), então o cliente reabre um assunto encerrado
+// só de escrever de novo — sem essa action.
+export async function setCaixaPostalThreadStatus(input: { clientId: string; assunto: string; status: "aberto" | "encerrado" }) {
+  if (!input.clientId) return { ok: false as const, message: "Cliente inválido." };
+  const supabase = await createClient();
+  if (!supabase) return { ok: false as const, message: "Conexão indisponível." };
+  const { data: claims } = await supabase.auth.getClaims();
+  const userId = claims?.claims?.sub;
+  if (!userId) return { ok: false as const, message: "Sessão expirada." };
+  const { data: staff } = await supabase.from("staff").select("id").eq("id", userId).maybeSingle();
+  if (!staff) return { ok: false as const, message: "Ação não autorizada." };
+  const semAssunto = !input.assunto || input.assunto === "Outro assunto";
+  let query = supabase
+    .from("caixa_postal")
+    .update({ status: input.status, encerrado_em: input.status === "encerrado" ? new Date().toISOString() : null })
+    .eq("cliente_ref", input.clientId);
+  query = semAssunto ? query.or("assunto.is.null,assunto.eq.Outro assunto") : query.eq("assunto", input.assunto);
+  const { error } = await query;
+  if (error) return { ok: false as const, message: "Não foi possível atualizar o assunto." };
+  revalidatePath("/");
+  return { ok: true as const, message: input.status === "encerrado" ? "Assunto marcado como encerrado." : "Assunto reaberto." };
+}
+
 export async function setReportDocument(input:{reportId:number;documentId:number;attached:boolean;visibleToClient:boolean}){const supabase=await createClient();if(!supabase)return {ok:false as const,message:"Conexão indisponível."};const {data:claims}=await supabase.auth.getClaims();const userId=claims?.claims?.sub;if(!userId)return {ok:false as const,message:"Sessão expirada."};const [{data:staff},{data:report},{data:document}]=await Promise.all([supabase.from("staff").select("id").eq("id",userId).maybeSingle(),supabase.from("relatorios").select("id,cliente_ref,status,caso_ref").eq("id",input.reportId).maybeSingle(),supabase.from("documentos").select("id,cliente_ref,file_name,public_url,storage_path").eq("id",input.documentId).maybeSingle()]);if(!staff)return {ok:false as const,message:"Ação não autorizada."};if(!report||!document||report.cliente_ref!==document.cliente_ref)return {ok:false as const,message:"Documento ou relatório inválido."};if(report.status==="entregue")return {ok:false as const,message:"Crie uma revisão para alterar anexos de um relatório entregue."};if(!input.attached){const {error}=await supabase.from("relatorio_anexos").delete().eq("relatorio_id",report.id).eq("documento_id",document.id);if(error)return {ok:false as const,message:"Não foi possível remover o anexo."};revalidatePath("/");return {ok:true as const,message:"Anexo removido."};}const patch={relatorio_id:report.id,cliente_ref:report.cliente_ref,caso_ref:report.caso_ref,documento_id:document.id,titulo:document.file_name,tipo:"arquivo",url:document.public_url,referencia:document.storage_path,visivel_cliente:Boolean(input.visibleToClient),created_by:userId};const {data:existing}=await supabase.from("relatorio_anexos").select("id").eq("relatorio_id",report.id).eq("documento_id",document.id).maybeSingle();const query=existing?supabase.from("relatorio_anexos").update(patch).eq("id",existing.id):supabase.from("relatorio_anexos").insert(patch);const {data,error}=await query.select("*").single();if(error||!data)return {ok:false as const,message:"Não foi possível vincular o anexo."};revalidatePath("/");return {ok:true as const,data,message:"Documento vinculado ao relatório."};}
 
 export async function markMonthlyGuideGenerated(id: number) {
