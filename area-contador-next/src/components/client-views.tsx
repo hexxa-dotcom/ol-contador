@@ -2206,7 +2206,7 @@ export function PortalTriagemView({
   const relatoRecorderRef = useRef<MediaRecorder | null>(null);
   const relatoChunksRef = useRef<Blob[]>([]);
   const relatoTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const RELATO_AUDIO_MAX_SEGUNDOS = 60;
+  const RELATO_AUDIO_MAX_SEGUNDOS = 90;
 
   const assunto = assuntoId ? acharAssunto(catalogo, assuntoId) : null;
   const minimo = regras.minimoRelato || 20;
@@ -2609,7 +2609,7 @@ export function PortalTriagemView({
                       ) : (
                         <button type="button" className="triagem-doc-action-btn" disabled={enviando || transcrevendoRelato} onClick={iniciarRelatoAudio}>
                           <Mic size={13} />
-                          <span>{transcrevendoRelato ? "Transcrevendo…" : "Prefere contar por áudio? (até 1 min)"}</span>
+                          <span>{transcrevendoRelato ? "Transcrevendo…" : "Prefere contar por áudio? (até 1min30)"}</span>
                         </button>
                       )}
                     </div>
