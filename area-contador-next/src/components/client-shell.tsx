@@ -124,9 +124,6 @@ export function ClientShell({ data }: { data: PortalData }) {
       className={`app-shell portal-shell view-${active} ${active !== "dashboard" ? "hide-mobile-topbar" : "show-mobile-topbar"} ${active === "atendimento" ? "chat-view-active" : ""}`}
       style={{ zoom: fontScale }}
     >
-      <div className="preview-banner">
-        <span>HOMOLOGAÇÃO</span> Migração funcional em validação; a versão anterior permanece preservada.
-      </div>
       {mobile && <button className="mobile-overlay" aria-label="Fechar menu" onClick={() => setMobile(false)} />}
       <aside className={`sidebar ${collapsed ? "collapsed" : ""} ${mobile ? "mobile-open" : ""}`}>
         <div className="sidebar-header">

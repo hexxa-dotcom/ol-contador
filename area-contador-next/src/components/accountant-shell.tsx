@@ -301,9 +301,6 @@ export function AccountantShell({ dashboardData, clientsData, operationsData, us
   const unreadCount = currentNotifications.filter(item => item.unread).length;
   return (
     <div className={`app-shell ${darkModeEnabled ? "dark-mode" : ""} view-${active} ${active !== "dashboard" ? "hide-mobile-topbar" : "show-mobile-topbar"} ${active === "atendimento" ? "chat-view-active" : ""}`}>
-      <div className="preview-banner">
-        <span>HOMOLOGAÇÃO</span> Migração funcional em validação; a versão anterior permanece preservada.
-      </div>
       {mobile && <button className="mobile-overlay" aria-label="Fechar menu" onClick={() => setMobile(false)} />}
       <aside className={`sidebar ${collapsed ? "collapsed" : ""} ${mobile ? "mobile-open" : ""}`}>
         <div className="sidebar-header">
