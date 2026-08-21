@@ -14,11 +14,6 @@ import {
 } from "lucide-react";
 import styles from "./precos.module.css";
 
-export const metadata = {
-  title: "Planos e preços — Olá, Contador",
-  description: "Preço fixo por atendimento, combinado antes. Chat seguro com contador, relatório assinado com CRC e área do cliente para acompanhar tudo. PF R$ 199, PJ R$ 399.",
-};
-
 export const revalidate = 600; // Cache ISR com revalidação em segundo plano a cada 10 minutos
 
 const PASSOS = [
@@ -28,14 +23,20 @@ const PASSOS = [
   { n: "4", t: "Receba o relatório", d: "No fim, um PDF assinado com CRC: o que aconteceu, o que foi feito e os próximos passos.", icon: FileCheck },
 ];
 
-const FAQ = [
-  { p: "Preciso entender de imposto para ser atendido?", r: 'Não. Você conta o que aconteceu com as suas palavras — "recebi uma carta assustadora", "vendi meu carro", "não declarei ano passado" — e anexa o que tiver. Traduzir a burocracia é o nosso trabalho, não o seu.' },
-  { p: "O que é o relatório do atendimento?", r: "É um PDF assinado por contador com registro CRC dizendo o que aconteceu, o que foi feito e o que vem agora — como uma receita médica, só que do seu imposto. Fica guardado na sua área do cliente para baixar quando quiser." },
-  { p: "Como funciona o pagamento?", r: "Preço fixo, combinado antes, pago na hora de agendar — no Pix ou no cartão, em até 3x. Sem mensalidade e sem fidelidade: você paga pelo atendimento que usar. No plano sob demanda, o valor é fechado por escrito antes de qualquer cobrança." },
-  { p: "O diagnóstico do plano sob demanda é cobrado?", r: "Sim: R$ 199, o mesmo valor de um atendimento avulso — porque é trabalho de contador de verdade. Ele analisa o seu caso e devolve um plano por escrito, com escopo, prazo e valor fechados. Se você aprovar o orçamento, esses R$ 199 são abatidos do total: na prática, o diagnóstico sai de graça para quem segue. Se preferir não seguir, o diagnóstico é seu." },
-  { p: "Em quanto tempo meu caso é resolvido?", r: "Para pessoa física, em até 24 horas — muitos casos se resolvem no mesmo dia. Para empresas, em até 48 horas. E você não fica no escuro: pela área do cliente acompanha cada etapa, do pré-atendimento ao relatório entregue." },
-  { p: "E se eu ficar com dúvida depois?", r: "Você tem retorno grátis em até 7 dias após o atendimento. E como os próximos passos ficam por escrito no relatório, você não depende da memória — nem da nossa, nem da sua." },
-];
+function formatReais(cents: number): string {
+  return `R$ ${Math.round(cents / 100)}`;
+}
+
+function faqList(consultaCents: number) {
+  return [
+    { p: "Preciso entender de imposto para ser atendido?", r: 'Não. Você conta o que aconteceu com as suas palavras — "recebi uma carta assustadora", "vendi meu carro", "não declarei ano passado" — e anexa o que tiver. Traduzir a burocracia é o nosso trabalho, não o seu.' },
+    { p: "O que é o relatório do atendimento?", r: "É um PDF assinado por contador com registro CRC dizendo o que aconteceu, o que foi feito e o que vem agora — como uma receita médica, só que do seu imposto. Fica guardado na sua área do cliente para baixar quando quiser." },
+    { p: "Como funciona o pagamento?", r: "Preço fixo, combinado antes, pago na hora de agendar — no Pix (com 5% de desconto) ou no cartão, em até 3x. Sem mensalidade e sem fidelidade: você paga pelo atendimento que usar. No plano sob demanda, o valor é fechado por escrito antes de qualquer cobrança." },
+    { p: "O diagnóstico do plano sob demanda é cobrado?", r: `Sim: ${formatReais(consultaCents)}, o mesmo valor de um atendimento avulso — porque é trabalho de contador de verdade. Ele analisa o seu caso e devolve um plano por escrito, com escopo, prazo e valor fechados. Se você aprovar o orçamento, esse valor é abatido do total: na prática, o diagnóstico sai de graça para quem segue. Se preferir não seguir, o diagnóstico é seu.` },
+    { p: "Em quanto tempo meu caso é resolvido?", r: "Para pessoa física, em até 24 horas — muitos casos se resolvem no mesmo dia. Para empresas, em até 48 horas. E você não fica no escuro: pela área do cliente acompanha cada etapa, do pré-atendimento ao relatório entregue." },
+    { p: "E se eu ficar com dúvida depois?", r: "Você tem retorno grátis em até 7 dias após o atendimento. E como os próximos passos ficam por escrito no relatório, você não depende da memória — nem da nossa, nem da sua." },
+  ];
+}
 
 async function precoDe(id: string, fallbackCents: number): Promise<number> {
   const admin = adminClient();
@@ -44,22 +45,35 @@ async function precoDe(id: string, fallbackCents: number): Promise<number> {
   return data?.price_cents ?? fallbackCents;
 }
 
-const JSON_LD_FAQ = {
-  "@context": "https://schema.org",
-  "@type": "FAQPage",
-  mainEntity: FAQ.map((item) => ({
-    "@type": "Question",
-    name: item.p,
-    acceptedAnswer: { "@type": "Answer", text: item.r },
-  })),
-};
-
-export default async function PrecosPage() {
+async function precos() {
   const [pf, pj, consulta] = await Promise.all([
     precoDe("pf", 19900),
     precoDe("pj-atendimento", 39900),
     precoDe("consulta", 19900)
   ]);
+  return { pf, pj, consulta };
+}
+
+export async function generateMetadata() {
+  const { pf, pj } = await precos();
+  return {
+    title: "Planos e preços — Olá, Contador",
+    description: `Preço fixo por atendimento, combinado antes. Chat seguro com contador, relatório assinado com CRC e área do cliente para acompanhar tudo. PF ${formatReais(pf)}, PJ ${formatReais(pj)}.`,
+  };
+}
+
+export default async function PrecosPage() {
+  const { pf, pj, consulta } = await precos();
+  const FAQ = faqList(consulta);
+  const JSON_LD_FAQ = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: FAQ.map((item) => ({
+      "@type": "Question",
+      name: item.p,
+      acceptedAnswer: { "@type": "Answer", text: item.r },
+    })),
+  };
 
   return (
     <>

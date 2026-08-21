@@ -21,15 +21,21 @@ export const metadata: Metadata = {
   },
 };
 
-const JSON_LD_SERVICO = {
-  "@context": "https://schema.org",
-  "@type": "ProfessionalService",
-  name: "Olá, Contador",
-  url: "https://olacontador.com.br/",
-  description: "Atendimento contábil sob demanda com contador de registro CRC ativo, dedicado ao seu caso. Envie o caso e os documentos pelo celular, com garantia de reembolso.",
-  areaServed: "BR",
-  priceRange: "R$ 199 - R$ 399",
-};
+function formatReais(cents: number): string {
+  return `R$ ${Math.round(cents / 100)}`;
+}
+
+function jsonLdServico(pfCents: number, pjCents: number) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "ProfessionalService",
+    name: "Olá, Contador",
+    url: "https://olacontador.com.br/",
+    description: "Atendimento contábil sob demanda com contador de registro CRC ativo, dedicado ao seu caso. Envie o caso e os documentos pelo celular, com garantia de reembolso.",
+    areaServed: "BR",
+    priceRange: `${formatReais(pfCents)} - ${formatReais(pjCents)}`,
+  };
+}
 
 const JSON_LD_FAQ = {
   "@context": "https://schema.org",
@@ -56,7 +62,7 @@ export default async function Page() {
 
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD_SERVICO) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLdServico(pf, pj)) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD_FAQ) }} />
       <HomePage precos={{ pf, pj, consulta }} />
     </>

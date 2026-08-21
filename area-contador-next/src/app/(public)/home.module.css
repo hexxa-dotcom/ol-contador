@@ -52,8 +52,26 @@
   .faqContent { padding: 0 24px 24px; font-size: 0.95rem; }
 }
 
-/* Brilho verde-menta difuso */
-.superficieEscura { position: relative; overflow: hidden; isolation: isolate; background: var(--pub-ink); color: #fff; }
+/* Brilho verde-menta e esmeralda difuso com volume */
+.superficieEscura { 
+  position: relative; 
+  overflow: hidden; 
+  isolation: isolate; 
+  background: linear-gradient(160deg, #0e4037 0%, #082822 45%, #041714 100%); 
+  color: #fff; 
+  border-bottom: 1px solid rgba(52, 211, 153, 0.18);
+  box-shadow: inset 0 -1px 0 rgba(52, 211, 153, 0.08);
+}
+.superficieEscura::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: 
+    radial-gradient(circle at 15% 20%, rgba(52, 211, 153, 0.16), transparent 50%),
+    radial-gradient(circle at 85% 80%, rgba(16, 185, 129, 0.12), transparent 45%);
+  pointer-events: none;
+  z-index: 0;
+}
 /* ---------- TESTER SWITCHER DA HERO ---------- */
 .heroTesterContainer {
   background: #091312;

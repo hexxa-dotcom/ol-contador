@@ -262,18 +262,24 @@
   box-shadow: 0 24px 48px -18px rgba(34, 49, 47, 0.18);
 }
 
-/* CARD ESCURO PETRÓLEO */
+/* CARD ESCURO ESMERALDA */
 .planoDark {
-  background: var(--pub-green-deep, #07322A);
-  background-image: radial-gradient(circle at 85% 0%, rgba(159, 211, 196, 0.18), transparent 65%);
-  border: 1px solid rgba(159, 211, 196, 0.25);
-  box-shadow: 0 24px 50px -20px rgba(7, 50, 42, 0.65), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  background: linear-gradient(140deg, #0e4037 0%, #092e27 40%, #041a16 100%);
+  border: 1px solid rgba(52, 211, 153, 0.28);
+  box-shadow: 
+    0 24px 50px -20px rgba(4, 27, 22, 0.65), 
+    0 0 35px -10px rgba(16, 185, 129, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2), 
+    inset 0 2px 10px rgba(52, 211, 153, 0.12);
   color: #F7F1E6;
 }
 
 .planoDark:hover {
   transform: translateY(-6px);
-  box-shadow: 0 30px 60px -20px rgba(7, 50, 42, 0.8);
+  box-shadow: 
+    0 30px 60px -20px rgba(4, 27, 22, 0.8),
+    0 0 45px -8px rgba(16, 185, 129, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
 }
 
 /* SELEÇÃO ATIVA 3D */
@@ -702,15 +708,34 @@
 
 /* ---------- CTA FINAL ---------- */
 .ctaFinal {
-  background: var(--pub-green-deep, #07322A);
+  background: linear-gradient(140deg, #0e4037 0%, #092e27 40%, #041a16 100%);
   color: #F7F1E6;
   border-radius: 32px;
+  border: 1px solid rgba(52, 211, 153, 0.28);
   padding: 64px 40px;
   text-align: center;
   position: relative;
   overflow: hidden;
-  box-shadow: 0 24px 50px -20px rgba(7, 50, 42, 0.7);
+  isolation: isolate;
+  box-shadow: 
+    0 24px 50px -20px rgba(4, 27, 22, 0.7),
+    0 0 40px -10px rgba(16, 185, 129, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2),
+    inset 0 2px 14px rgba(52, 211, 153, 0.12);
   margin-bottom: 64px;
+}
+.ctaFinal::before {
+  content: '';
+  position: absolute;
+  top: -30%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 600px;
+  height: 280px;
+  background: radial-gradient(circle, rgba(52, 211, 153, 0.28) 0%, rgba(16, 185, 129, 0.08) 45%, transparent 75%);
+  filter: blur(50px);
+  pointer-events: none;
+  z-index: 0;
 }
 
 .ctaTitle {

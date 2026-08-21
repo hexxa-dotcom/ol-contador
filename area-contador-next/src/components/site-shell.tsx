@@ -278,6 +278,21 @@ export function SiteFooter() {
           <span className="public-rodape-crc-text">
             Atendimento 100% online em todo o Brasil
           </span>
+          <a
+            href="https://instagram.com/olacontador"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="public-rodape-social-link"
+            aria-label="Instagram da Olá, Contador"
+            style={{ display: "inline-flex", alignItems: "center", gap: "6px", marginTop: "12px" }}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
+              <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
+              <line x1="17.5" y1="6.5" x2="17.51" y2="6.5" />
+            </svg>
+            <span>@olacontador</span>
+          </a>
         </div>
 
         {/* COLUNA 2: SERVIÇOS (Desktop) */}
@@ -316,7 +331,9 @@ export function SiteFooter() {
 
       {/* LINHA BASE */}
       <div className="public-rodape-base">
-        <span>© {new Date().getFullYear()} Olá, Contador. Todos os direitos reservados.</span>
+        <span>
+          © {new Date().getFullYear()} Olá, Contador · HEXX SERVIÇOS DIGITAIS LTDA · CNPJ 62.414.421/0001-16
+        </span>
         <span>Atendimento com garantia e preço fixo</span>
       </div>
     </footer>

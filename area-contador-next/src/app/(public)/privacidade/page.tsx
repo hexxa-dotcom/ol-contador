@@ -31,7 +31,7 @@ export default function PrivacidadePage() {
             <p>
               <strong>Contato para assuntos de privacidade:</strong>
               <br />
-              <a href="mailto:contato@olacontador.com.br">contato@olacontador.com.br</a>
+              <a href="mailto:ola@olacontador.com.br">ola@olacontador.com.br</a>
             </p>
           </div>
 
@@ -154,7 +154,7 @@ export default function PrivacidadePage() {
           </ul>
           <p>
             Para exercer qualquer um desses direitos, escreva para{" "}
-            <a href="mailto:contato@olacontador.com.br">contato@olacontador.com.br</a>. Responderemos no menor prazo
+            <a href="mailto:ola@olacontador.com.br">ola@olacontador.com.br</a>. Responderemos no menor prazo
             possível.
           </p>
           <p>

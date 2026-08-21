@@ -59,7 +59,7 @@ export default function TermosPage() {
               <strong>7 dias corridos</strong> contados da contratação, conforme o art. 49 do Código de Defesa do
               Consumidor, com devolução integral do valor pago. Se o atendimento já tiver sido realizado dentro
               desse período, o serviço será considerado prestado. Para exercer o direito, escreva para{" "}
-              <a href="mailto:contato@olacontador.com.br">contato@olacontador.com.br</a>.
+              <a href="mailto:ola@olacontador.com.br">ola@olacontador.com.br</a>.
             </p>
           </div>
 
