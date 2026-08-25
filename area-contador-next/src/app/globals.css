@@ -7263,6 +7263,9 @@ tr:hover td { background: #f8fafc; }
 }
 
 .site-public {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
   --pub-paper: #FAF7F2;
   --pub-paper-card: #FFFFFF;
   --pub-ink: #22312F;
@@ -7281,7 +7284,10 @@ tr:hover td { background: #f8fafc; }
   --pub-mint-glow-soft: #DCEDE7;
   background: var(--pub-paper);
   color: var(--pub-ink);
-  min-height: 100vh;
+}
+
+.site-public > main {
+  flex: 1;
 }
 
 /* ==================== RODAPÉ PÚBLICO MINIMALISTA & SOFISTICADO ==================== */

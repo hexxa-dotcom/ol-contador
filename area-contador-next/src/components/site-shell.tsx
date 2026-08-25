@@ -332,6 +332,7 @@ export function SiteFooter() {
         <div className="public-rodape-col-institucional">
           <h4 className="public-rodape-heading">Institucional</h4>
           <ul className="public-rodape-links">
+            <li><Link href="/validar-relatorio">Validar Relatório</Link></li>
             <li><Link href="/termos">Termos de Uso</Link></li>
             <li><Link href="/privacidade">Política de Privacidade</Link></li>
             <li><Link href="/login">Área do Cliente</Link></li>
