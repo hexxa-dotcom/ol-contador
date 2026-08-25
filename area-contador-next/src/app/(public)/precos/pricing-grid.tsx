@@ -75,12 +75,13 @@ export function PricingGrid({ pfCents, pjCents, consultaCents }: PricingGridProp
           </div>
 
           <div className={styles.resolveSection}>
-            <div className={styles.resolveRotulo}>Resolve, por exemplo:</div>
+            <div className={styles.resolveRotulo}>Exemplos do que resolvemos:</div>
             <div className={styles.chipsWrap}>
               <span className={styles.chipLight}>Malha fina e cartas</span>
-              <span className={styles.chipLight}>Declarar / corrigir IR</span>
-              <span className={styles.chipLight}>Venda de bens</span>
+              <span className={styles.chipLight}>Declarar / retificar IR</span>
+              <span className={styles.chipLight}>Venda de bens & GCAP</span>
               <span className={styles.chipLight}>Carnê-leão autônomo</span>
+              <span className={`${styles.chipLight} ${styles.chipDestaque}`}>+ Qualquer pendência de PF</span>
             </div>
           </div>
 
@@ -205,12 +206,13 @@ export function PricingGrid({ pfCents, pjCents, consultaCents }: PricingGridProp
           </div>
 
           <div className={styles.resolveSection}>
-            <div className={`${styles.resolveRotulo} ${styles.textCoral}`}>Resolve, por exemplo:</div>
+            <div className={`${styles.resolveRotulo} ${styles.textCoral}`}>Exemplos do que resolvemos:</div>
             <div className={styles.chipsWrap}>
               <span className={styles.chipDark}>Guias DAS atrasadas</span>
               <span className={styles.chipDark}>Declaração DASN</span>
               <span className={styles.chipDark}>Desenquadramento MEI</span>
-              <span className={styles.chipDark}>Dúvidas do Simples</span>
+              <span className={styles.chipDark}>CNPJ inapto & Simples</span>
+              <span className={`${styles.chipDark} ${styles.chipDestaqueDark}`}>+ Qualquer pendência da empresa</span>
             </div>
           </div>
 
@@ -312,11 +314,12 @@ export function PricingGrid({ pfCents, pjCents, consultaCents }: PricingGridProp
           </div>
 
           <div className={styles.resolveSection}>
-            <div className={styles.resolveRotulo}>Resolve, por exemplo:</div>
+            <div className={styles.resolveRotulo}>Exemplos do que resolvemos:</div>
             <div className={styles.chipsWrap}>
               <span className={styles.chipLight}>Vários anos atrasados</span>
               <span className={styles.chipLight}>Regularizações extensas</span>
-              <span className={styles.chipLight}>Demanda recorrente</span>
+              <span className={styles.chipLight}>Planejamento tributário</span>
+              <span className={`${styles.chipLight} ${styles.chipDestaque}`}>+ Casos especiais</span>
             </div>
           </div>
 

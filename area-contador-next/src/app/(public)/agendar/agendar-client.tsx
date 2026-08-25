@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/primitives";
 import { SiteHeader, SiteFooter, useFunilSessao, registrarEventoFunil } from "@/components/site-shell";
 
@@ -75,6 +76,7 @@ export function AgendarClient() {
   const [servicoId, setServicoId] = useState<string | null>(null);
   const [semPlano, setSemPlano] = useState<"nenhum" | "indisponivel" | null>(null);
   const [modalidade, setModalidade] = useState<"sem_agendamento" | "agendado">("sem_agendamento");
+  const [relato, setRelato] = useState("");
   const [dia, setDia] = useState<string | null>(null);
   const [hora, setHora] = useState<string | null>(null);
   const [alerta, setAlerta] = useState("");
@@ -122,6 +124,7 @@ export function AgendarClient() {
         setDia(salvo.dia || null);
         setHora(salvo.hora || null);
         setModalidade(salvo.modalidade === "agendado" ? "agendado" : "sem_agendamento");
+        if (salvo.assuntoTitulo) setRelato(salvo.assuntoTitulo);
       }
     } catch {
       /* ignore */
@@ -142,6 +145,7 @@ export function AgendarClient() {
       setAlerta("Escolha um dia e um horário para continuar.");
       return;
     }
+
     sessionStorage.setItem(
       CHAVE,
       JSON.stringify({
@@ -149,7 +153,7 @@ export function AgendarClient() {
         servicoNome: servico.name,
         precoCents: precoPorModalidade(servico, modalidade),
         assuntoId: null,
-        assuntoTitulo: "",
+        assuntoTitulo: relato.trim(),
         modalidade,
         dia: modalidade === "agendado" ? diaAtual : null,
         hora: modalidade === "agendado" ? hora : null,
@@ -206,6 +210,41 @@ export function AgendarClient() {
               </div>
             </div>
 
+            {/* PRÉVIA DO CASO */}
+            <section className="public-bloco">
+              <span className="public-eyebrow">Etapa 1 · Prévia do que aconteceu</span>
+              <h2>Conte uma prévia do seu caso</h2>
+              <p className="public-ajuda">
+                Conte em poucas palavras o que está acontecendo. Esta é apenas uma <b>prévia inicial</b> para o contador entender o contexto — após a confirmação, na sua área do cliente, você poderá aprofundar os detalhes, anexar documentos e até gravar áudio.
+              </p>
+              <div className="public-field" style={{ marginTop: "12px" }}>
+                <textarea
+                  id="relato-previa"
+                  rows={3}
+                  value={relato}
+                  onChange={(e) => setRelato(e.target.value)}
+                  placeholder="Ex.: Recebi uma notificação da Receita Federal sobre o imposto de renda de 2023, ou preciso regularizar guias atrasadas..."
+                  style={{
+                    width: "100%",
+                    padding: "13px 15px",
+                    borderRadius: "12px",
+                    border: "1px solid var(--border)",
+                    background: "var(--card)",
+                    fontFamily: "inherit",
+                    fontSize: "14px",
+                    lineHeight: "1.5",
+                    color: "var(--foreground)",
+                    resize: "vertical",
+                    outline: "none",
+                  }}
+                />
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px", marginTop: "10px", fontSize: "12.5px", color: "var(--muted-foreground)" }}>
+                <ShieldCheck size={16} style={{ color: "var(--pub-green, #0C5446)", flexShrink: 0 }} />
+                <span>Suas informações são confidenciais e protegidas por sigilo profissional.</span>
+              </div>
+            </section>
+
             <section className="public-bloco">
               <h2>Formato do atendimento</h2>
               <p className="public-ajuda">
@@ -244,12 +283,12 @@ export function AgendarClient() {
               ) : (
                 <div className="public-vantagens">
                   <div className="public-vantagens-eyebrow">Atendimento com horário</div>
-                  <strong>Prefere conversar antes?</strong>
-                  <p>Você reserva até 30 minutos com o contador no dia e horário escolhidos, pra conversar sobre o seu caso, tirar dúvidas e entender exatamente o que vai precisar enviar.</p>
+                  <strong>Prefere conversar antes de começar?</strong>
+                  <p>Você realiza uma conversa individual ao vivo com o contador para alinhar os detalhes do caso. Em seguida, o contador assume toda a execução técnica até a resolução final.</p>
                   <ul>
-                    <li>Até 30 minutos de conversa ao vivo, no horário marcado.</li>
-                    <li>Tire dúvidas em tempo real antes de enviar qualquer documento.</li>
-                    <li>Ideal para casos mais complexos ou quando você não sabe por onde começar.</li>
+                    <li>Conversa individual ao vivo para entender sua situação e tirar dúvidas.</li>
+                    <li>Execução técnica completa: após a reunião, o contador cuida de toda a análise, cálculos e entrega do relatório.</li>
+                    <li>Acompanhamento total: tudo fica registrado na sua área do cliente até a conclusão.</li>
                   </ul>
                 </div>
               )}

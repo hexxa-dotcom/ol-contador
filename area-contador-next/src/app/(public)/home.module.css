@@ -130,7 +130,7 @@
 }
 
 /* ---------- HERO GERAL ---------- */
-.hero { padding: 68px 0 60px; overflow: hidden; }
+.hero { padding: 116px 0 60px; overflow: hidden; }
 .hero.superficieEscura .heroTitleBold { color: #ffffff; font-family: var(--font-sans), 'Plus Jakarta Sans', var(--font-hanken), sans-serif; font-weight: 800; font-size: clamp(2.2rem, 4.8vw, 3.4rem); line-height: 1.12; margin-bottom: 20px; letter-spacing: -.035em; text-wrap: balance; }
 .heroGradientCoral {
   background: linear-gradient(135deg, #FF9C7E 0%, #FF6B4A 50%, #FFA88B 100%);
@@ -649,7 +649,7 @@
 
 /* Adaptações Mobile Globais */
 @media (max-width: 760px) {
-  .hero { padding: 48px 0 40px; }
+  .hero { padding: 92px 0 40px; }
   .heroTesterContainer { padding: 10px 14px; }
   .testerButtonsGroup { width: 100%; }
   .testerBtn { flex: 1; font-size: 0.74rem; padding: 6px 8px; text-align: center; }

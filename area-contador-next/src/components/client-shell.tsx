@@ -41,8 +41,10 @@ export function ClientShell({ data }: { data: PortalData }) {
   const [collapsed, setCollapsed] = useState(true);
   const [mobile, setMobile] = useState(false);
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
+  const [notificationOpen, setNotificationOpen] = useState(false);
   const [feedback, setFeedback] = useState("");
   const accountMenuRef = useRef<HTMLDivElement>(null);
+  const notificationRef = useRef<HTMLDivElement>(null);
   // Acessibilidade: tamanho de texto ajustável pelo cliente, persistido no
   // navegador. `zoom` (não `font-size`) porque escala o portal inteiro —
   // botões, ícones, espaçamento — não só o texto, que é o que de fato ajuda
@@ -75,12 +77,20 @@ export function ClientShell({ data }: { data: PortalData }) {
   }, []);
 
   useEffect(() => {
-    if (!accountMenuOpen) return;
+    if (!accountMenuOpen && !notificationOpen) return;
     const closeOnOutsideClick = (event: MouseEvent) => {
-      if (!accountMenuRef.current?.contains(event.target as Node)) setAccountMenuOpen(false);
+      if (accountMenuOpen && !accountMenuRef.current?.contains(event.target as Node)) {
+        setAccountMenuOpen(false);
+      }
+      if (notificationOpen && !notificationRef.current?.contains(event.target as Node)) {
+        setNotificationOpen(false);
+      }
     };
     const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setAccountMenuOpen(false);
+      if (event.key === "Escape") {
+        setAccountMenuOpen(false);
+        setNotificationOpen(false);
+      }
     };
     document.addEventListener("mousedown", closeOnOutsideClick);
     document.addEventListener("keydown", closeOnEscape);
@@ -88,7 +98,7 @@ export function ClientShell({ data }: { data: PortalData }) {
       document.removeEventListener("mousedown", closeOnOutsideClick);
       document.removeEventListener("keydown", closeOnEscape);
     };
-  }, [accountMenuOpen]);
+  }, [accountMenuOpen, notificationOpen]);
 
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout>;
@@ -110,6 +120,7 @@ export function ClientShell({ data }: { data: PortalData }) {
     setActive(id);
     setMobile(false);
     setAccountMenuOpen(false);
+    setNotificationOpen(false);
     // pushState (não replaceState) empilha uma entrada de histórico por
     // navegação — é o que faz o botão "voltar" do celular voltar pra seção
     // anterior do app em vez de sair direto pro site público.
@@ -118,6 +129,49 @@ export function ClientShell({ data }: { data: PortalData }) {
 
   const initials = data.client.name.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join("").toUpperCase() || "OC";
   const notificationCount = data.unreadMessages + data.unreadMail;
+
+  const clientNotifications: { id: string; text: string; time?: string; unread: boolean; target: string }[] = [];
+
+  if (data.unreadMessages > 0) {
+    clientNotifications.push({
+      id: "unread-chat",
+      text: `Você tem ${data.unreadMessages} nova${data.unreadMessages > 1 ? "s" : ""} mensagem${data.unreadMessages > 1 ? "s" : ""} no chat com o contador`,
+      unread: true,
+      target: "atendimento",
+    });
+  }
+
+  data.mailbox.forEach((mail) => {
+    if (!mail.lida) {
+      clientNotifications.push({
+        id: `mail-${mail.id}`,
+        text: mail.assunto || "Novo comunicado oficial na Caixa Postal",
+        time: mail.createdAt ? new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" }).format(new Date(mail.createdAt)) : undefined,
+        unread: true,
+        target: "caixa-postal",
+      });
+    }
+  });
+
+  data.reports.forEach((rep) => {
+    clientNotifications.push({
+      id: `report-${rep.id}`,
+      text: `Relatório disponível: ${rep.titulo || "Parecer Técnico Contábil"}`,
+      time: rep.createdAt ? new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" }).format(new Date(rep.createdAt)) : undefined,
+      unread: false,
+      target: "historico",
+    });
+  });
+
+  const proximoAgendamento = data.appointments.find((a) => a.status !== "done" && a.status !== "cancelled");
+  if (proximoAgendamento && proximoAgendamento.date) {
+    clientNotifications.push({
+      id: `apt-${proximoAgendamento.id}`,
+      text: `Atendimento agendado para ${proximoAgendamento.date} às ${proximoAgendamento.time || "horário marcado"}`,
+      unread: false,
+      target: "agendamento",
+    });
+  }
 
   return (
     <div
@@ -185,16 +239,59 @@ export function ClientShell({ data }: { data: PortalData }) {
             </div>
           </div>
           <div className="topbar-actions">
-            <Button
-              aria-label="Notificações"
-              className="icon floating-notification"
-              onClick={() => navigate("atendimento")}
-              disabled={onboardingPendente}
-              title={onboardingPendente ? "Disponível após enviar o pré-atendimento" : "Notificações"}
-            >
-              <Bell size={18} />
-              {!onboardingPendente && notificationCount > 0 && <span className="top-notification-count">{notificationCount > 99 ? "99+" : notificationCount}</span>}
-            </Button>
+            <div className="notification-wrap" ref={notificationRef}>
+              <Button
+                aria-label="Notificações"
+                aria-expanded={notificationOpen}
+                className={`icon floating-notification notification-button ${notificationOpen ? "is-open" : ""}`}
+                onClick={() => {
+                  if (onboardingPendente) return;
+                  setNotificationOpen((value) => !value);
+                  setAccountMenuOpen(false);
+                }}
+                disabled={onboardingPendente}
+                title={onboardingPendente ? "Disponível após enviar o pré-atendimento" : "Notificações"}
+              >
+                <Bell size={18} />
+                {!onboardingPendente && notificationCount > 0 && <span className="top-notification-count">{notificationCount > 99 ? "99+" : notificationCount}</span>}
+              </Button>
+              {notificationOpen && (
+                <div className="notification-popover" role="dialog" aria-label="Notificações recentes">
+                  <div className="popover-title">
+                    <div>
+                      <strong>Notificações</strong>
+                      <small>{notificationCount ? `${notificationCount} não lida${notificationCount === 1 ? "" : "s"}` : "Tudo em dia"}</small>
+                    </div>
+                    <Badge>{clientNotifications.length}</Badge>
+                  </div>
+                  <div className="notification-list">
+                    {clientNotifications.length > 0 ? (
+                      clientNotifications.slice(0, 5).map((item) => (
+                        <button
+                          key={item.id}
+                          onClick={() => {
+                            navigate(item.target);
+                            setNotificationOpen(false);
+                          }}
+                          className={item.unread ? "unread" : ""}
+                        >
+                          <span className="notification-dot" />
+                          <span>
+                            <strong>{item.text}</strong>
+                            {item.time && <small>{item.time}</small>}
+                          </span>
+                        </button>
+                      ))
+                    ) : (
+                      <div className="notification-empty">Nenhuma notificação recente.</div>
+                    )}
+                  </div>
+                  <button className="popover-footer" onClick={() => { navigate("caixa-postal"); setNotificationOpen(false); }}>
+                    Ver mensagens e comunicados <ChevronDown size={15} />
+                  </button>
+                </div>
+              )}
+            </div>
             <div className="account-menu-wrap" ref={accountMenuRef}>
               <button className="account-glass" onClick={() => setAccountMenuOpen((value) => !value)} aria-label={`Abrir menu de ${data.client.name}`} aria-expanded={accountMenuOpen} aria-controls="account-popover">
                 <div className="avatar">{initials}</div>

@@ -10,9 +10,9 @@ export const metadata = { title: "Entrar — Olá, Contador", robots: "noindex" 
 export const dynamic = "force-dynamic";
 
 const TEXTOS = {
-  cliente: { titulo: "Entrar como cliente", sub: "Acesse sua área para acompanhar atendimentos, documentos e o Radar Fiscal." },
-  contador: { titulo: "Painel do escritório", sub: "Entre com a conta cadastrada pelo escritório." },
-  geral: { titulo: "Entrar na plataforma", sub: "Use o e-mail da sua conta. Levamos você direto para a sua área." },
+  cliente: { titulo: "Entrar na Área do Cliente", sub: "Acesse sua área para acompanhar atendimentos, documentos e o Radar Fiscal." },
+  contador: { titulo: "Painel do Escritório", sub: "Entre com a conta cadastrada pelo escritório." },
+  geral: { titulo: "Entrar na Plataforma", sub: "Use o e-mail da sua conta. Levamos você direto para a sua área." },
 } as const;
 
 export default async function LoginPage({
@@ -53,7 +53,7 @@ export default async function LoginPage({
           <h2 className={styles.tituloForm}>{textos.titulo}</h2>
           <p className={styles.sub}>{textos.sub}</p>
 
-          <LoginForm />
+          <LoginForm papel={papel} />
 
           <div className={styles.foot}>
             Ainda não é cliente? <Link href="/precos">Ver preços e agendar atendimento</Link>

@@ -87,6 +87,26 @@ export default async function PrecosPage() {
           {/* GRID INTERATIVO DE PLANOS 3D */}
           <PricingGrid pfCents={pf} pjCents={pj} consultaCents={consulta} />
 
+          {/* CARD DE SEGURANÇA / QUALQUER PENDÊNCIA FISCAL */}
+          <div className={styles.duvidaCasoCard}>
+            <div className={styles.duvidaCasoIconWrap}>
+              <ShieldCheck size={28} />
+            </div>
+            <div className={styles.duvidaCasoContent}>
+              <h3>Não encontrou sua pendência específica nos exemplos acima?</h3>
+              <p>
+                Nossos contadores com registro CRC ativo cuidam de <b>qualquer tipo de caso fiscal</b> com a Receita Federal, CPF ou CNPJ. Mesmo que a sua situação seja atípica ou complexa, basta escolher o plano e descrever o que aconteceu no momento do agendamento.
+              </p>
+              <div className={styles.duvidaCasoRodape}>
+                <span className={styles.duvidaGarantiaBadge}>✓ 100% de reembolso se não pudermos ajudar</span>
+                <span className={styles.duvidaDivisor}>·</span>
+                <a href="mailto:ola@olacontador.com.br?subject=D%C3%BAvida%20sobre%20meu%20caso%20fiscal" className={styles.duvidaEmailLink}>
+                  Tirar dúvida por e-mail &rarr;
+                </a>
+              </div>
+            </div>
+          </div>
+
           {/* GARANTIA */}
           <div className={styles.garantiaBox}>
             <div className={styles.garantiaIconWrap}>

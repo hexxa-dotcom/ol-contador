@@ -457,7 +457,6 @@ export function PortalDashboardView({ data, onNavigate }: { data: PortalData; on
       {/* CABEÇALHO DO CLIENTE */}
       <div className="portal-hero-header">
         <div className="portal-hero-info">
-          <span className="portal-hero-welcome-tag">Espaço do Cliente</span>
           <h1 className="portal-hero-title">
             {saudacao}, <strong>{primeiroNome}</strong>.
           </h1>
@@ -465,9 +464,8 @@ export function PortalDashboardView({ data, onNavigate }: { data: PortalData; on
             Tudo pronto para cuidar da sua situação fiscal. Acompanhe abaixo o status em tempo real, suas mensagens e relatórios oficiais.
           </p>
         </div>
-        <div className="portal-hero-status-pill">
-          <span className="portal-hero-status-dot" />
-          <span>Atendimento 100% Online</span>
+        <div className="portal-hero-badge-wrap">
+          <span className="portal-hero-kicker">Espaço do Cliente</span>
         </div>
       </div>
 
@@ -2608,6 +2606,11 @@ export function PortalTriagemView({
                         ? "Descreva qualquer detalhe relevante para o contador realizar a emissão/declaração."
                         : "Escreva livremente com as suas palavras — não se preocupe com terminologias técnicas."}
                     </small>
+                    {descricao.trim().length > 0 && (
+                      <div style={{ padding: "8px 12px", background: "rgba(52, 211, 153, 0.1)", border: "1px solid rgba(52, 211, 153, 0.25)", borderRadius: "8px", fontSize: "12px", color: "var(--pub-green, #0C5446)", margin: "6px 0 8px" }}>
+                        ✓ Recuperamos a prévia que você escreveu na contratação. Sinta-se à vontade para complementar com mais detalhes ou anexar documentos abaixo.
+                      </div>
+                    )}
                     <textarea
                       className="portal-input textarea"
                       value={descricao}

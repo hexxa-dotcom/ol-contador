@@ -33,8 +33,25 @@ export async function registrarEventoFunil(sessaoRef: string, evento: string, ex
   }
 }
 
-export function SiteHeader({ active }: { active?: "home" | "precos" | "radar" }) {
+export function SiteHeader({ 
+  active, 
+  transparentOnTop = active === "home" 
+}: { 
+  active?: "home" | "precos" | "radar"; 
+  transparentOnTop?: boolean; 
+}) {
   const [menuMobileAberto, setMenuMobileAberto] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+
+  // Monitora a rolagem da página para transicionar o cabeçalho
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 20);
+    };
+    handleScroll();
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   // Fecha o menu móvel ao redimensionar para desktop
   useEffect(() => {
@@ -59,8 +76,12 @@ export function SiteHeader({ active }: { active?: "home" | "precos" | "radar" })
     };
   }, [menuMobileAberto]);
 
+  const isTransparent = transparentOnTop && !scrolled && !menuMobileAberto;
+
   return (
-    <header className="public-nav-wrap">
+    <header 
+      className={`public-nav-wrap ${isTransparent ? "is-transparent" : "is-solid"} ${transparentOnTop ? "is-overlay" : ""}`}
+    >
       <div className="public-nav-container">
         <Link className="public-brand" href="/" aria-label="Voltar para a página inicial" onClick={() => setMenuMobileAberto(false)}>
           <Image src="/logo-light.svg" alt="Olá, Contador" width={34} height={35} priority />
@@ -99,7 +120,7 @@ export function SiteHeader({ active }: { active?: "home" | "precos" | "radar" })
           </button>
         </div>
 
-        {/* MENU DRAWER MOBILE COM ANIMAÇÃO SUAVE */}
+        {/* MENU DRAWER MOBILE COM ANIMAÇÃO SUAVE E SÓLIDA */}
         <div 
           className={`public-mobile-menu-overlay ${menuMobileAberto ? "is-open" : ""}`} 
           onClick={() => setMenuMobileAberto(false)}
@@ -129,12 +150,12 @@ export function SiteHeader({ active }: { active?: "home" | "precos" | "radar" })
                 <span>Radar Fiscal</span>
               </Link>
               <Link 
-                className={`public-mobile-lk public-mobile-lk-highlight ${active === "precos" ? "active" : ""}`} 
+                className="public-mobile-cta-btn" 
                 href="/precos" 
                 onClick={() => setMenuMobileAberto(false)}
               >
                 <span>Resolver meu caso</span>
-                <ArrowUpRight size={16} />
+                <ArrowUpRight size={17} />
               </Link>
             </div>
 
@@ -142,22 +163,24 @@ export function SiteHeader({ active }: { active?: "home" | "precos" | "radar" })
 
             <div className="public-mobile-auth-section">
               <span className="public-mobile-auth-title">Acesso ao Sistema</span>
-              <Link 
-                className="public-mobile-auth-btn client" 
-                href="/login?role=cliente" 
-                onClick={() => setMenuMobileAberto(false)}
-              >
-                <UserCheck size={18} />
-                <span>Sou cliente</span>
-              </Link>
-              <Link 
-                className="public-mobile-auth-btn accountant" 
-                href="/login?role=contador" 
-                onClick={() => setMenuMobileAberto(false)}
-              >
-                <Building2 size={18} />
-                <span>Sou contador</span>
-              </Link>
+              <div className="public-mobile-auth-grid">
+                <Link 
+                  className="public-mobile-auth-btn" 
+                  href="/login?role=cliente" 
+                  onClick={() => setMenuMobileAberto(false)}
+                >
+                  <UserCheck size={17} className="public-mobile-auth-icon client" />
+                  <span>Sou cliente</span>
+                </Link>
+                <Link 
+                  className="public-mobile-auth-btn" 
+                  href="/login?role=contador" 
+                  onClick={() => setMenuMobileAberto(false)}
+                >
+                  <Building2 size={17} className="public-mobile-auth-icon accountant" />
+                  <span>Sou contador</span>
+                </Link>
+              </div>
             </div>
           </div>
         </div>

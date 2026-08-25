@@ -475,6 +475,18 @@
   border-radius: 20px;
 }
 
+.chipDestaque {
+  background: rgba(238, 95, 58, 0.1) !important;
+  color: var(--pub-coral, #EE5F3A) !important;
+  font-weight: 800 !important;
+}
+
+.chipDestaqueDark {
+  background: rgba(52, 211, 153, 0.15) !important;
+  color: #34D399 !important;
+  font-weight: 800 !important;
+}
+
 /* LISTA DE ENTREGÁVEIS DETALHADA */
 .entregaveisList {
   display: flex;
@@ -639,6 +651,88 @@
   opacity: 0.85;
   margin-top: 20px;
   text-align: left;
+}
+
+/* ---------- CARD DÚVIDA / QUALQUER CASO FISCAL ---------- */
+.duvidaCasoCard {
+  background: #FFFFFF;
+  border: 1.5px solid rgba(52, 211, 153, 0.35);
+  border-radius: 24px;
+  padding: 28px 32px;
+  display: flex;
+  align-items: flex-start;
+  gap: 20px;
+  margin-top: 36px;
+  margin-bottom: 24px;
+  box-shadow: 0 16px 36px -12px rgba(12, 84, 70, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+.duvidaCasoIconWrap {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  background: rgba(12, 84, 70, 0.08);
+  color: var(--pub-green, #0C5446);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border: 1px solid rgba(12, 84, 70, 0.15);
+}
+
+.duvidaCasoContent h3 {
+  font-family: 'Bricolage Grotesque', sans-serif;
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--pub-ink, #22312F);
+  margin: 0 0 6px;
+}
+
+.duvidaCasoContent p {
+  font-size: 0.96rem;
+  color: var(--pub-ink-soft, #5A6B69);
+  line-height: 1.55;
+  margin: 0 0 14px;
+}
+
+.duvidaCasoRodape {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  font-size: 0.88rem;
+}
+
+.duvidaGarantiaBadge {
+  font-weight: 700;
+  color: var(--pub-green, #0C5446);
+  background: rgba(52, 211, 153, 0.12);
+  padding: 4px 10px;
+  border-radius: 6px;
+}
+
+.duvidaDivisor {
+  color: var(--pub-border, #D6CDC1);
+}
+
+.duvidaEmailLink {
+  color: var(--pub-coral, #EE5F3A);
+  font-weight: 700;
+  text-decoration: none;
+  transition: opacity 0.15s ease;
+}
+
+.duvidaEmailLink:hover {
+  text-decoration: underline;
+  opacity: 0.85;
+}
+
+@media (max-width: 760px) {
+  .duvidaCasoCard {
+    flex-direction: column;
+    padding: 22px 20px;
+    gap: 14px;
+  }
 }
 
 /* ---------- GARANTIA ---------- */

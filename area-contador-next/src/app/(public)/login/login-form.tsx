@@ -6,7 +6,7 @@ import { KeyRound, LockKeyhole, Mail } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import styles from "./login.module.css";
 
-export function LoginForm() {
+export function LoginForm({ papel }: { papel?: "cliente" | "contador" | null } = {}) {
   const router = useRouter();
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -120,7 +120,7 @@ export function LoginForm() {
   }
 
   return (
-    <form className={styles.form} onSubmit={submit}>
+    <form className={styles.form} data-papel={papel ?? undefined} onSubmit={submit}>
       {mode !== "recovery" && mode !== "otp-verify" && (
         <div>
           <label htmlFor="login-email">E-mail</label>
@@ -159,7 +159,7 @@ export function LoginForm() {
       )}
       {error && <div className={`${styles.msg} ${styles.msgErr}`} role="alert">{error}</div>}
       {success && <div className={`${styles.msg} ${styles.msgOk}`} role="status">{success}</div>}
-      <button className={styles.button} type="submit" disabled={loading}>
+      <button className={`${styles.button} ${papel === "contador" ? styles.buttonContador : ""}`} type="submit" disabled={loading}>
         {loading
           ? "Processando…"
           : mode === "request"
