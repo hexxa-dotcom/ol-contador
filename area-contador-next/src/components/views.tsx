@@ -501,7 +501,7 @@ export function DashboardView({
       {/* 1. FATURAMENTO */}
       <section>
         <div className="section-label">Faturamento</div>
-        <div className="stats-grid">
+        <div className="stats-grid billing-stats">
           <Stat
             label="Faturamento do Dia"
             value={money(data.revenue.day)}

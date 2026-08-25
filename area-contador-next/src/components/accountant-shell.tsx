@@ -9,7 +9,28 @@ import {
   PanelLeftClose, PanelLeftOpen, Settings, UserRound, Users, Users2, X, Zap,
 } from "lucide-react";
 import { Badge, Button } from "@/components/ui/primitives";
-import { AcompanhamentoIntegralView as AcompanhamentoView, AgendaIntegralView as AgendamentosView, AtendimentoView, ClientesIntegralView as ClientesView, ConfiguracoesIntegralView as ConfiguracoesView, DashboardView, EquipeIntegralView as EquipeView, FinanceiroIntegralView as FinanceiroView, InsightsView, NotificacoesIntegralView as NotificacoesView, PerfilView, RadarFiscalView as RadarView, RelatoriosIntegralView as RelatoriosView, type NotificationItem } from "@/components/views";
+import dynamic from "next/dynamic";
+import { type NotificationItem } from "@/components/views";
+
+const LoadingFallback = () => (
+  <div className="flex flex-1 items-center justify-center min-h-[50vh]">
+    <div className="w-8 h-8 rounded-full border-4 border-coral-accent border-t-transparent animate-spin" />
+  </div>
+);
+
+const AcompanhamentoView = dynamic(() => import("@/components/views").then(mod => mod.AcompanhamentoIntegralView), { loading: LoadingFallback });
+const AgendamentosView = dynamic(() => import("@/components/views").then(mod => mod.AgendaIntegralView), { loading: LoadingFallback });
+const AtendimentoView = dynamic(() => import("@/components/views").then(mod => mod.AtendimentoView), { loading: LoadingFallback });
+const ClientesView = dynamic(() => import("@/components/views").then(mod => mod.ClientesIntegralView), { loading: LoadingFallback });
+const ConfiguracoesView = dynamic(() => import("@/components/views").then(mod => mod.ConfiguracoesIntegralView), { loading: LoadingFallback });
+const DashboardView = dynamic(() => import("@/components/views").then(mod => mod.DashboardView), { loading: LoadingFallback });
+const EquipeView = dynamic(() => import("@/components/views").then(mod => mod.EquipeIntegralView), { loading: LoadingFallback });
+const FinanceiroView = dynamic(() => import("@/components/views").then(mod => mod.FinanceiroIntegralView), { loading: LoadingFallback });
+const InsightsView = dynamic(() => import("@/components/views").then(mod => mod.InsightsView), { loading: LoadingFallback });
+const NotificacoesView = dynamic(() => import("@/components/views").then(mod => mod.NotificacoesIntegralView), { loading: LoadingFallback });
+const PerfilView = dynamic(() => import("@/components/views").then(mod => mod.PerfilView), { loading: LoadingFallback });
+const RadarView = dynamic(() => import("@/components/views").then(mod => mod.RadarFiscalView), { loading: LoadingFallback });
+const RelatoriosView = dynamic(() => import("@/components/views").then(mod => mod.RelatoriosIntegralView), { loading: LoadingFallback });
 import type { DashboardData } from "@/lib/dashboard";
 import type { ClientsData } from "@/lib/clients";
 import type { OperationsData } from "@/lib/operations";

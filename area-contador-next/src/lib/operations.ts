@@ -34,19 +34,23 @@ export type OperationsData = {
 export const emptyOperationsData: OperationsData = { appointments: [], express: [], charges: [], reports: [], mail: [], serproQueries: [], credits: [], services: [], settings: [], radarClients: [], reportAttachments: [], documents: [] };
 
 export async function loadOperationsData(supabase: SupabaseClient<Database>): Promise<OperationsData> {
+  const limitDate = new Date();
+  limitDate.setDate(limitDate.getDate() - 180); // últimos 6 meses
+  const limitStr = limitDate.toISOString();
+
   const [appointments, express, charges, reports, mail, serproQueries, credits, services, settings, radarClients, reportAttachments, documents] = await Promise.all([
-    supabase.from("agendamentos").select("*").order("date", { ascending: true }).limit(300),
-    supabase.from("atendimentos_express").select("*").order("contratado_em", { ascending: false }).limit(200),
-    supabase.from("cobrancas").select("id,cliente_ref,servico_id,status,valor_cents,valor_original_cents,desconto_cents,paid_at,created_at,billing_type,invoice_url,pix_payload,pix_image,modalidade,appt_date,appt_time,origem").order("created_at", { ascending: false }).limit(500),
-    supabase.from("relatorios").select("*").order("updated_at", { ascending: false }).limit(300),
-    supabase.from("caixa_postal").select("*").order("created_at", { ascending: false }).limit(300),
-    supabase.from("serpro_consultas").select("id,cliente_ref,criado_em,id_servico,id_sistema,acao,sucesso,erro_codigo").order("criado_em", { ascending: false }).limit(200),
-    supabase.from("creditos").select("id,codigo,valor_cents,status,cliente_ref,created_at,expira_em,observacao,usado_em,cancelado_em").order("created_at", { ascending: false }).limit(300),
+    supabase.from("agendamentos").select("*").gte("created_at", limitStr).order("date", { ascending: true }).limit(500),
+    supabase.from("atendimentos_express").select("*").gte("contratado_em", limitStr).order("contratado_em", { ascending: false }).limit(500),
+    supabase.from("cobrancas").select("id,cliente_ref,servico_id,status,valor_cents,valor_original_cents,desconto_cents,paid_at,created_at,billing_type,invoice_url,pix_payload,pix_image,modalidade,appt_date,appt_time,origem").gte("created_at", limitStr).order("created_at", { ascending: false }).limit(1000),
+    supabase.from("relatorios").select("*").gte("updated_at", limitStr).order("updated_at", { ascending: false }).limit(500),
+    supabase.from("caixa_postal").select("*").gte("created_at", limitStr).order("created_at", { ascending: false }).limit(500),
+    supabase.from("serpro_consultas").select("id,cliente_ref,criado_em,id_servico,id_sistema,acao,sucesso,erro_codigo").gte("criado_em", limitStr).order("criado_em", { ascending: false }).limit(500),
+    supabase.from("creditos").select("id,codigo,valor_cents,status,cliente_ref,created_at,expira_em,observacao,usado_em,cancelado_em").gte("created_at", limitStr).order("created_at", { ascending: false }).limit(500),
     supabase.from("servicos").select("*").order("price_cents"),
     supabase.from("configuracoes").select("*").order("chave"),
-    supabase.from("clientes").select("id,name,cpf,email,phone,regime_tributario,recorrente,recorrente_tipo").order("name").limit(500),
-    supabase.from("relatorio_anexos").select("*").order("created_at",{ascending:false}).limit(500),
-    supabase.from("documentos").select("id,cliente_ref,file_name,mime,size_bytes,storage_path,public_url,created_at,ai_extracted").order("created_at",{ascending:false}).limit(500),
+    supabase.from("clientes").select("id,name,cpf,email,phone,regime_tributario,recorrente,recorrente_tipo").order("name").limit(2000),
+    supabase.from("relatorio_anexos").select("*").gte("created_at", limitStr).order("created_at",{ascending:false}).limit(1000),
+    supabase.from("documentos").select("id,cliente_ref,file_name,mime,size_bytes,storage_path,public_url,created_at,ai_extracted").gte("created_at", limitStr).order("created_at",{ascending:false}).limit(1000),
   ]);
   const errors = [appointments.error, express.error, charges.error, reports.error, mail.error, serproQueries.error, credits.error, services.error, settings.error, radarClients.error, reportAttachments.error, documents.error].filter(Boolean);
   return {

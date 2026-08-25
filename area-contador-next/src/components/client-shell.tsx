@@ -9,11 +9,24 @@ import {
   PanelLeftClose, PanelLeftOpen, UserRound, X,
 } from "lucide-react";
 import { Badge, Button } from "@/components/ui/primitives";
-import {
-  PortalAgendaView, PortalAtendimentoView, PortalCaixaPostalView,
-  PortalDashboardView, PortalDocumentosView, PortalFaqView, PortalHistoricoView,
-  PortalPerfilView, PortalRadarView, PortalTriagemView,
-} from "@/components/client-views";
+import dynamic from "next/dynamic";
+
+const LoadingFallback = () => (
+  <div className="flex flex-1 items-center justify-center min-h-[50vh]">
+    <div className="w-8 h-8 rounded-full border-4 border-coral-accent border-t-transparent animate-spin" />
+  </div>
+);
+
+const PortalAgendaView = dynamic(() => import("@/components/client-views").then(mod => mod.PortalAgendaView), { loading: LoadingFallback });
+const PortalAtendimentoView = dynamic(() => import("@/components/client-views").then(mod => mod.PortalAtendimentoView), { loading: LoadingFallback });
+const PortalCaixaPostalView = dynamic(() => import("@/components/client-views").then(mod => mod.PortalCaixaPostalView), { loading: LoadingFallback });
+const PortalDashboardView = dynamic(() => import("@/components/client-views").then(mod => mod.PortalDashboardView), { loading: LoadingFallback });
+const PortalDocumentosView = dynamic(() => import("@/components/client-views").then(mod => mod.PortalDocumentosView), { loading: LoadingFallback });
+const PortalFaqView = dynamic(() => import("@/components/client-views").then(mod => mod.PortalFaqView), { loading: LoadingFallback });
+const PortalHistoricoView = dynamic(() => import("@/components/client-views").then(mod => mod.PortalHistoricoView), { loading: LoadingFallback });
+const PortalPerfilView = dynamic(() => import("@/components/client-views").then(mod => mod.PortalPerfilView), { loading: LoadingFallback });
+const PortalRadarView = dynamic(() => import("@/components/client-views").then(mod => mod.PortalRadarView), { loading: LoadingFallback });
+const PortalTriagemView = dynamic(() => import("@/components/client-views").then(mod => mod.PortalTriagemView), { loading: LoadingFallback });
 import type { PortalData } from "@/lib/portal";
 import { signOut } from "@/app/auth/actions";
 

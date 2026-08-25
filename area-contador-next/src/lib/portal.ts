@@ -210,6 +210,13 @@ export function proximosVencimentos(
 }
 
 export async function loadPortalData(supabase: SupabaseClient<Database>, clientId: string): Promise<PortalData> {
+  const today = new Date();
+  today.setHours(today.getHours() - 3);
+  const todayStr = today.toISOString().slice(0, 10);
+  const limitDate = new Date(today);
+  limitDate.setDate(limitDate.getDate() + 60);
+  const limitStr = limitDate.toISOString().slice(0, 10);
+
   const [clientResult, messagesResult, appointmentsResult, triagensResult, documentsResult, mailResult, reportsResult, perfilResult, configResult, servicosResult, ocupadosResult, anexosResult, avaliacoesResult, expressResult, obrigacoesResult] = await Promise.all([
     supabase.from("clientes").select("id,name,email,phone,tax_type,status,honorarios,recorrente,recorrente_tipo,onboarding_pendente,caixa_postal_novas,cpf,endereco,numero,bairro,cidade,estado,cep,atendimento_modalidade").eq("id", clientId).single(),
     supabase.from("mensagens").select("id,sender,text,type,doc_name,duration,transcricao,time,created_at,read_at,seq").eq("cliente_id", clientId).order("seq", { ascending: true }).limit(200),
@@ -232,7 +239,7 @@ export async function loadPortalData(supabase: SupabaseClient<Database>, clientI
     // Leitura ampla (todos os clientes) só de data/hora/status — precisa saber
     // quais horários já estão ocupados na agenda geral do escritório, igual ao
     // /api/appointments que o cliente.html consulta pra montar o calendário.
-    supabase.from("agendamentos").select("date,time,status").not("status", "eq", "cancelled"),
+    supabase.from("agendamentos").select("date,time,status").not("status", "eq", "cancelled").gte("date", todayStr).lte("date", limitStr),
     supabase.from("relatorio_anexos").select("id,relatorio_id,titulo,url,tipo").eq("cliente_ref", clientId).eq("visivel_cliente", true),
     supabase.from("avaliacoes").select("id,caso_ref,relatorio_id,nota,comentario,created_at").eq("cliente_ref", clientId).order("created_at", { ascending: false }),
     supabase.from("atendimentos_express").select("id,servico_id,assunto,status,contratado_em,prazo_conclusao_em,concluido_em").eq("cliente_ref", clientId).order("contratado_em", { ascending: false }).limit(20),

@@ -73,7 +73,7 @@ export async function loadDashboardData(supabase: SupabaseClient<Database>): Pro
   const weekStart = startOfWeek(today);
   const weekEnd = addDays(weekStart, 6);
 
-  const [paymentsResult, appointmentsResult, expressResult, messagesResult, historyResult, tasksResult, staffResult, guidesResult, guideClientsResult] = await Promise.all([
+  const [paymentsResult, appointmentsResult, expressResult, messagesResult, historyResult, tasksResult, staffResult, guidesResult] = await Promise.all([
     supabase.from("cobrancas").select("valor_cents,paid_at").eq("status", "paid").gte("paid_at", `${monthStart}T00:00:00-03:00`),
     supabase.from("agendamentos").select("date,status").gte("date", weekStart).lte("date", weekEnd),
     supabase.from("atendimentos_express").select("id", { count: "exact", head: true }).neq("status", "concluido"),
@@ -82,11 +82,15 @@ export async function loadDashboardData(supabase: SupabaseClient<Database>): Pro
     supabase.from("tarefas").select("id,texto,feita,data_inicial,data_final,responsavel_id").eq("excluida", false).order("created_at", { ascending: false }).limit(200),
     supabase.from("staff").select("id,name,nome").not("id", "is", null),
     supabase.from("guias_mensais").select("id,cliente_ref,competencia,observacao,status").order("competencia", { ascending: false }).limit(300),
-    supabase.from("clientes").select("id,name").limit(500),
   ]);
 
-  const firstError = [paymentsResult.error, appointmentsResult.error, expressResult.error, messagesResult.error, historyResult.error, tasksResult.error, staffResult.error, guidesResult.error, guideClientsResult.error].find(Boolean);
+  const firstError = [paymentsResult.error, appointmentsResult.error, expressResult.error, messagesResult.error, historyResult.error, tasksResult.error, staffResult.error, guidesResult.error].find(Boolean);
   if (firstError) throw firstError;
+
+  const uniqueClientIds = Array.from(new Set((guidesResult.data ?? []).map(g => g.cliente_ref)));
+  const guideClientsResult = uniqueClientIds.length > 0
+    ? await supabase.from("clientes").select("id,name").in("id", uniqueClientIds)
+    : { data: [] };
 
   const paid = paymentsResult.data ?? [];
   const appointments = appointmentsResult.data ?? [];
