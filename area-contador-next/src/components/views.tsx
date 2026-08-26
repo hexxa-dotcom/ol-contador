@@ -37,6 +37,7 @@ import {
   ListChecks,
   LockKeyhole,
   Mail,
+  MapPin,
   MessageCircle,
   Mic,
   MoreHorizontal,
@@ -1385,7 +1386,7 @@ export function AtendimentoView({
     const canned: Record<string,string> = {
       "/boasvindas": "Olá! Seja muito bem-vindo ao Olá, Contador. Meu nome é Felipe e serei o profissional responsável pelo seu atendimento hoje. Como posso ajudar você?",
       "/doc-malha": "Para analisar a pendência de malha fina, envie CPF e RG, extrato completo da pendência no e-CAC e informes de rendimentos do ano em questão.",
-      "/honorarios": `Para a análise e regularização do seu caso, os honorários profissionais avulsos são de R$ ${Number(selectedClient?.honorarios || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}. Posso preparar o prontuário?`,
+      "/honorarios": `Para a análise e regularização do seu caso, os honorários profissionais avulsos são de R$ ${Number(selectedClient?.honorarios || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}. Posso preparar a sua ficha e proposta?`,
     };
     setMessageText(canned[shortcut.text] || shortcut.text);
   }
@@ -2719,7 +2720,7 @@ export function ClientesIntegralView({
   const [selected, setSelected] = useState<ClientRecord | null>(null);
   const [dossier, setDossier] = useState<ClientDossierInput | null>(null);
   const [section, setSection] = useState<
-    "cadastro" | "prontuario" | "historico" | "pagamentos" | "recorrencia"
+    "cadastro" | "ficha" | "prontuario" | "historico" | "pagamentos" | "recorrencia"
   >("cadastro");
   const [pending, startTransition] = useTransition();
   const [newChecklist, setNewChecklist] = useState("");
@@ -2954,7 +2955,7 @@ export function ClientesIntegralView({
             }
           : current,
       );
-      feedback("Sugestão aplicada. Revise e salve o prontuário.");
+      feedback("Sugestão aplicada. Revise e salve a ficha do cliente.");
     } catch (reason) {
       feedback(reason instanceof Error ? reason.message : "Falha ao consultar a IA.");
     } finally {
@@ -3059,7 +3060,7 @@ export function ClientesIntegralView({
     void loadVault(client.id);
   }
   useEffect(() => {
-    if (section !== "prontuario" || !notesEditorRef.current || !dossier) return;
+    if ((section !== "ficha" && section !== "prontuario") || !notesEditorRef.current || !dossier) return;
     notesEditorRef.current.innerHTML = dossier.notas || "";
     setNotesStatus("");
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -3275,7 +3276,7 @@ export function ClientesIntegralView({
     <div className="view-stack">
       <PageTitle
         title="Clientes"
-        description="CRM, cadastro completo, prontuário e recorrência financeira."
+        description="CRM, cadastro completo, ficha do cliente e recorrência financeira."
         action={
           <Button onClick={() => setCreating(true)}>
             <Plus size={15} /> Novo cliente
@@ -3429,8 +3430,11 @@ export function ClientesIntegralView({
               <div className="client-detail-title">
                 <div className="avatar profile">{initials(selected.name)}</div>
                 <div>
-                  <h2>{selected.name}</h2>
-                  <p>{selected.cpf || selected.email || "Cadastro interno"}</p>
+                  <div className="client-dossier-title-row">
+                    <h2>{selected.name}</h2>
+                    <span className="client-dossier-tag">Ficha do Cliente</span>
+                  </div>
+                  <p>{selected.cpf ? `CPF/CNPJ: ${selected.cpf}` : selected.email || "Cadastro interno"}</p>
                 </div>
               </div>
               <div className="dialog-head-actions">
@@ -3451,24 +3455,24 @@ export function ClientesIntegralView({
             <div className="dossier-tabs">
               {(
                 [
-                  "cadastro",
-                  "prontuario",
-                  "historico",
-                  "pagamentos",
-                  "recorrencia",
+                  { id: "cadastro", label: "Cadastro" },
+                  { id: "ficha", label: "Ficha do Cliente" },
+                  { id: "historico", label: "Histórico" },
+                  { id: "pagamentos", label: "Cobranças" },
+                  { id: "recorrencia", label: "Recorrência" },
                 ] as const
               ).map((item) => (
                 <button
-                  key={item}
-                  className={section === item ? "active" : ""}
-                  onClick={() => setSection(item)}
+                  key={item.id}
+                  className={(section === item.id || (item.id === "ficha" && section === "prontuario")) ? "active" : ""}
+                  onClick={() => setSection(item.id)}
                 >
-                  {item[0].toUpperCase() + item.slice(1)}
+                  {item.label}
                 </button>
               ))}
             </div>
             {section === "cadastro" && (
-              <div className="profile-form dossier-body">
+              <div className="dossier-body">
                 {selected.arquivado_em && (
                   <div className="archived-banner">
                     <span>
@@ -3481,199 +3485,224 @@ export function ClientesIntegralView({
                     </Button>
                   </div>
                 )}
-                <label>
-                  Responsável pelo atendimento
-                  <select
-                    value={selected.responsavel_id || ""}
-                    onChange={(event) =>
-                      assignResponsavel(selected.id, event.target.value)
-                    }
-                  >
-                    <option value="">Sem responsável (fila geral)</option>
-                    {assignees.map((member) => (
-                      <option key={member.id} value={member.id}>
-                        {member.name}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <Card className="gov-readiness-card">
-                  <div className="card-heading">
-                    <div>
-                      <ShieldCheck size={18} />
-                      <strong>Preparação gov.br e cofre temporário</strong>
-                    </div>
-                    <Badge className={vault.status === "pending" ? "success" : ""}>
-                      {vault.status === "loading"
-                        ? "Consultando…"
-                        : vault.status === "pending"
-                          ? "Credencial disponível"
-                          : vault.status === "error"
-                            ? "Indisponível"
-                            : "Sem credencial pendente"}
-                    </Badge>
+
+                <div className="dossier-section-card">
+                  <div className="dossier-section-title">
+                    <UserRound size={15} />
+                    <span>Dados Cadastrais & Contato</span>
                   </div>
-                  <p className="muted">
-                    Nenhuma senha é salva no cadastro, chat ou relatórios. O cofre
-                    permite uma única visualização e apaga o conteúdo cifrado.
-                  </p>
-                  {vault.status === "pending" && (
-                    <div className="inline-actions">
-                      <Button className="secondary" onClick={revealVault}>
-                        Revelar uma única vez
-                      </Button>
-                      <Button className="ghost" onClick={deleteVault}>
-                        Apagar sem visualizar
-                      </Button>
-                      {vault.expiresAt && (
-                        <small>
-                          Expira em {new Date(vault.expiresAt).toLocaleString("pt-BR")}
-                        </small>
-                      )}
-                    </div>
-                  )}
-                  {vault.password && (
-                    <div className="vault-reveal" role="status">
-                      <strong>Exibição única — será ocultada em 60 segundos</strong>
-                      <code>{vault.password}</code>
-                      <Button
-                        className="secondary"
-                        onClick={() => {
-                          void navigator.clipboard.writeText(vault.password || "");
-                          feedback("Senha copiada; apague-a da área de transferência após o uso.");
-                        }}
+                  <div className="dossier-form-grid">
+                    <label>
+                      Nome completo
+                      <Input
+                        value={dossier.name}
+                        onChange={(event) =>
+                          setDossier({ ...dossier, name: event.target.value })
+                        }
+                      />
+                    </label>
+                    <label>
+                      CPF / CNPJ
+                      <Input
+                        value={dossier.cpf}
+                        onChange={(event) =>
+                          setDossier({ ...dossier, cpf: event.target.value })
+                        }
+                      />
+                    </label>
+                    <label>
+                      E-mail
+                      <Input
+                        type="email"
+                        value={dossier.email}
+                        onChange={(event) =>
+                          setDossier({ ...dossier, email: event.target.value })
+                        }
+                      />
+                    </label>
+                    <label>
+                      Telefone / WhatsApp
+                      <Input
+                        value={dossier.phone}
+                        onChange={(event) =>
+                          setDossier({ ...dossier, phone: event.target.value })
+                        }
+                      />
+                    </label>
+                    <label>
+                      Status do Atendimento
+                      <select
+                        value={dossier.status}
+                        onChange={(event) =>
+                          setDossier({ ...dossier, status: event.target.value })
+                        }
                       >
-                        Copiar senha
-                      </Button>
+                        <option value="waiting">Aguardando</option>
+                        <option value="active">Ativo</option>
+                        <option value="docs">Aguardando documentos</option>
+                        <option value="locked">Chat bloqueado</option>
+                        <option value="done">Concluído</option>
+                      </select>
+                    </label>
+                    <label>
+                      Regime tributário
+                      <Input
+                        value={dossier.regimeTributario}
+                        onChange={(event) =>
+                          setDossier({
+                            ...dossier,
+                            regimeTributario: event.target.value,
+                          })
+                        }
+                      />
+                    </label>
+                  </div>
+                </div>
+
+                <div className="dossier-section-card">
+                  <div className="dossier-section-title">
+                    <MapPin size={15} />
+                    <span>Endereço & Localização</span>
+                  </div>
+                  <div className="dossier-form-grid">
+                    <label>
+                      CEP
+                      <Input
+                        value={dossier.cep}
+                        onChange={(event) =>
+                          setDossier({ ...dossier, cep: event.target.value })
+                        }
+                      />
+                    </label>
+                    <label className="span-2">
+                      Endereço (Logradouro)
+                      <Input
+                        value={dossier.endereco}
+                        onChange={(event) =>
+                          setDossier({ ...dossier, endereco: event.target.value })
+                        }
+                      />
+                    </label>
+                    <label>
+                      Número
+                      <Input
+                        value={dossier.numero}
+                        onChange={(event) =>
+                          setDossier({ ...dossier, numero: event.target.value })
+                        }
+                      />
+                    </label>
+                    <label>
+                      Bairro
+                      <Input
+                        value={dossier.bairro}
+                        onChange={(event) =>
+                          setDossier({ ...dossier, bairro: event.target.value })
+                        }
+                      />
+                    </label>
+                    <label>
+                      Cidade
+                      <Input
+                        value={dossier.cidade}
+                        onChange={(event) =>
+                          setDossier({ ...dossier, cidade: event.target.value })
+                        }
+                      />
+                    </label>
+                    <label>
+                      UF
+                      <Input
+                        value={dossier.estado}
+                        maxLength={2}
+                        onChange={(event) =>
+                          setDossier({ ...dossier, estado: event.target.value })
+                        }
+                      />
+                    </label>
+                  </div>
+                </div>
+
+                <div className="dossier-section-card">
+                  <div className="dossier-section-title">
+                    <ShieldCheck size={15} />
+                    <span>Equipe & Preparação gov.br</span>
+                  </div>
+                  <div className="dossier-form-grid">
+                    <label className="span-2">
+                      Responsável pelo atendimento
+                      <select
+                        value={selected.responsavel_id || ""}
+                        onChange={(event) =>
+                          assignResponsavel(selected.id, event.target.value)
+                        }
+                      >
+                        <option value="">Sem responsável (fila geral)</option>
+                        {assignees.map((member) => (
+                          <option key={member.id} value={member.id}>
+                            {member.name}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  </div>
+
+                  <div className="gov-readiness-box">
+                    <div className="card-heading">
+                      <div>
+                        <strong>Cofre Temporário gov.br</strong>
+                      </div>
+                      <Badge className={vault.status === "pending" ? "success" : ""}>
+                        {vault.status === "loading"
+                          ? "Consultando…"
+                          : vault.status === "pending"
+                            ? "Credencial disponível"
+                            : vault.status === "error"
+                              ? "Indisponível"
+                              : "Sem credencial pendente"}
+                      </Badge>
                     </div>
-                  )}
-                </Card>
-                <div className="form-grid">
-                  <label>
-                    Nome completo
-                    <Input
-                      value={dossier.name}
-                      onChange={(event) =>
-                        setDossier({ ...dossier, name: event.target.value })
-                      }
-                    />
-                  </label>
-                  <label>
-                    CPF/CNPJ
-                    <Input
-                      value={dossier.cpf}
-                      onChange={(event) =>
-                        setDossier({ ...dossier, cpf: event.target.value })
-                      }
-                    />
-                  </label>
-                  <label>
-                    E-mail
-                    <Input
-                      type="email"
-                      value={dossier.email}
-                      onChange={(event) =>
-                        setDossier({ ...dossier, email: event.target.value })
-                      }
-                    />
-                  </label>
-                  <label>
-                    Telefone
-                    <Input
-                      value={dossier.phone}
-                      onChange={(event) =>
-                        setDossier({ ...dossier, phone: event.target.value })
-                      }
-                    />
-                  </label>
-                  <label>
-                    Status
-                    <select
-                      value={dossier.status}
-                      onChange={(event) =>
-                        setDossier({ ...dossier, status: event.target.value })
-                      }
-                    >
-                      <option value="waiting">Aguardando</option>
-                      <option value="active">Ativo</option>
-                      <option value="docs">Aguardando documentos</option>
-                      <option value="locked">Chat bloqueado</option>
-                      <option value="done">Concluído</option>
-                    </select>
-                  </label>
-                  <label>
-                    Regime tributário
-                    <Input
-                      value={dossier.regimeTributario}
-                      onChange={(event) =>
-                        setDossier({
-                          ...dossier,
-                          regimeTributario: event.target.value,
-                        })
-                      }
-                    />
-                  </label>
-                  <label>
-                    CEP
-                    <Input
-                      value={dossier.cep}
-                      onChange={(event) =>
-                        setDossier({ ...dossier, cep: event.target.value })
-                      }
-                    />
-                  </label>
-                  <label>
-                    Endereço
-                    <Input
-                      value={dossier.endereco}
-                      onChange={(event) =>
-                        setDossier({ ...dossier, endereco: event.target.value })
-                      }
-                    />
-                  </label>
-                  <label>
-                    Número
-                    <Input
-                      value={dossier.numero}
-                      onChange={(event) =>
-                        setDossier({ ...dossier, numero: event.target.value })
-                      }
-                    />
-                  </label>
-                  <label>
-                    Bairro
-                    <Input
-                      value={dossier.bairro}
-                      onChange={(event) =>
-                        setDossier({ ...dossier, bairro: event.target.value })
-                      }
-                    />
-                  </label>
-                  <label>
-                    Cidade
-                    <Input
-                      value={dossier.cidade}
-                      onChange={(event) =>
-                        setDossier({ ...dossier, cidade: event.target.value })
-                      }
-                    />
-                  </label>
-                  <label>
-                    UF
-                    <Input
-                      value={dossier.estado}
-                      maxLength={2}
-                      onChange={(event) =>
-                        setDossier({ ...dossier, estado: event.target.value })
-                      }
-                    />
-                  </label>
+                    <p className="muted">
+                      Nenhuma senha é salva no cadastro, chat ou relatórios. O cofre
+                      permite uma única visualização e apaga o conteúdo cifrado.
+                    </p>
+                    {vault.status === "pending" && (
+                      <div className="inline-actions">
+                        <Button className="secondary" onClick={revealVault}>
+                          Revelar uma única vez
+                        </Button>
+                        <Button className="ghost" onClick={deleteVault}>
+                          Apagar sem visualizar
+                        </Button>
+                        {vault.expiresAt && (
+                          <small>
+                            Expira em {new Date(vault.expiresAt).toLocaleString("pt-BR")}
+                          </small>
+                        )}
+                      </div>
+                    )}
+                    {vault.password && (
+                      <div className="vault-reveal" role="status">
+                        <strong>Exibição única — será ocultada em 60 segundos</strong>
+                        <code>{vault.password}</code>
+                        <Button
+                          className="secondary"
+                          onClick={() => {
+                            void navigator.clipboard.writeText(vault.password || "");
+                            feedback("Senha copiada; apague-a da área de transferência após o uso.");
+                          }}
+                        >
+                          Copiar senha
+                        </Button>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             )}
-            {section === "prontuario" && (
+            {(section === "ficha" || section === "prontuario") && (
               <div className="dossier-body dossier-prontuario">
-                <div className="profile-form">
+                <div className="dossier-col-main">
                   <div className="dossier-ai-actions">
                     <Button
                       className="secondary"
@@ -3688,122 +3717,130 @@ export function ClientesIntegralView({
                       disabled={!latestTriage?.assunto}
                       onClick={applyTriageToDossier}
                     >
-                      <ClipboardList size={15} /> Aplicar triagem ao dossiê
+                      <ClipboardList size={15} /> Importar dados da triagem
                     </Button>
                   </div>
                   {latestTriage && (
-                    <div className="triage-inline-summary">
-                      <strong>{latestTriage.assunto || "Triagem"}</strong>
-                      <span>{latestTriage.descricao || "Sem relato complementar."}</span>
-                      <small>Status: {latestTriage.status}</small>
+                    <div className="triage-clean-summary">
+                      <div>
+                        <strong>Triagem Recente: {latestTriage.assunto || "Atendimento"}</strong>
+                        <span>{latestTriage.descricao || "Sem relato complementar."}</span>
+                      </div>
+                      <Badge className={latestTriage.status === "finalizada" ? "success" : ""}>
+                        {latestTriage.status}
+                      </Badge>
                     </div>
                   )}
-                  <label>
-                    Diagnóstico fiscal
-                    <textarea
-                      rows={3}
-                      value={dossier.diagnosis}
-                      onChange={(event) =>
-                        setDossier({
-                          ...dossier,
-                          diagnosis: event.target.value,
-                        })
-                      }
-                    />
-                  </label>
-                  <label>
-                    Tratamento recomendado (passos)
-                    <textarea
-                      rows={7}
-                      value={dossier.treatment}
-                      onChange={(event) =>
-                        setDossier({
-                          ...dossier,
-                          treatment: event.target.value,
-                        })
-                      }
-                    />
-                  </label>
-                  <label>
-                    Honorários (R$)
-                    <Input
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      value={dossier.honorarios}
-                      onChange={(event) =>
-                        setDossier({
-                          ...dossier,
-                          honorarios: Number(event.target.value),
-                        })
-                      }
-                    />
-                  </label>
-                  <label>
-                    <span className="notes-label-row">
-                      Notas internas
-                      <small>{notesStatus}</small>
-                    </span>
-                    <div className="notes-toolbar">
-                      <button
-                        type="button"
-                        onClick={() => execNotesCommand("bold")}
-                        title="Negrito"
-                      >
-                        <b>N</b>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => execNotesCommand("insertUnorderedList")}
-                        title="Lista"
-                      >
-                        <ListChecks size={14} />
-                      </button>
-                      {["#fef08a", "#bbf7d0", "#bfdbfe"].map((color) => (
+
+                  <div className="dossier-field-group">
+                    <label>
+                      <span>Diagnóstico fiscal e tributário</span>
+                      <textarea
+                        rows={3}
+                        value={dossier.diagnosis}
+                        placeholder="Descreva a situação fiscal, pendências ou enquadramento do cliente..."
+                        onChange={(event) =>
+                          setDossier({
+                            ...dossier,
+                            diagnosis: event.target.value,
+                          })
+                        }
+                      />
+                    </label>
+
+                    <label>
+                      <span>Tratamento contábil recomendado (plano de ação)</span>
+                      <textarea
+                        rows={5}
+                        value={dossier.treatment}
+                        placeholder="Passos para regularização, obrigações acessórias, emissão de guias..."
+                        onChange={(event) =>
+                          setDossier({
+                            ...dossier,
+                            treatment: event.target.value,
+                          })
+                        }
+                      />
+                    </label>
+
+                    <label>
+                      <span>Honorários profissionais acordados (R$)</span>
+                      <Input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={dossier.honorarios}
+                        placeholder="0,00"
+                        onChange={(event) =>
+                          setDossier({
+                            ...dossier,
+                            honorarios: Number(event.target.value),
+                          })
+                        }
+                      />
+                    </label>
+
+                    <div className="notes-card">
+                      <div className="notes-label-row">
+                        <span>Notas internas da equipe</span>
+                        <small>{notesStatus}</small>
+                      </div>
+                      <div className="notes-toolbar">
                         <button
-                          key={color}
                           type="button"
-                          className="notes-color-swatch"
-                          style={{ backgroundColor: color }}
-                          title="Destacar"
-                          onClick={() => execNotesCommand("hiliteColor", color)}
-                        />
-                      ))}
+                          onClick={() => execNotesCommand("bold")}
+                          title="Negrito"
+                        >
+                          <b>N</b>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => execNotesCommand("insertUnorderedList")}
+                          title="Lista de tópicos"
+                        >
+                          <ListChecks size={14} />
+                        </button>
+                      </div>
+                      <div
+                        ref={notesEditorRef}
+                        className="notes-editor"
+                        contentEditable
+                        suppressContentEditableWarning
+                        data-placeholder="Anotações internas confidenciais sobre este cliente..."
+                        onInput={(event) => {
+                          if (!selected) return;
+                          scheduleSaveNotes(
+                            selected.id,
+                            event.currentTarget.innerHTML,
+                          );
+                          setDossier((value) =>
+                            value
+                              ? { ...value, notas: event.currentTarget.innerHTML }
+                              : value,
+                          );
+                        }}
+                        onBlur={(event) => {
+                          if (!selected) return;
+                          void saveNotesNow(
+                            selected.id,
+                            event.currentTarget.innerHTML,
+                          );
+                        }}
+                      />
                     </div>
-                    <div
-                      ref={notesEditorRef}
-                      className="notes-editor"
-                      contentEditable
-                      suppressContentEditableWarning
-                      onInput={(event) => {
-                        if (!selected) return;
-                        scheduleSaveNotes(
-                          selected.id,
-                          event.currentTarget.innerHTML,
-                        );
-                        setDossier((value) =>
-                          value
-                            ? { ...value, notas: event.currentTarget.innerHTML }
-                            : value,
-                        );
-                      }}
-                      onBlur={(event) => {
-                        if (!selected) return;
-                        void saveNotesNow(
-                          selected.id,
-                          event.currentTarget.innerHTML,
-                        );
-                      }}
-                    />
-                  </label>
+                  </div>
                 </div>
-                <div>
-                  <Card>
-                    <strong>Checklist de documentos</strong>
+
+                <div className="dossier-col-side">
+                  <div className="dossier-side-card">
+                    <div className="dossier-side-head">
+                      <FileCheck2 size={16} />
+                      <strong>Checklist de Documentos</strong>
+                    </div>
                     <div className="dossier-checklist">
                       {Object.entries(dossier.checklist).map(
                         ([label, checked]) => (
-                          <label key={label}>
+                          <label key={label} className={checked ? "checked" : ""}>
                             <input
                               type="checkbox"
                               checked={checked}
@@ -3821,6 +3858,7 @@ export function ClientesIntegralView({
                             />
                             <span>{label}</span>
                             <button
+                              type="button"
                               onClick={() => {
                                 const next = { ...dossier.checklist };
                                 delete next[label];
@@ -3830,8 +3868,9 @@ export function ClientesIntegralView({
                                   checklist: next,
                                 });
                               }}
+                              title="Remover item"
                             >
-                              <X size={12} />
+                              <X size={13} />
                             </button>
                           </label>
                         ),
@@ -3843,19 +3882,24 @@ export function ClientesIntegralView({
                         onChange={(event) =>
                           setNewChecklist(event.target.value)
                         }
-                        placeholder="Novo documento"
+                        placeholder="Novo documento..."
                       />
                       <Button className="secondary" onClick={addChecklist}>
-                        <Plus size={14} />
+                        <Plus size={14} /> Adicionar
                       </Button>
                     </div>
-                  </Card>
-                  <Card>
-                    <strong>Evidências</strong>
-                    <div className="availability-pills">
+                  </div>
+
+                  <div className="dossier-side-card">
+                    <div className="dossier-side-head">
+                      <ReceiptText size={16} />
+                      <strong>Evidências & Comprovantes</strong>
+                    </div>
+                    <div className="dossier-pills-wrap">
                       {dossier.evidences.map((item) => (
                         <button
-                          className={item.selected ? "selected" : ""}
+                          type="button"
+                          className={`dossier-pill-btn ${item.selected ? "selected" : ""}`}
                           key={item.id}
                           onClick={() =>
                             setDossier({
@@ -3868,7 +3912,8 @@ export function ClientesIntegralView({
                             })
                           }
                         >
-                          {item.text}
+                          {item.selected && <Check size={12} />}
+                          <span>{item.text}</span>
                         </button>
                       ))}
                     </div>
@@ -3876,13 +3921,13 @@ export function ClientesIntegralView({
                       <Input
                         value={newEvidence}
                         onChange={(event) => setNewEvidence(event.target.value)}
-                        placeholder="Nova evidência"
+                        placeholder="Nova evidência..."
                       />
                       <Button className="secondary" onClick={addEvidence}>
-                        <Plus size={14} />
+                        <Plus size={14} /> Adicionar
                       </Button>
                     </div>
-                  </Card>
+                  </div>
                 </div>
               </div>
             )}
@@ -3964,7 +4009,7 @@ export function ClientesIntegralView({
                     );
                   })}
                   {!selectedDocuments.length && (
-                    <EmptyState>Nenhum documento no prontuário.</EmptyState>
+                    <EmptyState>Nenhum documento anexado à ficha.</EmptyState>
                   )}
                 </div>
                 <div className="client-timeline">
@@ -4198,7 +4243,7 @@ export function ClientesIntegralView({
               {section !== "historico" && section !== "recorrencia" && (
                 <Button disabled={pending} onClick={save}>
                   <Save size={15} />
-                  {pending ? "Salvando…" : "Salvar cadastro e prontuário"}
+                  {pending ? "Salvando…" : "Salvar ficha do cliente"}
                 </Button>
               )}
             </div>
@@ -4250,7 +4295,7 @@ export function ClientesIntegralView({
               <div>
                 <h2>Novo cliente</h2>
                 <p>
-                  Cadastre os dados mínimos; o prontuário pode ser completado
+                  Cadastre os dados mínimos; a ficha técnica pode ser completada
                   depois.
                 </p>
               </div>
