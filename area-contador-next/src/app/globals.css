@@ -4771,6 +4771,49 @@ select { width: auto; min-width: 160px; }
 .chat-shortcuts button { min-height: 26px; padding: 0 10px; flex: 0 0 auto; border: 1px solid rgba(203, 213, 225, 0.8); border-radius: 999px; background: #f8fafc; color: #475569; font-size: 9px; font-weight: 700; cursor: pointer; transition: all .16s ease; }
 .chat-shortcuts button:hover { border-color: #0f172a; background: #ffffff; color: #0f172a; }
 .chat-shortcuts button svg { vertical-align: -2px; margin-right: 2px; }
+.shortcut-mic-pill { border-color: rgba(226, 91, 56, 0.4) !important; color: #E25B38 !important; background: rgba(226, 91, 56, 0.06) !important; }
+.shortcut-mic-pill:hover { background: #E25B38 !important; color: #ffffff !important; }
+/* ---------- Barra de Gravação Ativa no Composer do Contador ---------- */
+.composer-recording-bar {
+  flex: 1;
+  min-width: 180px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 40px;
+  padding: 0 12px;
+  border-radius: var(--radius-pill, 999px);
+  border: 1px solid rgba(239, 68, 68, 0.45);
+  background: linear-gradient(135deg, rgba(254, 242, 242, 0.98) 0%, rgba(254, 226, 226, 0.92) 100%);
+  animation: recordingPulse 2s ease-in-out infinite;
+}
+.recording-status-text {
+  font-size: 11px;
+  font-weight: 700;
+  color: #B91C1C;
+  white-space: nowrap;
+}
+.chat-recording-stop-btn {
+  margin-left: auto;
+  height: 28px;
+  padding: 0 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 0;
+  border-radius: var(--radius-pill, 999px);
+  background: #DC2626;
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.16s ease;
+  box-shadow: 0 2px 6px rgba(220, 38, 38, 0.35);
+}
+.chat-recording-stop-btn:hover {
+  background: #B91C1C;
+  transform: scale(1.03);
+}
 /* ---------- Botão de Gravação de Áudio com Waveform Animada ---------- */
 .chat-recording-button {
   position: relative;

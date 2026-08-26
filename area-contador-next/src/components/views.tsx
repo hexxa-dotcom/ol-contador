@@ -1476,12 +1476,13 @@ export function AtendimentoView({
     const file = event.target.files?.[0];
     event.target.value = "";
     if (!file || !selectedClientId) return;
-    if (!["application/pdf", "image/png", "image/jpeg"].includes(file.type)) {
-      feedback("Envie um PDF, PNG ou JPEG.");
+    const isAudio = file.type.startsWith("audio/") || /\.(mp3|wav|m4a|ogg|webm)$/i.test(file.name);
+    if (!["application/pdf", "image/png", "image/jpeg"].includes(file.type) && !isAudio) {
+      feedback("Envie um PDF, PNG, JPEG ou arquivo de áudio.");
       return;
     }
-    if (file.size > 10 * 1024 * 1024) {
-      feedback("O arquivo deve ter no máximo 10 MB.");
+    if (file.size > 20 * 1024 * 1024) {
+      feedback("O arquivo deve ter no máximo 20 MB.");
       return;
     }
     const supabase = createBrowserClient();
@@ -1498,14 +1499,14 @@ export function AtendimentoView({
     try {
       const { error: storageError } = await supabase.storage
         .from("documentos")
-        .upload(path, file, { contentType: file.type, upsert: false });
+        .upload(path, file, { contentType: file.type || (isAudio ? "audio/webm" : "application/octet-stream"), upsert: false });
       if (storageError) throw storageError;
       const { data: document, error: recordError } = await supabase
         .from("documentos")
         .insert({
           cliente_ref: selectedClientId,
           file_name: file.name,
-          mime: file.type,
+          mime: file.type || (isAudio ? "audio/webm" : "application/octet-stream"),
           size_bytes: file.size,
           storage_path: path,
           uploaded_by: "contador",
@@ -1516,21 +1517,34 @@ export function AtendimentoView({
         await supabase.storage.from("documentos").remove([path]);
         throw recordError;
       }
-      const announced = await announceChatDocument({
-        clientId: selectedClientId,
-        documentId: document.id,
-      });
-      if (announced.ok) {
-        setChatDocuments((items) => [document, ...items]);
-        setMessages((items) =>
-          items.some((item) => item.id === announced.data.id)
-            ? items
-            : [...items, announced.data],
-        );
+      if (isAudio) {
+        const audioMsg = await sendAudioMessage({ clientId: selectedClientId, fileName: file.name, duration: "Áudio" });
+        if (audioMsg.ok) {
+          setChatDocuments((items) => [document, ...items]);
+          setMessages((items) =>
+            items.some((item) => item.id === audioMsg.data.id)
+              ? items
+              : [...items, audioMsg.data],
+          );
+        }
+        feedback(audioMsg.message);
+      } else {
+        const announced = await announceChatDocument({
+          clientId: selectedClientId,
+          documentId: document.id,
+        });
+        if (announced.ok) {
+          setChatDocuments((items) => [document, ...items]);
+          setMessages((items) =>
+            items.some((item) => item.id === announced.data.id)
+              ? items
+              : [...items, announced.data],
+          );
+        }
+        feedback(announced.message);
       }
-      feedback(announced.message);
     } catch {
-      feedback("Não foi possível anexar o documento.");
+      feedback("Não foi possível anexar o arquivo.");
     } finally {
       setUploading(false);
     }
@@ -2167,34 +2181,15 @@ export function AtendimentoView({
                 {shortcut.label}
               </button>
             ))}
-            {recording ? (
-              <button
-                type="button"
-                className="chat-recording-button"
-                disabled={isSending}
-                onClick={stopRecording}
-                title="Parar gravação e enviar áudio"
-                aria-label="Parar gravação e enviar áudio"
-              >
-                <span className="recording-rec-dot" aria-hidden="true" />
-                <span className="recording-waveform" aria-hidden="true">
-                  <span className="recording-waveform-bar" />
-                  <span className="recording-waveform-bar" />
-                  <span className="recording-waveform-bar" />
-                  <span className="recording-waveform-bar" />
-                </span>
-                <span className="chat-recording-time">
-                  {Math.floor(recordingSeconds / 60)}:{String(recordingSeconds % 60).padStart(2, "0")}
-                </span>
-                <span className="recording-stop-icon" aria-hidden="true">
-                  <Square size={8} fill="currentColor" />
-                </span>
-              </button>
-            ) : (
-              <button disabled={!selectedClient || isSending || chatLocked} onClick={startRecording} title="Gravar uma mensagem de áudio pelo microfone">
-                <Mic size={14} /> Gravar áudio
-              </button>
-            )}
+            <button
+              type="button"
+              className="shortcut-mic-pill"
+              disabled={!selectedClient || isSending || chatLocked || recording}
+              onClick={() => void startRecording()}
+              title="Gravar mensagem de áudio pelo microfone"
+            >
+              <Mic size={13} /> Gravar áudio
+            </button>
           </div>}
           {tool !== "whatsapp" && <Button
             className="icon ai-assist"
@@ -2217,41 +2212,80 @@ export function AtendimentoView({
             ref={attachmentRef}
             className="sr-only"
             type="file"
-            accept="application/pdf,image/png,image/jpeg"
+            accept="application/pdf,image/png,image/jpeg,audio/*"
             onChange={uploadAttachment}
           />}
           {tool !== "whatsapp" && <Button
             className="icon secondary"
-            title="Anexar arquivo"
-            aria-label="Anexar arquivo"
-            disabled={!selectedClient || uploading}
+            title="Anexar arquivo ou áudio"
+            aria-label="Anexar arquivo ou áudio"
+            disabled={!selectedClient || uploading || recording}
             onClick={() => attachmentRef.current?.click()}
           >
             {uploading ? <Upload size={17} /> : <Paperclip size={17} />}
           </Button>}
-          <Input
-            value={messageText}
-            onChange={(event) => {
-              setMessageText(event.target.value);
-              if (event.target.value.trim()) notifyClientTyping();
-            }}
-            onKeyDown={(event) => {
-              if (event.key === "Enter" && !event.shiftKey) {
-                event.preventDefault();
-                submitMessage();
+          {recording ? (
+            <div className="composer-recording-bar">
+              <span className="recording-rec-dot" aria-hidden="true" />
+              <span className="recording-status-text">Gravando áudio...</span>
+              <span className="recording-waveform" aria-hidden="true">
+                <span className="recording-waveform-bar" />
+                <span className="recording-waveform-bar" />
+                <span className="recording-waveform-bar" />
+                <span className="recording-waveform-bar" />
+              </span>
+              <span className="chat-recording-time">
+                {Math.floor(recordingSeconds / 60)}:{String(recordingSeconds % 60).padStart(2, "0")}
+              </span>
+              <button
+                type="button"
+                className="chat-recording-stop-btn"
+                disabled={isSending}
+                onClick={stopRecording}
+                title="Parar gravação e enviar áudio"
+                aria-label="Parar gravação e enviar áudio"
+              >
+                <Square size={10} fill="currentColor" />
+                <span>Parar e Enviar</span>
+              </button>
+            </div>
+          ) : (
+            <Input
+              value={messageText}
+              onChange={(event) => {
+                setMessageText(event.target.value);
+                if (event.target.value.trim()) notifyClientTyping();
+              }}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" && !event.shiftKey) {
+                  event.preventDefault();
+                  submitMessage();
+                }
+              }}
+              placeholder={
+                chatLocked && tool !== "whatsapp" ? "Chat bloqueado" : "Digite uma mensagem..."
               }
-            }}
-            placeholder={
-              chatLocked && tool !== "whatsapp" ? "Chat bloqueado" : "Digite uma mensagem..."
-            }
-            disabled={!selectedClient || (chatLocked && tool !== "whatsapp") || isSending}
-          />
+              disabled={!selectedClient || (chatLocked && tool !== "whatsapp") || isSending}
+            />
+          )}
+          {tool !== "whatsapp" && !recording && (
+            <Button
+              type="button"
+              className="icon secondary"
+              disabled={!selectedClient || chatLocked || isSending || !!messageText.trim()}
+              onClick={() => void startRecording()}
+              title={messageText.trim() ? "Apague o texto para gravar áudio" : "Gravar mensagem de áudio pelo microfone"}
+              aria-label="Gravar áudio pelo microfone"
+            >
+              <Mic size={17} />
+            </Button>
+          )}
           <Button
             className="icon orange-action"
             aria-label="Enviar mensagem"
             onClick={submitMessage}
             disabled={
-              !selectedClient || (chatLocked && tool !== "whatsapp") || isSending || !messageText.trim()
+              !selectedClient || (chatLocked && tool !== "whatsapp") || isSending || !messageText.trim() || recording
             }
           >
             <Send size={17} />
