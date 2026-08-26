@@ -27,9 +27,11 @@ import {
   ClipboardList,
   Clock3,
   Copy,
+  ExternalLink,
   FileCheck2,
   FileText,
   Filter,
+  FolderOpen,
   Landmark,
   Link as LinkIcon,
   ListChecks,
@@ -873,11 +875,13 @@ export function AtendimentoView({
   operationsData = emptyOperationsData,
   currentStaffId,
   filaRestrita = false,
+  onNavigate,
 }: {
   clientsData?: ClientsData;
   operationsData?: OperationsData;
   currentStaffId?: string;
   filaRestrita?: boolean;
+  onNavigate?: (tab: any) => void;
 }) {
   const [queue, setQueue] = useState<"Chats" | "Agenda do dia">("Chats");
   const [tool, setTool] = useState<"fila" | "copilot" | "whatsapp">("fila");
@@ -2571,24 +2575,62 @@ export function AtendimentoView({
                 )}
               </div>
 
-              {/* Card 4: Documentos do Cliente */}
+              {/* Card 4: Documentos do Cliente & Deste Atendimento */}
               <div className="drawer-card">
                 <div className="drawer-card-header">
                   <Paperclip size={15} />
-                  <span>Documentos no Cofre ({clientDocsList.length})</span>
+                  <span>Documentos do Atendimento e Cofre ({clientDocsList.length})</span>
                 </div>
                 {clientDocsList.length > 0 ? (
                   <div className="drawer-docs-mini-list">
-                    {clientDocsList.slice(0, 5).map((doc) => (
-                      <div key={doc.id} className="drawer-doc-pill">
-                        <FileText size={13} />
-                        <span className="doc-truncate" title={doc.file_name}>{doc.file_name}</span>
-                        <small>{doc.uploaded_by === "cliente" ? "Cliente" : "Contador"}</small>
-                      </div>
-                    ))}
+                    {clientDocsList.map((doc) => {
+                      const isAudio = doc.mime?.startsWith("audio/") || /\.(mp3|wav|m4a|ogg|webm)$/i.test(doc.file_name);
+                      const isPdf = doc.mime?.includes("pdf") || /\.pdf$/i.test(doc.file_name);
+                      const sizeKb = doc.size_bytes ? `${Math.round(doc.size_bytes / 1024)} KB` : "";
+                      const formattedDate = doc.created_at
+                        ? new Date(doc.created_at).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })
+                        : "";
+                      return (
+                        <a
+                          key={doc.id}
+                          href={`/api/documents/${doc.id}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="drawer-doc-item-link"
+                          title={`Clique para abrir ou baixar: ${doc.file_name}`}
+                        >
+                          <div className="drawer-doc-item-icon">
+                            {isAudio ? <Mic size={14} /> : isPdf ? <FileText size={14} /> : <FileCheck2 size={14} />}
+                          </div>
+                          <div className="drawer-doc-item-info">
+                            <span className="doc-truncate">{doc.file_name}</span>
+                            <small>
+                              {doc.uploaded_by === "cliente" ? "Enviado pelo cliente" : "Enviado pelo contador"}
+                              {sizeKb ? ` • ${sizeKb}` : ""}
+                              {formattedDate ? ` • ${formattedDate}` : ""}
+                            </small>
+                          </div>
+                          <span className="drawer-doc-action">
+                            <ExternalLink size={12} />
+                            <span>Abrir</span>
+                          </span>
+                        </a>
+                      );
+                    })}
                   </div>
                 ) : (
                   <p className="drawer-empty-text">Nenhum documento anexado ainda.</p>
+                )}
+                {onNavigate && (
+                  <button
+                    type="button"
+                    className="drawer-folder-link-btn"
+                    onClick={() => onNavigate("clientes")}
+                    title="Acessar pasta completa do cliente com todos os arquivos no menu Clientes"
+                  >
+                    <FolderOpen size={13} />
+                    <span>Ver cofre completo em Clientes</span>
+                  </button>
                 )}
               </div>
 

@@ -495,7 +495,7 @@ export function AccountantShell({ dashboardData, clientsData, operationsData, us
             ) : active === "clientes" ? (
               <ClientesView data={clientsData} operationsData={operationsData} currentStaffId={currentUser.id} filaRestrita={currentUser.filaRestrita} />
             ) : active === "atendimento" ? (
-              <AtendimentoView clientsData={clientsData} operationsData={operationsData} currentStaffId={currentUser.id} filaRestrita={currentUser.filaRestrita} />
+              <AtendimentoView clientsData={clientsData} operationsData={operationsData} currentStaffId={currentUser.id} filaRestrita={currentUser.filaRestrita} onNavigate={navigate} />
             ) : active === "acompanhamento" ? (
               <AcompanhamentoView data={operationsData} clientsData={clientsData} onNavigate={navigate} />
             ) : active === "relatorios" ? (
