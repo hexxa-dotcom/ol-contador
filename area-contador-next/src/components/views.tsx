@@ -2,6 +2,7 @@
 
 import {
   useEffect,
+  useMemo,
   useRef,
   useState,
   useTransition,
@@ -25,6 +26,7 @@ import {
   CircleDollarSign,
   ClipboardList,
   Clock3,
+  Copy,
   FileCheck2,
   FileText,
   Filter,
@@ -891,6 +893,8 @@ export function AtendimentoView({
   const [chatDocuments, setChatDocuments] = useState(clientsData.documents);
   const [recording, setRecording] = useState(false);
   const [recordingSeconds, setRecordingSeconds] = useState(0);
+  const [clientSheetOpen, setClientSheetOpen] = useState(false);
+  const [copiedField, setCopiedField] = useState<string | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const recordingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -898,6 +902,21 @@ export function AtendimentoView({
   const [messageText, setMessageText] = useState("");
   const [copilotPrompt, setCopilotPrompt] = useState("");
   const [copilotAnswer, setCopilotAnswer] = useState("");
+
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") setClientSheetOpen(false);
+    }
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
+  function copyToClipboard(text: string | null | undefined, fieldName: string) {
+    if (!text) return;
+    void navigator.clipboard.writeText(text);
+    setCopiedField(fieldName);
+    setTimeout(() => setCopiedField((curr) => (curr === fieldName ? null : curr)), 2000);
+  }
   const skillValue = operationsData.settings.find(
     (item) => item.chave === "ia_skills",
   )?.valor;
@@ -1051,6 +1070,34 @@ export function AtendimentoView({
     selectedTriage?.id
       ? String(selectedTriage.id).padStart(4, "0")
       : (selectedClient ? String(selectedClient.id).replace(/\D/g, "").slice(0, 6) || "2026-001" : "2026-001");
+
+  const clientCharges = useMemo(() => {
+    if (!selectedClientId) return [];
+    return (operationsData.charges || []).filter(
+      (c) => c.cliente_ref === selectedClientId && (c.status === "CONFIRMED" || c.status === "RECEIVED" || c.status === "paid")
+    );
+  }, [operationsData.charges, selectedClientId]);
+
+  const clientTotalGastoCents = useMemo(() => {
+    const fromCharges = clientCharges.reduce((acc, c) => acc + (c.valor_cents || 0), 0);
+    const fromHistory = (clientsData.history || [])
+      .filter((h) => h.cliente_id === selectedClientId)
+      .reduce((acc, h) => acc + Math.round((Number(h.honorarios) || 0) * 100), 0);
+    return Math.max(fromCharges, fromHistory);
+  }, [clientCharges, clientsData.history, selectedClientId]);
+
+  const clientHistoryList = useMemo(() => {
+    if (!selectedClientId) return [];
+    return (clientsData.history || []).filter((h) => h.cliente_id === selectedClientId);
+  }, [clientsData.history, selectedClientId]);
+
+  const clientDocsList = useMemo(() => {
+    if (!selectedClientId) return [];
+    return chatDocuments.filter((d) => d.cliente_ref === selectedClientId);
+  }, [chatDocuments, selectedClientId]);
+
+  const formatBRL = (cents: number) =>
+    new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(cents / 100);
   const selectedMessages = messages
     .filter((item) => item.cliente_id === selectedClientId && (tool === "whatsapp" ? item.canal === "whatsapp" : item.canal !== "whatsapp"))
     .sort((a, b) => a.seq - b.seq);
@@ -1932,19 +1979,42 @@ export function AtendimentoView({
           >
             <ChevronLeft size={20} />
           </button>
-          <div className="avatar">
+          <div
+            className="avatar"
+            onClick={() => selectedClient && setClientSheetOpen((v) => !v)}
+            style={{ cursor: selectedClient ? "pointer" : "default" }}
+            title={selectedClient ? "Clique para ver a ficha completa do cliente" : undefined}
+          >
             {selectedClient
               ? selectedClient.name.slice(0, 2).toUpperCase()
               : "AS"}
           </div>
           <div className="chat-client-copy">
-            <strong>
-              {selectedClient?.name || "Selecione um atendimento"}
-            </strong>
+            <div className="chat-client-title-row">
+              <strong
+                onClick={() => selectedClient && setClientSheetOpen((v) => !v)}
+                style={{ cursor: selectedClient ? "pointer" : "default" }}
+                title={selectedClient ? "Clique para ver a ficha do cliente" : undefined}
+              >
+                {selectedClient?.name || "Selecione um atendimento"}
+              </strong>
+              {selectedClient && (
+                <button
+                  type="button"
+                  className={`chat-ver-ficha-btn ${clientSheetOpen ? "active" : ""}`}
+                  onClick={() => setClientSheetOpen((v) => !v)}
+                  title="Ver ficha, LTV e histórico do cliente"
+                  aria-label="Ver ficha do cliente"
+                >
+                  <FileText size={12} />
+                  <span>Ver ficha</span>
+                </button>
+              )}
+            </div>
             <small>
-              {selectedClient?.cpf ||
-                selectedClient?.email ||
-                "Atendimento ativo"}
+              {selectedClient?.cpf
+                ? `CPF/CNPJ: ${selectedClient.cpf}`
+                : selectedClient?.email || "Atendimento ativo"}
             </small>
           </div>
 
@@ -1984,6 +2054,19 @@ export function AtendimentoView({
                       <strong>Ações do Atendimento</strong>
                       <small>{selectedClient?.name || "Cliente"}</small>
                     </div>
+
+                    <button
+                      type="button"
+                      disabled={!selectedClient}
+                      onClick={() => {
+                        setMobileActionsOpen(false);
+                        setClientSheetOpen(true);
+                      }}
+                      role="menuitem"
+                    >
+                      <FileText size={16} />
+                      <span>Ver Ficha do Cliente</span>
+                    </button>
 
                     <button
                       type="button"
@@ -2304,6 +2387,233 @@ export function AtendimentoView({
           </Button>
         </footer>
       </main>
+
+      {/* DRAWER / SLIDE-OVER DA FICHA DO CLIENTE (ESTILO KOMMO) */}
+      {clientSheetOpen && selectedClient && (
+        <aside className="client-drawer-overlay" aria-label="Ficha do Cliente">
+          <div
+            className="client-drawer-backdrop"
+            onClick={() => setClientSheetOpen(false)}
+            aria-hidden="true"
+          />
+          <div className="client-drawer-panel" role="dialog" aria-modal="true" aria-labelledby="drawer-client-name">
+            {/* Header da Gaveta */}
+            <div className="client-drawer-header">
+              <div className="client-drawer-title-box">
+                <div className="client-drawer-avatar">
+                  {selectedClient.name.slice(0, 2).toUpperCase()}
+                </div>
+                <div>
+                  <h3 id="drawer-client-name">{selectedClient.name}</h3>
+                  <div className="client-drawer-badges">
+                    <span className={`status-pill status-${selectedClient.status || "ativo"}`}>
+                      {selectedClient.status === "waiting" ? "Aguardando" : selectedClient.status === "active" || selectedClient.status === "ativo" ? "Ativo" : selectedClient.status || "Cliente"}
+                    </span>
+                    {selectedClient.tax_type && (
+                      <span className="client-tax-pill">{selectedClient.tax_type}</span>
+                    )}
+                    {selectedClient.regime_tributario && (
+                      <span className="client-regime-pill">{selectedClient.regime_tributario}</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+              <button
+                type="button"
+                className="client-drawer-close"
+                onClick={() => setClientSheetOpen(false)}
+                aria-label="Fechar ficha do cliente"
+                title="Fechar ficha (Esc)"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Conteúdo com rolagem suave */}
+            <div className="client-drawer-body">
+              {/* Card 1: Financeiro & LTV */}
+              <div className="drawer-card">
+                <div className="drawer-card-header">
+                  <CircleDollarSign size={15} />
+                  <span>Financeiro & LTV</span>
+                </div>
+                <div className="drawer-metric-grid">
+                  <div className="drawer-metric-tile featured">
+                    <small>Total Gasto (LTV)</small>
+                    <strong>{formatBRL(clientTotalGastoCents)}</strong>
+                    <span>
+                      {clientCharges.length > 0
+                        ? `${clientCharges.length} cobrança${clientCharges.length > 1 ? "s" : ""} paga${clientCharges.length > 1 ? "s" : ""}`
+                        : "Histórico acumulado"}
+                    </span>
+                  </div>
+                  <div className="drawer-metric-tile">
+                    <small>Honorários Atuais</small>
+                    <strong>
+                      {selectedClient.honorarios
+                        ? formatBRL(Math.round(Number(selectedClient.honorarios) * 100))
+                        : "Sob demanda"}
+                    </strong>
+                    <span>
+                      {selectedClient.recorrente
+                        ? `Recorrente (${selectedClient.recorrente_tipo || "mensal"})`
+                        : "Serviço avulso"}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Card 2: Identificação & Contatos */}
+              <div className="drawer-card">
+                <div className="drawer-card-header">
+                  <FileText size={15} />
+                  <span>Identificação & Contatos</span>
+                </div>
+                <div className="drawer-info-list">
+                  <div className="drawer-info-row">
+                    <span className="info-label">CPF / CNPJ</span>
+                    <div className="info-val-wrap">
+                      <strong>{selectedClient.cpf || "Não informado"}</strong>
+                      {selectedClient.cpf && (
+                        <button
+                          type="button"
+                          className="drawer-copy-chip"
+                          onClick={() => copyToClipboard(selectedClient.cpf, "cpf")}
+                          title="Copiar CPF/CNPJ"
+                        >
+                          {copiedField === "cpf" ? <Check size={12} className="copy-check" /> : <Copy size={12} />}
+                          <span>{copiedField === "cpf" ? "Copiado!" : "Copiar"}</span>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="drawer-info-row">
+                    <span className="info-label">Telefone / Whats</span>
+                    <div className="info-val-wrap">
+                      <strong>{selectedClient.phone || "Não informado"}</strong>
+                      {selectedClient.phone && (
+                        <button
+                          type="button"
+                          className="drawer-copy-chip"
+                          onClick={() => copyToClipboard(selectedClient.phone, "phone")}
+                          title="Copiar telefone"
+                        >
+                          {copiedField === "phone" ? <Check size={12} className="copy-check" /> : <Copy size={12} />}
+                          <span>{copiedField === "phone" ? "Copiado!" : "Copiar"}</span>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="drawer-info-row">
+                    <span className="info-label">E-mail</span>
+                    <div className="info-val-wrap">
+                      <span className="info-text-clip">{selectedClient.email || "Não informado"}</span>
+                      {selectedClient.email && (
+                        <button
+                          type="button"
+                          className="drawer-copy-chip"
+                          onClick={() => copyToClipboard(selectedClient.email, "email")}
+                          title="Copiar e-mail"
+                        >
+                          {copiedField === "email" ? <Check size={12} className="copy-check" /> : <Copy size={12} />}
+                          <span>{copiedField === "email" ? "Copiado!" : "Copiar"}</span>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {(selectedClient.cidade || selectedClient.estado) && (
+                    <div className="drawer-info-row">
+                      <span className="info-label">Localização</span>
+                      <div className="info-val-wrap">
+                        <span>{[selectedClient.cidade, selectedClient.estado].filter(Boolean).join(" - ")}</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Card 3: Histórico de Atendimentos */}
+              <div className="drawer-card">
+                <div className="drawer-card-header">
+                  <Clock3 size={15} />
+                  <span>Histórico de Atendimentos ({clientHistoryList.length})</span>
+                </div>
+                {clientHistoryList.length > 0 ? (
+                  <div className="drawer-timeline">
+                    {clientHistoryList.slice(0, 5).map((item) => (
+                      <div key={item.id} className="drawer-timeline-item">
+                        <div className="timeline-dot" />
+                        <div className="timeline-body">
+                          <div className="timeline-row-top">
+                            <strong>{item.assunto || "Atendimento Contábil"}</strong>
+                            <small>
+                              {item.finalizado_em
+                                ? new Date(item.finalizado_em).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" })
+                                : "Concluído"}
+                            </small>
+                          </div>
+                          <div className="timeline-meta-tags">
+                            {item.duracao_segundos ? (
+                              <span>{Math.round(item.duracao_segundos / 60)} min</span>
+                            ) : null}
+                            {item.modalidade && <span>• {item.modalidade}</span>}
+                            {item.honorarios ? <span>• {formatBRL(Math.round(Number(item.honorarios) * 100))}</span> : null}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="drawer-empty-text">Nenhum atendimento anterior finalizado.</p>
+                )}
+              </div>
+
+              {/* Card 4: Documentos do Cliente */}
+              <div className="drawer-card">
+                <div className="drawer-card-header">
+                  <Paperclip size={15} />
+                  <span>Documentos no Cofre ({clientDocsList.length})</span>
+                </div>
+                {clientDocsList.length > 0 ? (
+                  <div className="drawer-docs-mini-list">
+                    {clientDocsList.slice(0, 5).map((doc) => (
+                      <div key={doc.id} className="drawer-doc-pill">
+                        <FileText size={13} />
+                        <span className="doc-truncate" title={doc.file_name}>{doc.file_name}</span>
+                        <small>{doc.uploaded_by === "cliente" ? "Cliente" : "Contador"}</small>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="drawer-empty-text">Nenhum documento anexado ainda.</p>
+                )}
+              </div>
+
+              {/* Card 5: Notas e Diagnóstico */}
+              {(selectedClient.notas || selectedClient.diagnosis || selectedClient.treatment) && (
+                <div className="drawer-card">
+                  <div className="drawer-card-header">
+                    <ClipboardList size={15} />
+                    <span>Notas do Cliente</span>
+                  </div>
+                  {selectedClient.notas && (
+                    <p className="drawer-notes-box">{selectedClient.notas}</p>
+                  )}
+                  {selectedClient.treatment && (
+                    <div className="drawer-treatment-box">
+                      <small>Tratamento Contábil:</small>
+                      <span>{selectedClient.treatment}</span>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        </aside>
+      )}
     </div>
   );
 }
