@@ -37,14 +37,18 @@ const ASSUNTOS = [
   "Malha fina do Imposto de Renda",
   "CPF cancelado ou pendente",
   "CNPJ inapto ou suspenso",
-  "Ganho de capital & investimentos",
-  "Serviços diversos para o MEI",
+  "Ganho de capital & imóveis (GCAP)",
+  "Serviços e parcelamentos MEI",
   "Carnê-Leão & autônomos",
-  "Declaração de Imposto de Renda",
-  "Parcelamento de débitos & CND",
+  "Registro de Associações & Terceiro Setor",
+  "Apoio contábil para Advogados",
 ];
 
 const MAIS_SERVICOS = [
+  "Apoio contábil para Advogados",
+  "Registro de Associações na Receita Federal",
+  "Abertura de processos e dossiês no e-CAC",
+  "Sociedades de Advogados (OAB)",
   "Isenção de IRPF por moléstia",
   "Desenquadramento de MEI",
   "DARF em atraso",
@@ -125,7 +129,7 @@ export function HomePage({ precos }: { precos: { pf: number; pj: number; consult
               <div className={styles.heroTrustBadges}>
                 <span><CheckCircle2 size={15} style={{ color: "#34D399" }} /> Sem baixar nada</span>
                 <span><CheckCircle2 size={15} style={{ color: "#34D399" }} /> Atendimento no mesmo dia</span>
-                <span><CheckCircle2 size={15} style={{ color: "#34D399" }} /> Contador com CRC</span>
+                <span><CheckCircle2 size={15} style={{ color: "#34D399" }} /> Contadores Especialistas</span>
               </div>
 
               {/* Prova Social com Avatares */}
@@ -255,7 +259,7 @@ export function HomePage({ precos }: { precos: { pf: number; pj: number; consult
                 </div>
                 <div className={styles.pfItem}>
                   <CheckCircle2 size={18} style={{ color: "#34D399", flexShrink: 0 }} />
-                  <span>Contador com <b>CRC ativo</b> verificável</span>
+                  <span>Equipe de <b>contadores especialistas</b></span>
                 </div>
               </div>
             </div>
@@ -355,9 +359,9 @@ export function HomePage({ precos }: { precos: { pf: number; pj: number; consult
                   <div className={styles.check} style={{ background: "rgba(16, 185, 129, 0.12)", color: "#10B981" }}>
                     <Lock size={18} />
                   </div>
-                  <h3>Contador com CRC Ativo &amp; Senhas temporárias</h3>
+                  <h3>Contadores Especialistas &amp; Senhas temporárias</h3>
                 </div>
-                <p className={styles.body}>Profissional habilitado pelo Conselho Regional de Contabilidade. Seus acessos fiscais nunca ficam salvos.</p>
+                <p className={styles.body}>Profissionais dedicados e habilitados para o seu caso. Seus acessos fiscais nunca ficam salvos.</p>
               </GlowCard>
 
               <GlowCard className={styles.trustCard}>
@@ -414,7 +418,7 @@ export function HomePage({ precos }: { precos: { pf: number; pj: number; consult
                   style={{ height: "3px", background: "var(--pub-coral)", position: "absolute", top: 0, left: 0, borderRadius: "2px" }}
                 />
                 <div className={styles.statNum}><CountUp to={100} />%</div>
-                <div className={styles.statLabel}>contadores com CRC ativo</div>
+                <div className={styles.statLabel}>segurança e sigilo profissional</div>
               </div>
             </Reveal>
           </div>
@@ -426,11 +430,11 @@ export function HomePage({ precos }: { precos: { pf: number; pj: number; consult
                 <div className={styles.rLine} style={{ width: "90%" }} />
                 <div className={styles.rLine} style={{ width: "60%" }} />
                 <div className={styles.rLine} style={{ width: "85%" }} />
-                <div className={styles.rSeal}>CRC<br />OK</div>
+                <div className={styles.rSeal}>DOC<br />OK</div>
               </div>
               <div className={styles.reportText}>
                 <h3>Tudo o que fazemos é comprovado e documentado</h3>
-                <p>Ao final do atendimento, você recebe um parecer formal assinado pelo contador responsável com registro no CRC — sua garantia oficial de que tudo está em dia.</p>
+                <p>Ao final do atendimento, você recebe um parecer formal assinado pelo contador responsável — sua garantia oficial de que tudo está em dia.</p>
               </div>
             </div>
           </Reveal>
@@ -458,7 +462,7 @@ export function HomePage({ precos }: { precos: { pf: number; pj: number; consult
           <Reveal>
             <div className={styles.finalCta}>
               <h2>Pronto para tirar essa pendência da cabeça?</h2>
-              <p>Fale agora com um contador com CRC ativo e resolva sua situação ainda hoje.</p>
+              <p>Fale agora com nossos contadores e resolva sua situação ainda hoje.</p>
               <Link className={styles.btnCoralGlow} href="/precos">
                 <span>Resolver meu caso agora</span>
                 <ArrowRight size={18} />

@@ -29,7 +29,7 @@ export function ProtocolCard() {
         </div>
         <div className={styles.protocolBody}>
           <h4>Malha fina — Imposto de Renda</h4>
-          <p>Contador responsável: registro CRC ativo e verificado.</p>
+          <p>Contador responsável designado para o seu caso.</p>
           <div className={styles.protocolSteps}>
             {PASSOS.map((passo, i) => {
               const feito = i < prontos;

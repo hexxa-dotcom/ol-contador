@@ -34,8 +34,20 @@ export const metadata: Metadata = {
     default: "Olá, Contador — Atendimento contábil sob demanda",
     template: "%s | Olá, Contador",
   },
-  description: "Preço fixo por atendimento com contador de CRC ativo. Sem mensalidade, sem surpresas. Acompanhamento pelo chat seguro e relatório assinado.",
-  keywords: ["contador online", "contabilidade sob demanda", "preço fixo contador", "radar fiscal", "regularizar mei", "imposto de renda", "abrir empresa"],
+  description: "Preço fixo por atendimento com contadores dedicados. Sem mensalidade, sem surpresas. Acompanhamento pelo chat seguro e relatório com parecer técnico.",
+  keywords: [
+    "contador online",
+    "contabilidade sob demanda",
+    "preço fixo contador",
+    "radar fiscal",
+    "regularizar mei",
+    "imposto de renda",
+    "abrir empresa",
+    "apoio contabil advogados",
+    "registro associacao receita federal",
+    "processos ecac",
+    "decore contador"
+  ],
   authors: [{ name: "Olá, Contador" }],
   icons: { icon: "/logo.svg", shortcut: "/logo.svg", apple: "/logo.svg" },
   openGraph: {
@@ -44,12 +56,12 @@ export const metadata: Metadata = {
     url: "https://olacontador.com.br",
     siteName: "Olá, Contador",
     title: "Olá, Contador — Atendimento contábil sob demanda com preço fixo",
-    description: "Fale direto com um contador de registro CRC ativo no chat seguro. Sem mensalidade, com relatório assinado.",
+    description: "Fale direto com a nossa equipe de contadores no chat seguro. Sem mensalidade, com relatório assinado.",
   },
   twitter: {
     card: "summary_large_image",
     title: "Olá, Contador — Atendimento contábil sob demanda",
-    description: "Preço fixo por atendimento, combinado antes. Chat seguro com contador e relatório assinado com CRC.",
+    description: "Preço fixo por atendimento, combinado antes. Chat seguro com nossos contadores e parecer formal.",
   },
   robots: {
     index: true,

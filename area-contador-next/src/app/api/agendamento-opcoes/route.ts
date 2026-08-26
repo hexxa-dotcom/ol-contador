@@ -75,7 +75,10 @@ export async function GET() {
     consulta: [
       { id: "abertura-empresa", titulo: "Abertura de Empresa / CNPJ completo", resumo: "Contrato social, Junta Comercial, CNPJ e alvarás" },
       { id: "baixa-cnpj", titulo: "Baixa e encerramento definitivo de CNPJ", resumo: "Distrato social e baixa em todos os órgãos" },
-      { id: "decore", titulo: "Emissão de DECORE com registro CRC", resumo: "Comprovação de renda oficial para bancos e financiamentos" },
+      { id: "associacoes", titulo: "Registro de Associação ou Terceiro Setor", resumo: "Estatuto social, cartório e obtenção de CNPJ na Receita Federal" },
+      { id: "processos-ecac", titulo: "Abertura de Processos e Dossiês no e-CAC / Receita", resumo: "Requerimentos, impugnações e defesas administrativas" },
+      { id: "advogados-apoio", titulo: "Apoio societário e contábil para Advogados", resumo: "Sociedade Unipessoal de Advocacia (OAB), cálculos e rotina fiscal" },
+      { id: "decore", titulo: "Emissão de DECORE / Comprovação de Renda", resumo: "Documento oficial para bancos e comprovação de rendimentos" },
       { id: "gcap-venda", titulo: "Ganho de Capital (GCAP) — Venda de imóveis e bens", resumo: "Cálculo do imposto, apuração de lucro, isenções e DARF" },
       { id: "alteracao-contratual", titulo: "Alteração Contratual, troca de sócios ou CNAE", resumo: "Aditivo contratual e adequação cadastral" },
       { id: "multiplos-anos", titulo: "Regularização de múltiplos anos fiscais acumulados", resumo: "Levantamento e regularização histórica completa" },

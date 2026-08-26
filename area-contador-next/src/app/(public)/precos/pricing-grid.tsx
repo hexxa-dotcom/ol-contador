@@ -112,7 +112,7 @@ export function PricingGrid({ pfCents, pjCents, consultaCents }: PricingGridProp
               <CheckCircle2 size={18} className={styles.checkIconLight} />
               <div className={styles.entregavelText}>
                 <b>Relatório do atendimento em PDF</b>
-                <small>O que aconteceu, o que foi feito e os próximos passos — assinado por contador com registro CRC.</small>
+                <small>O que aconteceu, o que foi feito e os próximos passos — assinado pelo contador responsável.</small>
               </div>
             </div>
 
@@ -229,7 +229,7 @@ export function PricingGrid({ pfCents, pjCents, consultaCents }: PricingGridProp
               <CheckCircle2 size={18} className={styles.checkIconCoral} />
               <div className={styles.entregavelText}>
                 <b className={styles.textLight}>Tudo do plano Pessoa Física</b>
-                <small className={styles.textMutedDark}>Pré-atendimento guiado, chat seguro, relatório assinado com CRC e retorno grátis.</small>
+                <small className={styles.textMutedDark}>Pré-atendimento guiado, chat seguro, relatório assinado e retorno grátis.</small>
               </div>
             </div>
 
@@ -314,7 +314,7 @@ export function PricingGrid({ pfCents, pjCents, consultaCents }: PricingGridProp
               </div>
             </div>
             <p className={styles.planoSubtitulo}>
-              Para abertura de empresa, baixa de CNPJ, emissão de DECORE, ganho de capital (GCAP), Lucro Presumido/Real ou múltiplos anos atrasados.
+              Para abertura de empresa, baixa de CNPJ, registro de associações, apoio para advogados, DECORE, ganho de capital ou Lucro Presumido/Real.
             </p>
           </div>
 
@@ -329,12 +329,15 @@ export function PricingGrid({ pfCents, pjCents, consultaCents }: PricingGridProp
             <div className={styles.chipsWrap}>
               <span className={styles.chipLight}>Abertura de Empresa / CNPJ</span>
               <span className={styles.chipLight}>Baixa & encerramento de CNPJ</span>
-              <span className={styles.chipLight}>Emissão de DECORE com CRC</span>
+              <span className={styles.chipLight}>Registro de Associações & Terceiro Setor</span>
+              <span className={styles.chipLight}>Apoio contábil para Advogados</span>
+              <span className={styles.chipLight}>Processos & dossiês na Receita (e-CAC)</span>
+              <span className={styles.chipLight}>Emissão de DECORE / Renda</span>
               <span className={styles.chipLight}>Ganho de Capital (GCAP / Imóveis)</span>
               <span className={styles.chipLight}>Alteração contratual & sócios</span>
               <span className={styles.chipLight}>Múltiplos anos acumulados</span>
               <span className={styles.chipLight}>Lucro Presumido ou Lucro Real</span>
-              <span className={`${styles.chipLight} ${styles.chipDestaque}`}>+ Projetos especiais sob consulta</span>
+              <span className={`${styles.chipLight} ${styles.chipDestaque}`}>+ Projetos sob medida</span>
             </div>
           </div>
 
@@ -363,7 +366,7 @@ export function PricingGrid({ pfCents, pjCents, consultaCents }: PricingGridProp
                   <CheckCircle2 size={18} className={styles.checkIconLight} />
                   <div className={styles.entregavelText}>
                     <b>A mesma estrutura completa</b>
-                    <small>Chat seguro com contador, linha do tempo na área do cliente e relatório final assinado com CRC.</small>
+                    <small>Chat seguro com o contador, linha do tempo na área do cliente e relatório final com parecer técnico.</small>
                   </div>
                 </div>
 

@@ -3,21 +3,21 @@ import { adminClient } from "@/lib/supabase/admin";
 import { HomePage } from "./home-page";
 
 export const metadata: Metadata = {
-  title: "Olá, Contador — Um contador de verdade, dedicado ao seu caso",
-  description: "Conte o que está acontecendo, envie os documentos pelo celular, e um contador com registro CRC ativo cuida do seu caso do começo ao fim. Se não resolvermos, devolvemos seu dinheiro.",
+  title: "Olá, Contador — Contabilidade sob demanda para seu caso",
+  description: "Conte o que está acontecendo, envie os documentos pelo celular, e a nossa equipe de contadores cuida do seu caso do começo ao fim. Se não resolvermos, devolvemos seu dinheiro.",
   alternates: { canonical: "https://olacontador.com.br/" },
   openGraph: {
     type: "website",
     siteName: "Olá, Contador",
-    title: "Olá, Contador — Um contador de verdade, dedicado ao seu caso",
-    description: "Conte o que está acontecendo, envie os documentos pelo celular, e um contador com registro CRC ativo cuida do seu caso do começo ao fim. Se não resolvermos, devolvemos seu dinheiro.",
+    title: "Olá, Contador — Contabilidade sob demanda para seu caso",
+    description: "Conte o que está acontecendo, envie os documentos pelo celular, e a nossa equipe de contadores cuida do seu caso do começo ao fim. Se não resolvermos, devolvemos seu dinheiro.",
     url: "https://olacontador.com.br/",
     locale: "pt_BR",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Olá, Contador — Um contador de verdade, dedicado ao seu caso",
-    description: "Conte o que está acontecendo, envie os documentos pelo celular, e um contador com registro CRC ativo cuida do seu caso do começo ao fim.",
+    title: "Olá, Contador — Contabilidade sob demanda para seu caso",
+    description: "Conte o que está acontecendo, envie os documentos pelo celular, e nossos contadores cuidam do seu caso do começo ao fim.",
   },
 };
 
@@ -31,7 +31,7 @@ function jsonLdServico(pfCents: number, pjCents: number) {
     "@type": "ProfessionalService",
     name: "Olá, Contador",
     url: "https://olacontador.com.br/",
-    description: "Atendimento contábil sob demanda com contador de registro CRC ativo, dedicado ao seu caso. Envie o caso e os documentos pelo celular, com garantia de reembolso.",
+    description: "Atendimento contábil sob demanda com contadores especializados, dedicado ao seu caso. Envie o caso e os documentos pelo celular, com garantia de reembolso.",
     areaServed: "BR",
     priceRange: `${formatReais(pfCents)} - ${formatReais(pjCents)}`,
   };
@@ -58,7 +58,7 @@ async function precoDe(id: string, fallbackCents: number): Promise<number> {
 export const dynamic = "force-dynamic";
 
 export default async function Page() {
-  const [pf, pj, consulta] = await Promise.all([precoDe("pf", 19900), precoDe("pj-atendimento", 39900), precoDe("consulta", 19900)]);
+  const [pf, pj, consulta] = await Promise.all([precoDe("pf", 19900), precoDe("pj-atendimento", 34900), precoDe("consulta", 9900)]);
 
   return (
     <>

@@ -95,7 +95,7 @@ export default async function PrecosPage() {
             <div className={styles.duvidaCasoContent}>
               <h3>Não encontrou sua pendência específica nos exemplos acima?</h3>
               <p>
-                Nossos contadores com registro CRC ativo cuidam de <b>qualquer tipo de caso fiscal</b> com a Receita Federal, CPF ou CNPJ. Mesmo que a sua situação seja atípica ou complexa, basta escolher o plano e descrever o que aconteceu no momento do agendamento.
+                Nossa equipe de contadores cuida de <b>qualquer tipo de caso fiscal</b> com a Receita Federal, CPF ou CNPJ. Mesmo que a sua situação seja atípica ou complexa, basta escolher o plano e descrever o que aconteceu no momento do agendamento.
               </p>
               <div className={styles.duvidaCasoRodape}>
                 <span className={styles.duvidaGarantiaBadge}>✓ 100% de reembolso se não pudermos ajudar</span>

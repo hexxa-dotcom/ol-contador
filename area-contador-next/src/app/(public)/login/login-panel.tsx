@@ -9,7 +9,7 @@ type Papel = "cliente" | "contador" | null;
 
 const FRASES: Record<"geral" | "cliente" | "contador", [string, string][]> = {
   geral: [
-    ["Um contador de verdade, do outro lado da tela", "Registro ativo no CRC, sigilo profissional e resposta por escrito — sem sair de casa."],
+    ["Um contador de verdade, do outro lado da tela", "Atendimento humano, sigilo profissional e resposta por escrito — sem sair de casa."],
     ["Sua situação com a Receita, sempre à vista", "Acompanhe atendimentos, documentos e prazos num só lugar, direto do celular."],
     ["Tudo termina com relatório assinado", "No fim do atendimento você baixa um PDF com o que aconteceu, o que foi feito e o que vem agora."],
     ["Radar Fiscal de olho por você", "A gente monitora sua situação na Receita e avisa antes do problema crescer."],
