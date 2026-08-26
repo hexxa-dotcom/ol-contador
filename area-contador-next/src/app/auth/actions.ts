@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { adminClient } from "@/lib/supabase/admin";
 import { transcreverAudio } from "@/lib/ia";
-import { sendWhatsAppText } from "@/lib/whatsapp";
+import { sendWhatsAppText, sendWhatsAppAudio } from "@/lib/whatsapp";
 
 export async function signOut() {
   const supabase = await createClient();
@@ -129,7 +129,56 @@ export async function sendWhatsAppMessage(input: { clientId: string; text: strin
 
 export async function sendChatShortcut(input:{clientId:string;kind:"document";value?:string}){if(!input.clientId)return {ok:false as const,message:"Selecione um atendimento."};const supabase=await createClient();if(!supabase)return {ok:false as const,message:"Conexão indisponível."};const {data:claims}=await supabase.auth.getClaims();const userId=claims?.claims?.sub;if(!userId)return {ok:false as const,message:"Sessão expirada."};const [{data:staff},{data:client}]=await Promise.all([supabase.from("staff").select("id").eq("id",userId).maybeSingle(),supabase.from("clientes").select("id").eq("id",input.clientId).maybeSingle()]);if(!staff||!client)return {ok:false as const,message:"Ação não autorizada."};const now=new Date();const requested=String(input.value||"Documento").trim().slice(0,160);const {data,error}=await supabase.from("mensagens").insert({id:crypto.randomUUID(),cliente_id:input.clientId,sender:"agent",text:`Solicitação de Documento: ${requested}`,type:"document-request",created_at:now.toISOString(),time:new Intl.DateTimeFormat("pt-BR",{timeZone:"America/Sao_Paulo",hour:"2-digit",minute:"2-digit"}).format(now)}).select("id,cliente_id,sender,text,type,read_at,created_at,time,seq,doc_name,duration,transcricao,canal,wa_status").single();if(error||!data)return {ok:false as const,message:"Não foi possível enviar o atalho."};revalidatePath("/");return {ok:true as const,data,message:"Documento solicitado ao cliente."};}
 
-export async function sendAudioMessage(input:{clientId:string;fileName:string;duration:string}){if(!input.clientId||!input.fileName)return {ok:false as const,message:"Áudio inválido."};const supabase=await createClient();if(!supabase)return {ok:false as const,message:"Conexão indisponível."};const {data:claims}=await supabase.auth.getClaims();const userId=claims?.claims?.sub;if(!userId)return {ok:false as const,message:"Sessão expirada."};const [{data:staff},{data:document}]=await Promise.all([supabase.from("staff").select("id").eq("id",userId).maybeSingle(),supabase.from("documentos").select("id,cliente_ref,file_name,storage_path,mime").eq("cliente_ref",input.clientId).eq("file_name",input.fileName).maybeSingle()]);if(!staff)return {ok:false as const,message:"Ação não autorizada."};if(!document)return {ok:false as const,message:"O áudio foi salvo, mas não foi possível anunciá-lo no chat."};const transcricao=await transcreverAudioDocumento(document);const now=new Date();const {data,error}=await supabase.from("mensagens").insert({id:crypto.randomUUID(),cliente_id:input.clientId,sender:"agent",text:`Mensagem de Áudio (${input.duration})`,type:"audio",doc_name:document.file_name,duration:input.duration,transcricao,created_at:now.toISOString(),time:new Intl.DateTimeFormat("pt-BR",{timeZone:"America/Sao_Paulo",hour:"2-digit",minute:"2-digit"}).format(now)}).select("id,cliente_id,sender,text,type,read_at,created_at,time,seq,doc_name,duration,transcricao,canal,wa_status").single();if(error||!data)return {ok:false as const,message:"O áudio foi salvo, mas não foi possível anunciá-lo no chat."};revalidatePath("/");return {ok:true as const,data,message:"Áudio enviado."};}
+export async function sendAudioMessage(input: { clientId: string; fileName: string; duration: string; canal?: "web" | "whatsapp" }) {
+  if (!input.clientId || !input.fileName) return { ok: false as const, message: "Áudio inválido." };
+  const supabase = await createClient();
+  if (!supabase) return { ok: false as const, message: "Conexão indisponível." };
+  const { data: claims } = await supabase.auth.getClaims();
+  const userId = claims?.claims?.sub;
+  if (!userId) return { ok: false as const, message: "Sessão expirada." };
+  const [{ data: staff }, { data: document }, { data: client }] = await Promise.all([
+    supabase.from("staff").select("id").eq("id", userId).maybeSingle(),
+    supabase.from("documentos").select("id,cliente_ref,file_name,storage_path,mime").eq("cliente_ref", input.clientId).eq("file_name", input.fileName).maybeSingle(),
+    supabase.from("clientes").select("id,phone").eq("id", input.clientId).maybeSingle(),
+  ]);
+  if (!staff) return { ok: false as const, message: "Ação não autorizada." };
+  if (!document) return { ok: false as const, message: "O áudio foi salvo, mas não foi possível anunciá-lo no chat." };
+  const transcricao = await transcreverAudioDocumento(document);
+  const now = new Date();
+
+  let waMessageId: string | null = null;
+  const isWhatsApp = input.canal === "whatsapp";
+  if (isWhatsApp && client?.phone) {
+    const admin = adminClient();
+    if (admin) {
+      const { data: signed } = await admin.storage.from("documentos").createSignedUrl(document.storage_path, 60 * 60);
+      if (signed?.signedUrl) {
+        const envioWa = await sendWhatsAppAudio(client.phone, signed.signedUrl);
+        if (!("skipped" in envioWa) && envioWa.ok) {
+          waMessageId = envioWa.messageId || null;
+        }
+      }
+    }
+  }
+
+  const { data, error } = await supabase.from("mensagens").insert({
+    id: crypto.randomUUID(),
+    cliente_id: input.clientId,
+    sender: "agent",
+    text: `Mensagem de Áudio (${input.duration})`,
+    type: "audio",
+    doc_name: document.file_name,
+    duration: input.duration,
+    transcricao,
+    canal: isWhatsApp ? "whatsapp" : "web",
+    wa_message_id: waMessageId,
+    created_at: now.toISOString(),
+    time: new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo", hour: "2-digit", minute: "2-digit" }).format(now)
+  }).select("id,cliente_id,sender,text,type,read_at,created_at,time,seq,doc_name,duration,transcricao,canal,wa_status").single();
+  if (error || !data) return { ok: false as const, message: "O áudio foi salvo, mas não foi possível anunciá-lo no chat." };
+  revalidatePath("/");
+  return { ok: true as const, data, message: isWhatsApp ? "Áudio enviado no WhatsApp." : "Áudio enviado." };
+}
 
 // Baixa o áudio recém-salvo (via service_role, funciona independente de RLS
 // de quem gravou) e transcreve pelo Whisper da Groq. Nunca derruba o envio da

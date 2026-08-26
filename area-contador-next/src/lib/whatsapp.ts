@@ -43,6 +43,17 @@ async function sendWhatsAppText(toPhone: string, text: string) {
   });
 }
 
+// Envio de áudio livre via WhatsApp (link do arquivo de áudio)
+async function sendWhatsAppAudio(toPhone: string, audioUrl: string) {
+  if (!whatsappConfigured() || !toPhone) return { skipped: true as const };
+  return graphFetch(`${PHONE_NUMBER_ID}/messages`, {
+    messaging_product: "whatsapp",
+    to: toPhone,
+    type: "audio",
+    audio: { link: audioUrl },
+  });
+}
+
 // Mensagem via template pré-aprovado — necessária para avisos que o sistema
 // inicia (fora da janela de 24h). V1 usa um único template genérico de
 // utilidade com 2 variáveis, mesmo formato que já existia pro Twilio.
@@ -94,4 +105,4 @@ function verifyWebhookSignature(rawBody: string, signatureHeader: string | null)
   return timingSafeEqual(a, b);
 }
 
-export { whatsappConfigured, templateConfigured, sendWhatsAppText, sendWhatsAppTemplate, downloadWhatsAppMedia, verifyWebhookSignature };
+export { whatsappConfigured, templateConfigured, sendWhatsAppText, sendWhatsAppAudio, sendWhatsAppTemplate, downloadWhatsAppMedia, verifyWebhookSignature };

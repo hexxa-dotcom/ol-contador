@@ -1387,7 +1387,12 @@ export function AtendimentoView({
       if (documentError || !document) return feedback("Não foi possível salvar o áudio.");
       setChatDocuments((items) => [...items, document]);
       const duracao = `${Math.floor(durationSeconds / 60)}:${String(durationSeconds % 60).padStart(2, "0")}`;
-      const result = await sendAudioMessage({ clientId: selectedClientId, fileName, duration: duracao });
+      const result = await sendAudioMessage({
+        clientId: selectedClientId,
+        fileName,
+        duration: duracao,
+        canal: tool === "whatsapp" ? "whatsapp" : "web",
+      });
       if (result.ok) setMessages((items) => (items.some((item) => item.id === result.data.id) ? items : [...items, result.data]));
       feedback(result.message);
     });
@@ -1518,7 +1523,12 @@ export function AtendimentoView({
         throw recordError;
       }
       if (isAudio) {
-        const audioMsg = await sendAudioMessage({ clientId: selectedClientId, fileName: file.name, duration: "Áudio" });
+        const audioMsg = await sendAudioMessage({
+          clientId: selectedClientId,
+          fileName: file.name,
+          duration: "Áudio",
+          canal: tool === "whatsapp" ? "whatsapp" : "web",
+        });
         if (audioMsg.ok) {
           setChatDocuments((items) => [document, ...items]);
           setMessages((items) =>
@@ -1893,14 +1903,16 @@ export function AtendimentoView({
                 aria-label="Pergunta para o copiloto"
                 placeholder="Pergunte algo à IA..."
               />
-              <Button
-                disabled={copilotLoading || !selectedClient}
-                className="icon orange-action"
+              <button
+                type="button"
+                disabled={copilotLoading || !selectedClient || !copilotPrompt.trim()}
+                className="copilot-send-btn"
                 aria-label="Enviar ao copiloto"
+                title="Consultar Copiloto IA"
                 onClick={() => askCopilot("pergunta")}
               >
-                <Send size={15} />
-              </Button>
+                <Sparkles size={15} />
+              </button>
             </div>
           </>
         )}
@@ -2268,11 +2280,11 @@ export function AtendimentoView({
               disabled={!selectedClient || (chatLocked && tool !== "whatsapp") || isSending}
             />
           )}
-          {tool !== "whatsapp" && !recording && (
+          {!recording && (
             <Button
               type="button"
               className="icon secondary"
-              disabled={!selectedClient || chatLocked || isSending || !!messageText.trim()}
+              disabled={!selectedClient || (chatLocked && tool !== "whatsapp") || isSending || !!messageText.trim()}
               onClick={() => void startRecording()}
               title={messageText.trim() ? "Apague o texto para gravar áudio" : "Gravar mensagem de áudio pelo microfone"}
               aria-label="Gravar áudio pelo microfone"
