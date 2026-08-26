@@ -3,7 +3,7 @@
 import { whatsappConfigured as waConfigured, templateConfigured as waTemplateConfigured, sendWhatsAppTemplate } from "./whatsapp";
 
 const RESEND_API_KEY = process.env.RESEND_API_KEY || "";
-const RESEND_FROM = process.env.RESEND_FROM || "Olá Contador <onboarding@resend.dev>";
+const RESEND_FROM = process.env.RESEND_FROM || "Olá, Contador <contato@olacontador.com.br>";
 
 function emailConfigured() {
   return !!RESEND_API_KEY;
@@ -48,10 +48,24 @@ async function notifyCliente(cliente: ClienteNotify | null, subject: string, mes
     const channel = options.channel || cliente.canal_resultado || null;
     const fallbackEmail = channel === "whatsapp" && !whatsappOutboundConfigured();
     if ((!channel || channel === "email" || fallbackEmail) && emailConfigured() && cliente.email) {
-      const html = `<div style="font-family:sans-serif;font-size:14px;color:#111">
-        <p>Olá ${cliente.name || ""},</p>
-        <p>${message}</p>
-        <p style="color:#888;font-size:12px;margin-top:24px">Olá, Contador — atendimento contábil</p>
+      const html = `<div style="background-color:#F7F5EF;padding:32px 16px;font-family:'Outfit',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+        <div style="max-width:540px;margin:0 auto;background:#FFFFFF;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.06);border:1px solid #E8E5DD;">
+          <div style="background:#093726;padding:22px 28px;text-align:left;">
+            <div style="font-size:22px;font-weight:800;color:#FFFFFF;letter-spacing:-0.5px;line-height:1.2;">Olá<span style="color:#FF6A45;">,</span> Contador</div>
+            <div style="font-size:11px;color:rgba(255,255,255,0.8);margin-top:3px;">Seu contador pessoal a um clique de distância.</div>
+          </div>
+          <div style="padding:28px;color:#1B2520;font-size:14.5px;line-height:1.6;">
+            <p style="margin-top:0;font-size:15.5px;font-weight:700;color:#093726;">Olá, ${cliente.name || "Cliente"}!</p>
+            <div>${message}</div>
+            <div style="margin-top:26px;padding-top:18px;border-top:1px solid #EFECE6;text-align:center;">
+              <a href="https://www.olacontador.com.br" style="display:inline-block;background:#093726;color:#FFFFFF;text-decoration:none;font-weight:700;font-size:13px;padding:11px 24px;border-radius:6px;">Acessar a Plataforma</a>
+            </div>
+          </div>
+          <div style="background:#F2EFE9;padding:14px 28px;text-align:center;font-size:11px;color:#758079;">
+            Este é um e-mail automático do <strong>Olá, Contador</strong>.<br>
+            Acesse <a href="https://www.olacontador.com.br" style="color:#093726;text-decoration:none;font-weight:600;">www.olacontador.com.br</a> para acompanhar seus atendimentos.
+          </div>
+        </div>
       </div>`;
       results.email = await sendEmail(cliente.email, subject, html);
     }
