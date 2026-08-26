@@ -2,6 +2,7 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
+    id: "/?source=pwa",
     name: "Olá, Contador",
     short_name: "Olá Contador",
     description: "Seu contador pessoal a um clique de distância. Atendimento contábil sob demanda e monitoramento fiscal contínuo.",
@@ -13,6 +14,7 @@ export default function manifest(): MetadataRoute.Manifest {
     theme_color: "#093726",
     lang: "pt-BR",
     categories: ["business", "finance", "productivity"],
+    prefer_related_applications: false,
     icons: [
       {
         src: "/icons/icon-192x192.png",
@@ -37,6 +39,22 @@ export default function manifest(): MetadataRoute.Manifest {
         sizes: "512x512",
         type: "image/png",
         purpose: "maskable",
+      },
+    ],
+    screenshots: [
+      {
+        src: "/screenshots/screen-mobile.png",
+        sizes: "540x960",
+        type: "image/png",
+        form_factor: "narrow",
+        label: "Atendimento Contábil no Celular",
+      },
+      {
+        src: "/screenshots/screen-desktop.png",
+        sizes: "1280x720",
+        type: "image/png",
+        form_factor: "wide",
+        label: "Painel do Cliente e Radar Fiscal",
       },
     ],
     shortcuts: [
