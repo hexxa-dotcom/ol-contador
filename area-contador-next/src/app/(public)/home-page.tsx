@@ -213,25 +213,27 @@ export function HomePage({ precos }: { precos: { pf: number; pj: number; consult
           <Reveal>
             <Carrossel className={styles.pricingGrid}>
               <div className={`${styles.priceCard} ${styles.featured}`}>
-                <span className={styles.featuredBadge}>Mais procurado</span>
+                <span className={styles.featuredBadge}>Regularização de CPF</span>
                 <h3>Pessoa Física</h3>
                 <div className={styles.modalities}>Atendimento Express</div>
                 <div className={styles.priceValue}>R$ {money(precos.pf)}</div>
-                <div className={styles.priceNote}>por atendimento completo — agendar um horário com o contador sai por um valor à parte</div>
+                <div className={styles.priceNote}>por atendimento Express — para regularizar CPF pendente, IRPF, malha fina e débitos individuais</div>
                 <Link className={styles.btnPrimary} href="/agendar?plano=pf">Resolver meu caso</Link>
               </div>
               <div className={styles.priceCard}>
+                <span className={styles.featuredBadge} style={{ background: "#093726", color: "#60E0B4" }}>MEI & Simples Nacional</span>
                 <h3>Pessoa Jurídica</h3>
                 <div className={styles.modalities}>Atendimento Express</div>
                 <div className={styles.priceValue}>R$ {money(precos.pj)}</div>
-                <div className={styles.priceNote}>por atendimento completo — agendar um horário com o contador sai por um valor à parte</div>
+                <div className={styles.priceNote}>por atendimento Express — para parcelamentos de dívidas, guias DAS atrasadas e regularização de CNPJ</div>
                 <Link className={styles.btnPrimary} href="/agendar?plano=pj">Resolver meu caso</Link>
               </div>
               <div className={styles.priceCard}>
-                <h3>Sob Demanda</h3>
-                <div className={styles.modalities}>Para situações mais complexas</div>
+                <span className={styles.featuredBadge} style={{ background: "#1F2937", color: "#F3F4F6" }}>Aberturas, Baixas & Especiais</span>
+                <h3>Serviços Sob Medida</h3>
+                <div className={styles.modalities}>Para demandas estruturais e empresas</div>
                 <div className={styles.priceValue}>R$ {money(precos.consulta)}</div>
-                <div className={styles.priceNote}>diagnóstico inicial — vira crédito integral no valor final do serviço</div>
+                <div className={styles.priceNote}>diagnóstico inicial por escrito com parecer e orçamento fechado — 100% abatido do total</div>
                 <Link className={styles.btnPrimary} href="/agendar?plano=sob-demanda">Solicitar análise</Link>
               </div>
             </Carrossel>

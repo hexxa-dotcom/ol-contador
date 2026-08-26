@@ -54,35 +54,34 @@ export async function GET() {
 
   const ITENS_PADRAO: Record<string, Assunto[]> = {
     pf: [
-      { id: "malha-fina", titulo: "Caí na malha fina ou recebi intimação / carta da Receita", resumo: "Notificação, intimação ou pendência no e-CAC" },
       { id: "cpf-pendente", titulo: "CPF cancelado, pendente de regularização ou suspenso", resumo: "Regularização de cadastro para contas e bancos" },
+      { id: "malha-fina", titulo: "Caí na malha fina ou recebi intimação / carta da Receita", resumo: "Notificação, intimação ou pendência no e-CAC" },
       { id: "ir-declaracao", titulo: "Declaração de IR atrasada, omitida ou retificadora", resumo: "Envio de declarações em atraso ou correção de dados" },
-      { id: "gcap-venda", titulo: "Venda de imóvel, veículo ou Ganho de Capital (GCAP)", resumo: "Cálculo do imposto, apuração de lucro e isenções" },
-      { id: "carne-leao", titulo: "Carnê-Leão e rendimentos de autônomo / exterior", resumo: "Apuração mensal, livro-caixa e DARF" },
-      { id: "investimentos-cripto", titulo: "Criptomoedas, ações ou investimentos financeiros", resumo: "Apuração de operações, DARFs e bens" },
-      { id: "exterior-adsense", titulo: "Rendimentos do exterior, trabalho remoto ou AdSense", resumo: "Tributação internacional e carnê-leão" },
+      { id: "carne-leao", titulo: "Carnê-Leão e rendimentos de autônomo / exterior", resumo: "Apuração mensal, livro-caixa e emissão de DARF" },
+      { id: "parcelamento-pf", titulo: "Parcelamento de dívidas fiscais e CND da Pessoa Física", resumo: "Negociação de débitos na Receita Federal e PGFN" },
+      { id: "restituicao-travada", titulo: "Restituição de Imposto de Renda travada ou retida", resumo: "Identificação da pendência e liberação na Receita" },
       { id: "isencao-molestia", titulo: "Isenção de IRPF por moléstia / doença grave", resumo: "Processo de isenção e restituição retroativa" },
-      { id: "restituicao-travada", titulo: "Restituição de Imposto de Renda travada", resumo: "Identificação do motivo e liberação na Receita" },
-      { id: "espolio", titulo: "Declaração de espólio / herança e partilha de bens", resumo: "Declaração inicial, intermediária ou final" },
-      { id: "parcelamento-pf", titulo: "Parcelamento de débitos e Certidão Negativa (CND)", resumo: "Negociação de débitos na Receita e PGFN" },
-      { id: "outro", titulo: "Meu caso é outro", resumo: "Descreva seu caso com suas palavras" }
+      { id: "outro", titulo: "Outra regularização de Pessoa Física", resumo: "Descreva sua situação com suas palavras" }
     ],
     "pj-atendimento": [
-      { id: "guias-das", titulo: "Guias DAS / impostos do MEI em atraso", resumo: "Emissão, recálculo de juros e parcelamento" },
-      { id: "dasn-simei", titulo: "Declaração Anual do MEI (DASN-SIMEI) pendente", resumo: "Transmissão fora do prazo e regularização" },
-      { id: "desenquadramento-mei", titulo: "Desenquadramento de MEI para ME / Simples", resumo: "Excesso de faturamento ou transição de atividade" },
-      { id: "cnpj-inapto", titulo: "CNPJ inapto, suspenso ou baixado na Receita", resumo: "Levantamento de omissões e reativação do CNPJ" },
-      { id: "simples-rotina", titulo: "Dúvidas, cálculo e rotina fiscal do Simples Nacional", resumo: "Orientação fiscal e enquadramento de notas" },
-      { id: "baixa-dividas", titulo: "Baixa ou encerramento de CNPJ com pendências", resumo: "Extinção regular e encerramento fiscal" },
-      { id: "parcelamento-pj", titulo: "Parcelamento de dívidas fiscais e CND da empresa", resumo: "Negociação de débitos junto à Receita e PGFN" },
-      { id: "socios-procuracoes", titulo: "Regularização de sócios e procuração eletrônica", resumo: "Ajustes societários e acesso ao e-CAC" },
-      { id: "outro", titulo: "Meu caso é outro", resumo: "Descreva seu caso com suas palavras" }
+      { id: "parcelamento-pj", titulo: "Parcelamento de dívidas e débitos fiscais (Simples & PGFN)", resumo: "Negociação de débitos junto à Receita Federal e Procuradoria" },
+      { id: "guias-das", titulo: "Guias DAS / impostos do MEI em atraso e recálculo", resumo: "Emissão, recálculo de juros e quitação" },
+      { id: "dasn-simei", titulo: "Declaração Anual do MEI (DASN-SIMEI) em atraso", resumo: "Transmissão fora do prazo e regularização de multas" },
+      { id: "cnpj-inapto", titulo: "CNPJ inapto, suspenso ou bloqueado no Simples Nacional", resumo: "Levantamento de omissões e reativação do CNPJ" },
+      { id: "desenquadramento-mei", titulo: "Desenquadramento de MEI para Microempresa (ME)", resumo: "Excesso de faturamento ou transição de atividade" },
+      { id: "cnd-pj", titulo: "Certidão Negativa de Débitos (CND) e desembaraço fiscal", resumo: "Emissão de certidões e regularidade cadastral da empresa" },
+      { id: "outro", titulo: "Outra regularização de MEI ou Simples Nacional", resumo: "Descreva sua situação com suas palavras" }
     ],
     consulta: [
-      { id: "diagnostico", titulo: "Diagnóstico fiscal e análise profunda do caso", resumo: "Parecer técnico detalhado sobre sua situação" },
-      { id: "multiplos-anos", titulo: "Regularização de múltiplos anos fiscais em atraso", resumo: "Levantamento e regularização histórica completa" },
-      { id: "planejamento", titulo: "Planejamento tributário para PF ou empresa", resumo: "Estratégia legal de redução de carga tributária" },
-      { id: "outro", titulo: "Meu caso é outro", resumo: "Descreva seu caso com suas palavras" }
+      { id: "abertura-empresa", titulo: "Abertura de Empresa / CNPJ completo", resumo: "Contrato social, Junta Comercial, CNPJ e alvarás" },
+      { id: "baixa-cnpj", titulo: "Baixa e encerramento definitivo de CNPJ", resumo: "Distrato social e baixa em todos os órgãos" },
+      { id: "decore", titulo: "Emissão de DECORE com registro CRC", resumo: "Comprovação de renda oficial para bancos e financiamentos" },
+      { id: "gcap-venda", titulo: "Ganho de Capital (GCAP) — Venda de imóveis e bens", resumo: "Cálculo do imposto, apuração de lucro, isenções e DARF" },
+      { id: "alteracao-contratual", titulo: "Alteração Contratual, troca de sócios ou CNAE", resumo: "Aditivo contratual e adequação cadastral" },
+      { id: "multiplos-anos", titulo: "Regularização de múltiplos anos fiscais acumulados", resumo: "Levantamento e regularização histórica completa" },
+      { id: "lucro-presumido-real", titulo: "Empresas de Lucro Presumido ou Lucro Real", resumo: "Demandas e consultoria para empresas de médio/grande porte" },
+      { id: "planejamento", titulo: "Planejamento tributário e consultoria preventiva", resumo: "Estratégia legal de redução de carga tributária" },
+      { id: "outro", titulo: "Outro projeto ou serviço sob medida", resumo: "Descreva seu caso com suas palavras" }
     ]
   };
 

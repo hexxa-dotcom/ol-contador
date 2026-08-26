@@ -31,8 +31,8 @@ function faqList(consultaCents: number) {
   return [
     { p: "Preciso entender de imposto para ser atendido?", r: 'Não. Você conta o que aconteceu com as suas palavras — "recebi uma carta assustadora", "vendi meu carro", "não declarei ano passado" — e anexa o que tiver. Traduzir a burocracia é o nosso trabalho, não o seu.' },
     { p: "O que é o relatório do atendimento?", r: "É um PDF assinado por contador com registro CRC dizendo o que aconteceu, o que foi feito e o que vem agora — como uma receita médica, só que do seu imposto. Fica guardado na sua área do cliente para baixar quando quiser." },
-    { p: "Como funciona o pagamento?", r: "Preço fixo, combinado antes, pago na hora de agendar — no Pix (com 5% de desconto) ou no cartão, em até 3x. Sem mensalidade e sem fidelidade: você paga pelo atendimento que usar. No plano sob demanda, o valor é fechado por escrito antes de qualquer cobrança." },
-    { p: "O diagnóstico do plano sob demanda é cobrado?", r: `Sim: ${formatReais(consultaCents)}, o mesmo valor de um atendimento avulso — porque é trabalho de contador de verdade. Ele analisa o seu caso e devolve um plano por escrito, com escopo, prazo e valor fechados. Se você aprovar o orçamento, esse valor é abatido do total: na prática, o diagnóstico sai de graça para quem segue. Se preferir não seguir, o diagnóstico é seu.` },
+    { p: "Como funciona o pagamento?", r: "Preço fixo, combinado antes, pago na hora de agendar — no Pix (com 5% de desconto) ou no cartão, em até 3x. Sem mensalidade e sem fidelidade: você paga pelo atendimento que usar. No plano Serviços Sob Medida, o valor do serviço é fechado por escrito antes de qualquer execução." },
+    { p: "O diagnóstico dos Serviços Sob Medida é cobrado?", r: `Sim: ${formatReais(consultaCents)} — o contador analisa o seu caso a fundo e entrega um parecer técnico por escrito, com escopo, prazo e valor fechados. Se você aprovar o orçamento, esse valor é 100% abatido do total: na prática, o diagnóstico sai de graça para quem segue. Se preferir não seguir, o relatório de diagnóstico é seu.` },
     { p: "Em quanto tempo meu caso é resolvido?", r: "Para pessoa física, em até 24 horas — muitos casos se resolvem no mesmo dia. Para empresas, em até 48 horas. E você não fica no escuro: pela área do cliente acompanha cada etapa, do pré-atendimento ao relatório entregue." },
     { p: "E se eu ficar com dúvida depois?", r: "Você tem retorno grátis em até 7 dias após o atendimento. E como os próximos passos ficam por escrito no relatório, você não depende da memória — nem da nossa, nem da sua." },
   ];
@@ -48,8 +48,8 @@ async function precoDe(id: string, fallbackCents: number): Promise<number> {
 async function precos() {
   const [pf, pj, consulta] = await Promise.all([
     precoDe("pf", 19900),
-    precoDe("pj-atendimento", 39900),
-    precoDe("consulta", 19900)
+    precoDe("pj-atendimento", 34900),
+    precoDe("consulta", 9900)
   ]);
   return { pf, pj, consulta };
 }

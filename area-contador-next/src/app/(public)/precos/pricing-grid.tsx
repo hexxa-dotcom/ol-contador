@@ -46,10 +46,14 @@ export function PricingGrid({ pfCents, pjCents, consultaCents }: PricingGridProp
           onClick={() => setSelectedPlan("pf")}
           className={`${styles.planoCard} ${styles.planoLight} ${selectedPlan === "pf" ? styles.planoSelecionado : ""}`}
         >
-          {selectedPlan === "pf" && (
+          {selectedPlan === "pf" ? (
             <div className={styles.badgeSelecionado}>
               <CheckCircle2 size={14} />
               <span>Plano Selecionado</span>
+            </div>
+          ) : (
+            <div className={styles.badgeDestaqueFixo} style={{ background: "#EBF3EF", color: "#093726" }}>
+              <span>Regularização de CPF</span>
             </div>
           )}
 
@@ -61,7 +65,7 @@ export function PricingGrid({ pfCents, pjCents, consultaCents }: PricingGridProp
               </div>
             </div>
             <p className={styles.planoSubtitulo}>
-              Para quem recebeu uma carta da Receita, travou no IR ou vendeu um bem e não sabe o que fazer agora.
+              Para quem precisa regularizar CPF suspenso ou pendente, resolver malha fina do IRPF ou negociar débitos individuais.
             </p>
           </div>
 
@@ -77,11 +81,12 @@ export function PricingGrid({ pfCents, pjCents, consultaCents }: PricingGridProp
           <div className={styles.resolveSection}>
             <div className={styles.resolveRotulo}>Exemplos do que resolvemos:</div>
             <div className={styles.chipsWrap}>
-              <span className={styles.chipLight}>Malha fina e cartas</span>
-              <span className={styles.chipLight}>Declarar / retificar IR</span>
-              <span className={styles.chipLight}>Venda de bens & GCAP</span>
-              <span className={styles.chipLight}>Carnê-leão autônomo</span>
-              <span className={`${styles.chipLight} ${styles.chipDestaque}`}>+ Qualquer pendência de PF</span>
+              <span className={styles.chipLight}>Regularizar CPF pendente/suspenso</span>
+              <span className={styles.chipLight}>Malha fina & cartas da Receita</span>
+              <span className={styles.chipLight}>Declarar / retificar IRPF</span>
+              <span className={styles.chipLight}>Carnê-leão autônomo & exterior</span>
+              <span className={styles.chipLight}>Parcelamento PF & CND</span>
+              <span className={`${styles.chipLight} ${styles.chipDestaque}`}>+ Pendências fiscais de PF</span>
             </div>
           </div>
 
@@ -176,11 +181,11 @@ export function PricingGrid({ pfCents, pjCents, consultaCents }: PricingGridProp
           {selectedPlan === "pj" ? (
             <div className={`${styles.badgeSelecionado} ${styles.badgeCoral}`}>
               <Sparkles size={14} />
-              <span>Mais Recomendado</span>
+              <span>MEI & Simples Nacional</span>
             </div>
           ) : (
             <div className={styles.badgeDestaqueFixo}>
-              <span>Recomendado para Empresas</span>
+              <span>MEI & Simples Nacional</span>
             </div>
           )}
 
@@ -192,7 +197,7 @@ export function PricingGrid({ pfCents, pjCents, consultaCents }: PricingGridProp
               </div>
             </div>
             <p className={`${styles.planoSubtitulo} ${styles.textMutedDark}`}>
-              Para MEI e pequenas empresas que precisam de alguém cuidando das guias, dos prazos e das pendências.
+              Para MEI e Microempresas do Simples Nacional que precisam parcelar dívidas, regularizar o CNPJ ou acertar guias atrasadas.
             </p>
           </div>
 
@@ -208,11 +213,13 @@ export function PricingGrid({ pfCents, pjCents, consultaCents }: PricingGridProp
           <div className={styles.resolveSection}>
             <div className={`${styles.resolveRotulo} ${styles.textCoral}`}>Exemplos do que resolvemos:</div>
             <div className={styles.chipsWrap}>
-              <span className={styles.chipDark}>Guias DAS atrasadas</span>
-              <span className={styles.chipDark}>Declaração DASN</span>
-              <span className={styles.chipDark}>Desenquadramento MEI</span>
-              <span className={styles.chipDark}>CNPJ inapto & Simples</span>
-              <span className={`${styles.chipDark} ${styles.chipDestaqueDark}`}>+ Qualquer pendência da empresa</span>
+              <span className={styles.chipDark}>Parcelamentos de dívidas (Simples & PGFN)</span>
+              <span className={styles.chipDark}>Guias DAS atrasadas & recálculo</span>
+              <span className={styles.chipDark}>Declaração DASN-SIMEI</span>
+              <span className={styles.chipDark}>CNPJ inapto & pendências cadastrais</span>
+              <span className={styles.chipDark}>Desenquadramento MEI para ME</span>
+              <span className={styles.chipDark}>Emissão de CND da empresa</span>
+              <span className={`${styles.chipDark} ${styles.chipDestaqueDark}`}>+ Pendências de MEI & Simples</span>
             </div>
           </div>
 
@@ -230,7 +237,7 @@ export function PricingGrid({ pfCents, pjCents, consultaCents }: PricingGridProp
               <CheckCircle2 size={18} className={styles.checkIconCoral} />
               <div className={styles.entregavelText}>
                 <b className={styles.textLight}>Contador especialista em empresas</b>
-                <small className={styles.textMutedDark}>Profissional com foco em MEI, Simples Nacional e rotina fiscal do seu negócio.</small>
+                <small className={styles.textMutedDark}>Profissional com foco em MEI, Simples Nacional e parcelamento de dívidas fiscais.</small>
               </div>
             </div>
 
@@ -248,8 +255,8 @@ export function PricingGrid({ pfCents, pjCents, consultaCents }: PricingGridProp
                 <div className={styles.entregavelItem}>
                   <CheckCircle2 size={18} className={styles.checkIconCoral} />
                   <div className={styles.entregavelText}>
-                    <b className={styles.textLight}>Emissão de guias inclusa</b>
-                    <small className={styles.textMutedDark}>DAS e guias do Simples Nacional emitidas e disponibilizadas na área do cliente.</small>
+                    <b className={styles.textLight}>Emissão de guias e parcelamento inclusos</b>
+                    <small className={styles.textMutedDark}>DAS e parcelamentos do Simples Nacional emitidos e disponibilizados na área do cliente.</small>
                   </div>
                 </div>
 
@@ -283,43 +290,51 @@ export function PricingGrid({ pfCents, pjCents, consultaCents }: PricingGridProp
           </Link>
         </div>
 
-        {/* 3. SOB DEMANDA */}
+        {/* 3. SERVIÇOS SOB MEDIDA */}
         <div
           onClick={() => setSelectedPlan("sob-demanda")}
           className={`${styles.planoCard} ${styles.planoLight} ${selectedPlan === "sob-demanda" ? styles.planoSelecionado : ""}`}
         >
-          {selectedPlan === "sob-demanda" && (
+          {selectedPlan === "sob-demanda" ? (
             <div className={styles.badgeSelecionado}>
               <CheckCircle2 size={14} />
               <span>Plano Selecionado</span>
+            </div>
+          ) : (
+            <div className={styles.badgeDestaqueFixo} style={{ background: "#F3F4F6", color: "#1F2937" }}>
+              <span>Aberturas, Baixas & Especiais</span>
             </div>
           )}
 
           <div className={styles.planoHeader}>
             <div className={styles.planoNomeFlex}>
-              <span className={styles.planoTitulo}>Sob Demanda</span>
+              <span className={styles.planoTitulo}>Serviços Sob Medida</span>
               <div className={styles.planoIconBadge}>
                 <Zap size={22} />
               </div>
             </div>
             <p className={styles.planoSubtitulo}>
-              Para o caso que não cabe em um atendimento: anos de declaração atrasada ou escopo grande.
+              Para abertura de empresa, baixa de CNPJ, emissão de DECORE, ganho de capital (GCAP), Lucro Presumido/Real ou múltiplos anos atrasados.
             </p>
           </div>
 
           <div className={styles.precoBox}>
             <div className={styles.precoSobConsultaTitle}>Sob Consulta</div>
             <div className={styles.precoUnidade}>ou Diagnóstico por R$ {money(consultaCents)}</div>
-            <div className={styles.precoPagamento}>orçamento fechado por escrito antes de começar</div>
+            <div className={styles.precoPagamento}>diagnóstico 100% abatido do valor do serviço aprovado</div>
           </div>
 
           <div className={styles.resolveSection}>
             <div className={styles.resolveRotulo}>Exemplos do que resolvemos:</div>
             <div className={styles.chipsWrap}>
-              <span className={styles.chipLight}>Vários anos atrasados</span>
-              <span className={styles.chipLight}>Regularizações extensas</span>
-              <span className={styles.chipLight}>Planejamento tributário</span>
-              <span className={`${styles.chipLight} ${styles.chipDestaque}`}>+ Casos especiais</span>
+              <span className={styles.chipLight}>Abertura de Empresa / CNPJ</span>
+              <span className={styles.chipLight}>Baixa & encerramento de CNPJ</span>
+              <span className={styles.chipLight}>Emissão de DECORE com CRC</span>
+              <span className={styles.chipLight}>Ganho de Capital (GCAP / Imóveis)</span>
+              <span className={styles.chipLight}>Alteração contratual & sócios</span>
+              <span className={styles.chipLight}>Múltiplos anos acumulados</span>
+              <span className={styles.chipLight}>Lucro Presumido ou Lucro Real</span>
+              <span className={`${styles.chipLight} ${styles.chipDestaque}`}>+ Projetos especiais sob consulta</span>
             </div>
           </div>
 
@@ -329,15 +344,15 @@ export function PricingGrid({ pfCents, pjCents, consultaCents }: PricingGridProp
               <CheckCircle2 size={18} className={styles.checkIconLight} />
               <div className={styles.entregavelText}>
                 <b>Diagnóstico inicial por R$ {money(consultaCents)}</b>
-                <small>O contador analisa o caso e entrega escopo, prazo e valor. Aprovou? O valor é 100% abatido do total.</small>
+                <small>O contador analisa o caso a fundo e entrega escopo, prazo e valor por escrito. Aprovou? O valor é 100% abatido do total.</small>
               </div>
             </div>
 
             <div className={styles.entregavelItem}>
               <CheckCircle2 size={18} className={styles.checkIconLight} />
               <div className={styles.entregavelText}>
-                <b>Escopo, prazo e valor por escrito</b>
-                <small>Orçamento totalmente fechado antes de qualquer cobrança — zero surpresas no final.</small>
+                <b>Escopo, prazo e valor fechados por escrito</b>
+                <small>Orçamento formal antes de começar o trabalho — zero surpresas ou cobranças extras no final.</small>
               </div>
             </div>
 
@@ -377,7 +392,7 @@ export function PricingGrid({ pfCents, pjCents, consultaCents }: PricingGridProp
             href="/agendar?plano=sob-demanda"
             className={`${styles.btnCard} ${selectedPlan === "sob-demanda" ? styles.btnCardSelected : styles.btnCardOutline}`}
           >
-            <span>Pedir Orçamento Sob Demanda</span>
+            <span>Pedir Orçamento Sob Medida</span>
             <ArrowRight size={18} />
           </Link>
         </div>
