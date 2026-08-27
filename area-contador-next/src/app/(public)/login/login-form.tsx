@@ -22,7 +22,32 @@ export function LoginForm({ papel }: { papel?: "cliente" | "contador" | null } =
     if (params.get("recovery") === "1") setMode("recovery");
     if (params.get("erro") === "link")
       setError("O link expirou ou já foi utilizado. Solicite um novo e-mail.");
-  }, []);
+
+    // Compatibilidade com o template de e-mail do Supabase (Magic Link), que
+    // manda token_hash+type direto na URL em vez de passar pelo /auth/callback.
+    const tokenHash = params.get("token_hash");
+    const type = params.get("type");
+    if (tokenHash && type) {
+      const supabase = createClient();
+      if (!supabase) {
+        setError("A conexão segura ainda não foi configurada neste ambiente.");
+        return;
+      }
+      window.history.replaceState(null, "", "/login");
+      supabase.auth.verifyOtp({ token_hash: tokenHash, type: type as "magiclink" | "recovery" | "email" }).then(({ error: verifyError }) => {
+        if (verifyError) {
+          setError("O link expirou ou já foi utilizado. Solicite um novo e-mail.");
+          return;
+        }
+        if (type === "recovery") {
+          setMode("recovery");
+          return;
+        }
+        router.replace("/painel");
+        router.refresh();
+      });
+    }
+  }, [router]);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
