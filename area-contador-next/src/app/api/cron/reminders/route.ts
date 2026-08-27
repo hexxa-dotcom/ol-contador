@@ -14,7 +14,7 @@ export const maxDuration = 60;
 
 type Admin = SupabaseClient<Database>;
 
-const SITE_URL = process.env.SITE_URL || "https://area-contador-next.vercel.app";
+const SITE_URL = process.env.SITE_URL || "https://www.olacontador.com.br";
 
 // Porte 1:1 de api/agenda-fiscal/run-reminders.js do legado — motor de
 // lembretes (fiscal + horário de atendimento), alertas de prazo do Express,

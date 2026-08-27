@@ -12,7 +12,7 @@ type Admin = SupabaseClient<Database>;
 type Cobranca = Database["public"]["Tables"]["cobrancas"]["Row"];
 type Cliente = Database["public"]["Tables"]["clientes"]["Row"];
 
-const SITE_URL = process.env.SITE_URL || "https://ola-contador.vercel.app";
+const SITE_URL = process.env.SITE_URL || "https://www.olacontador.com.br";
 const LIMITE_RESUMO = 150;
 
 export function nowTime(): string {
