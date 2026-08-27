@@ -24,18 +24,25 @@ async function resolveProvider(admin: Admin, uso: IaUso = "chat") {
   ]);
   const providers = {
     groq: {
+      nome: "groq" as const,
       baseURL: "https://api.groq.com/openai/v1",
       key: groqKey || "",
-      model: groqModel || "llama-3.3-70b-versatile",
-      visionModel: groqVisionModel || "llama-3.2-90b-vision-preview",
+      // Lineup mudou (llama-3.x saiu de linha) — gpt-oss-120b é o modelo de
+      // texto geral mais forte hoje na Groq. É "reasoning model": sem
+      // reasoning_effort baixo (ver chatCompletion), o content vem vazio
+      // porque o token budget é consumido só pelo raciocínio interno.
+      model: groqModel || "openai/gpt-oss-120b",
+      visionModel: groqVisionModel || "qwen/qwen3.8-27b",
     },
     openrouter: {
+      nome: "openrouter" as const,
       baseURL: "https://openrouter.ai/api/v1",
       key: openrouterKey || "",
       model: openrouterModel || "anthropic/claude-3.5-sonnet",
       visionModel: openrouterModel || "anthropic/claude-3.5-sonnet",
     },
     openai: {
+      nome: "openai" as const,
       baseURL: "https://api.openai.com/v1",
       key: openaiKey || "",
       model: openaiModel || "gpt-4o-mini",
@@ -117,7 +124,13 @@ export async function chatCompletion(
   const res = await fetch(active.baseURL + "/chat/completions", {
     method: "POST",
     headers: { Authorization: `Bearer ${active.key}`, "Content-Type": "application/json", "X-Title": "Ola Contador" },
-    body: JSON.stringify({ model: active.model, messages, temperature, max_tokens: maxTokens }),
+    body: JSON.stringify({
+      model: active.model,
+      messages,
+      temperature,
+      max_tokens: maxTokens,
+      ...(active.nome === "groq" ? { reasoning_effort: "low" } : {}),
+    }),
     signal: AbortSignal.timeout(25000),
   });
   const data = await res.json().catch(() => ({}));
@@ -274,6 +287,7 @@ export async function chatVision(
     body: JSON.stringify({
       model: active.visionModel,
       max_tokens: maxTokens,
+      ...(active.nome === "groq" ? { reasoning_effort: "low" } : {}),
       messages: [
         { role: "system", content: PERSONA },
         {
