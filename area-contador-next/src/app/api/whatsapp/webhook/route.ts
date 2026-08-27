@@ -80,13 +80,18 @@ function ehNumeroAdmin(from: string): boolean {
 // Mensagem vinda do próprio número do contador: não é atendimento de
 // cliente, é uma pergunta pro assistente de IA sobre a base do sistema.
 async function processarMensagemAdmin(admin: NonNullable<ReturnType<typeof adminClient>>, msg: WhatsAppMessage) {
+  // Responde pro número fixo configurado (WHATSAPP_ADMIN_PHONE), não pro
+  // msg.from — a Meta reporta o remetente brasileiro sem o 9º dígito do
+  // celular, formato que não bate com o cadastrado na allow list do número
+  // de teste (que exige o 9), e o envio falha (131030) se usarmos msg.from.
+  const destino = ADMIN_WHATSAPP_PHONE || msg.from;
   const pergunta = msg.text?.body?.trim();
   if (!pergunta) {
-    await sendWhatsAppText(msg.from, "Manda sua pergunta em texto que eu respondo com os dados do sistema.");
+    await sendWhatsAppText(destino, "Manda sua pergunta em texto que eu respondo com os dados do sistema.");
     return;
   }
   const resposta = await responderPerguntaAdmin(admin, pergunta);
-  await sendWhatsAppText(msg.from, resposta || "Não consegui gerar uma resposta agora.");
+  await sendWhatsAppText(destino, resposta || "Não consegui gerar uma resposta agora.");
 }
 
 async function processarMensagem(admin: NonNullable<ReturnType<typeof adminClient>>, msg: WhatsAppMessage) {
