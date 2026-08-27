@@ -61,7 +61,8 @@ export const CHAVES_EDITAVEIS: ChaveEditavel[] = [
   { chave: "GROQ_VISION_MODEL", label: "Modelo Groq (visão/imagem)", grupo: "Inteligência Artificial", nota: "Nome do modelo, não é uma chave de acesso — segue o uso da Groq acima." },
   { chave: "OPENROUTER_API_KEY", label: "OpenRouter (IA alternativa)", grupo: "Inteligência Artificial", usosDisponiveis: ["chat", "documentos"], testavel: true },
   { chave: "OPENROUTER_MODEL", label: "Modelo OpenRouter", grupo: "Inteligência Artificial", nota: "Nome do modelo, não é uma chave de acesso — segue o uso do OpenRouter acima." },
-  { chave: "OPENAI_API_KEY", label: "OpenAI (embeddings das skills)", grupo: "Inteligência Artificial", usosDisponiveis: ["embeddings"], testavel: true },
+  { chave: "OPENAI_API_KEY", label: "OpenAI (chat/Copiloto + embeddings das skills)", grupo: "Inteligência Artificial", usosDisponiveis: ["chat", "documentos", "embeddings"], testavel: true },
+  { chave: "OPENAI_CHAT_MODEL", label: "Modelo OpenAI (texto)", grupo: "Inteligência Artificial", nota: "Nome do modelo, não é uma chave de acesso — segue o uso da OpenAI acima." },
   {
     chave: "NEXT_PUBLIC_GA_MEASUREMENT_ID",
     label: "Google Analytics 4 (Measurement ID)",

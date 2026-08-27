@@ -12,12 +12,14 @@ type Admin = SupabaseClient;
 // pra esse contexto em "Chaves de API" (ver USOS_IA em systemSecrets.ts) —
 // sem configuração explícita, a chave vale pra qualquer uso.
 async function resolveProvider(admin: Admin, uso: IaUso = "chat") {
-  const [groqKey, groqModel, groqVisionModel, openrouterKey, openrouterModel, usosConfig] = await Promise.all([
+  const [groqKey, groqModel, groqVisionModel, openrouterKey, openrouterModel, openaiKey, openaiModel, usosConfig] = await Promise.all([
     getSystemSecret(admin, "GROQ_API_KEY"),
     getSystemSecret(admin, "GROQ_MODEL"),
     getSystemSecret(admin, "GROQ_VISION_MODEL"),
     getSystemSecret(admin, "OPENROUTER_API_KEY"),
     getSystemSecret(admin, "OPENROUTER_MODEL"),
+    getSystemSecret(admin, "OPENAI_API_KEY"),
+    getSystemSecret(admin, "OPENAI_CHAT_MODEL"),
     getChaveUsosConfig(admin),
   ]);
   const providers = {
@@ -33,15 +35,22 @@ async function resolveProvider(admin: Admin, uso: IaUso = "chat") {
       model: openrouterModel || "anthropic/claude-3.5-sonnet",
       visionModel: openrouterModel || "anthropic/claude-3.5-sonnet",
     },
+    openai: {
+      baseURL: "https://api.openai.com/v1",
+      key: openaiKey || "",
+      model: openaiModel || "gpt-4o-mini",
+      visionModel: openaiModel || "gpt-4o-mini",
+    },
   } as const;
   const habilitada = (chave: string) => {
     const usos = usosConfig[chave];
     return !usos || usos[uso] !== false;
   };
-  const preferida = process.env.IA_PROVIDER === "openrouter" ? "openrouter" : "groq";
-  const ordem = (preferida === "groq" ? ["groq", "openrouter"] : ["openrouter", "groq"]) as (keyof typeof providers)[];
+  const chaveDoProvedor = { groq: "GROQ_API_KEY", openrouter: "OPENROUTER_API_KEY", openai: "OPENAI_API_KEY" } as const;
+  const preferida = (process.env.IA_PROVIDER === "openrouter" || process.env.IA_PROVIDER === "openai" ? process.env.IA_PROVIDER : "groq") as keyof typeof providers;
+  const ordem = [preferida, ...(Object.keys(providers) as (keyof typeof providers)[]).filter((n) => n !== preferida)];
   for (const nome of ordem) {
-    if (providers[nome].key && habilitada(nome === "groq" ? "GROQ_API_KEY" : "OPENROUTER_API_KEY")) return providers[nome];
+    if (providers[nome].key && habilitada(chaveDoProvedor[nome])) return providers[nome];
   }
   return providers[preferida];
 }
