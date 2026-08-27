@@ -84,7 +84,7 @@ async function rodarLembreteLinkAcesso(admin: Admin, agendamentosHoje: Appt[]) {
     const { data: linkData, error: linkErr } = await admin.auth.admin.generateLink({
       type: "magiclink",
       email: cli.email,
-      options: { redirectTo: SITE_URL + "/login" },
+      options: { redirectTo: SITE_URL + "/auth/callback" },
     });
     if (linkErr || !linkData?.properties?.action_link) continue;
     const link = linkData.properties.action_link;

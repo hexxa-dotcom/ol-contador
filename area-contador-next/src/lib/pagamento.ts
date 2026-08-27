@@ -77,7 +77,7 @@ export async function registrarAtendimentoExpress(
 export async function enviarLinkDeAcesso(admin: Admin, email: string | null | undefined) {
   if (!email) return;
   try {
-    const { error } = await admin.auth.signInWithOtp({ email, options: { shouldCreateUser: false, emailRedirectTo: SITE_URL + "/login" } });
+    const { error } = await admin.auth.signInWithOtp({ email, options: { shouldCreateUser: false, emailRedirectTo: SITE_URL + "/auth/callback" } });
     if (error) console.error("envio do link de acesso falhou:", error.message);
   } catch (e) {
     console.error("envio do link de acesso falhou:", (e as Error).message);
