@@ -1,6 +1,12 @@
 // Camada de notificações externas: e-mail (Resend) e WhatsApp (Meta Cloud API).
 // Cada canal tem seu próprio guard — envia só o que estiver configurado no .env.
-import { whatsappConfigured as waConfigured, templateConfigured as waTemplateConfigured, sendWhatsAppTemplate } from "./whatsapp";
+import {
+  whatsappConfigured as waConfigured,
+  templateConfigured as waTemplateConfigured,
+  adminTemplateConfigured as waAdminTemplateConfigured,
+  sendWhatsAppTemplate,
+  sendWhatsAppAdminTemplate,
+} from "./whatsapp";
 
 const RESEND_API_KEY = process.env.RESEND_API_KEY || "";
 const RESEND_FROM = process.env.RESEND_FROM || "Olá, Contador <contato@olacontador.com.br>";
@@ -39,15 +45,36 @@ async function sendWhatsApp(toPhone: string, body: string, options: { subject?: 
   return { ok: true, sid: result.messageId };
 }
 
+const ADMIN_WHATSAPP_PHONE = process.env.WHATSAPP_ADMIN_PHONE || "";
+
+function adminWhatsappConfigured() {
+  return waAdminTemplateConfigured() && !!ADMIN_WHATSAPP_PHONE;
+}
+
+// Aviso interno pro contador (não pro cliente) de que entrou uma solicitação
+// nova — usa um template dedicado (nome, serviço, valor, botão pro painel),
+// separado do genérico usado nas notificações pro cliente. Enquanto não há
+// número de produção próprio, vai pro WhatsApp pessoal do contador,
+// cadastrado como destinatário de teste.
+async function notifyAdminNovaSolicitacao(params: { cliente: string; servico: string; valorCents: number }) {
+  if (!adminWhatsappConfigured()) return { skipped: true };
+  const valor = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format((params.valorCents || 0) / 100);
+  const result = await sendWhatsAppAdminTemplate(ADMIN_WHATSAPP_PHONE, { cliente: params.cliente, servico: params.servico, valor });
+  if ("skipped" in result) return result;
+  if (!result.ok) return { ok: false, error: result.error };
+  return { ok: true, sid: result.messageId };
+}
+
 type ClienteNotify = { name?: string | null; email?: string | null; phone?: string | null; canal_resultado?: string | null };
 
-async function notifyCliente(cliente: ClienteNotify | null, subject: string, message: string, options: { channel?: string } = {}) {
+// Dispara em todos os canais disponíveis do cliente (e-mail + WhatsApp), não é
+// mais um "ou" por canal preferido — a notificação chega por onde o cliente
+// puder ser alcançado.
+async function notifyCliente(cliente: ClienteNotify | null, subject: string, message: string, _options: { channel?: string } = {}) {
   if (!cliente) return {};
   const results: Record<string, unknown> = {};
   try {
-    const channel = options.channel || cliente.canal_resultado || null;
-    const fallbackEmail = channel === "whatsapp" && !whatsappOutboundConfigured();
-    if ((!channel || channel === "email" || fallbackEmail) && emailConfigured() && cliente.email) {
+    if (emailConfigured() && cliente.email) {
       const html = `<div style="background-color:#F7F5EF;padding:32px 16px;font-family:'Outfit',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
         <div style="max-width:540px;margin:0 auto;background:#FFFFFF;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.06);border:1px solid #E8E5DD;">
           <div style="background:#093726;padding:22px 28px;text-align:left;">
@@ -69,7 +96,7 @@ async function notifyCliente(cliente: ClienteNotify | null, subject: string, mes
       </div>`;
       results.email = await sendEmail(cliente.email, subject, html);
     }
-    if ((!channel || channel === "whatsapp") && whatsappOutboundConfigured() && cliente.phone) {
+    if (whatsappOutboundConfigured() && cliente.phone) {
       const texto = String(message || "").replace(/<[^>]+>/g, "");
       results.whatsapp = await sendWhatsApp(cliente.phone, texto, { subject });
     }
@@ -83,4 +110,4 @@ function anyConfigured() {
   return emailConfigured() || whatsappConfigured();
 }
 
-export { emailConfigured, whatsappConfigured, whatsappOutboundConfigured, anyConfigured, sendEmail, sendWhatsApp, notifyCliente };
+export { emailConfigured, whatsappConfigured, whatsappOutboundConfigured, anyConfigured, sendEmail, sendWhatsApp, notifyCliente, notifyAdminNovaSolicitacao };

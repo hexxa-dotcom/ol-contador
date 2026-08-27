@@ -344,6 +344,12 @@ export async function confirmCobranca(admin: Admin, cob: Cobranca): Promise<{ st
       }
     }
 
+    void notify.notifyAdminNovaSolicitacao({
+      cliente: cliente ? cliente.name : cob.cliente_ref || "Cliente",
+      servico: servico?.name || "Atendimento",
+      valorCents: cob.valor_cents || 0,
+    });
+
     // Emissão automática de nota fiscal de serviço, se o contador ativou em
     // Configurações → Integrações → Nota Fiscal (chave 'nota_fiscal_config').
     try {

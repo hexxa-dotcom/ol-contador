@@ -8,6 +8,7 @@ const PHONE_NUMBER_ID = process.env.WHATSAPP_PHONE_NUMBER_ID || "";
 const APP_SECRET = process.env.WHATSAPP_APP_SECRET || "";
 const TEMPLATE_NAME = process.env.WHATSAPP_TEMPLATE_NAME || "";
 const TEMPLATE_LANG = process.env.WHATSAPP_TEMPLATE_LANG || "pt_BR";
+const ADMIN_TEMPLATE_NAME = process.env.WHATSAPP_ADMIN_TEMPLATE_NAME || "";
 
 function whatsappConfigured() {
   return !!(ACCESS_TOKEN && PHONE_NUMBER_ID);
@@ -15,6 +16,10 @@ function whatsappConfigured() {
 
 function templateConfigured() {
   return whatsappConfigured() && !!TEMPLATE_NAME;
+}
+
+function adminTemplateConfigured() {
+  return whatsappConfigured() && !!ADMIN_TEMPLATE_NAME;
 }
 
 async function graphFetch(path: string, body: unknown) {
@@ -79,6 +84,32 @@ async function sendWhatsAppTemplate(toPhone: string, params: { subject?: string;
   });
 }
 
+// Aviso interno pro contador quando entra uma solicitação/compra nova —
+// template dedicado (nome, serviço, valor, botão pro painel), separado do
+// genérico usado nas notificações pro cliente.
+async function sendWhatsAppAdminTemplate(toPhone: string, params: { cliente: string; servico: string; valor: string }) {
+  if (!adminTemplateConfigured() || !toPhone) return { skipped: true as const };
+  return graphFetch(`${PHONE_NUMBER_ID}/messages`, {
+    messaging_product: "whatsapp",
+    to: toPhone,
+    type: "template",
+    template: {
+      name: ADMIN_TEMPLATE_NAME,
+      language: { code: TEMPLATE_LANG },
+      components: [
+        {
+          type: "body",
+          parameters: [
+            { type: "text", text: params.cliente.slice(0, 60) },
+            { type: "text", text: params.servico.slice(0, 60) },
+            { type: "text", text: params.valor.slice(0, 30) },
+          ],
+        },
+      ],
+    },
+  });
+}
+
 // Mídia recebida (documento/imagem/áudio): a Meta manda só um media_id no
 // webhook — é preciso buscar a URL temporária e depois baixar o binário.
 async function downloadWhatsAppMedia(mediaId: string): Promise<{ ok: true; buffer: Buffer; mimeType: string } | { ok: false }> {
@@ -105,4 +136,14 @@ function verifyWebhookSignature(rawBody: string, signatureHeader: string | null)
   return timingSafeEqual(a, b);
 }
 
-export { whatsappConfigured, templateConfigured, sendWhatsAppText, sendWhatsAppAudio, sendWhatsAppTemplate, downloadWhatsAppMedia, verifyWebhookSignature };
+export {
+  whatsappConfigured,
+  templateConfigured,
+  adminTemplateConfigured,
+  sendWhatsAppText,
+  sendWhatsAppAudio,
+  sendWhatsAppTemplate,
+  sendWhatsAppAdminTemplate,
+  downloadWhatsAppMedia,
+  verifyWebhookSignature,
+};
