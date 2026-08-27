@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { adminClient } from "@/lib/supabase/admin";
 import { registrarErro } from "@/lib/observability";
-import { verifyWebhookSignature, downloadWhatsAppMedia } from "@/lib/whatsapp";
+import { verifyWebhookSignature, downloadWhatsAppMedia, sendWhatsAppText } from "@/lib/whatsapp";
+import { responderPerguntaAdmin } from "@/lib/assistenteAdmin";
 
 export const runtime = "nodejs";
 
@@ -67,6 +68,25 @@ async function marcarEvento(admin: ReturnType<typeof adminClient>, eventoId: str
     .update({ status, erro: erro || null, processado_em: new Date().toISOString() })
     .eq("provedor", "whatsapp")
     .eq("evento_id", eventoId);
+}
+
+const ADMIN_WHATSAPP_PHONE = process.env.WHATSAPP_ADMIN_PHONE || "";
+
+function ehNumeroAdmin(from: string): boolean {
+  if (!ADMIN_WHATSAPP_PHONE) return false;
+  return normalizeDigits(from).slice(-8) === normalizeDigits(ADMIN_WHATSAPP_PHONE).slice(-8);
+}
+
+// Mensagem vinda do próprio número do contador: não é atendimento de
+// cliente, é uma pergunta pro assistente de IA sobre a base do sistema.
+async function processarMensagemAdmin(admin: NonNullable<ReturnType<typeof adminClient>>, msg: WhatsAppMessage) {
+  const pergunta = msg.text?.body?.trim();
+  if (!pergunta) {
+    await sendWhatsAppText(msg.from, "Manda sua pergunta em texto que eu respondo com os dados do sistema.");
+    return;
+  }
+  const resposta = await responderPerguntaAdmin(admin, pergunta);
+  await sendWhatsAppText(msg.from, resposta || "Não consegui gerar uma resposta agora.");
 }
 
 async function processarMensagem(admin: NonNullable<ReturnType<typeof adminClient>>, msg: WhatsAppMessage) {
@@ -166,7 +186,11 @@ export async function POST(request: Request) {
     const { claimed } = await registrarEvento(admin, msg.id, "mensagem", msg.from);
     if (!claimed) continue;
     try {
-      await processarMensagem(admin, msg);
+      if (ehNumeroAdmin(msg.from)) {
+        await processarMensagemAdmin(admin, msg);
+      } else {
+        await processarMensagem(admin, msg);
+      }
       await marcarEvento(admin, msg.id, "processed");
     } catch (e) {
       const err = e as Error;

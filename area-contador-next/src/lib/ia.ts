@@ -143,6 +143,25 @@ function extrairJson<T>(raw: string, fallback: T): T {
   }
 }
 
+// Assistente do contador via WhatsApp — recebe a pergunta + um resumo em
+// texto da base (clientes, agenda, Express pendente) e responde de forma
+// curta, adequada pra WhatsApp (sem markdown elaborado).
+export async function responderAssistenteAdmin(admin: Admin, pergunta: string, contextoSistema: string): Promise<string> {
+  return chatCompletion(
+    admin,
+    [
+      {
+        role: "system",
+        content:
+          PERSONA +
+          "\n\nVocê está respondendo pelo WhatsApp do contador (não é o cliente falando). Seja direto e conciso — poucas frases, sem markdown elaborado (pode usar *negrito* e listas simples com \"-\"). Use os dados do sistema abaixo pra responder; se a informação não estiver lá, diga que não encontrou — nunca invente nome, valor ou status de cliente.",
+      },
+      { role: "user", content: `Dados do sistema:\n${contextoSistema}\n\nPergunta do contador: ${pergunta}` },
+    ],
+    { temperature: 0.2, maxTokens: 500 }
+  );
+}
+
 export type SugestaoDiagnostico = { diagnosis: string; treatment: string };
 
 export async function sugerirDiagnostico(admin: Admin, cliente: ClienteContexto): Promise<SugestaoDiagnostico> {
