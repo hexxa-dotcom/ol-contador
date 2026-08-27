@@ -9,6 +9,7 @@ const APP_SECRET = process.env.WHATSAPP_APP_SECRET || "";
 const TEMPLATE_NAME = process.env.WHATSAPP_TEMPLATE_NAME || "";
 const TEMPLATE_LANG = process.env.WHATSAPP_TEMPLATE_LANG || "pt_BR";
 const ADMIN_TEMPLATE_NAME = process.env.WHATSAPP_ADMIN_TEMPLATE_NAME || "";
+const DIGEST_TEMPLATE_NAME = process.env.WHATSAPP_DIGEST_TEMPLATE_NAME || "";
 
 function whatsappConfigured() {
   return !!(ACCESS_TOKEN && PHONE_NUMBER_ID);
@@ -20,6 +21,10 @@ function templateConfigured() {
 
 function adminTemplateConfigured() {
   return whatsappConfigured() && !!ADMIN_TEMPLATE_NAME;
+}
+
+function digestTemplateConfigured() {
+  return whatsappConfigured() && !!DIGEST_TEMPLATE_NAME;
 }
 
 async function graphFetch(path: string, body: unknown) {
@@ -110,6 +115,27 @@ async function sendWhatsAppAdminTemplate(toPhone: string, params: { cliente: str
   });
 }
 
+// Resumo diário pro contador (agenda do dia + Express pendente) — template com
+// 1 variável de corpo livre (o texto do resumo já formatado).
+async function sendWhatsAppDigestTemplate(toPhone: string, texto: string) {
+  if (!digestTemplateConfigured() || !toPhone) return { skipped: true as const };
+  return graphFetch(`${PHONE_NUMBER_ID}/messages`, {
+    messaging_product: "whatsapp",
+    to: toPhone,
+    type: "template",
+    template: {
+      name: DIGEST_TEMPLATE_NAME,
+      language: { code: TEMPLATE_LANG },
+      components: [
+        {
+          type: "body",
+          parameters: [{ type: "text", text: texto.slice(0, 1000) }],
+        },
+      ],
+    },
+  });
+}
+
 // Mídia recebida (documento/imagem/áudio): a Meta manda só um media_id no
 // webhook — é preciso buscar a URL temporária e depois baixar o binário.
 async function downloadWhatsAppMedia(mediaId: string): Promise<{ ok: true; buffer: Buffer; mimeType: string } | { ok: false }> {
@@ -140,10 +166,12 @@ export {
   whatsappConfigured,
   templateConfigured,
   adminTemplateConfigured,
+  digestTemplateConfigured,
   sendWhatsAppText,
   sendWhatsAppAudio,
   sendWhatsAppTemplate,
   sendWhatsAppAdminTemplate,
+  sendWhatsAppDigestTemplate,
   downloadWhatsAppMedia,
   verifyWebhookSignature,
 };

@@ -4,8 +4,10 @@ import {
   whatsappConfigured as waConfigured,
   templateConfigured as waTemplateConfigured,
   adminTemplateConfigured as waAdminTemplateConfigured,
+  digestTemplateConfigured as waDigestTemplateConfigured,
   sendWhatsAppTemplate,
   sendWhatsAppAdminTemplate,
+  sendWhatsAppDigestTemplate,
 } from "./whatsapp";
 
 const RESEND_API_KEY = process.env.RESEND_API_KEY || "";
@@ -65,6 +67,20 @@ async function notifyAdminNovaSolicitacao(params: { cliente: string; servico: st
   return { ok: true, sid: result.messageId };
 }
 
+function digestWhatsappConfigured() {
+  return waDigestTemplateConfigured() && !!ADMIN_WHATSAPP_PHONE;
+}
+
+// Resumo diário pro contador — agenda do dia + Atendimento Express pendente,
+// disparado uma vez por dia pelo cron (src/app/api/cron/whatsapp-digest).
+async function notifyAdminResumoDiario(texto: string) {
+  if (!digestWhatsappConfigured()) return { skipped: true };
+  const result = await sendWhatsAppDigestTemplate(ADMIN_WHATSAPP_PHONE, texto);
+  if ("skipped" in result) return result;
+  if (!result.ok) return { ok: false, error: result.error };
+  return { ok: true, sid: result.messageId };
+}
+
 type ClienteNotify = { name?: string | null; email?: string | null; phone?: string | null; canal_resultado?: string | null };
 
 // Dispara em todos os canais disponíveis do cliente (e-mail + WhatsApp), não é
@@ -110,4 +126,14 @@ function anyConfigured() {
   return emailConfigured() || whatsappConfigured();
 }
 
-export { emailConfigured, whatsappConfigured, whatsappOutboundConfigured, anyConfigured, sendEmail, sendWhatsApp, notifyCliente, notifyAdminNovaSolicitacao };
+export {
+  emailConfigured,
+  whatsappConfigured,
+  whatsappOutboundConfigured,
+  anyConfigured,
+  sendEmail,
+  sendWhatsApp,
+  notifyCliente,
+  notifyAdminNovaSolicitacao,
+  notifyAdminResumoDiario,
+};
