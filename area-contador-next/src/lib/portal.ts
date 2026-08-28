@@ -124,6 +124,9 @@ export type PortalData = {
     estado: string | null;
     cep: string | null;
     atendimentoModalidade: string | null;
+    senhaDefinida: boolean;
+    contratadoEm: string | null;
+    prazoEstimadoConclusao: string | null;
   };
   contador: PortalContador;
   messages: PortalMessage[];
@@ -217,8 +220,8 @@ export async function loadPortalData(supabase: SupabaseClient<Database>, clientI
   limitDate.setDate(limitDate.getDate() + 60);
   const limitStr = limitDate.toISOString().slice(0, 10);
 
-  const [clientResult, messagesResult, appointmentsResult, triagensResult, documentsResult, mailResult, reportsResult, perfilResult, configResult, servicosResult, ocupadosResult, anexosResult, avaliacoesResult, expressResult, obrigacoesResult] = await Promise.all([
-    supabase.from("clientes").select("id,name,email,phone,tax_type,status,honorarios,recorrente,recorrente_tipo,onboarding_pendente,caixa_postal_novas,cpf,endereco,numero,bairro,cidade,estado,cep,atendimento_modalidade").eq("id", clientId).single(),
+  const [clientResult, messagesResult, appointmentsResult, triagensResult, documentsResult, mailResult, reportsResult, perfilResult, configResult, servicosResult, ocupadosResult, anexosResult, avaliacoesResult, expressResult, obrigacoesResult, cobrancaResult] = await Promise.all([
+    supabase.from("clientes").select("id,name,email,phone,tax_type,status,honorarios,recorrente,recorrente_tipo,onboarding_pendente,caixa_postal_novas,cpf,endereco,numero,bairro,cidade,estado,cep,atendimento_modalidade,senha_definida,prazo_estimado_conclusao").eq("id", clientId).single(),
     supabase.from("mensagens").select("id,sender,text,type,doc_name,duration,transcricao,time,created_at,read_at,seq").eq("cliente_id", clientId).order("seq", { ascending: true }).limit(200),
     supabase.from("agendamentos").select("id,date,time,status,tax_type").eq("cliente_ref", clientId).order("date", { ascending: false }).limit(50),
     // Só a triagem ativa (a mais recente ainda não arquivada) — igual ao
@@ -247,6 +250,10 @@ export async function loadPortalData(supabase: SupabaseClient<Database>, clientI
     // mas o catálogo em si (`obrigacoes`) é o mesmo pra todo mundo, então
     // sempre buscamos e filtramos depois pelo `client.recorrente`.
     supabase.from("obrigacoes").select("id,title,description,active,recurrence,day_of_month,month,keywords,reminder_days").eq("active", true),
+    // Data de contratação do atendimento agendado — o Express já tem isso em
+    // atendimentos_express.contratado_em; quem agenda reunião não tem um
+    // registro próprio, então usamos o pagamento mais recente como referência.
+    supabase.from("cobrancas").select("paid_at").eq("cliente_ref", clientId).eq("status", "paid").order("paid_at", { ascending: false }).limit(1).maybeSingle(),
   ]);
 
   if (clientResult.error || !clientResult.data) throw clientResult.error || new Error("client_not_found");
@@ -314,6 +321,9 @@ export async function loadPortalData(supabase: SupabaseClient<Database>, clientI
       estado: clientResult.data.estado,
       cep: clientResult.data.cep,
       atendimentoModalidade: clientResult.data.atendimento_modalidade,
+      senhaDefinida: Boolean(clientResult.data.senha_definida),
+      contratadoEm: cobrancaResult.data?.paid_at ?? null,
+      prazoEstimadoConclusao: clientResult.data.prazo_estimado_conclusao,
     },
     contador,
     messages,

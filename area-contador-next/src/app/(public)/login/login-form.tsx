@@ -2,7 +2,7 @@
 
 import { useEffect, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import { KeyRound, LockKeyhole, Mail } from "lucide-react";
+import { Eye, EyeOff, KeyRound, LockKeyhole, Mail } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import styles from "./login.module.css";
 
@@ -16,6 +16,7 @@ export function LoginForm({ papel }: { papel?: "cliente" | "contador" | null } =
   const [confirmation, setConfirmation] = useState("");
   const [success, setSuccess] = useState("");
   const [otpCode, setOtpCode] = useState("");
+  const [mostrarSenha, setMostrarSenha] = useState(false);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -169,7 +170,10 @@ export function LoginForm({ papel }: { papel?: "cliente" | "contador" | null } =
           <label htmlFor="login-password">{mode === "recovery" ? "Nova senha" : "Senha"}</label>
           <div className={styles.field}>
             <LockKeyhole size={16} />
-            <input id="login-password" className={styles.input} name="password" type="password" autoComplete={mode === "recovery" ? "new-password" : "current-password"} minLength={mode === "recovery" ? 8 : undefined} value={password} onChange={(event) => setPassword(event.target.value)} placeholder={mode === "recovery" ? "Mínimo de 8 caracteres" : "Digite sua senha"} required />
+            <input id="login-password" className={styles.input} name="password" type={mostrarSenha ? "text" : "password"} autoComplete={mode === "recovery" ? "new-password" : "current-password"} minLength={mode === "recovery" ? 8 : undefined} value={password} onChange={(event) => setPassword(event.target.value)} placeholder={mode === "recovery" ? "Mínimo de 8 caracteres" : "Digite sua senha"} required />
+            <button type="button" className={styles.eyeToggle} aria-label={mostrarSenha ? "Ocultar senha" : "Mostrar senha"} onClick={() => setMostrarSenha((v) => !v)}>
+              {mostrarSenha ? <EyeOff size={16} /> : <Eye size={16} />}
+            </button>
           </div>
         </div>
       )}
@@ -178,7 +182,10 @@ export function LoginForm({ papel }: { papel?: "cliente" | "contador" | null } =
           <label htmlFor="login-confirm">Confirmar nova senha</label>
           <div className={styles.field}>
             <LockKeyhole size={16} />
-            <input id="login-confirm" className={styles.input} type="password" autoComplete="new-password" minLength={8} value={confirmation} onChange={(event) => setConfirmation(event.target.value)} placeholder="Repita a nova senha" required />
+            <input id="login-confirm" className={styles.input} type={mostrarSenha ? "text" : "password"} autoComplete="new-password" minLength={8} value={confirmation} onChange={(event) => setConfirmation(event.target.value)} placeholder="Repita a nova senha" required />
+            <button type="button" className={styles.eyeToggle} aria-label={mostrarSenha ? "Ocultar senha" : "Mostrar senha"} onClick={() => setMostrarSenha((v) => !v)}>
+              {mostrarSenha ? <EyeOff size={16} /> : <Eye size={16} />}
+            </button>
           </div>
         </div>
       )}

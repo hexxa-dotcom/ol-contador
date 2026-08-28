@@ -2682,6 +2682,7 @@ const emptyDossier = (client: ClientRecord): ClientDossierInput => ({
   treatment: client.treatment || "",
   honorarios: Number(client.honorarios) || 0,
   notas: client.notas || "",
+  prazoEstimadoConclusao: client.prazo_estimado_conclusao || "",
   checklist:
     client.checklist &&
     typeof client.checklist === "object" &&
@@ -3778,6 +3779,23 @@ export function ClientesIntegralView({
                           })
                         }
                       />
+                    </label>
+
+                    <label>
+                      <span>Previsão de conclusão</span>
+                      <Input
+                        type="date"
+                        value={dossier.prazoEstimadoConclusao}
+                        onChange={(event) =>
+                          setDossier({
+                            ...dossier,
+                            prazoEstimadoConclusao: event.target.value,
+                          })
+                        }
+                      />
+                      <small className="dossier-field-hint">
+                        Aparece pro cliente na linha do tempo do portal. No Atendimento Express, sobrescreve o prazo automático de 24h/48h do plano quando o caso demorar mais.
+                      </small>
                     </label>
 
                     <div className="notes-card">

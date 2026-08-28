@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button, Input } from "@/components/ui/primitives";
-import { ShieldCheck, Undo2 } from "lucide-react";
+import { CalendarClock, Camera, CheckCircle2, ClipboardList, Mail, MessageCircle, ShieldCheck, Undo2 } from "lucide-react";
 import { SiteHeader, SiteFooter, useFunilSessao, registrarEventoFunil } from "@/components/site-shell";
 import { createClient as createBrowserClient } from "@/lib/supabase/client";
 import { validarCpfCnpj } from "@/lib/documento";
@@ -426,36 +426,57 @@ export function CheckoutClient() {
   const coberto = !!(creditoAplicado && creditoAplicado.valorCents >= pedido.precoCents);
 
   if (pronto) {
+    const primeiroNome = nome.trim().split(/\s+/)[0] || "";
+    const passos = pedido.modalidade === "sem_agendamento"
+      ? [
+          { Icon: ClipboardList, titulo: "Conte o que aconteceu", texto: "Responda uma triagem rápida e guiada — o rascunho fica salvo sozinho enquanto você preenche." },
+          { Icon: Camera, titulo: "Envie os documentos", texto: "Direto pelo celular, tirando foto ou anexando arquivo. Só o que você já tiver em mãos." },
+          { Icon: Mail, titulo: "Acompanhe o andamento", texto: "Avisamos por e-mail e pela sua área assim que houver qualquer novidade no seu caso." },
+        ]
+      : [
+          { Icon: ClipboardList, titulo: "Conte o que aconteceu", texto: "Responda uma triagem rápida antes da conversa — assim o contador já chega preparado." },
+          { Icon: CalendarClock, titulo: `${labelDia(pedido.dia!)} às ${pedido.hora}`, texto: "No horário marcado, o chat da sua área abre sozinho — sem link de vídeo, sem instalar nada." },
+          { Icon: MessageCircle, titulo: "Converse com o contador", texto: "Tudo fica registrado na sua área: histórico, orientações e o relatório final." },
+        ];
+
     return (
       <>
         <SiteHeader />
         <main className="public-shell">
           <div className="public-bloco public-pronto">
-            <div className="public-ok-selo">✓</div>
-            <h2>{pronto.pago ? "Pagamento confirmado!" : "Atendimento confirmado!"}</h2>
-            <p>
+            <div className="public-ok-selo">
+              <CheckCircle2 size={30} strokeWidth={2.2} />
+            </div>
+            <span className="public-pronto-eyebrow">{pronto.pago ? "Pagamento confirmado" : "Atendimento confirmado"}</span>
+            <h2>{primeiroNome ? `Prontinho, ${primeiroNome}!` : "Prontinho!"}</h2>
+            <p className="public-pronto-lead">
               {pedido.modalidade === "sem_agendamento" ? (
-                <>Recebemos seu Atendimento Express.</>
+                <>Seu <b>Atendimento Express</b> foi recebido. A partir de agora, é com a gente — e você acompanha cada passo pela sua área.</>
               ) : (
-                <>Seu atendimento está marcado para <b>{labelDia(pedido.dia!)} às {pedido.hora}</b>.</>
+                <>Seu atendimento está marcado para <b>{labelDia(pedido.dia!)} às {pedido.hora}</b>. Guarde esse horário — ele é só seu.</>
               )}
             </p>
 
-            <ol className="public-etapas-atendimento">
-              <li>Preencha a triagem contando o que está acontecendo.</li>
-              {pedido.modalidade === "sem_agendamento" ? (
-                <>
-                  <li>Envie os documentos direto pelo celular.</li>
-                  <li>Acompanhe pela sua área — avisamos por e-mail assim que tiver novidade.</li>
-                </>
-              ) : (
-                <li>No dia e horário marcado, conversamos por aqui mesmo, pelo chat da sua área — sem precisar de reunião por vídeo.</li>
-              )}
-            </ol>
+            <div className="public-pronto-passos">
+              <span className="public-pronto-passos-titulo">O que vem a seguir</span>
+              <ol className="public-passos-lista">
+                {passos.map((passo) => (
+                  <li key={passo.titulo} className="public-passo-item">
+                    <div className="public-passo-numero">
+                      <passo.Icon size={13} strokeWidth={2.4} />
+                    </div>
+                    <div className="public-passo-texto">
+                      <strong>{passo.titulo}</strong>
+                      <p>{passo.texto}</p>
+                    </div>
+                  </li>
+                ))}
+              </ol>
+            </div>
 
             {!prefereDepois ? (
               <>
-                <p className="public-ajuda">Vamos iniciar agora? Você entra direto, sem precisar de senha — lá dentro tem um passo rápido pra criar uma senha e facilitar sua próxima entrada.</p>
+                <p className="public-ajuda public-pronto-cta-ajuda">Vamos começar agora? Você entra direto, sem precisar de senha — lá dentro tem um passo rápido pra criar uma senha e facilitar sua próxima entrada.</p>
                 <Button className="public-btn-full" disabled={entrando} onClick={() => void iniciarAgora()}>
                   {entrando ? "Entrando…" : "Sim, iniciar atendimento agora"}
                 </Button>
@@ -464,9 +485,12 @@ export function CheckoutClient() {
                 </button>
               </>
             ) : (
-              <p className="public-ajuda">
-                Sem problema — mandamos um e-mail para <b>{pronto.email}</b> com o link de acesso. É só clicar nele quando quiser começar.
-              </p>
+              <div className="public-pronto-depois">
+                <Mail size={18} />
+                <p className="public-ajuda">
+                  Sem problema — mandamos um e-mail para <b>{pronto.email}</b> com o link de acesso. É só clicar nele quando quiser começar.
+                </p>
+              </div>
             )}
           </div>
         </main>

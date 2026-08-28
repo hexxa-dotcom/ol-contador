@@ -10,7 +10,8 @@ export type ClientRecord = Pick<Tables["clientes"]["Row"],
   "checklist" | "cidade" | "estado" | "sexo" | "diagnosis" | "treatment" |
   "regime_tributario" | "honorarios" | "evidences" | "cep" | "endereco" |
   "numero" | "bairro" | "perfil_operacional" | "recorrente_dia_venc" |
-  "canal_resultado" | "asaas_subscription_id" | "responsavel_id" | "arquivado_em"
+  "canal_resultado" | "asaas_subscription_id" | "responsavel_id" | "arquivado_em" |
+  "prazo_estimado_conclusao"
 >;
 
 export type ClientMessage = Pick<Tables["mensagens"]["Row"],
@@ -51,7 +52,7 @@ export async function loadClientsData(supabase: SupabaseClient<Database>): Promi
 
   const [clients, messages, triages, documents, history, guides] = await Promise.all([
     // Aumentado o limite de clientes para 2000 para suportar crescimento inicial
-    supabase.from("clientes").select("id,name,avatar,tax_type,cpf,status,email,phone,recorrente,recorrente_tipo,recorrente_dia_venc,asaas_subscription_id,created_at,ultimo_atendimento_finalizado_em,atendimento_modalidade,notas,checklist,cidade,estado,sexo,diagnosis,treatment,regime_tributario,honorarios,evidences,cep,endereco,numero,bairro,perfil_operacional,canal_resultado,responsavel_id,arquivado_em").order("name").limit(2000),
+    supabase.from("clientes").select("id,name,avatar,tax_type,cpf,status,email,phone,recorrente,recorrente_tipo,recorrente_dia_venc,asaas_subscription_id,created_at,ultimo_atendimento_finalizado_em,atendimento_modalidade,notas,checklist,cidade,estado,sexo,diagnosis,treatment,regime_tributario,honorarios,evidences,cep,endereco,numero,bairro,perfil_operacional,canal_resultado,responsavel_id,arquivado_em,prazo_estimado_conclusao").order("name").limit(2000),
     supabase.from("mensagens").select("id,cliente_id,sender,text,type,read_at,created_at,time,seq,doc_name,duration,transcricao,canal,wa_status").order("seq", { ascending: false }).limit(1000),
     supabase.from("triagens").select("id,cliente_ref,assunto,descricao,respostas,status,created_at,updated_at").order("created_at", { ascending: false }).limit(500),
     supabase.from("documentos").select("id,cliente_ref,file_name,mime,size_bytes,uploaded_by,created_at,checklist_item,ai_extracted").gte("created_at", limitStr).order("created_at", { ascending: false }).limit(500),

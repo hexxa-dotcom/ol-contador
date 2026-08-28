@@ -5,7 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import {
   Bell, CalendarDays, CheckCircle2, ChevronDown, ClipboardList, FolderOpen,
-  HelpCircle, History, House, Inbox, Landmark, Lock, LogOut, Menu, MessageCircle,
+  HelpCircle, History, House, Inbox, Landmark, Lock, LogOut, MoreHorizontal, MessageCircle,
   PanelLeftClose, PanelLeftOpen, UserRound, X,
 } from "lucide-react";
 import { Badge, Button } from "@/components/ui/primitives";
@@ -30,20 +30,25 @@ const PortalTriagemView = dynamic(() => import("@/components/client-views").then
 import type { PortalData } from "@/lib/portal";
 import { signOut } from "@/app/auth/actions";
 
-type NavItem = { id: string; label: string; icon: ElementType; badge?: number };
+type NavItem = { id: string; label: string; shortLabel?: string; icon: ElementType; badge?: number };
 
 export function ClientShell({ data }: { data: PortalData }) {
   const navItems: NavItem[] = [
     { id: "dashboard", label: "Início", icon: House },
-    { id: "atendimento", label: "Falar com Contador", icon: MessageCircle, badge: data.unreadMessages },
-    { id: "triagem", label: "O que você precisa", icon: ClipboardList, badge: !data.triagem || data.triagem.status !== "enviada" ? 1 : undefined },
+    { id: "atendimento", label: "Falar com Contador", shortLabel: "Contador", icon: MessageCircle, badge: data.unreadMessages },
+    { id: "triagem", label: "Meu Atendimento", shortLabel: "Atendimento", icon: ClipboardList, badge: !data.triagem || data.triagem.status !== "enviada" ? 1 : undefined },
     { id: "caixa-postal", label: "Mensagens", icon: Inbox, badge: data.unreadMail },
-    { id: "documentos", label: "Meus Documentos", icon: FolderOpen },
-    { id: "agendamento", label: "Agendar Horário", icon: CalendarDays },
-    { id: "radar", label: "Consultar CPF/CNPJ", icon: Landmark },
-    { id: "historico", label: "Histórico de Atendimentos", icon: History },
+    { id: "documentos", label: "Meus Documentos", shortLabel: "Documentos", icon: FolderOpen },
+    { id: "agendamento", label: "Agendar Horário", shortLabel: "Agenda", icon: CalendarDays },
+    { id: "radar", label: "Consultar CPF/CNPJ", shortLabel: "CPF/CNPJ", icon: Landmark },
+    { id: "historico", label: "Histórico de Atendimentos", shortLabel: "Histórico", icon: History },
   ];
   const allowedSections = new Set([...navItems.map((item) => item.id), "perfil", "faq"]);
+  // No menuzinho "Mais" (mobile), só entra quem NÃO tem atalho fixo na barra
+  // debaixo (Início, Contador, Documentos, Agenda já estão lá) — evita
+  // repetir os mesmos 4 botões e dá o dobro de espaço pros cards.
+  const idsNaBarraFixa = new Set(["dashboard", "atendimento", "documentos", "agendamento"]);
+  const navItemsMenuMais = navItems.filter((item) => !idsNaBarraFixa.has(item.id));
   // Onboarding obrigatório: cliente que acabou de pagar pela primeira vez
   // fica preso na triagem até enviá-la — mesmo comportamento do cliente.js
   // legado (entrarNaTriagemObrigatoria). Só "Sair com segurança" continua
@@ -90,7 +95,7 @@ export function ClientShell({ data }: { data: PortalData }) {
   }, []);
 
   useEffect(() => {
-    if (!accountMenuOpen && !notificationOpen) return;
+    if (!accountMenuOpen && !notificationOpen && !mobile) return;
     const closeOnOutsideClick = (event: MouseEvent) => {
       if (accountMenuOpen && !accountMenuRef.current?.contains(event.target as Node)) {
         setAccountMenuOpen(false);
@@ -103,6 +108,7 @@ export function ClientShell({ data }: { data: PortalData }) {
       if (event.key === "Escape") {
         setAccountMenuOpen(false);
         setNotificationOpen(false);
+        setMobile(false);
       }
     };
     document.addEventListener("mousedown", closeOnOutsideClick);
@@ -111,7 +117,7 @@ export function ClientShell({ data }: { data: PortalData }) {
       document.removeEventListener("mousedown", closeOnOutsideClick);
       document.removeEventListener("keydown", closeOnEscape);
     };
-  }, [accountMenuOpen, notificationOpen]);
+  }, [accountMenuOpen, notificationOpen, mobile]);
 
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout>;
@@ -193,6 +199,7 @@ export function ClientShell({ data }: { data: PortalData }) {
     >
       {mobile && <button className="mobile-overlay" aria-label="Fechar menu" onClick={() => setMobile(false)} />}
       <aside className={`sidebar ${collapsed ? "collapsed" : ""} ${mobile ? "mobile-open" : ""}`}>
+        {mobile && <div className="sidebar-sheet-handle" aria-hidden="true" />}
         <div className="sidebar-header">
           <button
             type="button"
@@ -207,7 +214,7 @@ export function ClientShell({ data }: { data: PortalData }) {
           {mobile && (
             <div className="sidebar-mobile-title-wrap">
               <Image src="/logo.svg" alt="Olá, Contador" width={26} height={27} priority />
-              <span className="sidebar-mobile-title">Menu</span>
+              <span className="sidebar-mobile-title">Mais opções</span>
             </div>
           )}
           {mobile && (
@@ -216,28 +223,77 @@ export function ClientShell({ data }: { data: PortalData }) {
             </Button>
           )}
         </div>
-        <nav>
-          {navItems.map(({ id, label, icon: Icon, badge }) => {
-            const bloqueado = onboardingPendente && id !== "triagem";
-            return (
-              <button
-                className={active === id ? "active" : ""}
-                key={id}
-                onClick={() => navigate(id)}
-                disabled={bloqueado}
-                title={bloqueado ? `${label} — disponível após enviar o pré-atendimento` : (collapsed && !mobile ? label : undefined)}
-                data-tooltip={collapsed && !mobile ? label : undefined}
-                aria-label={collapsed && !mobile ? label : undefined}
-                aria-current={active === id ? "page" : undefined}
-                aria-disabled={bloqueado}
-              >
-                {bloqueado ? <Lock size={18} strokeWidth={1.9} /> : <Icon size={21} strokeWidth={1.9} />}
-                {(!collapsed || mobile) && <span>{label}</span>}
-                {!bloqueado && typeof badge === "number" && badge > 0 && <Badge className="nav-count">{badge > 99 ? "99+" : badge}</Badge>}
+        {mobile ? (
+          <nav className="sidebar-mobile-grid">
+            {navItemsMenuMais.map(({ id, label, shortLabel, icon: Icon, badge }) => {
+              const bloqueado = onboardingPendente && id !== "triagem";
+              return (
+                <button
+                  className={active === id ? "active" : ""}
+                  key={id}
+                  onClick={() => navigate(id)}
+                  disabled={bloqueado}
+                  aria-label={label}
+                  aria-current={active === id ? "page" : undefined}
+                  aria-disabled={bloqueado}
+                >
+                  <span className="sidebar-mobile-grid-icon">
+                    {bloqueado ? <Lock size={19} strokeWidth={1.9} /> : <Icon size={19} strokeWidth={1.9} />}
+                    {!bloqueado && typeof badge === "number" && badge > 0 && <Badge className="nav-count">{badge > 99 ? "99+" : badge}</Badge>}
+                  </span>
+                  <span>{shortLabel || label}</span>
+                </button>
+              );
+            })}
+          </nav>
+        ) : (
+          <nav>
+            {navItems.map(({ id, label, icon: Icon, badge }) => {
+              const bloqueado = onboardingPendente && id !== "triagem";
+              return (
+                <button
+                  className={active === id ? "active" : ""}
+                  key={id}
+                  onClick={() => navigate(id)}
+                  disabled={bloqueado}
+                  title={bloqueado ? `${label} — disponível após enviar o pré-atendimento` : (collapsed ? label : undefined)}
+                  data-tooltip={collapsed ? label : undefined}
+                  aria-label={collapsed ? label : undefined}
+                  aria-current={active === id ? "page" : undefined}
+                  aria-disabled={bloqueado}
+                >
+                  {bloqueado ? <Lock size={18} strokeWidth={1.9} /> : <Icon size={21} strokeWidth={1.9} />}
+                  {!collapsed && <span>{label}</span>}
+                  {!bloqueado && typeof badge === "number" && badge > 0 && <Badge className="nav-count">{badge > 99 ? "99+" : badge}</Badge>}
+                </button>
+              );
+            })}
+          </nav>
+        )}
+        {/* No celular a topbar (com o menu da conta) some fora do Início —
+            então esse menuzinho de baixo é o único lugar pra Perfil, Ajuda e
+            Sair em qualquer outra tela. Ficam discretos, fora do grid de
+            cards, porque são ações secundárias (conta), não navegação. */}
+        {mobile && (
+          <div className="sidebar-mobile-extra">
+            <div className="sidebar-mobile-extra-row">
+              <button onClick={() => navigate("perfil")} disabled={onboardingPendente}>
+                <UserRound size={16} strokeWidth={1.9} />
+                <span>Meu perfil</span>
               </button>
-            );
-          })}
-        </nav>
+              <button onClick={() => navigate("faq")} disabled={onboardingPendente}>
+                <HelpCircle size={16} strokeWidth={1.9} />
+                <span>Ajuda</span>
+              </button>
+            </div>
+            <form action={signOut}>
+              <button className="danger" type="submit">
+                <LogOut size={16} strokeWidth={1.9} />
+                <span>Sair com segurança</span>
+              </button>
+            </form>
+          </div>
+        )}
       </aside>
       <main className="workspace">
         <header className="topbar">
@@ -376,6 +432,7 @@ export function ClientShell({ data }: { data: PortalData }) {
                 catalogo={data.triagemCatalogo}
                 regras={data.triagemRegras}
                 clientId={data.client.id}
+                senhaDefinida={data.client.senhaDefinida}
                 documents={data.documents}
                 appointments={data.appointments}
                 atendimentosExpress={data.atendimentosExpress}
@@ -429,7 +486,7 @@ export function ClientShell({ data }: { data: PortalData }) {
           disabled={onboardingPendente}
         >
           <MessageCircle size={20} />
-          <span>Suporte</span>
+          <span>Contador</span>
           {!onboardingPendente && data.unreadMessages > 0 && (
             <span className="bottom-nav-badge">
               {data.unreadMessages > 9 ? "9+" : data.unreadMessages}
@@ -451,10 +508,10 @@ export function ClientShell({ data }: { data: PortalData }) {
           type="button"
           className={`bottom-nav-item ${!["dashboard", "documentos", "atendimento", "agendamento"].includes(active) ? "active" : ""}`}
           onClick={() => setMobile(true)}
-          aria-label="Abrir menu completo"
+          aria-label="Mais opções"
         >
-          <Menu size={20} />
-          <span>Menu</span>
+          <MoreHorizontal size={20} />
+          <span>Mais</span>
         </button>
       </nav>
 

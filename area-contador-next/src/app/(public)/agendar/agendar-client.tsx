@@ -77,6 +77,8 @@ export function AgendarClient() {
   const [semPlano, setSemPlano] = useState<"nenhum" | "indisponivel" | null>(null);
   const [modalidade, setModalidade] = useState<"sem_agendamento" | "agendado">("sem_agendamento");
   const [relato, setRelato] = useState("");
+  const [assuntoItemId, setAssuntoItemId] = useState<string | null>(null);
+  const [trocandoServico, setTrocandoServico] = useState(false);
   const [dia, setDia] = useState<string | null>(null);
   const [hora, setHora] = useState<string | null>(null);
   const [alerta, setAlerta] = useState("");
@@ -125,6 +127,7 @@ export function AgendarClient() {
         setHora(salvo.hora || null);
         setModalidade(salvo.modalidade === "agendado" ? "agendado" : "sem_agendamento");
         if (salvo.assuntoTitulo) setRelato(salvo.assuntoTitulo);
+        if (salvo.assuntoId) setAssuntoItemId(salvo.assuntoId);
       }
     } catch {
       /* ignore */
@@ -138,13 +141,27 @@ export function AgendarClient() {
   const ocupadosNoDia = new Set((diaAtual && opcoes?.ocupados[diaAtual]) || []);
   const horarios = opcoes?.horarios || [];
 
+  const assuntoSelecionado = servico?.itens.find((item) => item.id === assuntoItemId) || null;
+
+  function trocarServico(novoId: string) {
+    setServicoId(novoId);
+    setAssuntoItemId(null);
+    setTrocandoServico(false);
+  }
+
   function continuar() {
     setAlerta("");
     if (!servico) return;
+    if (!assuntoItemId) {
+      setAlerta("Selecione, na lista, sobre o que se trata o seu caso.");
+      return;
+    }
     if (modalidade === "agendado" && (!diaAtual || !hora)) {
       setAlerta("Escolha um dia e um horário para continuar.");
       return;
     }
+
+    const tituloCombinado = [assuntoSelecionado?.titulo, relato.trim()].filter(Boolean).join(" — ");
 
     sessionStorage.setItem(
       CHAVE,
@@ -152,8 +169,8 @@ export function AgendarClient() {
         servicoId: servico.id,
         servicoNome: servico.name,
         precoCents: precoPorModalidade(servico, modalidade),
-        assuntoId: null,
-        assuntoTitulo: relato.trim(),
+        assuntoId: assuntoItemId,
+        assuntoTitulo: tituloCombinado,
         modalidade,
         dia: modalidade === "agendado" ? diaAtual : null,
         hora: modalidade === "agendado" ? hora : null,
@@ -202,12 +219,32 @@ export function AgendarClient() {
             <div className="public-resumo">
               <div className="public-resumo-topo">
                 <span>Plano escolhido</span>
-                <a href="/precos#planos">alterar</a>
+                <button type="button" className="public-link-credito" onClick={() => setTrocandoServico((v) => !v)}>
+                  {trocandoServico ? "fechar" : "trocar"}
+                </button>
               </div>
               <div className="public-resumo-linha">
                 <strong>{servico.name}</strong>
                 <span className="public-resumo-preco">{money(precoPorModalidade(servico, modalidade))}</span>
               </div>
+              {trocandoServico && (
+                <div className="public-servico-troca-lista">
+                  {(opcoes?.servicos || []).map((s) => (
+                    <button
+                      key={s.id}
+                      type="button"
+                      className={`public-servico-troca-item ${s.id === servico.id ? "selecionado" : ""}`}
+                      onClick={() => trocarServico(s.id)}
+                    >
+                      <span>{s.name}</span>
+                      <small>{money(s.price_cents)}</small>
+                    </button>
+                  ))}
+                  <a className="public-servico-troca-outro" href="/precos#planos">
+                    Não encontrei o meu caso — ver todos os planos
+                  </a>
+                </div>
+              )}
             </div>
 
             {/* PRÉVIA DO CASO */}
@@ -215,9 +252,25 @@ export function AgendarClient() {
               <span className="public-eyebrow">Etapa 1 · Prévia do que aconteceu</span>
               <h2>Conte uma prévia do seu caso</h2>
               <p className="public-ajuda">
-                Conte em poucas palavras o que está acontecendo. Esta é apenas uma <b>prévia inicial</b> para o contador entender o contexto — após a confirmação, na sua área do cliente, você poderá aprofundar os detalhes, anexar documentos e até gravar áudio.
+                Selecione o que mais se parece com a sua situação e, se quiser, complete com suas próprias palavras. Esta é só uma <b>prévia inicial</b> — depois da confirmação, na sua área do cliente, você discorre com mais detalhes sobre o atendimento.
               </p>
-              <div className="public-field" style={{ marginTop: "12px" }}>
+              <div className="public-field">
+                <label htmlFor="assunto-select">Qual é o problema inicial?</label>
+                <select
+                  id="assunto-select"
+                  className="public-select"
+                  style={{ width: "100%" }}
+                  value={assuntoItemId || ""}
+                  onChange={(e) => setAssuntoItemId(e.target.value || null)}
+                >
+                  <option value="" disabled>Selecione uma opção</option>
+                  {servico.itens.map((item) => (
+                    <option key={item.id} value={item.id}>{item.titulo}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="public-field" style={{ marginTop: "6px" }}>
+                <label htmlFor="relato-previa">Descreva brevemente com suas palavras (opcional)</label>
                 <textarea
                   id="relato-previa"
                   rows={3}

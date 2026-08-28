@@ -5,12 +5,12 @@ import { useRouter } from "next/navigation";
 import {
   AlertTriangle, ArrowLeft, ArrowRight, BadgeCheck, CalendarCheck, CalendarClock, CalendarPlus, Camera, Check, CheckCheck,
   CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, CircleAlert, ClipboardList, Copy, CreditCard, Download, Eye, EyeOff, FileCheck2, FileDown, FilePlus2,
-  FileText, HelpCircle, Inbox, KeyRound, Landmark, ListChecks, Lock, Mail, MapPin, MessageCircle, Mic, Phone, Play, QrCode, Search, Send, ShieldAlert, ShieldCheck, Sparkles, Square, Star, Trash2, Upload, UserRound, Volume2, X, Zap,
+  FileText, HelpCircle, History as HistoryIcon, Inbox, KeyRound, Landmark, ListChecks, Lock, Mail, MapPin, MessageCircle, Mic, Phone, Play, QrCode, Search, Send, ShieldAlert, ShieldCheck, Sparkles, Square, Star, Trash2, Upload, UserRound, Volume2, X, Zap,
 } from "lucide-react";
 import { Badge, Button, Card, EmptyState, Input } from "@/components/ui/primitives";
 import { PageTitle } from "@/components/views";
 import type { PortalAppointment, PortalAtendimentoExpress, PortalAvaliacao, PortalContador, PortalData, PortalDocument, PortalMailItem, PortalMessage, PortalObrigacao, PortalOcupado, PortalReport, PortalServico, PortalTriagem } from "@/lib/portal";
-import { attachTriagemAudio, getDocumentDownloadUrl, markMailRead, markPortalMessagesRead, saveTriagem, sendPortalAudioMessage, sendPortalMailMessage, sendPortalMessage, submitAvaliacao } from "@/app/portal/actions";
+import { attachTriagemAudio, getDocumentDownloadUrl, markMailRead, markPortalMessagesRead, marcarSenhaDefinida, saveTriagem, sendPortalAudioMessage, sendPortalMailMessage, sendPortalMessage, submitAvaliacao } from "@/app/portal/actions";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import { createClient as createBrowserClient } from "@/lib/supabase/client";
 import { acharAssunto, completude, type TriagemAssunto, type TriagemPergunta, type TriagemRegras } from "@/lib/triagemCatalogo";
@@ -249,7 +249,7 @@ function PortalProximaAcaoCard({ data, onNavigate }: { data: PortalData; onNavig
 // Porte 1:1 de montarLinhaDoTempo — duas listas de passos dependendo da
 // modalidade (Express: 4 passos; agendado: 5), com a primeira não-feita
 // marcada como "etapa atual".
-type PassoTimeline = { titulo: string; descricao: string; feito: boolean };
+type PassoTimeline = { titulo: string; descricao: string; feito: boolean; data?: string };
 
 function computeTimeline(data: PortalData): { passos: PassoTimeline[]; ativoIndex: number } {
   const semAgendamento = data.client.atendimentoModalidade === "sem_agendamento";
@@ -258,24 +258,66 @@ function computeTimeline(data: PortalData): { passos: PassoTimeline[]; ativoInde
   const apptFeito = data.appointments.some((a) => a.status === "done");
   const temRelatorio = data.reports.length > 0;
   const atendimentoExpress = data.atendimentosExpress.find((item) => item.status !== "concluido" && item.status !== "cancelado");
+  const relatorio = data.reports[0];
+  const dataEntrega = relatorio?.entregueEm ? formatDate(relatorio.entregueEm.slice(0, 10)) : null;
+  // Prazo definido manualmente pelo contador tem prioridade sobre o prazo
+  // automático do Express (24h/48h do plano) — existe justamente pra
+  // sobrescrever quando o caso demora mais que o padrão.
+  const prazoManual = data.client.prazoEstimadoConclusao ? formatDate(data.client.prazoEstimadoConclusao) : null;
 
   const passos: PassoTimeline[] = semAgendamento
     ? [
-        { titulo: "Serviço contratado", descricao: "Seu pagamento foi confirmado.", feito: true },
+        {
+          titulo: "Serviço contratado",
+          descricao: "Seu pagamento foi confirmado.",
+          feito: true,
+          data: atendimentoExpress ? formatDate(atendimentoExpress.contratadoEm.slice(0, 10)) : undefined,
+        },
         { titulo: "Triagem recebida", descricao: "Você contou o que aconteceu.", feito: Boolean(triagemEnviada) },
         {
           titulo: "Análise e execução",
           descricao: atendimentoExpress ? STATUS_EXPRESS_LABEL[atendimentoExpress.status] || "Em análise" : "Aguardando início da análise.",
           feito: atendimentoExpress ? ["em_execucao", "pronto_envio", "concluido"].includes(atendimentoExpress.status) : false,
         },
-        { titulo: "Resultado entregue", descricao: "Relatório disponível em Documentos.", feito: temRelatorio },
+        {
+          titulo: "Resultado entregue",
+          descricao: "Relatório disponível em Documentos.",
+          feito: temRelatorio,
+          data: temRelatorio
+            ? (dataEntrega ?? undefined)
+            : prazoManual
+              ? `previsão: ${prazoManual}`
+              : atendimentoExpress
+                ? `previsão: ${formatDate(atendimentoExpress.prazoConclusaoEm.slice(0, 10))}`
+                : undefined,
+        },
       ]
     : [
-        { titulo: "Serviço contratado", descricao: "Seu pagamento foi confirmado.", feito: true },
+        {
+          titulo: "Serviço contratado",
+          descricao: "Seu pagamento foi confirmado.",
+          feito: true,
+          data: data.client.contratadoEm ? formatDate(data.client.contratadoEm.slice(0, 10)) : undefined,
+        },
         { titulo: "Pré-atendimento", descricao: "Você contou o que aconteceu.", feito: Boolean(triagemEnviada) },
         { titulo: "Documentos", descricao: qtdDocs ? `${qtdDocs} documento(s) enviado(s).` : "Envie os documentos do seu caso.", feito: qtdDocs > 0 },
-        { titulo: "Atendimento", descricao: apptFeito ? "Atendimento realizado." : "Agende um horário para conversar.", feito: apptFeito },
-        { titulo: "Relatório entregue", descricao: "Relatório disponível em Documentos.", feito: temRelatorio },
+        (() => {
+          const proximo = apptFeito
+            ? [...data.appointments].filter((a) => a.status === "done").sort((a, b) => (b.date || "").localeCompare(a.date || ""))[0]
+            : data.appointments.find((a) => a.status !== "done" && a.status !== "cancelled" && a.date);
+          return {
+            titulo: "Atendimento",
+            descricao: apptFeito ? "Atendimento realizado." : proximo ? "Seu horário já está marcado." : "Agende um horário para conversar.",
+            feito: apptFeito,
+            data: proximo?.date ? `${formatDate(proximo.date)}${proximo.time ? ` às ${proximo.time}` : ""}` : undefined,
+          };
+        })(),
+        {
+          titulo: "Relatório entregue",
+          descricao: "Relatório disponível em Documentos.",
+          feito: temRelatorio,
+          data: temRelatorio ? (dataEntrega ?? undefined) : prazoManual ? `previsão: ${prazoManual}` : undefined,
+        },
       ];
 
   const ativoIndex = passos.findIndex((p) => !p.feito);
@@ -292,8 +334,8 @@ function PortalTimelineCard({ data }: { data: PortalData }) {
     <Card className={`portal-timeline-box ${semAgendamento ? "is-express" : ""}`}>
       <div className="portal-timeline-header">
         <div className="portal-timeline-header-left">
-          <h3 className="portal-timeline-title">Linha do tempo do seu caso</h3>
-          <span className="portal-timeline-subtitle">Acompanhe cada fase do diagnóstico contábil</span>
+          <h3 className="portal-timeline-title">Acompanhe seu caso em tempo real</h3>
+          <span className="portal-timeline-subtitle">Datas e status de cada etapa do seu atendimento</span>
         </div>
         <div className="portal-timeline-progress-badge">
           <span>{feitos} de {passos.length} etapas concluídas ({pct}%)</span>
@@ -316,7 +358,10 @@ function PortalTimelineCard({ data }: { data: PortalData }) {
                 {i < passos.length - 1 && <div className="portal-timeline-line" />}
               </div>
               <div className="portal-timeline-info">
-                <strong className="portal-timeline-step-title">{p.titulo}</strong>
+                <div className="portal-timeline-step-head">
+                  <strong className="portal-timeline-step-title">{p.titulo}</strong>
+                  {p.data && <span className="portal-timeline-step-date">{p.data}</span>}
+                </div>
                 <p className="portal-timeline-step-desc">{p.descricao}</p>
               </div>
             </div>
@@ -361,25 +406,30 @@ function PortalAgendaFiscalCard({ obrigacoes }: { obrigacoes: PortalObrigacao[] 
   );
 }
 
-// Porte 1:1 do card dispensável "criar senha" — é 100% client-side
-// (localStorage), sem coluna nem tabela nova. `null` = ainda não sabemos se
-// já foi dispensado (evita flash), decidido no primeiro efeito.
-function PortalCriarSenhaCard({ clientId }: { clientId: string }) {
-  const storageKey = `oc_senha_feita_${clientId}`;
-  const [show, setShow] = useState<boolean | null>(null);
+// Card dispensável "criar senha". `senhaDefinida` vem do banco
+// (clientes.senha_definida) — fonte de verdade real, não mais só um flag no
+// localStorage: assim, uma vez criada a senha, o card some pra sempre, em
+// qualquer aparelho ou navegador que o cliente use depois. O localStorage
+// ainda guarda só o "dispensar sem criar agora" (por aparelho, não é grave
+// repetir em outro dispositivo).
+function PortalCriarSenhaCard({ clientId, senhaDefinida }: { clientId: string; senhaDefinida: boolean }) {
+  const storageKey = `oc_senha_dispensada_${clientId}`;
+  const [dispensadoLocal, setDispensadoLocal] = useState<boolean | null>(null);
   const [senha, setSenha] = useState("");
+  const [mostrarSenha, setMostrarSenha] = useState(false);
   const [pending, startTransition] = useTransition();
   const [mensagem, setMensagem] = useState("");
+  const [criada, setCriada] = useState(false);
 
   useEffect(() => {
-    setShow(window.localStorage.getItem(storageKey) !== "true");
+    setDispensadoLocal(window.localStorage.getItem(storageKey) === "true");
   }, [storageKey]);
 
-  if (!show) return null;
+  if (senhaDefinida || dispensadoLocal || criada) return null;
 
   function dispensar() {
     window.localStorage.setItem(storageKey, "true");
-    setShow(false);
+    setDispensadoLocal(true);
   }
 
   function salvar() {
@@ -398,8 +448,9 @@ function PortalCriarSenhaCard({ clientId }: { clientId: string }) {
         setMensagem("Não foi possível criar a senha agora.");
         return;
       }
+      await marcarSenhaDefinida();
       setMensagem("Senha criada!");
-      window.setTimeout(dispensar, 1200);
+      window.setTimeout(() => setCriada(true), 1200);
     });
   }
 
@@ -416,20 +467,93 @@ function PortalCriarSenhaCard({ clientId }: { clientId: string }) {
       </div>
       <p>Hoje você entra só pelo link do e-mail. Com uma senha, fica mais rápido acessar depois.</p>
       <div className="criar-senha-form">
-        <Input
-          type="password"
-          value={senha}
-          onChange={(event) => setSenha(event.target.value)}
-          onKeyDown={(event) => {
-            if (event.key === "Enter") salvar();
-          }}
-          placeholder="Mínimo de 6 caracteres"
-        />
+        <div className="criar-senha-input-wrap">
+          <Input
+            type={mostrarSenha ? "text" : "password"}
+            value={senha}
+            onChange={(event) => setSenha(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") salvar();
+            }}
+            placeholder="Mínimo de 6 caracteres"
+          />
+          <button
+            type="button"
+            className="criar-senha-toggle-eye"
+            aria-label={mostrarSenha ? "Ocultar senha" : "Mostrar senha"}
+            onClick={() => setMostrarSenha((v) => !v)}
+          >
+            {mostrarSenha ? <EyeOff size={16} /> : <Eye size={16} />}
+          </button>
+        </div>
         <Button disabled={pending} onClick={salvar}>
           {pending ? "Salvando…" : "Criar senha"}
         </Button>
       </div>
       {mensagem && <small className="criar-senha-msg">{mensagem}</small>}
+    </Card>
+  );
+}
+
+// Atalhos pra seções que NÃO existem na barra inferior do celular (Início,
+// Documentos, Suporte e Agenda já estão lá) — evita repetir ali em cima o
+// que o cliente já alcança com uma navegação. Substitui o grid de 4 tiles
+// que duplicava a navegação principal.
+function PortalAtalhosCard({ data, onNavigate }: { data: PortalData; onNavigate: (id: string) => void }) {
+  const triagemPendente = data.triagem && data.triagem.status !== "enviada";
+  const atalhos = [
+    {
+      id: "triagem",
+      Icon: ClipboardList,
+      titulo: "Meu Atendimento",
+      desc: triagemPendente ? "Conte o que aconteceu" : "Ver o que você enviou",
+      badge: triagemPendente ? 1 : undefined,
+    },
+    {
+      id: "caixa-postal",
+      Icon: Inbox,
+      titulo: "Mensagens",
+      desc: data.unreadMail > 0 ? `${data.unreadMail} não lida${data.unreadMail > 1 ? "s" : ""}` : "Comunicados oficiais",
+      badge: data.unreadMail || undefined,
+    },
+    {
+      id: "radar",
+      Icon: Landmark,
+      titulo: "Consultar CPF/CNPJ",
+      desc: "Situação fiscal na hora",
+      badge: undefined,
+    },
+    {
+      id: "historico",
+      Icon: HistoryIcon,
+      titulo: "Histórico",
+      desc: "Atendimentos e relatórios",
+      badge: undefined,
+    },
+  ];
+
+  return (
+    <Card className="portal-atalhos-card">
+      <div className="card-heading">
+        <div>
+          <strong>Acesso Rápido</strong>
+        </div>
+      </div>
+      <div className="portal-atalhos-grid">
+        {atalhos.map(({ id, Icon, titulo, desc, badge }) => (
+          <button key={id} type="button" className="portal-atalho-item" onClick={() => onNavigate(id)}>
+            <div className="portal-atalho-icon">
+              <Icon size={18} />
+              {typeof badge === "number" && badge > 0 && <span className="portal-atalho-badge">{badge > 9 ? "9+" : badge}</span>}
+            </div>
+            <div className="portal-atalho-texto">
+              <strong>{titulo}</strong>
+              <span>{desc}</span>
+            </div>
+            <ChevronRight size={16} className="portal-atalho-arrow" />
+          </button>
+        ))}
+      </div>
     </Card>
   );
 }
@@ -441,14 +565,18 @@ function getSaudacao(): string {
   return "Boa noite";
 }
 
+// Mensagem de acolhimento dinâmica — reforça que o caso já está sendo
+// cuidado, com o tom mudando conforme o estágio real do atendimento em vez
+// de um texto genérico igual pra todo mundo.
+function textoAcolhimento(data: PortalData): string {
+  const relatorio = data.reports.find((r) => r.status === "entregue");
+  const triagemEnviada = data.triagem?.status === "enviada";
+  if (relatorio) return "Seu caso foi concluído. Se surgir qualquer dúvida sobre o relatório ou os próximos passos, é só chamar por aqui.";
+  if (triagemEnviada) return "Recebemos suas informações e já estamos cuidando do seu caso. Vamos te avisar assim que houver qualquer novidade.";
+  return "Estamos aqui pra cuidar da sua situação fiscal do início ao fim. Vamos com calma, passo a passo — você não precisa entender de contabilidade pra isso.";
+}
+
 export function PortalDashboardView({ data, onNavigate }: { data: PortalData; onNavigate: (id: string) => void }) {
-  const today = new Date().toISOString().slice(0, 10);
-  const proximo = data.appointments
-    .filter((item) => item.status !== "done" && item.status !== "cancelled" && item.date && item.date >= today)
-    .sort((a, b) => (a.date || "").localeCompare(b.date || ""))[0];
-  const expressAtivo = data.atendimentosExpress.find((item) => item.status !== "concluido" && item.status !== "cancelado");
-  const triagemPendente = data.triagem && data.triagem.status !== "enviada" ? data.triagem : null;
-  const ultimaMensagem = data.messages[data.messages.length - 1];
   const primeiroNome = data.client.name.split(" ")[0] || "Cliente";
   const saudacao = getSaudacao();
 
@@ -460,9 +588,7 @@ export function PortalDashboardView({ data, onNavigate }: { data: PortalData; on
           <h1 className="portal-hero-title">
             {saudacao}, <strong>{primeiroNome}</strong>.
           </h1>
-          <p className="portal-hero-desc">
-            Tudo pronto para cuidar da sua situação fiscal. Acompanhe abaixo o status em tempo real, suas mensagens e relatórios oficiais.
-          </p>
+          <p className="portal-hero-desc">{textoAcolhimento(data)}</p>
         </div>
         <div className="portal-hero-badge-wrap">
           <span className="portal-hero-kicker">Espaço do Cliente</span>
@@ -473,161 +599,13 @@ export function PortalDashboardView({ data, onNavigate }: { data: PortalData; on
       <PortalProximaAcaoCard data={data} onNavigate={onNavigate} />
 
       {/* CARD DE CRIAR SENHA (DISPENSÁVEL) */}
-      <PortalCriarSenhaCard clientId={data.client.id} />
-
-      {/* GRID DE CARDS PRINCIPAIS (4 COLUNAS / 2x2 NO TABLET/MOBILE) */}
-      <section className="portal-dashboard-section">
-        <div className="portal-tiles-grid">
-          {/* TILE 1: PRÓXIMO ATENDIMENTO OU EXPRESS */}
-          <button 
-            type="button" 
-            className={`portal-action-tile tile-agenda ${expressAtivo && !proximo ? "is-express" : ""}`}
-            onClick={() => onNavigate(expressAtivo && !proximo ? "triagem" : proximo ? "agendamento" : "agendamento")}
-          >
-            <div className="portal-tile-top">
-              <div className={`portal-tile-icon-box ${expressAtivo && !proximo ? "express" : "agenda"}`}>
-                {expressAtivo && !proximo ? <Zap size={20} /> : <CalendarClock size={20} />}
-              </div>
-              <span className={`portal-tile-tag ${expressAtivo && !proximo ? "express" : ""}`}>
-                {expressAtivo && !proximo ? "Express" : "Reunião"}
-              </span>
-            </div>
-            <div className="portal-tile-body">
-              <h3 className="portal-tile-title">
-                {expressAtivo && !proximo ? "Atendimento Express" : "Próximo Atendimento"}
-              </h3>
-              {proximo ? (
-                <div className="portal-tile-snippet">
-                  <strong>{formatDate(proximo.date)} às {proximo.time}</strong>
-                  <span>{proximo.taxType || "Atendimento agendado"}</span>
-                </div>
-              ) : expressAtivo ? (
-                <div className="portal-tile-snippet">
-                  <strong className="text-express">{STATUS_EXPRESS_LABEL[expressAtivo.status] || expressAtivo.status}</strong>
-                  <span>{expressAtivo.assunto || "Em andamento"} · previsão {formatDate(expressAtivo.prazoConclusaoEm.slice(0, 10))}</span>
-                </div>
-              ) : (
-                <div className="portal-tile-snippet empty">
-                  <span>Nenhum horário marcado</span>
-                </div>
-              )}
-            </div>
-            <div className="portal-tile-footer">
-              <span className="portal-tile-action-label">
-                {expressAtivo && !proximo ? "Acompanhar caso" : proximo ? "Ver agendamento" : "Agendar consultoria"}
-              </span>
-              <ChevronRight size={16} className="portal-tile-arrow" />
-            </div>
-          </button>
-
-          {/* TILE 2: PRÉ-ATENDIMENTO / TRIAGEM */}
-          <button 
-            type="button" 
-            className="portal-action-tile tile-triagem" 
-            onClick={() => onNavigate("triagem")}
-          >
-            <div className="portal-tile-top">
-              <div className="portal-tile-icon-box triagem">
-                <ClipboardList size={20} />
-              </div>
-              {triagemPendente ? (
-                <span className="portal-tile-badge pending">Pendente</span>
-              ) : (
-                <span className="portal-tile-badge ok">Enviado</span>
-              )}
-            </div>
-            <div className="portal-tile-body">
-              <h3 className="portal-tile-title">Pré-atendimento</h3>
-              {triagemPendente ? (
-                <div className="portal-tile-snippet">
-                  <strong>{triagemPendente.assunto ? nomeDoAssunto(data.triagemCatalogo, triagemPendente.assunto) : "Conte o que aconteceu"}</strong>
-                  <span>Responda as perguntas rápidas</span>
-                </div>
-              ) : (
-                <div className="portal-tile-snippet">
-                  <strong>Informações enviadas</strong>
-                  <span>Contador analisando seu caso</span>
-                </div>
-              )}
-            </div>
-            <div className="portal-tile-footer">
-              <span className="portal-tile-action-label">
-                {triagemPendente ? "Completar diagnóstico" : "Ver respostas"}
-              </span>
-              <ChevronRight size={16} className="portal-tile-arrow" />
-            </div>
-          </button>
-
-          {/* TILE 3: MENSAGENS / ATENDIMENTO */}
-          <button 
-            type="button" 
-            className="portal-action-tile tile-chat" 
-            onClick={() => onNavigate("atendimento")}
-          >
-            <div className="portal-tile-top">
-              <div className="portal-tile-icon-box chat">
-                <MessageCircle size={20} />
-              </div>
-              {data.unreadMessages > 0 ? (
-                <Badge className="portal-tile-counter">{data.unreadMessages} nova{data.unreadMessages > 1 ? "s" : ""}</Badge>
-              ) : (
-                <span className="portal-tile-tag">Canal Direto</span>
-              )}
-            </div>
-            <div className="portal-tile-body">
-              <h3 className="portal-tile-title">Mensagens & Chat</h3>
-              {ultimaMensagem ? (
-                <div className="portal-tile-snippet">
-                  <p className="portal-tile-msg-preview">
-                    {ultimaMensagem.text || (ultimaMensagem.type === "audio" ? "🎙️ Mensagem de áudio" : "📎 Anexo enviado")}
-                  </p>
-                  <span>{ultimaMensagem.createdAt ? formatDateTime(ultimaMensagem.createdAt) : ultimaMensagem.time || ""}</span>
-                </div>
-              ) : (
-                <div className="portal-tile-snippet empty">
-                  <span>Inicie uma conversa com seu contador</span>
-                </div>
-              )}
-            </div>
-            <div className="portal-tile-footer">
-              <span className="portal-tile-action-label">Abrir atendimento</span>
-              <ChevronRight size={16} className="portal-tile-arrow" />
-            </div>
-          </button>
-
-          {/* TILE 4: CAIXA POSTAL & DOCUMENTOS */}
-          <button 
-            type="button" 
-            className="portal-action-tile tile-docs" 
-            onClick={() => onNavigate(data.unreadMail > 0 ? "caixa-postal" : "documentos")}
-          >
-            <div className="portal-tile-top">
-              <div className="portal-tile-icon-box docs">
-                <Inbox size={20} />
-              </div>
-              {data.unreadMail > 0 ? (
-                <Badge className="portal-tile-counter">{data.unreadMail} não lida{data.unreadMail > 1 ? "s" : ""}</Badge>
-              ) : (
-                <span className="portal-tile-tag">{data.documents.length} doc{data.documents.length !== 1 ? "s" : ""}</span>
-              )}
-            </div>
-            <div className="portal-tile-body">
-              <h3 className="portal-tile-title">Documentos & Avisos</h3>
-              <div className="portal-tile-snippet">
-                <strong>{data.reports.length} relatório(s) oficial(is)</strong>
-                <span>{data.mailbox.length} comunicado(s) na Caixa Postal</span>
-              </div>
-            </div>
-            <div className="portal-tile-footer">
-              <span className="portal-tile-action-label">Acessar documentos</span>
-              <ChevronRight size={16} className="portal-tile-arrow" />
-            </div>
-          </button>
-        </div>
-      </section>
+      <PortalCriarSenhaCard clientId={data.client.id} senhaDefinida={data.client.senhaDefinida} />
 
       {/* LINHA DO TEMPO DO ATENDIMENTO */}
       <PortalTimelineCard data={data} />
+
+      {/* ATALHOS — só o que não está na barra inferior do celular */}
+      <PortalAtalhosCard data={data} onNavigate={onNavigate} />
 
       {/* AGENDA FISCAL (SE HOUVER OBRIGAÇÕES) */}
       <PortalAgendaFiscalCard obrigacoes={data.agendaFiscal} />
@@ -2179,6 +2157,7 @@ export function PortalTriagemView({
   catalogo,
   regras,
   clientId,
+  senhaDefinida,
   documents: initialDocuments,
   appointments,
   atendimentosExpress = [],
@@ -2188,6 +2167,7 @@ export function PortalTriagemView({
   catalogo: TriagemAssunto[];
   regras: TriagemRegras;
   clientId: string;
+  senhaDefinida: boolean;
   documents: PortalDocument[];
   appointments: PortalAppointment[];
   atendimentosExpress?: PortalAtendimentoExpress[];
@@ -2410,18 +2390,61 @@ export function PortalTriagemView({
   return (
     <div className="view-stack">
       <PageTitle
-        title={isExpress ? "Atendimento Express · Envio de Documentos" : "Pré-atendimento & Diagnóstico"}
+        title={isExpress ? "Meu Atendimento · Envio de Documentos" : "Meu Atendimento"}
         description={
           isExpress
             ? "Como você escolheu o Atendimento Express, não é necessária reunião ao vivo. Preencha as informações e anexe os comprovantes para o contador executar o serviço diretamente."
             : "Conte o que aconteceu antes do seu atendimento. Quanto mais o contador souber antes, mais ágil e precisa será sua orientação."
         }
       />
+      <p className="triagem-sigilo-aviso">
+        <ShieldAlert size={14} />
+        <span>Suas informações são confidenciais e protegidas por sigilo profissional.</span>
+      </p>
+
+      {/* BARRA DE PROGRESSO E ENVIO — fixa no topo (não mais flutuando no
+          fim da página) pra acompanhar a porcentagem conforme preenche, sem
+          precisar rolar até embaixo pra ver o quanto falta ou pra enviar. */}
+      {!mostrarResumo && (
+        <div className="triagem-floating-bar">
+          <div className="triagem-progress-block">
+            <div className="triagem-progress-header">
+              <span className="triagem-progress-label">{medidorTexto}</span>
+              <strong className="triagem-progress-pct">{pct}% concluído</strong>
+            </div>
+            <div className="triagem-progress-track">
+              <div className="triagem-progress-fill" style={{ width: `${pct}%` }} />
+            </div>
+          </div>
+
+          <div className="triagem-submit-actions">
+            {salvo && <span className="triagem-autosave-tag">{salvo}</span>}
+            <Button
+              className="portal-agenda-confirm-btn triagem-submit-btn"
+              disabled={enviando}
+              onClick={enviar}
+            >
+              <span>
+                {enviando
+                  ? "Enviando…"
+                  : status === "enviada"
+                  ? isExpress
+                    ? "Atualizar Documentos Express"
+                    : "Atualizar Diagnóstico"
+                  : isExpress
+                  ? "Enviar para Execução Express"
+                  : "Enviar para o Contador"}
+              </span>
+              <ArrowRight size={15} />
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* CARD DE CRIAR SENHA (DISPENSÁVEL) — quem entra direto na triagem
           pelo link automático do pagamento não passa pelo dashboard, então
           precisa ver esse aviso aqui também. */}
-      <PortalCriarSenhaCard clientId={clientId} />
+      <PortalCriarSenhaCard clientId={clientId} senhaDefinida={senhaDefinida} />
 
       {/* BANNER DE MODALIDADE CONTEXTUAL */}
       {isExpress ? (
@@ -2541,24 +2564,17 @@ export function PortalTriagemView({
               </div>
             </div>
 
-            <div className="triagem-assuntos-grid">
+            <select
+              className="triagem-assunto-select"
+              value={assuntoId || ""}
+              onChange={(event) => setAssuntoId(event.target.value || null)}
+            >
+              <option value="" disabled>Selecione uma opção</option>
               {catalogo.map((item) => (
-                <button
-                  key={item.id}
-                  type="button"
-                  className={`triagem-assunto-card ${assuntoId === item.id ? "selecionado" : ""}`}
-                  onClick={() => setAssuntoId(item.id)}
-                >
-                  <div className="triagem-assunto-card-body">
-                    <strong className="triagem-assunto-title">{item.titulo}</strong>
-                    <span className="triagem-assunto-desc">{item.resumo}</span>
-                  </div>
-                  <div className={`portal-choice-radio ${assuntoId === item.id ? "checked" : ""}`}>
-                    {assuntoId === item.id && <Check size={12} />}
-                  </div>
-                </button>
+                <option key={item.id} value={item.id}>{item.titulo}</option>
               ))}
-            </div>
+            </select>
+            {assunto && <p className="triagem-assunto-resumo">{assunto.resumo}</p>}
           </Card>
 
           {assunto && (
@@ -2719,41 +2735,6 @@ export function PortalTriagemView({
                   })}
                 </div>
               </Card>
-
-              {/* BARRA FLUTUANTE DE COMPLETUDE E ENVIO */}
-              <div className="triagem-floating-bar">
-                <div className="triagem-progress-block">
-                  <div className="triagem-progress-header">
-                    <span className="triagem-progress-label">{medidorTexto}</span>
-                    <strong className="triagem-progress-pct">{pct}% concluído</strong>
-                  </div>
-                  <div className="triagem-progress-track">
-                    <div className="triagem-progress-fill" style={{ width: `${pct}%` }} />
-                  </div>
-                </div>
-
-                <div className="triagem-submit-actions">
-                  {salvo && <span className="triagem-autosave-tag">{salvo}</span>}
-                  <Button
-                    className="portal-agenda-confirm-btn triagem-submit-btn"
-                    disabled={enviando}
-                    onClick={enviar}
-                  >
-                    <span>
-                      {enviando
-                        ? "Enviando…"
-                        : status === "enviada"
-                        ? isExpress
-                          ? "Atualizar Documentos Express"
-                          : "Atualizar Diagnóstico"
-                        : isExpress
-                        ? "Enviar para Execução Express"
-                        : "Enviar para o Contador"}
-                    </span>
-                    <ArrowRight size={15} />
-                  </Button>
-                </div>
-              </div>
             </>
           )}
         </>

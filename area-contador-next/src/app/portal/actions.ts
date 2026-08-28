@@ -16,6 +16,17 @@ async function requirePortalClient() {
   return { supabase, clientId: client.id };
 }
 
+// Chamado depois de um updateUser({password}) bem-sucedido no navegador —
+// grava de verdade que o cliente já tem senha, pra não depender só do
+// localStorage (que reseta a cada aparelho/navegador novo).
+export async function marcarSenhaDefinida() {
+  const ctx = await requirePortalClient();
+  if (!ctx) return { ok: false as const };
+  await ctx.supabase.from("clientes").update({ senha_definida: true }).eq("id", ctx.clientId);
+  revalidatePath("/portal");
+  return { ok: true as const };
+}
+
 export async function getDocumentDownloadUrl(documentId: number) {
   const ctx = await requirePortalClient();
   if (!ctx) return { ok: false as const, message: "Sessão expirada." };

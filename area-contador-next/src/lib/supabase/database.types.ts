@@ -454,6 +454,7 @@ export type Database = {
           onboarding_pendente: boolean
           perfil_operacional: Json
           phone: string | null
+          prazo_estimado_conclusao: string | null
           recorrente: boolean | null
           recorrente_dia_venc: number | null
           recorrente_tipo: string | null
@@ -462,6 +463,7 @@ export type Database = {
           responsavel_id: string | null
           scheduled_time: string | null
           sem_agendamento_recebido_em: string | null
+          senha_definida: boolean
           sexo: string | null
           status: string | null
           tax_type: string | null
@@ -496,6 +498,7 @@ export type Database = {
           onboarding_pendente?: boolean
           perfil_operacional?: Json
           phone?: string | null
+          prazo_estimado_conclusao?: string | null
           recorrente?: boolean | null
           recorrente_dia_venc?: number | null
           recorrente_tipo?: string | null
@@ -504,6 +507,7 @@ export type Database = {
           responsavel_id?: string | null
           scheduled_time?: string | null
           sem_agendamento_recebido_em?: string | null
+          senha_definida?: boolean
           sexo?: string | null
           status?: string | null
           tax_type?: string | null
@@ -538,6 +542,7 @@ export type Database = {
           onboarding_pendente?: boolean
           perfil_operacional?: Json
           phone?: string | null
+          prazo_estimado_conclusao?: string | null
           recorrente?: boolean | null
           recorrente_dia_venc?: number | null
           recorrente_tipo?: string | null
@@ -546,6 +551,7 @@ export type Database = {
           responsavel_id?: string | null
           scheduled_time?: string | null
           sem_agendamento_recebido_em?: string | null
+          senha_definida?: boolean
           sexo?: string | null
           status?: string | null
           tax_type?: string | null
