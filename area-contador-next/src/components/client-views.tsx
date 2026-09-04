@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, useTransition, type ChangeEvent, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
+import { AnimatePresence, motion } from "framer-motion";
 import {
   AlertTriangle, ArrowLeft, ArrowRight, BadgeCheck, CalendarCheck, CalendarClock, CalendarPlus, Camera, Check, CheckCheck,
   CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, CircleAlert, ClipboardList, Copy, CreditCard, Download, Eye, EyeOff, FileCheck2, FileDown, FilePlus2,
@@ -1801,11 +1802,24 @@ export function PortalAgendaView({
         />
         <div className="portal-checkout-wrap">
           <Card className="portal-checkout-card">
+            <AnimatePresence mode="wait">
             {pago ? (
-              <div className="portal-checkout-success">
-                <div className="portal-checkout-success-icon">
+              <motion.div
+                key="checkout-success"
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.24, ease: [0.16, 1, 0.3, 1] }}
+                className="portal-checkout-success"
+              >
+                <motion.div
+                  className="portal-checkout-success-icon"
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1], delay: 0.05 }}
+                >
                   <CheckCheck size={28} />
-                </div>
+                </motion.div>
                 <h3 className="portal-checkout-success-title">Agendamento Confirmado com Sucesso!</h3>
                 <p className="portal-checkout-success-desc">
                   <strong>{resultado.servico?.name}</strong> agendado para <strong>{formatDate(diaAtual)}</strong> às <strong>{horaAtual}</strong>.
@@ -1813,9 +1827,16 @@ export function PortalAgendaView({
                 <div className="portal-checkout-success-box">
                   <p>Você pode acessar a sala de atendimento pelo Chat quando chegar a data e horário marcados.</p>
                 </div>
-              </div>
+              </motion.div>
             ) : (
-              <div className="portal-checkout-pending">
+              <motion.div
+                key="checkout-pending"
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.24, ease: [0.16, 1, 0.3, 1] }}
+                className="portal-checkout-pending"
+              >
                 <div className="portal-checkout-summary">
                   <div className="portal-checkout-service-pill">
                     <span>{resultado.servico?.name}</span>
@@ -1856,8 +1877,9 @@ export function PortalAgendaView({
                   <div className="portal-checkout-ticker-dot" />
                   <span>Aguardando confirmação bancária em tempo real…</span>
                 </div>
-              </div>
+              </motion.div>
             )}
+            </AnimatePresence>
             <div className="portal-checkout-actions">
               <Button className="secondary" onClick={() => { setResultado(null); setPago(false); }}>
                 {pago ? "Agendar outro horário" : "Voltar e escolher outro horário"}
@@ -2506,7 +2528,15 @@ export function PortalTriagemView({
         </Card>
       )}
 
+      <AnimatePresence mode="wait">
       {mostrarResumo ? (
+        <motion.div
+          key="triagem-resumo"
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -8 }}
+          transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+        >
         <Card className="triagem-resumo-card">
           <div className="triagem-resumo-topo">
             <div>
@@ -2548,8 +2578,15 @@ export function PortalTriagemView({
             </div>
           )}
         </Card>
+        </motion.div>
       ) : (
-        <>
+        <motion.div
+          key="triagem-form"
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -8 }}
+          transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+        >
           {/* PASSO 1: SELEÇÃO DE ASSUNTO */}
           <Card className="portal-agenda-card">
             <div className="portal-agenda-step-header">
@@ -2737,8 +2774,9 @@ export function PortalTriagemView({
               </Card>
             </>
           )}
-        </>
+        </motion.div>
       )}
+      </AnimatePresence>
     </div>
   );
 }
@@ -3855,6 +3893,16 @@ export function PortalFaqView({ onNavigate }: { onNavigate?: (view: string) => v
   const [busca, setBusca] = useState("");
   const [categoriaAtiva, setCategoriaAtiva] = useState<string>("todos");
   const termo = normalizarBusca(busca.trim());
+  const [itensAbertos, setItensAbertos] = useState<Set<string>>(new Set());
+
+  function toggleItem(chave: string) {
+    setItensAbertos((atual) => {
+      const proximo = new Set(atual);
+      if (proximo.has(chave)) proximo.delete(chave);
+      else proximo.add(chave);
+      return proximo;
+    });
+  }
 
   function bate(texto: string) {
     return normalizarBusca(texto).includes(termo);
@@ -3951,19 +3999,40 @@ export function PortalFaqView({ onNavigate }: { onNavigate?: (view: string) => v
               </div>
 
               <div className="portal-faq-items-list">
-                {grupo.itens.map((item) => (
-                  <details key={item.pergunta} className="portal-faq-accordion-item" open={Boolean(termo)}>
-                    <summary className="portal-faq-accordion-summary">
-                      <span className="portal-faq-question-text">{item.pergunta}</span>
-                      <div className="portal-faq-chevron-wrap">
-                        <ChevronDown size={17} />
-                      </div>
-                    </summary>
-                    <div className="portal-faq-accordion-content">
-                      <div className="portal-faq-answer-body">{item.resposta}</div>
+                {grupo.itens.map((item) => {
+                  const chave = `${grupo.titulo}::${item.pergunta}`;
+                  const aberto = Boolean(termo) || itensAbertos.has(chave);
+                  return (
+                    <div key={item.pergunta} className={`portal-faq-accordion-item ${aberto ? "is-open" : ""}`}>
+                      <button
+                        type="button"
+                        className="portal-faq-accordion-summary"
+                        onClick={() => toggleItem(chave)}
+                        aria-expanded={aberto}
+                      >
+                        <span className="portal-faq-question-text">{item.pergunta}</span>
+                        <div className="portal-faq-chevron-wrap">
+                          <ChevronDown size={17} />
+                        </div>
+                      </button>
+                      <AnimatePresence initial={false}>
+                        {aberto && (
+                          <motion.div
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: "auto", opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+                            className="portal-faq-accordion-content-motion"
+                          >
+                            <div className="portal-faq-accordion-content">
+                              <div className="portal-faq-answer-body">{item.resposta}</div>
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
                     </div>
-                  </details>
-                ))}
+                  );
+                })}
               </div>
             </Card>
           ))}

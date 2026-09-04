@@ -9,6 +9,7 @@ import {
   PanelLeftClose, PanelLeftOpen, UserRound, X,
 } from "lucide-react";
 import { Badge, Button } from "@/components/ui/primitives";
+import { AnimatePresence, motion } from "framer-motion";
 import dynamic from "next/dynamic";
 
 const LoadingFallback = () => (
@@ -324,42 +325,53 @@ export function ClientShell({ data }: { data: PortalData }) {
                 <Bell size={18} />
                 {!onboardingPendente && notificationCount > 0 && <span className="top-notification-count">{notificationCount > 99 ? "99+" : notificationCount}</span>}
               </Button>
-              {notificationOpen && (
-                <div className="notification-popover" role="dialog" aria-label="Notificações recentes">
-                  <div className="popover-title">
-                    <div>
-                      <strong>Notificações</strong>
-                      <small>{notificationCount ? `${notificationCount} não lida${notificationCount === 1 ? "" : "s"}` : "Tudo em dia"}</small>
+              <AnimatePresence>
+                {notificationOpen && (
+                  <motion.div
+                    key="notification-popover"
+                    className="notification-popover"
+                    role="dialog"
+                    aria-label="Notificações recentes"
+                    initial={{ opacity: 0, y: -4, scale: 0.98 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: -4, scale: 0.98 }}
+                    transition={{ duration: 0.18, ease: [0.2, 0.8, 0.2, 1] }}
+                  >
+                    <div className="popover-title">
+                      <div>
+                        <strong>Notificações</strong>
+                        <small>{notificationCount ? `${notificationCount} não lida${notificationCount === 1 ? "" : "s"}` : "Tudo em dia"}</small>
+                      </div>
+                      <Badge>{clientNotifications.length}</Badge>
                     </div>
-                    <Badge>{clientNotifications.length}</Badge>
-                  </div>
-                  <div className="notification-list">
-                    {clientNotifications.length > 0 ? (
-                      clientNotifications.slice(0, 5).map((item) => (
-                        <button
-                          key={item.id}
-                          onClick={() => {
-                            navigate(item.target);
-                            setNotificationOpen(false);
-                          }}
-                          className={item.unread ? "unread" : ""}
-                        >
-                          <span className="notification-dot" />
-                          <span>
-                            <strong>{item.text}</strong>
-                            {item.time && <small>{item.time}</small>}
-                          </span>
-                        </button>
-                      ))
-                    ) : (
-                      <div className="notification-empty">Nenhuma notificação recente.</div>
-                    )}
-                  </div>
-                  <button className="popover-footer" onClick={() => { navigate("caixa-postal"); setNotificationOpen(false); }}>
-                    Ver mensagens e comunicados <ChevronDown size={15} />
-                  </button>
-                </div>
-              )}
+                    <div className="notification-list">
+                      {clientNotifications.length > 0 ? (
+                        clientNotifications.slice(0, 5).map((item) => (
+                          <button
+                            key={item.id}
+                            onClick={() => {
+                              navigate(item.target);
+                              setNotificationOpen(false);
+                            }}
+                            className={item.unread ? "unread" : ""}
+                          >
+                            <span className="notification-dot" />
+                            <span>
+                              <strong>{item.text}</strong>
+                              {item.time && <small>{item.time}</small>}
+                            </span>
+                          </button>
+                        ))
+                      ) : (
+                        <div className="notification-empty">Nenhuma notificação recente.</div>
+                      )}
+                    </div>
+                    <button className="popover-footer" onClick={() => { navigate("caixa-postal"); setNotificationOpen(false); }}>
+                      Ver mensagens e comunicados <ChevronDown size={15} />
+                    </button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
             <div className="account-menu-wrap" ref={accountMenuRef}>
               <button className="account-glass" onClick={() => setAccountMenuOpen((value) => !value)} aria-label={`Abrir menu de ${data.client.name}`} aria-expanded={accountMenuOpen} aria-controls="account-popover">
@@ -370,38 +382,49 @@ export function ClientShell({ data }: { data: PortalData }) {
                 </div>
                 <ChevronDown className={accountMenuOpen ? "rotated" : ""} size={15} />
               </button>
-              {accountMenuOpen && (
-                <div className="account-popover" id="account-popover" role="menu">
-                  <div className="account-popover-head">
-                    <strong>{data.client.name}</strong>
-                    <small>{data.client.email}</small>
-                  </div>
-                  <button role="menuitem" onClick={() => navigate("perfil")} disabled={onboardingPendente}>
-                    <UserRound size={16} />
-                    <span>Meu perfil</span>
-                  </button>
-                  <button role="menuitem" onClick={() => navigate("faq")} disabled={onboardingPendente}>
-                    <HelpCircle size={16} />
-                    <span>Ajuda</span>
-                  </button>
-                  <div className="account-menu-separator" />
-                  <div className="account-menu-font-size" role="group" aria-label="Tamanho do texto">
-                    <span>Tamanho do texto</span>
-                    <div className="account-menu-font-buttons">
-                      <button type="button" aria-label="Texto normal" aria-pressed={fontScale === 1} onClick={() => ajustarFontScale(1)}>A</button>
-                      <button type="button" aria-label="Texto grande" aria-pressed={fontScale === 1.15} onClick={() => ajustarFontScale(1.15)}>A+</button>
-                      <button type="button" aria-label="Texto extra grande" aria-pressed={fontScale === 1.3} onClick={() => ajustarFontScale(1.3)}>A++</button>
+              <AnimatePresence>
+                {accountMenuOpen && (
+                  <motion.div
+                    key="account-popover"
+                    className="account-popover"
+                    id="account-popover"
+                    role="menu"
+                    initial={{ opacity: 0, y: -4, scale: 0.98 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: -4, scale: 0.98 }}
+                    transition={{ duration: 0.14, ease: [0, 0, 0.58, 1] }}
+                  >
+                    <div className="account-popover-head">
+                      <strong>{data.client.name}</strong>
+                      <small>{data.client.email}</small>
                     </div>
-                  </div>
-                  <div className="account-menu-separator" />
-                  <form action={signOut}>
-                    <button className="danger" role="menuitem" type="submit">
-                      <LogOut size={16} />
-                      <span>Sair com segurança</span>
+                    <button role="menuitem" onClick={() => navigate("perfil")} disabled={onboardingPendente}>
+                      <UserRound size={16} />
+                      <span>Meu perfil</span>
                     </button>
-                  </form>
-                </div>
-              )}
+                    <button role="menuitem" onClick={() => navigate("faq")} disabled={onboardingPendente}>
+                      <HelpCircle size={16} />
+                      <span>Ajuda</span>
+                    </button>
+                    <div className="account-menu-separator" />
+                    <div className="account-menu-font-size" role="group" aria-label="Tamanho do texto">
+                      <span>Tamanho do texto</span>
+                      <div className="account-menu-font-buttons">
+                        <button type="button" aria-label="Texto normal" aria-pressed={fontScale === 1} onClick={() => ajustarFontScale(1)}>A</button>
+                        <button type="button" aria-label="Texto grande" aria-pressed={fontScale === 1.15} onClick={() => ajustarFontScale(1.15)}>A+</button>
+                        <button type="button" aria-label="Texto extra grande" aria-pressed={fontScale === 1.3} onClick={() => ajustarFontScale(1.3)}>A++</button>
+                      </div>
+                    </div>
+                    <div className="account-menu-separator" />
+                    <form action={signOut}>
+                      <button className="danger" role="menuitem" type="submit">
+                        <LogOut size={16} />
+                        <span>Sair com segurança</span>
+                      </button>
+                    </form>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           </div>
         </header>
@@ -515,15 +538,25 @@ export function ClientShell({ data }: { data: PortalData }) {
         </button>
       </nav>
 
-      {feedback && (
-        <div className="action-toast" role="status">
-          <CheckCircle2 size={17} />
-          <span>{feedback}</span>
-          <button aria-label="Fechar aviso" onClick={() => setFeedback("")}>
-            <X size={15} />
-          </button>
-        </div>
-      )}
+      <AnimatePresence>
+        {feedback && (
+          <motion.div
+            key="action-toast"
+            className="action-toast"
+            role="status"
+            initial={{ opacity: 0, x: "-50%", y: 12, scale: 0.97 }}
+            animate={{ opacity: 1, x: "-50%", y: 0, scale: 1 }}
+            exit={{ opacity: 0, x: "-50%", y: 12, scale: 0.97 }}
+            transition={{ duration: 0.28, ease: [0.2, 0.8, 0.2, 1] }}
+          >
+            <CheckCircle2 size={17} />
+            <span>{feedback}</span>
+            <button aria-label="Fechar aviso" onClick={() => setFeedback("")}>
+              <X size={15} />
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

@@ -1,5 +1,6 @@
 "use client";
 
+import { motion } from "framer-motion";
 import {
   useEffect,
   useMemo,
@@ -11,6 +12,7 @@ import {
   type MouseEvent,
   type ReactNode,
 } from "react";
+import { useRouter } from "next/navigation";
 import {
   AlertTriangle,
   ArrowUpRight,
@@ -271,6 +273,13 @@ function Tabs({
           onClick={() => onChange(tab)}
         >
           {tab}
+          {active === tab && (
+            <motion.span
+              className="tabs-underline"
+              layoutId={`tabs-underline-${view}`}
+              transition={{ type: "spring", duration: 0.4, bounce: 0.15 }}
+            />
+          )}
         </button>
       ))}
     </div>
@@ -1106,6 +1115,11 @@ export function AtendimentoView({
   const selectedMessages = messages
     .filter((item) => item.cliente_id === selectedClientId && (tool === "whatsapp" ? item.canal === "whatsapp" : item.canal !== "whatsapp"))
     .sort((a, b) => a.seq - b.seq);
+  const chatEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ block: "end" });
+  }, [selectedMessages.length, selectedClientId]);
   const whatsappConversas = clientsData.clients
     .map((client) => {
       const msgs = messages.filter((m) => m.cliente_id === client.id && m.canal === "whatsapp").sort((a, b) => a.seq - b.seq);
@@ -2261,6 +2275,7 @@ export function AtendimentoView({
                 Conversa iniciada. Envie a primeira mensagem.
               </EmptyState>
             )}
+            <div ref={chatEndRef} />
           </div>
         ) : (
           <div className="chat-empty">
@@ -8175,6 +8190,7 @@ export function AcompanhamentoIntegralView({
   onNavigate?: (id: string, clientId?: string | null) => void;
 }) {
   const [express, setExpress] = useState(data.express);
+  const router = useRouter();
   const [moving, setMoving] = useState<string | null>(null);
   const [tab, setTab] = useState(tabsByView.acompanhamento[0]);
   const [detalhes, setDetalhes] = useState<ExpressItem | null>(null);
@@ -8244,7 +8260,7 @@ export function AcompanhamentoIntegralView({
         ? result.recurrenceMessage || "Etapa atualizada e cliente notificado."
         : "Não foi possível mover este caso.",
     );
-    if (response.ok) window.location.reload();
+    if (response.ok) router.refresh();
   }
   async function assignExpress(id: number, responsavelId: string) {
     setMoving(`a-${id}`);
@@ -8394,11 +8410,14 @@ export function AcompanhamentoIntegralView({
                 }}
               >
                 {expressItems.map((item) => (
-                  <Card
-                    className="kanban-item"
+                  <motion.div
+                    layout
+                    layoutId={`kanban-item-e-${item.id}`}
+                    transition={{ type: "spring", duration: 0.5, bounce: 0.2 }}
+                    className="card kanban-item"
                     key={`e-${item.id}`}
                     draggable
-                    onDragStart={(event) =>
+                    onDragStartCapture={(event: React.DragEvent<HTMLDivElement>) =>
                       event.dataTransfer.setData(
                         "text/plain",
                         JSON.stringify({ kind: "express", id: item.id }),
@@ -8450,7 +8469,7 @@ export function AcompanhamentoIntegralView({
                         ))}
                       <option value="cancelado">Cancelado</option>
                     </select>
-                  </Card>
+                  </motion.div>
                 ))}
                 {legacyItems.map(([clientId]) => (
                   <Card

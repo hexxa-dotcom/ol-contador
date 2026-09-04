@@ -9,6 +9,7 @@ import {
   PanelLeftClose, PanelLeftOpen, Settings, UserRound, Users, Users2, X, Zap,
 } from "lucide-react";
 import { Badge, Button } from "@/components/ui/primitives";
+import { AnimatePresence, motion } from "framer-motion";
 import dynamic from "next/dynamic";
 import { type NotificationItem } from "@/components/views";
 
@@ -408,39 +409,50 @@ export function AccountantShell({ dashboardData, clientsData, operationsData, us
                 <Bell size={18} />
                 {unreadCount > 0 && <span className="top-notification-count">{unreadCount > 99 ? "99+" : unreadCount}</span>}
               </Button>
-              {notificationOpen && (
-                <div className="notification-popover" role="dialog" aria-label="Notificações recentes">
-                  <div className="popover-title">
-                    <div>
-                      <strong>Notificações</strong>
-                      <small>{unreadCount ? `${unreadCount} não lida${unreadCount === 1 ? "" : "s"}` : "Tudo em dia"}</small>
+              <AnimatePresence>
+                {notificationOpen && (
+                  <motion.div
+                    key="notification-popover"
+                    className="notification-popover"
+                    role="dialog"
+                    aria-label="Notificações recentes"
+                    initial={{ opacity: 0, y: -4, scale: 0.98 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: -4, scale: 0.98 }}
+                    transition={{ duration: 0.18, ease: [0.2, 0.8, 0.2, 1] }}
+                  >
+                    <div className="popover-title">
+                      <div>
+                        <strong>Notificações</strong>
+                        <small>{unreadCount ? `${unreadCount} não lida${unreadCount === 1 ? "" : "s"}` : "Tudo em dia"}</small>
+                      </div>
+                      <Badge>{currentNotifications.length}</Badge>
                     </div>
-                    <Badge>{currentNotifications.length}</Badge>
-                  </div>
-                  <div className="notification-list">
-                    {currentNotifications.length ? (
-                      currentNotifications.slice(0, 5).map((item) => (
-                        <button
-                          key={item.id}
-                          onClick={() => navigate(item.cliente_ref ? "atendimento" : "notificacoes", item.cliente_ref)}
-                          className={item.unread ? "unread" : ""}
-                        >
-                          <span className="notification-dot" />
-                          <span>
-                            <strong>{item.text}</strong>
-                            <small>{item.time || (item.created_at ? new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" }).format(new Date(item.created_at)) : "Agora")}</small>
-                          </span>
-                        </button>
-                      ))
-                    ) : (
-                      <div className="notification-empty">Nenhuma notificação por aqui.</div>
-                    )}
-                  </div>
-                  <button className="popover-footer" onClick={() => navigate("notificacoes")}>
-                    Ver todas as notificações <ChevronDown size={15} />
-                  </button>
-                </div>
-              )}
+                    <div className="notification-list">
+                      {currentNotifications.length ? (
+                        currentNotifications.slice(0, 5).map((item) => (
+                          <button
+                            key={item.id}
+                            onClick={() => navigate(item.cliente_ref ? "atendimento" : "notificacoes", item.cliente_ref)}
+                            className={item.unread ? "unread" : ""}
+                          >
+                            <span className="notification-dot" />
+                            <span>
+                              <strong>{item.text}</strong>
+                              <small>{item.time || (item.created_at ? new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" }).format(new Date(item.created_at)) : "Agora")}</small>
+                            </span>
+                          </button>
+                        ))
+                      ) : (
+                        <div className="notification-empty">Nenhuma notificação por aqui.</div>
+                      )}
+                    </div>
+                    <button className="popover-footer" onClick={() => navigate("notificacoes")}>
+                      Ver todas as notificações <ChevronDown size={15} />
+                    </button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
             <div className="account-menu-wrap" ref={accountMenuRef}>
               <button
@@ -460,31 +472,42 @@ export function AccountantShell({ dashboardData, clientsData, operationsData, us
                 </div>
                 <ChevronDown className={accountMenuOpen ? "rotated" : ""} size={15} />
               </button>
-              {accountMenuOpen && (
-                <div className="account-popover" id="account-popover" role="menu">
-                  <div className="account-popover-head">
-                    <strong>{currentUser.name}</strong>
-                    <small>{currentUser.email}</small>
-                  </div>
-                  <button role="menuitem" onClick={() => navigate("perfil")}>
-                    <UserRound size={16} />
-                    <span>Meu perfil</span>
-                  </button>
-                  {!isPartner && (
-                    <button role="menuitem" onClick={() => navigate("configuracoes")}>
-                      <Settings size={16} />
-                      <span>Configurações</span>
+              <AnimatePresence>
+                {accountMenuOpen && (
+                  <motion.div
+                    key="account-popover"
+                    className="account-popover"
+                    id="account-popover"
+                    role="menu"
+                    initial={{ opacity: 0, y: -4, scale: 0.98 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: -4, scale: 0.98 }}
+                    transition={{ duration: 0.14, ease: [0, 0, 0.58, 1] }}
+                  >
+                    <div className="account-popover-head">
+                      <strong>{currentUser.name}</strong>
+                      <small>{currentUser.email}</small>
+                    </div>
+                    <button role="menuitem" onClick={() => navigate("perfil")}>
+                      <UserRound size={16} />
+                      <span>Meu perfil</span>
                     </button>
-                  )}
-                  <div className="account-menu-separator" />
-                  <form action={signOut}>
-                    <button className="danger" role="menuitem" type="submit">
-                      <LogOut size={16} />
-                      <span>Sair com segurança</span>
-                    </button>
-                  </form>
-                </div>
-              )}
+                    {!isPartner && (
+                      <button role="menuitem" onClick={() => navigate("configuracoes")}>
+                        <Settings size={16} />
+                        <span>Configurações</span>
+                      </button>
+                    )}
+                    <div className="account-menu-separator" />
+                    <form action={signOut}>
+                      <button className="danger" role="menuitem" type="submit">
+                        <LogOut size={16} />
+                        <span>Sair com segurança</span>
+                      </button>
+                    </form>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           </div>
         </header>
@@ -582,15 +605,25 @@ export function AccountantShell({ dashboardData, clientsData, operationsData, us
         </button>
       </nav>
 
-      {feedback && (
-        <div className="action-toast" role="status">
-          <CheckCircle2 size={17} />
-          <span>{feedback}</span>
-          <button aria-label="Fechar aviso" onClick={() => setFeedback("")}>
-            <X size={15} />
-          </button>
-        </div>
-      )}
+      <AnimatePresence>
+        {feedback && (
+          <motion.div
+            key="action-toast"
+            className="action-toast"
+            role="status"
+            initial={{ opacity: 0, x: "-50%", y: 12, scale: 0.97 }}
+            animate={{ opacity: 1, x: "-50%", y: 0, scale: 1 }}
+            exit={{ opacity: 0, x: "-50%", y: 12, scale: 0.97 }}
+            transition={{ duration: 0.28, ease: [0.2, 0.8, 0.2, 1] }}
+          >
+            <CheckCircle2 size={17} />
+            <span>{feedback}</span>
+            <button aria-label="Fechar aviso" onClick={() => setFeedback("")}>
+              <X size={15} />
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
