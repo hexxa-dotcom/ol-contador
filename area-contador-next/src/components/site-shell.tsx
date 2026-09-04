@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { AnimatePresence, motion } from "framer-motion";
 import { User, ChevronDown, UserCheck, Building2, Menu, X, Mail, ShieldCheck, ArrowUpRight } from "lucide-react";
 
 const CHAVE_SESSAO = "oc_funil_sessao";
@@ -74,6 +75,16 @@ export function SiteHeader({
     return () => {
       document.body.style.overflow = "";
     };
+  }, [menuMobileAberto]);
+
+  // Fecha o menu móvel com Esc
+  useEffect(() => {
+    if (!menuMobileAberto) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setMenuMobileAberto(false);
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
   }, [menuMobileAberto]);
 
   const isTransparent = transparentOnTop && !scrolled && !menuMobileAberto;
@@ -194,91 +205,52 @@ function EntrarMenu() {
   useEffect(() => {
     if (!aberto) return;
     const fechar = () => setAberto(false);
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setAberto(false);
+    };
     document.addEventListener("click", fechar);
-    return () => document.removeEventListener("click", fechar);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("click", fechar);
+      document.removeEventListener("keydown", onKeyDown);
+    };
   }, [aberto]);
 
   return (
-    <div style={{ position: "relative" }} onClick={(event) => event.stopPropagation()}>
+    <div className="public-entrar-menu-wrap" onClick={(event) => event.stopPropagation()}>
       <button
         type="button"
-        className="public-lk"
+        className="public-lk public-entrar-menu-btn"
         aria-haspopup="true"
         aria-expanded={aberto}
         onClick={() => setAberto((v) => !v)}
-        style={{ display: "inline-flex", alignItems: "center", gap: "4px", background: "none", border: "none", cursor: "pointer", font: "inherit", padding: 0 }}
       >
         <span>Entrar</span>
-        <ChevronDown 
-          size={14} 
-          style={{ 
-            opacity: 0.8, 
-            transform: aberto ? "rotate(180deg)" : "none", 
-            transition: "transform 0.2s ease" 
-          }} 
-        />
+        <ChevronDown size={14} className={aberto ? "rotated" : ""} />
       </button>
 
-      {aberto && (
-        <div
-          role="menu"
-          style={{
-            position: "absolute",
-            top: "calc(100% + 12px)",
-            right: 0,
-            minWidth: "210px",
-            background: "rgba(15, 23, 42, 0.95)",
-            backdropFilter: "blur(20px)",
-            WebkitBackdropFilter: "blur(20px)",
-            border: "1px solid rgba(255, 255, 255, 0.15)",
-            borderRadius: "16px",
-            boxShadow: "0 20px 48px rgba(0, 0, 0, 0.6)",
-            padding: "8px",
-            zIndex: 100,
-          }}
-        >
-          <Link
-            role="menuitem"
-            href="/login?role=cliente"
-            style={{ 
-              display: "flex", 
-              alignItems: "center", 
-              gap: "10px", 
-              padding: "12px 14px", 
-              borderRadius: "10px", 
-              color: "#ffffff", 
-              textDecoration: "none", 
-              fontSize: "14px",
-              fontWeight: "600",
-              transition: "background 0.2s ease"
-            }}
-            className="public-menu-item"
+      <AnimatePresence>
+        {aberto && (
+          <motion.div
+            key="entrar-menu"
+            role="menu"
+            className="public-entrar-menu-popover"
+            initial={{ opacity: 0, y: -4, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -4, scale: 0.98 }}
+            transition={{ duration: 0.16, ease: [0.16, 1, 0.3, 1] }}
           >
-            <UserCheck size={18} style={{ color: "#34D399" }} />
-            <span>Sou cliente</span>
-          </Link>
-          <Link
-            role="menuitem"
-            href="/login?role=contador"
-            style={{ 
-              display: "flex", 
-              alignItems: "center", 
-              gap: "10px", 
-              padding: "12px 14px", 
-              borderRadius: "10px", 
-              color: "#ffffff", 
-              textDecoration: "none", 
-              fontSize: "14px",
-              fontWeight: "600",
-              transition: "background 0.2s ease"
-            }}
-            className="public-menu-item"
-          >
-            <Building2 size={18} style={{ color: "#FF9C7E" }} />
-            <span>Sou contador</span>
-          </Link>
-        </div>
-      )}
+            <Link role="menuitem" href="/login?role=cliente" className="public-menu-item">
+              <UserCheck size={18} className="public-menu-item-icon client" />
+              <span>Sou cliente</span>
+            </Link>
+            <Link role="menuitem" href="/login?role=contador" className="public-menu-item">
+              <Building2 size={18} className="public-menu-item-icon accountant" />
+              <span>Sou contador</span>
+            </Link>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
