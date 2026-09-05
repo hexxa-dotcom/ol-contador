@@ -704,7 +704,7 @@ export const SERVICOS: ServicoItem[] = [
   },
 
   // ==========================================
-  // PEQUENAS EMPRESAS (ME / EPP / SIMPLES NACIONAL)
+  // PEQUENAS EMPRESAS (SIMPLES NACIONAL / SOB MEDIDA)
   // ==========================================
   {
     slug: "regularizacao-cnpj-inapto-omissao",
@@ -713,15 +713,16 @@ export const SERVICOS: ServicoItem[] = [
     subtitle: "Levantamento de declarações omissas (DEFIS, DCTF, ECF), transmissão das obrigações e reativação da empresa.",
     category: "Pequenas Empresas",
     categorySlug: "pequenas-empresas",
-    badge: "Reativação de Empresa",
-    priceCents: 34900,
-    prazo: "Em até 48h úteis",
-    modalidadePadrao: "express",
+    badge: "Diagnóstico R$ 99 · Sob Medida",
+    priceCents: 9900,
+    prazo: "Diagnóstico em até 48h úteis",
+    modalidadePadrao: "sob-medida",
     description: "Reativação de empresas declaradas 'Inaptas' por omissão contínua de obrigações acessórias perante a Receita Federal do Brasil, eliminando bloqueio de emissão de notas fiscais, contas bancárias e responsabilidade ilimitada dos sócios.",
-    excerpt: "Seu CNPJ está como 'Inapto' por omissão de declarações na Receita Federal? Levantamos todas as declarações faltantes, transmitimos e reativamos seu CNPJ.",
+    excerpt: "Seu CNPJ está como 'Inapto' por omissão de declarações na Receita Federal? O contador diagnostica seu caso por R$ 99 e passa o orçamento exato para reativar seu CNPJ (com valor 100% abatido).",
     tags: ["cnpj inapto", "regularizar cnpj", "omissao declaracoes receita", "reativar empresa", "defis atrasada"],
     publicoAlvo: "Empresas do Simples Nacional ou Lucro Presumido que ficaram anos sem contador e tiveram o CNPJ declarado inapto.",
     oQueEstaIncluso: [
+      "Diagnóstico técnico inicial aprofundado por R$ 99 com orçamento fechado (100% abatido se aprovar o serviço).",
       "Auditoria eletrônica de todas as pendências que motivaram o ato declaratório de inaptidão.",
       "Elaboração e transmissão de todas as declarações omissas (DEFIS, DCTFWeb, PGDAS, SPED, ECF ou DCTF).",
       "Protocolo de restabelecimento cadastral do CNPJ junto à Receita Federal.",
@@ -733,17 +734,21 @@ export const SERVICOS: ServicoItem[] = [
       "Certificado digital da empresa (e-CNPJ) ou procuração eletrônica no e-CAC via gov.br do sócio administrador."
     ],
     passoAPasso: [
-      { passo: "1", titulo: "Mapeamento das Omissões", descricao: "Acessamos o dossiê da empresa no e-CAC e listamos todas as obrigações que faltam ser entregues." },
-      { passo: "2", titulo: "Transmissão em Lote", descricao: "Confeccionamos e transmitimos todas as declarações dos anos pendentes." },
-      { passo: "3", titulo: "Reativação do CNPJ", descricao: "A Receita Federal altera a situação cadastral de 'Inapta' para 'Ativa' automaticamente em até 48h úteis." }
+      { passo: "1", titulo: "Diagnóstico Inicial (R$ 99)", descricao: "O contador acessa o dossiê da empresa no e-CAC e mapeia todas as obrigações que faltam ser entregues." },
+      { passo: "2", titulo: "Proposta por Escrito", descricao: "Apresentamos o escopo completo, prazo e valor total fechado. Os R$ 99 pagos no diagnóstico são 100% abatidos." },
+      { passo: "3", titulo: "Execução & Reativação", descricao: "Confeccionamos e transmitimos as declarações e acompanhamos até o CNPJ voltar ao status de 'Ativa'." }
     ],
     faqs: [
+      {
+        question: "Como funciona o valor de R$ 99 do diagnóstico?",
+        answer: "O valor de R$ 99 é pago na hora de agendar para que o contador analise a fundo o histórico do CNPJ e monte um parecer formal com escopo e valor fechado. Se você aprovar a proposta, esses R$ 99 são integralmente abatidos do valor final do serviço."
+      },
       {
         question: "Quais os perigos de manter um CNPJ inapto?",
         answer: "A inaptidão do CNPJ impede a emissão de notas fiscais, anula a idoneidade de documentos fiscais, bloqueia contas bancárias da empresa e, mais grave: a Receita pode responsabilizar pessoalmente os sócios pelos débitos tributários, afetando o CPF e bens particulares."
       }
     ],
-    serviceParam: "pj-atendimento"
+    serviceParam: "sob-demanda"
   },
   {
     slug: "baixa-encerramento-cnpj-com-dividas",
@@ -752,15 +757,16 @@ export const SERVICOS: ServicoItem[] = [
     subtitle: "Extinção regular de empresas na Junta Comercial, Receita Federal, Estado e Prefeitura sem impedimento de débitos fiscais.",
     category: "Pequenas Empresas",
     categorySlug: "pequenas-empresas",
-    badge: "Encerramento Definitivo",
-    priceCents: 34900,
-    prazo: "Em até 48h úteis",
-    modalidadePadrao: "express",
+    badge: "Diagnóstico R$ 99 · Sob Medida",
+    priceCents: 9900,
+    prazo: "Diagnóstico em até 48h úteis",
+    modalidadePadrao: "sob-medida",
     description: "Encerramento formal de microempresas (ME) e empresas de pequeno porte (EPP): elaboração de Distrato Social, registro na Junta Comercial, baixa do CNPJ na Receita Federal e cancelamento de inscrições estadual e municipal.",
-    excerpt: "Quer fechar de vez uma empresa parada que só gera taxas e dor de cabeça? Encerramos seu CNPJ de forma legal e definitiva, mesmo que haja débitos em aberto.",
+    excerpt: "Quer fechar de vez uma empresa parada que só gera taxas e dor de cabeça? Diagnosticamos as pendências por R$ 99 e passamos o orçamento fechado para extinguir seu CNPJ.",
     tags: ["baixa cnpj", "fechar empresa com divida", "distrato social", "encerrar cnpj simples nacional"],
     publicoAlvo: "Sócios de empresas inativas, sem movimentação ou com débitos acumulados que desejam estancar a geração de novas taxas e obrigações.",
     oQueEstaIncluso: [
+      "Diagnóstico técnico inicial por R$ 99 com levantamento de débitos e taxas da Junta Comercial (100% abatido do serviço aprovado).",
       "Redação do Distrato Social formal ou Requerimento de Empresário para extinção.",
       "Protocolo e registro na Junta Comercial do Estado.",
       "Baixa definitiva da inscrição no CNPJ perante a Receita Federal.",
@@ -773,9 +779,9 @@ export const SERVICOS: ServicoItem[] = [
       "Certificado digital dos sócios ou acesso gov.br nível Prata/Ouro."
     ],
     passoAPasso: [
-      { passo: "1", titulo: "Redação do Distrato", descricao: "Preparamos a minuta de distrato formalizando o encerramento das atividades societárias." },
-      { passo: "2", titulo: "Registro na Junta", descricao: "Protocolamos o processo digital integrado via Redesim." },
-      { passo: "3", titulo: "Certidão de Baixa", descricao: "Disponibilizamos a certidão oficial do CNPJ extinto em todos os órgãos governamentais." }
+      { passo: "1", titulo: "Diagnóstico das Pendências", descricao: "Analisamos o contrato e as exigências da Junta Comercial do seu estado." },
+      { passo: "2", titulo: "Redação do Distrato", descricao: "Preparamos a minuta de distrato formalizando o encerramento das atividades societárias." },
+      { passo: "3", titulo: "Baixa nos Órgãos", descricao: "Protocolamos o processo digital integrado e entregamos a certidão do CNPJ extinto." }
     ],
     faqs: [
       {
@@ -783,7 +789,7 @@ export const SERVICOS: ServicoItem[] = [
         answer: "Sim! Desde a Lei Complementar 147/2014, nenhuma empresa pode ser impedida de dar baixa por motivo de dívidas tributárias ou previdenciárias. As dívidas são transferidas para a responsabilidade dos sócios, mas a empresa para de gerar novas obrigações mensais."
       }
     ],
-    serviceParam: "pj-atendimento"
+    serviceParam: "sob-demanda"
   },
   {
     slug: "parcelamento-dividas-simples-nacional",
@@ -792,15 +798,16 @@ export const SERVICOS: ServicoItem[] = [
     subtitle: "Negociação de débitos de DAS, Simples Nacional e PGFN com prazo de até 60 a 145 meses e descontos sobre juros.",
     category: "Pequenas Empresas",
     categorySlug: "pequenas-empresas",
-    badge: "Alívio no Caixa",
-    priceCents: 34900,
-    prazo: "Em até 24h úteis",
-    modalidadePadrao: "express",
+    badge: "Diagnóstico R$ 99 · Sob Medida",
+    priceCents: 9900,
+    prazo: "Diagnóstico em até 48h úteis",
+    modalidadePadrao: "sob-medida",
     description: "Consolidação e parcelamento de débitos do Simples Nacional apurados no PGDAS-D, evitando exclusão do regime tributário favorecido e suspendendo cobranças executivas com emissão de CND Positiva com Efeitos de Negativa.",
-    excerpt: "Sua empresa acumulou dívidas no Simples Nacional e corre risco de exclusão? Negociamos seus débitos em até 60x na Receita ou até 145x na PGFN com condições especiais.",
+    excerpt: "Sua empresa acumulou dívidas no Simples Nacional e corre risco de exclusão? Analisamos seus débitos por R$ 99 e estruturamos a negociação em até 60x ou 145x com descontos.",
     tags: ["parcelamento simples nacional", "divida das simples", "parcelamento pgfn empresa", "exclusao simples nacional parcelar"],
     publicoAlvo: "Micro e pequenas empresas do Simples Nacional com débitos em cobrança na Receita Federal ou em Dívida Ativa da PGFN.",
     oQueEstaIncluso: [
+      "Diagnóstico inicial por R$ 99 com simulação dos melhores editais de parcelamento e transação (100% abatido do serviço aprovado).",
       "Levantamento consolidado de todas as competências não quitadas no portal do Simples Nacional e e-CAC.",
       "Simulação de parcelamento convencional (até 60 meses) vs. Transação Tributária da PGFN (com descontos de até 70%).",
       "Transmissão do pedido de adesão oficial ao parcelamento.",
@@ -812,7 +819,7 @@ export const SERVICOS: ServicoItem[] = [
       "Acesso à conta gov.br do responsável legal."
     ],
     passoAPasso: [
-      { passo: "1", titulo: "Apuração Consolidada", descricao: "Calculamos o saldo exato dos débitos com atualização pela SELIC." },
+      { passo: "1", titulo: "Diagnóstico Consolidado", descricao: "Apuramos o total dos débitos com juros e multas e montamos a simulação comparativa." },
       { passo: "2", titulo: "Adesão ao Melhor Plano", descricao: "Selecionamos a modalidade que garante o menor valor de parcela mensal viável para a sua empresa." },
       { passo: "3", titulo: "Guia de Ativação", descricao: "Entregamos a primeira parcela para quitação e proteção imediata do seu CNPJ." }
     ],
@@ -822,7 +829,7 @@ export const SERVICOS: ServicoItem[] = [
         answer: "Sim! Ao aderir ao parcelamento e pagar a primeira parcela antes do prazo fatal do Termo de Exclusão, a exigibilidade dos créditos tributários fica suspensa e sua empresa permanece enquadrada no Simples Nacional."
       }
     ],
-    serviceParam: "pj-atendimento"
+    serviceParam: "sob-demanda"
   },
   {
     slug: "defesa-exclusao-simples-nacional",
@@ -831,16 +838,16 @@ export const SERVICOS: ServicoItem[] = [
     subtitle: "Atuação técnica para impugnar o Termo de Exclusão do Simples Nacional (ADE) ou solicitar reenquadramento extraordinário.",
     category: "Pequenas Empresas",
     categorySlug: "pequenas-empresas",
-    badge: "Manutenção de Regime",
-    priceCents: 34900,
-    prazo: "Em até 48h úteis",
-    modalidadePadrao: "express",
+    badge: "Diagnóstico R$ 99 · Sob Medida",
+    priceCents: 9900,
+    prazo: "Diagnóstico em até 48h úteis",
+    modalidadePadrao: "sob-medida",
     description: "Intervenção contábil rápida para empresas que receberam o Termo de Exclusão do Simples Nacional por débitos fiscais ou divergências cadastrais, realizando a regularização emergencial para garantir a permanência no regime.",
-    excerpt: "Recebeu o Termo de Exclusão do Simples Nacional ou foi excluído da sistemática? Fazemos a defesa técnica e regularização tempestiva para manter sua empresa no Simples.",
+    excerpt: "Recebeu o Termo de Exclusão do Simples Nacional? Diagnosticamos as causas por R$ 99 e elaboramos a defesa e regularização tempestiva para manter sua empresa no Simples.",
     tags: ["exclusao simples nacional", "termo de exclusao simples", "impugnacao simples nacional", "reenquadramento simples"],
     publicoAlvo: "Empresas intimadas com Ato Declaratório Executivo (ADE) de exclusão do Simples Nacional.",
     oQueEstaIncluso: [
-      "Análise dos motivos indicados no Termo de Exclusão emitido pela Receita Federal.",
+      "Diagnóstico emergencial por R$ 99 dos motivos listados no Ato Declaratório Executivo (100% abatido do serviço aprovado).",
       "Plano emergencial de quitação ou parcelamento das pendências apontadas dentro do prazo legal de 30 dias.",
       "Protocolo de impugnação administrativa digital no e-CAC fundamentada em parecer contábil.",
       "Acompanhamento da homologação da opção retroativa pelo Simples Nacional.",
@@ -851,7 +858,7 @@ export const SERVICOS: ServicoItem[] = [
       "Certificado Digital (e-CNPJ) ou procuração eletrônica."
     ],
     passoAPasso: [
-      { passo: "1", titulo: "Prazo de Defesa", descricao: "Avaliamos o prazo improrrogável de 30 dias a partir da ciência da notificação." },
+      { passo: "1", titulo: "Diagnóstico do Prazo", descricao: "Avaliamos o prazo improrrogável de 30 dias a partir da ciência da notificação." },
       { passo: "2", titulo: "Saneamento Emergencial", descricao: "Parcelamos ou quitamos os débitos específicos listados no ato de exclusão." },
       { passo: "3", titulo: "Manutenção do Enquadramento", descricao: "Garantimos a permanência no Simples para o ano-calendário seguinte com economia tributária." }
     ],
@@ -861,7 +868,7 @@ export const SERVICOS: ServicoItem[] = [
         answer: "O contribuinte tem 30 dias contados a partir da data de leitura da notificação no Domicílio Tributário Eletrônico (DTE-SN) para regularizar a totalidade dos débitos ou parcelá-los."
       }
     ],
-    serviceParam: "pj-atendimento"
+    serviceParam: "sob-demanda"
   },
   {
     slug: "emissao-cnd-conjunta-empresa-rfb-pgfn",
@@ -870,16 +877,16 @@ export const SERVICOS: ServicoItem[] = [
     subtitle: "Identificação e remoção de travas cadastrais para emissão de Certidão Negativa de Débitos Federal para sua empresa.",
     category: "Pequenas Empresas",
     categorySlug: "pequenas-empresas",
-    badge: "Contratos & Bancos",
-    priceCents: 34900,
-    prazo: "Em até 24h úteis",
-    modalidadePadrao: "express",
+    badge: "Diagnóstico R$ 99 · Sob Medida",
+    priceCents: 9900,
+    prazo: "Diagnóstico em até 48h úteis",
+    modalidadePadrao: "sob-medida",
     description: "Auditoria fiscal em todas as bases tributárias federais para localizar a causa do travamento da CND da empresa, efetuando acertos em DCTF, EFD-Reinf ou parcelamentos para emissão imediata da certidão.",
-    excerpt: "Sua empresa precisa de Certidão Negativa de Débitos (CND) para receber pagamento de cliente, assinar contrato ou pegar empréstimo? Destravamos sua certidão na Receita e PGFN.",
+    excerpt: "Sua empresa precisa de Certidão Negativa de Débitos (CND) e ela não sai? Identificamos a trava fiscal por R$ 99 e passamos o plano de desembaraço imediato.",
     tags: ["cnd empresa", "certidao negativa pessoa juridica", "cnd conjunta rfb pgfn", "certidao federal empresa"],
     publicoAlvo: "Pequenas empresas com pagamentos retidos por clientes, aprovação de crédito bancário ou participação em concorrências.",
     oQueEstaIncluso: [
-      "Varredura no sistema de Conta Corrente da Receita Federal e regularidade do FGTS.",
+      "Diagnóstico inicial por R$ 99 com varredura completa nas bases da Receita e PGFN (100% abatido do serviço aprovado).",
       "Identificação de divergências de GFIP/DCTFWeb ou pagamentos não alocados (REDARF).",
       "Pedido eletrônico de revisão ou desembaraço de débitos com exigibilidade suspensa.",
       "Emissão da Certidão Conjunta Negativa ou Positiva com Efeitos de Negativa.",
@@ -900,7 +907,7 @@ export const SERVICOS: ServicoItem[] = [
         answer: "Geralmente ocorre por atraso na compensação bancária ou falta de sincronização entre o sistema de parcelamento e a base central da Receita. Nosso contador realiza o procedimento de reconhecimento para forçar a emissão."
       }
     ],
-    serviceParam: "pj-atendimento"
+    serviceParam: "sob-demanda"
   },
   {
     slug: "alteracao-contratual-socios-cnae",
@@ -909,15 +916,16 @@ export const SERVICOS: ServicoItem[] = [
     subtitle: "Elaboração de aditivo contratual consolidado, DBE na Receita Federal e registro na Junta Comercial.",
     category: "Pequenas Empresas",
     categorySlug: "pequenas-empresas",
-    badge: "Societário & Junta",
-    priceCents: 34900,
-    prazo: "Em até 48h úteis",
-    modalidadePadrao: "express",
+    badge: "Diagnóstico R$ 99 · Sob Medida",
+    priceCents: 9900,
+    prazo: "Diagnóstico em até 48h úteis",
+    modalidadePadrao: "sob-medida",
     description: "Serviço societário completo para atualizar dados da sua empresa: entrada ou saída de sócios, transferência de quotas, inclusão de novas atividades econômicas (CNAE), mudança de endereço ou razão social.",
-    excerpt: "Precisa incluir ou retirar sócio da empresa, mudar de endereço ou adicionar novas atividades (CNAE)? Cuidamos de todo o processo de alteração contratual na Junta Comercial e Receita.",
+    excerpt: "Precisa alterar sócios, endereço ou atividades da sua empresa? Fazemos o diagnóstico por R$ 99 com orçamento fechado para todo o trâmite na Junta e Receita.",
     tags: ["alteracao contratual", "troca de socios qsa", "incluir cnae empresa", "mudar endereco cnpj"],
     publicoAlvo: "Empresários que estão reestruturando a sociedade ou expandindo a gama de serviços oferecidos pelo CNPJ.",
     oQueEstaIncluso: [
+      "Diagnóstico prévio por R$ 99 com viabilidade locacional e enquadramento tributário do novo CNAE (100% abatido do serviço aprovado).",
       "Redação jurídica e contábil do Aditivo ao Contrato Social.",
       "Emissão do Documento Básico de Entrada (DBE) no portal Redesim da Receita Federal.",
       "Protocolo e tramitação eletrônica na Junta Comercial estadual.",
@@ -930,8 +938,8 @@ export const SERVICOS: ServicoItem[] = [
       "Novo endereço ou descrição das novas atividades que a empresa irá exercer."
     ],
     passoAPasso: [
-      { passo: "1", titulo: "Minuta do Aditivo", descricao: "Redigimos o instrumento contratual de acordo com o Código Civil e regras do DREI." },
-      { passo: "2", titulo: "Protocolo Redesim", descricao: "Validamos a viabilidade locacional e transmitimos o DBE para a Receita." },
+      { passo: "1", titulo: "Diagnóstico Societário", descricao: "Avaliamos a viabilidade e impacto no imposto do Simples Nacional." },
+      { passo: "2", titulo: "Minuta do Aditivo", descricao: "Redigimos o instrumento contratual de acordo com o Código Civil e regras do DREI." },
       { passo: "3", titulo: "Registro Final", descricao: "Registramos o aditivo na Junta Comercial e entregamos o CNPJ devidamente atualizado." }
     ],
     faqs: [
@@ -940,7 +948,7 @@ export const SERVICOS: ServicoItem[] = [
         answer: "Sim! Cada atividade econômica (CNAE) é enquadrada em um anexo diferente do Simples Nacional (com alíquotas que variam de 4,5% a 15,5% ou mais). Nosso contador orienta os melhores códigos para pagar o menor imposto legalmente possível."
       }
     ],
-    serviceParam: "pj-atendimento"
+    serviceParam: "sob-demanda"
   },
   {
     slug: "processos-digitais-dossie-ecac",
@@ -949,17 +957,18 @@ export const SERVICOS: ServicoItem[] = [
     subtitle: "Protocolo de requerimentos administrativos, pedidos de restituição (PER/DCOMP) e juntada de documentos oficiais.",
     category: "Pequenas Empresas",
     categorySlug: "pequenas-empresas",
-    badge: "Processos Administrativos",
-    priceCents: 34900,
-    prazo: "Em até 24h úteis",
-    modalidadePadrao: "express",
+    badge: "Diagnóstico R$ 99 · Sob Medida",
+    priceCents: 9900,
+    prazo: "Diagnóstico em até 48h úteis",
+    modalidadePadrao: "sob-medida",
     description: "Representação técnica contábil para abertura de processos administrativos e dossiês digitais de atendimento perante auditores da Receita Federal do Brasil, eliminando a necessidade de agendamento presencial.",
-    excerpt: "Precisa protocolar um requerimento formal, corrigir um DARF ou abrir um dossiê digital no e-CAC da Receita Federal? Nossos contadores montam e protocolam seu processo com parecer assinado.",
+    excerpt: "Precisa protocolar um requerimento formal na Receita Federal? Diagnosticamos a viabilidade por R$ 99 e passamos o valor fechado para instruir seu processo com parecer assinado.",
     tags: ["processo digital ecac", "dossie de atendimento receita", "requerimento rfb", "redarf per dcomp"],
     publicoAlvo: "Empresas e pessoas físicas que possuem demandas complexas ou atípicas que exigem análise manual por parte de um auditor fiscal.",
     oQueEstaIncluso: [
+      "Diagnóstico inicial por R$ 99 com análise documental e fundamentação legal (100% abatido do serviço aprovado).",
       "Estruturação jurídica e contábil da petição ou requerimento inicial.",
-      "Formatação e indexação dos documentos comprobatórios conforme padrões exigidos pela Portaria RFB.",
+      "Formatação e indexação dos documentos comprobatórios conforme padrões da Portaria RFB.",
       "Abertura do Dossiê Digital de Atendimento (DDA) no sistema oficial do e-CAC.",
       "Geração de protocolo de processo administrativo com número de tramitação nacional.",
       "Acompanhamento das intimações e notificações de despacho até a decisão final."
@@ -969,9 +978,9 @@ export const SERVICOS: ServicoItem[] = [
       "Procuração eletrônica no e-CAC ou certificado digital (e-CPF ou e-CNPJ)."
     ],
     passoAPasso: [
-      { passo: "1", titulo: "Elaboração da Petição", descricao: "Montamos o parecer técnico fundamentado nas normas e instruções normativas pertinentes." },
-      { passo: "2", titulo: "Protocolo Digital", descricao: "Abrimos o dossiê e anexamos as peças devidamente assinadas e autenticadas." },
-      { passo: "3", titulo: "Número do Processo", descricao: "Você recebe o protocolo federal para acompanhar o andamento direto pelo celular." }
+      { passo: "1", titulo: "Diagnóstico Inicial", descricao: "Analisamos o caso e a instrução normativa aplicável à sua solicitação." },
+      { passo: "2", titulo: "Montagem da Peça", descricao: "Elaboramos a petição técnica com os fundamentos contábeis cabíveis." },
+      { passo: "3", titulo: "Protocolo Digital", descricao: "Protocolamos o processo no e-CAC e fornecemos o número para acompanhamento." }
     ],
     faqs: [
       {
@@ -979,7 +988,7 @@ export const SERVICOS: ServicoItem[] = [
         answer: "Não! Mais de 95% dos serviços da Receita Federal hoje são obrigatoriamente realizados por meio de Processos Digitais no e-CAC. Nossos contadores realizam todo o trâmite eletronicamente com validade jurídica nacional."
       }
     ],
-    serviceParam: "pj-atendimento"
+    serviceParam: "sob-demanda"
   }
 ];
 

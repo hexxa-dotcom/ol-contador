@@ -51,7 +51,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const url = `https://www.olacontador.com.br/servicos/${servico.slug}`;
 
   return {
-    title: `${servico.title} — Preço Fixo | Olá, Contador`,
+    title: `${servico.title} — ${servico.categorySlug === "pequenas-empresas" ? "Diagnóstico Sob Demanda" : "Preço Fixo"} | Olá, Contador`,
     description: servico.description,
     alternates: {
       canonical: url,
@@ -315,54 +315,69 @@ export default async function ServicoDetailPage({ params }: Props) {
 
             {/* SIDEBAR FLUTUANTE (DIREITA) */}
             <aside className={styles.stickySidebar}>
-              <div className={styles.sidebarCard}>
-                <div className={styles.sidebarBadge}>
-                  <ShieldCheck size={14} />
-                  Garantia Total ou Reembolso
-                </div>
+              {(() => {
+                const isSobDemanda = servico.categorySlug === "pequenas-empresas";
+                const isMEI = servico.categorySlug === "mei";
+                const targetPlano = servico.serviceParam || (isSobDemanda ? "sob-demanda" : isMEI ? "pj" : "pf");
+                const ctaText = isSobDemanda 
+                  ? "Solicitar Análise do Caso (R$ 99)" 
+                  : isMEI 
+                    ? "Contratar Atendimento MEI" 
+                    : "Contratar Atendimento PF";
 
-                <div className={styles.sidebarPrice}>
-                  {money(servico.priceCents)}
-                </div>
-                <div className={styles.sidebarPriceSub}>
-                  Preço fixo combinado antes · Sem mensalidade
-                </div>
+                return (
+                  <div className={styles.sidebarCard}>
+                    <div className={styles.sidebarBadge}>
+                      <ShieldCheck size={14} />
+                      Garantia Total ou Reembolso
+                    </div>
 
-                <ul className={styles.sidebarBenefits}>
-                  <li className={styles.sidebarBenefitItem}>
-                    <CheckCircle2 size={16} style={{ color: "#10B981" }} />
-                    <span>Prazo: {servico.prazo}</span>
-                  </li>
-                  <li className={styles.sidebarBenefitItem}>
-                    <CheckCircle2 size={16} style={{ color: "#10B981" }} />
-                    <span>Contador com CRC dedicado</span>
-                  </li>
-                  <li className={styles.sidebarBenefitItem}>
-                    <CheckCircle2 size={16} style={{ color: "#10B981" }} />
-                    <span>Parecer formal em PDF assinado</span>
-                  </li>
-                  <li className={styles.sidebarBenefitItem}>
-                    <CheckCircle2 size={16} style={{ color: "#10B981" }} />
-                    <span>Retorno grátis em até 7 dias</span>
-                  </li>
-                </ul>
+                    <div className={styles.sidebarPrice}>
+                      {money(servico.priceCents)}
+                    </div>
+                    <div className={styles.sidebarPriceSub}>
+                      {isSobDemanda 
+                        ? "Taxa de análise do caso · 100% abatida do valor aprovado" 
+                        : "Preço fixo combinado antes · Sem mensalidade"}
+                    </div>
 
-                <Link 
-                  href={`/agendar?servico=${servico.serviceParam}`} 
-                  className={styles.sidebarCtaBtn}
-                >
-                  Contratar este Serviço
-                  <ArrowRight size={18} />
-                </Link>
+                    <ul className={styles.sidebarBenefits}>
+                      <li className={styles.sidebarBenefitItem}>
+                        <CheckCircle2 size={16} style={{ color: "#10B981" }} />
+                        <span>Prazo: {servico.prazo}</span>
+                      </li>
+                      <li className={styles.sidebarBenefitItem}>
+                        <CheckCircle2 size={16} style={{ color: "#10B981" }} />
+                        <span>Contador com CRC dedicado</span>
+                      </li>
+                      <li className={styles.sidebarBenefitItem}>
+                        <CheckCircle2 size={16} style={{ color: "#10B981" }} />
+                        <span>{isSobDemanda ? "Dossiê formal e parecer técnico por escrito" : "Parecer formal em PDF assinado"}</span>
+                      </li>
+                      <li className={styles.sidebarBenefitItem}>
+                        <CheckCircle2 size={16} style={{ color: "#10B981" }} />
+                        <span>Retorno grátis em até 7 dias</span>
+                      </li>
+                    </ul>
 
-                <Link 
-                  href={`/agendar?servico=${servico.serviceParam}`} 
-                  className={styles.sidebarSecondaryBtn}
-                >
-                  <CalendarCheck size={16} />
-                  Agendar com horário marcado
-                </Link>
-              </div>
+                    <Link 
+                      href={`/agendar?plano=${targetPlano}`} 
+                      className={styles.sidebarCtaBtn}
+                    >
+                      {ctaText}
+                      <ArrowRight size={18} />
+                    </Link>
+
+                    <Link 
+                      href={`/agendar?plano=${targetPlano}`} 
+                      className={styles.sidebarSecondaryBtn}
+                    >
+                      <CalendarCheck size={16} />
+                      Agendar com horário marcado
+                    </Link>
+                  </div>
+                );
+              })()}
 
               {/* BOX DE SEGURANÇA */}
               <div className={styles.sidebarTrustBox}>

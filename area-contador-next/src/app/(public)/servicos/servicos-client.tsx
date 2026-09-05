@@ -129,7 +129,7 @@ export function ServicosClient({ servicos }: ServicosClientProps) {
             onClick={() => setCategoriaAtiva("pequenas-empresas")}
           >
             <Building2 size={15} />
-            Pequenas Empresas
+            Pequenas Empresas (Sob Demanda)
             <span className={styles.filterCount}>{contagens["pequenas-empresas"]}</span>
           </button>
         </div>
@@ -138,55 +138,66 @@ export function ServicosClient({ servicos }: ServicosClientProps) {
       {/* GRID DE SERVIÇOS */}
       <div className={styles.servicesGrid}>
         {servicosFiltrados.length > 0 ? (
-          servicosFiltrados.map((item) => (
-            <article key={item.slug} className={styles.serviceCard}>
-              <div className={styles.cardHeader}>
-                <span className={`${styles.categoryTag} ${getCategoryClass(item.categorySlug)}`}>
-                  {getCategoryIcon(item.categorySlug)}
-                  {item.category}
-                </span>
-                <span className={styles.badgeTag}>{item.badge}</span>
-              </div>
+          servicosFiltrados.map((item) => {
+            const isSobDemanda = item.categorySlug === "pequenas-empresas";
+            const targetPlano = item.serviceParam || (isSobDemanda ? "sob-demanda" : item.categorySlug === "mei" ? "pj" : "pf");
 
-              <h2 className={styles.cardTitle}>{item.title}</h2>
-              <p className={styles.cardExcerpt}>{item.excerpt}</p>
+            return (
+              <article key={item.slug} className={styles.serviceCard}>
+                <div className={styles.cardHeader}>
+                  <span className={`${styles.categoryTag} ${getCategoryClass(item.categorySlug)}`}>
+                    {getCategoryIcon(item.categorySlug)}
+                    {item.category}
+                  </span>
+                  <span className={styles.badgeTag}>{item.badge}</span>
+                </div>
 
-              {/* ENTREGÁVEIS PRINCIPAIS */}
-              <div className={styles.cardDeliverables}>
-                <div className={styles.cardDeliverablesTitle}>O que está incluso:</div>
-                <ul className={styles.deliverablesList}>
-                  {item.oQueEstaIncluso.slice(0, 3).map((inc, i) => (
-                    <li key={i} className={styles.deliverableItem}>
-                      <CheckCircle2 size={15} className={styles.deliverableCheck} />
-                      <span>{inc}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
+                <h2 className={styles.cardTitle}>{item.title}</h2>
+                <p className={styles.cardExcerpt}>{item.excerpt}</p>
 
-              {/* RODAPÉ DO CARD */}
-              <div className={styles.cardFooter}>
-                <div className={styles.priceWrapper}>
-                  <span className={styles.priceLabel}>Preço Fixo</span>
-                  <div className={styles.priceValue}>
-                    {money(item.priceCents)}
-                    <small>· {item.prazo}</small>
+                {/* ENTREGÁVEIS PRINCIPAIS */}
+                <div className={styles.cardDeliverables}>
+                  <div className={styles.cardDeliverablesTitle}>
+                    {isSobDemanda ? "Etapas & O que está incluso:" : "O que está incluso:"}
+                  </div>
+                  <ul className={styles.deliverablesList}>
+                    {item.oQueEstaIncluso.slice(0, 3).map((inc, i) => (
+                      <li key={i} className={styles.deliverableItem}>
+                        <CheckCircle2 size={15} className={styles.deliverableCheck} />
+                        <span>{inc}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                {/* RODAPÉ DO CARD */}
+                <div className={styles.cardFooter}>
+                  <div className={styles.priceWrapper}>
+                    <span className={styles.priceLabel}>
+                      {isSobDemanda ? "Diagnóstico Inicial" : "Preço Fixo"}
+                    </span>
+                    <div className={styles.priceValue}>
+                      {money(item.priceCents)}
+                      <small>
+                        {isSobDemanda ? "· 100% abatido do serviço" : `· ${item.prazo}`}
+                      </small>
+                    </div>
+                  </div>
+
+                  <div className={styles.cardActions}>
+                    <Link href={`/servicos/${item.slug}`} className={styles.btnDetails}>
+                      Ver detalhes
+                      <ChevronRight size={14} />
+                    </Link>
+                    <Link href={`/agendar?plano=${targetPlano}`} className={styles.btnHire}>
+                      {isSobDemanda ? "Pedir Diagnóstico" : "Contratar"}
+                      <ArrowRight size={14} />
+                    </Link>
                   </div>
                 </div>
-
-                <div className={styles.cardActions}>
-                  <Link href={`/servicos/${item.slug}`} className={styles.btnDetails}>
-                    Ver detalhes
-                    <ChevronRight size={14} />
-                  </Link>
-                  <Link href={`/agendar?servico=${item.serviceParam}`} className={styles.btnHire}>
-                    Contratar
-                    <ArrowRight size={14} />
-                  </Link>
-                </div>
-              </div>
-            </article>
-          ))
+              </article>
+            );
+          })
         ) : (
           <div className={styles.emptyState}>
             <h3 className={styles.emptyStateTitle}>Nenhum serviço encontrado</h3>

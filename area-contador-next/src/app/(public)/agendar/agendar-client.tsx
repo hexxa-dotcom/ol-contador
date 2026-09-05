@@ -17,12 +17,16 @@ const APELIDOS: Record<string, string[]> = {
   "ganho-de-capital": ["pf", "gcap"],
   gcap: ["pf", "gcap"],
   pj: ["pj-atendimento"],
+  mei: ["pj-atendimento"],
   "pessoa-juridica": ["pj-atendimento"],
   pessoa_juridica: ["pj-atendimento"],
   empresa: ["pj-atendimento"],
+  consulta: ["consulta"],
   sob: ["consulta"],
   "sob-demanda": ["consulta"],
   sob_demanda: ["consulta"],
+  "sob-medida": ["consulta"],
+  sob_medida: ["consulta"],
 };
 
 const CHAVE = "oc_agendamento";
