@@ -44,7 +44,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     };
   }
 
-  const url = `https://olacontador.com.br/blog/${post.slug}`;
+  const url = `https://www.olacontador.com.br/blog/${post.slug}`;
 
   return {
     title: `${post.title} | Olá, Contador`,
@@ -81,7 +81,7 @@ export default async function BlogPostPage({ params }: Props) {
   }
 
   const relatedPosts = getRelatedPosts(post.slug, 3);
-  const pageUrl = `https://olacontador.com.br/blog/${post.slug}`;
+  const pageUrl = `https://www.olacontador.com.br/blog/${post.slug}`;
 
   // JSON-LD robusto para SEO tradicional e GEO (ChatGPT, Perplexity, Gemini)
   const jsonLd = {
@@ -92,7 +92,7 @@ export default async function BlogPostPage({ params }: Props) {
         "@id": `${pageUrl}#article`,
         isPartOf: {
           "@type": "Blog",
-          "@id": "https://olacontador.com.br/blog",
+          "@id": "https://www.olacontador.com.br/blog",
           name: "Blog Olá, Contador",
         },
         headline: post.title,
@@ -113,10 +113,10 @@ export default async function BlogPostPage({ params }: Props) {
         publisher: {
           "@type": "Organization",
           name: "Olá, Contador",
-          url: "https://olacontador.com.br",
+          url: "https://www.olacontador.com.br",
           logo: {
             "@type": "ImageObject",
-            url: "https://olacontador.com.br/logo.svg",
+            url: "https://www.olacontador.com.br/logo.svg",
           },
         },
       },
@@ -140,13 +140,13 @@ export default async function BlogPostPage({ params }: Props) {
             "@type": "ListItem",
             position: 1,
             name: "Início",
-            item: "https://olacontador.com.br",
+            item: "https://www.olacontador.com.br",
           },
           {
             "@type": "ListItem",
             position: 2,
             name: "Blog",
-            item: "https://olacontador.com.br/blog",
+            item: "https://www.olacontador.com.br/blog",
           },
           {
             "@type": "ListItem",

@@ -5,13 +5,13 @@ import { HomePage } from "./home-page";
 export const metadata: Metadata = {
   title: "Olá, Contador — Contabilidade sob demanda para seu caso",
   description: "Conte o que está acontecendo, envie os documentos pelo celular, e a nossa equipe de contadores cuida do seu caso do começo ao fim. Se não resolvermos, devolvemos seu dinheiro.",
-  alternates: { canonical: "https://olacontador.com.br/" },
+  alternates: { canonical: "https://www.olacontador.com.br/" },
   openGraph: {
     type: "website",
     siteName: "Olá, Contador",
     title: "Olá, Contador — Contabilidade sob demanda para seu caso",
     description: "Conte o que está acontecendo, envie os documentos pelo celular, e a nossa equipe de contadores cuida do seu caso do começo ao fim. Se não resolvermos, devolvemos seu dinheiro.",
-    url: "https://olacontador.com.br/",
+    url: "https://www.olacontador.com.br/",
     locale: "pt_BR",
   },
   twitter: {
@@ -30,7 +30,7 @@ function jsonLdServico(pfCents: number, pjCents: number) {
     "@context": "https://schema.org",
     "@type": "ProfessionalService",
     name: "Olá, Contador",
-    url: "https://olacontador.com.br/",
+    url: "https://www.olacontador.com.br/",
     description: "Atendimento contábil sob demanda com contadores especializados, dedicado ao seu caso. Envie o caso e os documentos pelo celular, com garantia de reembolso.",
     areaServed: "BR",
     priceRange: `${formatReais(pfCents)} - ${formatReais(pjCents)}`,

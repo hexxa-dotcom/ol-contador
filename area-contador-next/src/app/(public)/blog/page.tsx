@@ -8,13 +8,13 @@ export const metadata: Metadata = {
   description:
     "Artigos e guias especializados sobre Imposto de Renda, Malha Fina, Simples Nacional, MEI, Radar Fiscal e regularização de dívida ativa com parecer técnico de contadores com CRC.",
   alternates: {
-    canonical: "https://olacontador.com.br/blog",
+    canonical: "https://www.olacontador.com.br/blog",
   },
   openGraph: {
     title: "Blog & Guias Fiscais — Olá, Contador",
     description:
       "Aprenda a regularizar seu CPF e CNPJ, economizar impostos e resolver pendências fiscais sem pagar mensalidade contábil.",
-    url: "https://olacontador.com.br/blog",
+    url: "https://www.olacontador.com.br/blog",
     siteName: "Olá, Contador",
     locale: "pt_BR",
     type: "website",
@@ -38,21 +38,21 @@ export default function BlogIndexPage() {
     name: "Blog & Guias Fiscais — Olá, Contador",
     description:
       "Guias práticos e artigos de contabilidade sob demanda com fundamentação legal e pareceres de contadores com CRC.",
-    url: "https://olacontador.com.br/blog",
+    url: "https://www.olacontador.com.br/blog",
     publisher: {
       "@type": "Organization",
       name: "Olá, Contador",
-      url: "https://olacontador.com.br",
+      url: "https://www.olacontador.com.br",
       logo: {
         "@type": "ImageObject",
-        url: "https://olacontador.com.br/logo.svg",
+        url: "https://www.olacontador.com.br/logo.svg",
       },
     },
     blogPost: posts.map((post) => ({
       "@type": "BlogPosting",
       headline: post.title,
       description: post.excerpt,
-      url: `https://olacontador.com.br/blog/${post.slug}`,
+      url: `https://www.olacontador.com.br/blog/${post.slug}`,
       datePublished: post.publishedAt,
       dateModified: post.updatedAt,
       author: {

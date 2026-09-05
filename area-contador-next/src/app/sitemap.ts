@@ -2,7 +2,7 @@ import type { MetadataRoute } from "next";
 import { getAllPosts } from "@/lib/blog";
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://olacontador.com.br";
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://www.olacontador.com.br";
   const now = new Date();
   const posts = getAllPosts();
 

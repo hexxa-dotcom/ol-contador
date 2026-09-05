@@ -29,7 +29,7 @@ const plusJakarta = Plus_Jakarta_Sans({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://olacontador.com.br"),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://www.olacontador.com.br"),
   title: {
     default: "Olá, Contador — Atendimento contábil sob demanda",
     template: "%s | Olá, Contador",
@@ -53,7 +53,7 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     locale: "pt_BR",
-    url: "https://olacontador.com.br",
+    url: "https://www.olacontador.com.br",
     siteName: "Olá, Contador",
     title: "Olá, Contador — Atendimento contábil sob demanda com preço fixo",
     description: "Fale direto com a nossa equipe de contadores no chat seguro. Sem mensalidade, com relatório assinado.",
