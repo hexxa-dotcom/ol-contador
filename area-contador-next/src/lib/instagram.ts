@@ -122,7 +122,12 @@ export async function buscarUsernameInstagram(admin: Admin, igsid: string): Prom
 export async function sendInstagramText(admin: Admin, recipientIgUserId: string, texto: string) {
   const conta = await obterContaInstagram(admin);
   if (!conta) return { skipped: true as const, motivo: "conta_nao_conectada" as const };
-  return graphFetch(`${conta.userId}/messages`, conta.accessToken, {
+  // Com token do Instagram Login (diferente de token de Página do
+  // Facebook), a Meta documenta o envio em "me/messages" — usar o ID
+  // numérico explícito aqui devolve "Object with ID ... does not exist"
+  // (código 100/33), mesmo sendo o ID certo, porque o token já é
+  // escopado a essa conta.
+  return graphFetch(`me/messages`, conta.accessToken, {
     recipient: { id: recipientIgUserId },
     message: { text: texto },
   });
