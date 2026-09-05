@@ -21,3 +21,4 @@ yarn-error.log*
 *.p12
 *.pem
 *.key
+.secrets/

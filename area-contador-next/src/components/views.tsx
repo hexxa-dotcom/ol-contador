@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion";
 import {
+  useCallback,
   useEffect,
   useMemo,
   useRef,
@@ -54,6 +55,7 @@ import {
   RotateCcw,
   Search,
   Send,
+  Settings2,
   ShieldCheck,
   Save,
   Smartphone,
@@ -167,6 +169,19 @@ export function OlaSymbol({ size = 20, className = "" }: { size?: number; classN
       <circle cx="259.5" cy="307.5" r="27.5" />
       <circle cx="331.5" cy="307.5" r="27.5" />
       <circle cx="403.5" cy="307.5" r="27.5" />
+    </svg>
+  );
+}
+
+// lucide-react não inclui ícones de marca (Instagram/Facebook/etc. foram
+// removidos da biblioteca) — desenho próprio, mesmo estilo stroke usado no
+// resto do app (e o mesmo traçado já usado no rodapé do site público).
+function InstagramGlyph({ size = 20 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
+      <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
+      <line x1="17.5" y1="6.5" x2="17.51" y2="6.5" />
     </svg>
   );
 }
@@ -894,7 +909,7 @@ export function AtendimentoView({
   onNavigate?: (tab: any) => void;
 }) {
   const [queue, setQueue] = useState<"Chats" | "Agenda do dia">("Chats");
-  const [tool, setTool] = useState<"fila" | "copilot" | "whatsapp">("fila");
+  const [tool, setTool] = useState<"fila" | "copilot" | "whatsapp" | "instagram">("fila");
   const [mobileChatView, setMobileChatView] = useState<"queue" | "chat" | "copilot">("queue");
   const [mobileActionsOpen, setMobileActionsOpen] = useState(false);
   const [panelCollapsed, setPanelCollapsed] = useState(false);
@@ -1626,7 +1641,7 @@ export function AtendimentoView({
     }
   }
 
-  function selectTool(nextTool: "fila" | "copilot" | "whatsapp") {
+  function selectTool(nextTool: "fila" | "copilot" | "whatsapp" | "instagram") {
     if (tool === nextTool) {
       setPanelCollapsed((value) => !value);
       return;
@@ -1671,6 +1686,15 @@ export function AtendimentoView({
           <span>WhatsApp</span>
         </button>
         <button
+          className={tool === "instagram" && !panelCollapsed ? "active" : ""}
+          onClick={() => selectTool("instagram")}
+          aria-label="Instagram"
+          data-tooltip="Instagram"
+        >
+          <InstagramGlyph size={20} />
+          <span>Instagram</span>
+        </button>
+        <button
           className={tool === "copilot" && !panelCollapsed ? "active" : ""}
           onClick={() => selectTool("copilot")}
           aria-label="Copiloto IA"
@@ -1699,6 +1723,10 @@ export function AtendimentoView({
         </button>
       </aside>
 
+      {tool === "instagram" ? (
+        <InstagramPanel clientsData={clientsData} />
+      ) : (
+        <>
       <aside
         className={`chat-side-panel ${tool === "copilot" ? "copilot-panel" : "queue-panel"}`}
         aria-label={tool === "fila" ? "Fila de atendimento" : tool === "whatsapp" ? "WhatsApp" : "Copiloto IA"}
@@ -2407,6 +2435,8 @@ export function AtendimentoView({
           </Button>
         </footer>
       </main>
+        </>
+      )}
 
       {/* DRAWER / SLIDE-OVER DA FICHA DO CLIENTE (ESTILO KOMMO) */}
       {clientSheetOpen && selectedClient && (
@@ -2717,6 +2747,461 @@ const emptyDossier = (client: ClientRecord): ClientDossierInput => ({
         }))
     : [],
 });
+
+type InstagramConversa = {
+  id: string;
+  ig_user_id: string;
+  ig_username: string | null;
+  cliente_id: string | null;
+  cliente_nome: string | null;
+  ultima_mensagem_em: string;
+  nao_lida: boolean;
+};
+
+type InstagramMensagem = {
+  id: string;
+  sender: "lead" | "contador";
+  texto: string;
+  created_at: string;
+};
+
+// Painel de Instagram na Fila de Atendimento — conversas separadas do chat
+// interno/WhatsApp (mensagens.canal): quem manda DM não precisa ser cliente
+// cadastrado, vínculo é manual e opcional (ver plano do módulo). Busca os
+// próprios dados via API em vez de vir pelas props de AtendimentoView,
+// porque não faz parte do payload inicial da página (mensagens do chat
+// interno/WhatsApp já vêm prontas do servidor; Instagram é módulo à parte).
+function InstagramPanel({ clientsData }: { clientsData: ClientsData }) {
+  const [conversas, setConversas] = useState<InstagramConversa[]>([]);
+  const [carregandoConversas, setCarregandoConversas] = useState(true);
+  const [selecionadaId, setSelecionadaId] = useState<string | null>(null);
+  const [mensagens, setMensagens] = useState<InstagramMensagem[]>([]);
+  const [texto, setTexto] = useState("");
+  const [enviando, setEnviando] = useState(false);
+  const [erroEnvio, setErroEnvio] = useState("");
+  const [vinculoAberto, setVinculoAberto] = useState(false);
+  const [buscaCliente, setBuscaCliente] = useState("");
+  const [aba, setAba] = useState<"conversas" | "campanhas">("conversas");
+  const mensagensEndRef = useRef<HTMLDivElement>(null);
+
+  const carregarConversas = useCallback(() => {
+    setCarregandoConversas(true);
+    fetch("/api/instagram/conversas")
+      .then((response) => (response.ok ? response.json() : []))
+      .then((data: InstagramConversa[]) => setConversas(data))
+      .catch(() => setConversas([]))
+      .finally(() => setCarregandoConversas(false));
+  }, []);
+
+  useEffect(() => {
+    carregarConversas();
+  }, [carregarConversas]);
+
+  useEffect(() => {
+    if (!selecionadaId) return;
+    fetch(`/api/instagram/conversas/${selecionadaId}`)
+      .then((response) => (response.ok ? response.json() : []))
+      .then((data: InstagramMensagem[]) => setMensagens(data))
+      .catch(() => setMensagens([]));
+  }, [selecionadaId]);
+
+  useEffect(() => {
+    mensagensEndRef.current?.scrollIntoView({ block: "end" });
+  }, [mensagens.length]);
+
+  const selecionada = conversas.find((item) => item.id === selecionadaId) || null;
+
+  async function enviarMensagem() {
+    const valor = texto.trim();
+    if (!valor || !selecionadaId || enviando) return;
+    setEnviando(true);
+    setErroEnvio("");
+    const response = await fetch("/api/instagram/enviar", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ conversaId: selecionadaId, texto: valor }),
+    });
+    setEnviando(false);
+    if (!response.ok) {
+      const result = await response.json().catch(() => ({}));
+      setErroEnvio(
+        result.error === "instagram_nao_conectado"
+          ? "Conecte a conta do Instagram em Configurações antes de responder."
+          : "Não foi possível enviar — a pessoa pode estar fora da janela de 24h de resposta.",
+      );
+      return;
+    }
+    setTexto("");
+    setMensagens((items) => [...items, { id: crypto.randomUUID(), sender: "contador", texto: valor, created_at: new Date().toISOString() }]);
+    carregarConversas();
+  }
+
+  async function vincularCliente(clienteId: string | null) {
+    if (!selecionadaId) return;
+    await fetch(`/api/instagram/conversas/${selecionadaId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ clienteId }),
+    });
+    setVinculoAberto(false);
+    setBuscaCliente("");
+    carregarConversas();
+  }
+
+  const clientesFiltrados = buscaCliente.trim()
+    ? clientsData.clients.filter((client) => client.name.toLowerCase().includes(buscaCliente.trim().toLowerCase())).slice(0, 8)
+    : [];
+
+  return (
+    <>
+      <aside className="chat-side-panel queue-panel" aria-label="Instagram">
+        <div className="side-panel-heading">
+          <div>
+            <strong>Instagram</strong>
+            <small>Mensagens diretas recebidas</small>
+          </div>
+        </div>
+        <div className="queue-content">
+          {carregandoConversas ? (
+            <EmptyState>Carregando conversas…</EmptyState>
+          ) : conversas.length ? (
+            <div className="queue-real-list">
+              {conversas.map((conversa) => (
+                <button
+                  key={conversa.id}
+                  className={aba === "conversas" && selecionadaId === conversa.id ? "selected" : ""}
+                  onClick={() => {
+                    setSelecionadaId(conversa.id);
+                    setAba("conversas");
+                  }}
+                >
+                  <span className="avatar">{(conversa.ig_username || conversa.ig_user_id).slice(0, 2).toUpperCase()}</span>
+                  <span>
+                    <strong>{conversa.ig_username ? `@${conversa.ig_username}` : conversa.ig_user_id}</strong>
+                    <small>{conversa.cliente_nome ? `Vinculado a ${conversa.cliente_nome}` : "Não vinculado a cliente"}</small>
+                  </span>
+                  {conversa.nao_lida && <Badge className="attention">Nova</Badge>}
+                </button>
+              ))}
+            </div>
+          ) : (
+            <EmptyState>Nenhuma DM recebida ainda.</EmptyState>
+          )}
+        </div>
+        <button
+          type="button"
+          className={`chat-action-button ${aba === "campanhas" ? "active-warning" : ""}`}
+          style={{ margin: "8px 12px 12px" }}
+          onClick={() => setAba(aba === "campanhas" ? "conversas" : "campanhas")}
+        >
+          <Settings2 size={14} />
+          <span>Campanhas (comentário → DM)</span>
+        </button>
+      </aside>
+
+      {aba === "campanhas" ? (
+        <main className="chat-main">
+          <header className="chat-header">
+            <div className="chat-client-copy">
+              <strong>Campanhas de comentário → DM</strong>
+              <small>Alguém comenta a palavra-chave num post, recebe a DM automaticamente</small>
+            </div>
+          </header>
+          <InstagramCampanhasPanel />
+        </main>
+      ) : (
+        <main className="chat-main">
+          <header className="chat-header">
+            {selecionada ? (
+              <>
+                <div className="chat-client-copy">
+                  <strong>{selecionada.ig_username ? `@${selecionada.ig_username}` : selecionada.ig_user_id}</strong>
+                  <small>{selecionada.cliente_nome ? `Vinculado a ${selecionada.cliente_nome}` : "Não vinculado a cliente"}</small>
+                </div>
+                <div className="chat-actions-desktop">
+                  <button type="button" className="chat-action-button" onClick={() => setVinculoAberto((value) => !value)}>
+                    <UserRound size={14} />
+                    <span>{selecionada.cliente_id ? "Trocar vínculo" : "Vincular a cliente"}</span>
+                  </button>
+                </div>
+                {vinculoAberto && (
+                  <div className="notification-popover" role="dialog" aria-label="Vincular a cliente" style={{ top: "calc(100% + 8px)" }}>
+                    <div className="popover-title">
+                      <strong>Vincular a um cliente</strong>
+                    </div>
+                    <div style={{ padding: "10px 12px" }}>
+                      <Input
+                        placeholder="Buscar cliente pelo nome…"
+                        value={buscaCliente}
+                        onChange={(event) => setBuscaCliente(event.target.value)}
+                        autoFocus
+                      />
+                      {selecionada.cliente_id && (
+                        <button className="popover-footer" onClick={() => vincularCliente(null)}>
+                          Remover vínculo atual
+                        </button>
+                      )}
+                    </div>
+                    {clientesFiltrados.length > 0 && (
+                      <div className="notification-list">
+                        {clientesFiltrados.map((client) => (
+                          <button key={client.id} onClick={() => vincularCliente(client.id)}>
+                            <span>
+                              <strong>{client.name}</strong>
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="chat-client-copy">
+                <strong>Selecione uma conversa</strong>
+              </div>
+            )}
+          </header>
+
+          {selecionada ? (
+            <>
+              <div className="chat-messages" aria-live="polite">
+                {mensagens.map((item) => (
+                  <article className={`chat-message ${item.sender === "lead" ? "client" : "agent"}`} key={item.id}>
+                    <div>
+                      <p>{item.texto}</p>
+                    </div>
+                  </article>
+                ))}
+                <div ref={mensagensEndRef} />
+              </div>
+              <footer className="composer">
+                <Input
+                  placeholder="Responder no Instagram…"
+                  value={texto}
+                  onChange={(event) => setTexto(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" && !event.shiftKey) {
+                      event.preventDefault();
+                      void enviarMensagem();
+                    }
+                  }}
+                  disabled={enviando}
+                />
+                <Button className="icon" onClick={() => void enviarMensagem()} disabled={enviando || !texto.trim()} aria-label="Enviar">
+                  <Send size={17} />
+                </Button>
+                {erroEnvio && <small style={{ width: "100%", color: "#dc2626" }}>{erroEnvio}</small>}
+              </footer>
+            </>
+          ) : (
+            <div className="chat-empty">
+              <p>Escolha uma conversa na lista pra ver as mensagens.</p>
+            </div>
+          )}
+        </main>
+      )}
+    </>
+  );
+}
+
+const campanhaFormVazio = {
+  nome: "",
+  palavrasChave: "",
+  respostaDm: "",
+  linkDestino: "",
+  disparaPorDm: false,
+  respostaPublicaAtiva: false,
+  respostaPublicaTexto: "",
+};
+
+function InstagramCampanhasPanel() {
+  type Campanha = {
+    id: string;
+    nome: string;
+    post_id: string | null;
+    palavras_chave: string[];
+    resposta_dm: string;
+    link_destino: string | null;
+    dispara_por_dm: boolean;
+    resposta_publica_ativa: boolean;
+    resposta_publica_texto: string | null;
+    ativa: boolean;
+  };
+  const [campanhas, setCampanhas] = useState<Campanha[]>([]);
+  const [editorAberto, setEditorAberto] = useState(false);
+  const [editandoId, setEditandoId] = useState<string | null>(null);
+  const [form, setForm] = useState(campanhaFormVazio);
+  const [salvando, setSalvando] = useState(false);
+
+  const carregar = useCallback(() => {
+    fetch("/api/instagram/campanhas")
+      .then((response) => (response.ok ? response.json() : []))
+      .then((data: Campanha[]) => setCampanhas(data))
+      .catch(() => setCampanhas([]));
+  }, []);
+
+  useEffect(() => {
+    carregar();
+  }, [carregar]);
+
+  function abrirNova() {
+    setEditandoId(null);
+    setForm(campanhaFormVazio);
+    setEditorAberto(true);
+  }
+
+  function abrirEdicao(campanha: Campanha) {
+    setEditandoId(campanha.id);
+    setForm({
+      nome: campanha.nome,
+      palavrasChave: campanha.palavras_chave.join(", "),
+      respostaDm: campanha.resposta_dm,
+      linkDestino: campanha.link_destino || "",
+      disparaPorDm: campanha.dispara_por_dm,
+      respostaPublicaAtiva: campanha.resposta_publica_ativa,
+      respostaPublicaTexto: campanha.resposta_publica_texto || "",
+    });
+    setEditorAberto(true);
+  }
+
+  async function salvarCampanha() {
+    if (!form.nome.trim() || !form.respostaDm.trim() || !form.palavrasChave.trim()) return;
+    setSalvando(true);
+    const payload = {
+      nome: form.nome,
+      respostaDm: form.respostaDm,
+      linkDestino: form.linkDestino || null,
+      disparaPorDm: form.disparaPorDm,
+      respostaPublicaAtiva: form.respostaPublicaAtiva,
+      respostaPublicaTexto: form.respostaPublicaTexto || null,
+      palavrasChave: form.palavrasChave.split(",").map((item) => item.trim()).filter(Boolean),
+    };
+    await fetch(editandoId ? `/api/instagram/campanhas/${editandoId}` : "/api/instagram/campanhas", {
+      method: editandoId ? "PATCH" : "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    setSalvando(false);
+    setForm(campanhaFormVazio);
+    setEditandoId(null);
+    setEditorAberto(false);
+    carregar();
+  }
+
+  async function alternarAtiva(campanha: Campanha) {
+    await fetch(`/api/instagram/campanhas/${campanha.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ativa: !campanha.ativa }),
+    });
+    carregar();
+  }
+
+  async function excluirCampanha(campanha: Campanha) {
+    if (!window.confirm(`Excluir a campanha "${campanha.nome}"? Não tem como desfazer.`)) return;
+    await fetch(`/api/instagram/campanhas/${campanha.id}`, { method: "DELETE" });
+    if (editandoId === campanha.id) {
+      setEditorAberto(false);
+      setEditandoId(null);
+    }
+    carregar();
+  }
+
+  return (
+    <div className="chat-messages" style={{ display: "grid", gridTemplateColumns: "minmax(280px, 380px) 1fr", gap: "20px", alignItems: "start", padding: "24px" }}>
+      <Card style={{ padding: "18px", position: "sticky", top: 0 }}>
+        <strong style={{ display: "block", marginBottom: "12px" }}>{editandoId ? "Editar campanha" : "Nova campanha"}</strong>
+        {editorAberto ? (
+          <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+            <Input placeholder="Nome da campanha" value={form.nome} onChange={(event) => setForm((value) => ({ ...value, nome: event.target.value }))} />
+            <Input
+              placeholder="Palavras-chave, separadas por vírgula"
+              value={form.palavrasChave}
+              onChange={(event) => setForm((value) => ({ ...value, palavrasChave: event.target.value }))}
+            />
+            <textarea
+              className="input"
+              placeholder="Texto da DM automática (use {username} pra personalizar)"
+              value={form.respostaDm}
+              onChange={(event) => setForm((value) => ({ ...value, respostaDm: event.target.value }))}
+              rows={5}
+            />
+            <Input
+              placeholder="Link (opcional)"
+              value={form.linkDestino}
+              onChange={(event) => setForm((value) => ({ ...value, linkDestino: event.target.value }))}
+            />
+            <label style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "12.5px" }}>
+              <input
+                type="checkbox"
+                checked={form.disparaPorDm}
+                onChange={(event) => setForm((value) => ({ ...value, disparaPorDm: event.target.checked }))}
+              />
+              Também disparar quando a palavra vier por DM ou resposta de Story (não só comentário)
+            </label>
+            <label style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "12.5px" }}>
+              <input
+                type="checkbox"
+                checked={form.respostaPublicaAtiva}
+                onChange={(event) => setForm((value) => ({ ...value, respostaPublicaAtiva: event.target.checked }))}
+              />
+              Também responder publicamente embaixo do comentário
+            </label>
+            {form.respostaPublicaAtiva && (
+              <textarea
+                className="input"
+                placeholder="Texto da resposta pública no comentário"
+                value={form.respostaPublicaTexto}
+                onChange={(event) => setForm((value) => ({ ...value, respostaPublicaTexto: event.target.value }))}
+                rows={2}
+              />
+            )}
+            <div style={{ display: "flex", gap: "8px" }}>
+              <Button onClick={() => void salvarCampanha()} disabled={salvando}>
+                Salvar
+              </Button>
+              <Button className="secondary" onClick={() => setEditorAberto(false)}>
+                Cancelar
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <Button onClick={abrirNova}>Nova campanha</Button>
+        )}
+      </Card>
+
+      <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+        {campanhas.length ? (
+          campanhas.map((campanha) => (
+            <Card key={campanha.id} style={{ padding: "16px 18px" }}>
+              <strong>{campanha.nome}</strong>
+              <p style={{ margin: "6px 0 0", fontSize: "12.5px", color: "var(--muted-foreground)" }}>{campanha.resposta_dm}</p>
+              <div className="muted" style={{ fontSize: "11px", marginTop: "8px" }}>
+                Palavras-chave: {campanha.palavras_chave.join(", ")}
+                {campanha.dispara_por_dm && " · também via DM/Story"}
+                {campanha.resposta_publica_ativa && " · resposta pública ativa"}
+              </div>
+              <div style={{ display: "flex", gap: "8px", marginTop: "10px" }}>
+                <button type="button" className="chat-action-button" onClick={() => void alternarAtiva(campanha)}>
+                  {campanha.ativa ? "Pausar" : "Ativar"}
+                </button>
+                <button type="button" className="chat-action-button" onClick={() => abrirEdicao(campanha)}>
+                  Editar
+                </button>
+                <button type="button" className="chat-action-button" onClick={() => void excluirCampanha(campanha)}>
+                  Excluir
+                </button>
+              </div>
+            </Card>
+          ))
+        ) : (
+          <EmptyState>Nenhuma campanha criada ainda.</EmptyState>
+        )}
+      </div>
+    </div>
+  );
+}
 
 export function ClientesIntegralView({
   data = emptyClientsData,
@@ -6623,6 +7108,7 @@ export function ConfiguracoesIntegralView({
                   </div>
                   <Badge>Servidor</Badge>
                 </div>
+                <InstagramConnectionSetting />
                 <div className="setting-row">
                   <div>
                     <strong>Integra Contador / SERPRO</strong>
@@ -7706,6 +8192,39 @@ function SettingSwitch({
         />
         <span />
       </label>
+    </div>
+  );
+}
+
+function InstagramConnectionSetting() {
+  const [status, setStatus] = useState<{ conectado: boolean; username?: string | null; expiraEm?: string } | null>(null);
+
+  useEffect(() => {
+    fetch("/api/instagram/status")
+      .then((response) => (response.ok ? response.json() : { conectado: false }))
+      .then(setStatus)
+      .catch(() => setStatus({ conectado: false }));
+  }, []);
+
+  return (
+    <div className="setting-row">
+      <div>
+        <strong>Instagram (DM + comentário→DM)</strong>
+        <small>
+          {status === null
+            ? "Verificando…"
+            : status.conectado
+              ? `Conectado${status.username ? ` como @${status.username}` : ""}.`
+              : "Não conectado — clique em Conectar depois de configurar o produto Instagram Login no app da Meta."}
+        </small>
+      </div>
+      {status?.conectado ? (
+        <Badge className="success">Conectado</Badge>
+      ) : (
+        <a className="button secondary compact" href="/api/instagram/connect">
+          Conectar Instagram
+        </a>
+      )}
     </div>
   );
 }

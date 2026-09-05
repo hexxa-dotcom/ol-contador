@@ -71,7 +71,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="pt-BR" className={`${bricolage.variable} ${hanken.variable} ${plusJakarta.variable}`}>
+    <html lang="pt-BR" data-scroll-behavior="smooth" className={`${bricolage.variable} ${hanken.variable} ${plusJakarta.variable}`}>
       <body>
         {children}
         <script

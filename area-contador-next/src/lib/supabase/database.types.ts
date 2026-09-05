@@ -964,6 +964,121 @@ export type Database = {
           },
         ]
       }
+      instagram_campanhas: {
+        Row: {
+          ativa: boolean
+          criado_em: string
+          dispara_por_dm: boolean
+          id: string
+          link_destino: string | null
+          nome: string
+          palavras_chave: string[]
+          post_id: string | null
+          resposta_dm: string
+          resposta_publica_ativa: boolean
+          resposta_publica_texto: string | null
+        }
+        Insert: {
+          ativa?: boolean
+          criado_em?: string
+          dispara_por_dm?: boolean
+          id?: string
+          link_destino?: string | null
+          nome: string
+          palavras_chave?: string[]
+          post_id?: string | null
+          resposta_dm: string
+          resposta_publica_ativa?: boolean
+          resposta_publica_texto?: string | null
+        }
+        Update: {
+          ativa?: boolean
+          criado_em?: string
+          dispara_por_dm?: boolean
+          id?: string
+          link_destino?: string | null
+          nome?: string
+          palavras_chave?: string[]
+          post_id?: string | null
+          resposta_dm?: string
+          resposta_publica_ativa?: boolean
+          resposta_publica_texto?: string | null
+        }
+        Relationships: []
+      }
+      instagram_conversas: {
+        Row: {
+          cliente_id: string | null
+          created_at: string
+          id: string
+          ig_user_id: string
+          ig_username: string | null
+          nao_lida: boolean
+          ultima_mensagem_em: string
+        }
+        Insert: {
+          cliente_id?: string | null
+          created_at?: string
+          id?: string
+          ig_user_id: string
+          ig_username?: string | null
+          nao_lida?: boolean
+          ultima_mensagem_em?: string
+        }
+        Update: {
+          cliente_id?: string | null
+          created_at?: string
+          id?: string
+          ig_user_id?: string
+          ig_username?: string | null
+          nao_lida?: boolean
+          ultima_mensagem_em?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "instagram_conversas_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      instagram_mensagens: {
+        Row: {
+          conversa_id: string
+          created_at: string
+          id: string
+          ig_message_id: string | null
+          sender: string
+          texto: string
+        }
+        Insert: {
+          conversa_id: string
+          created_at?: string
+          id?: string
+          ig_message_id?: string | null
+          sender: string
+          texto: string
+        }
+        Update: {
+          conversa_id?: string
+          created_at?: string
+          id?: string
+          ig_message_id?: string | null
+          sender?: string
+          texto?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "instagram_mensagens_conversa_id_fkey"
+            columns: ["conversa_id"]
+            isOneToOne: false
+            referencedRelation: "instagram_conversas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lembretes_enviados: {
         Row: {
           cliente_ref: string | null
