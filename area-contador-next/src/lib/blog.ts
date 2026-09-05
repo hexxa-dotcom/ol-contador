@@ -603,6 +603,234 @@ export const BLOG_POSTS: BlogPost[] = [
       buttonText: "Negociar minha dívida ativa",
       buttonHref: "/radar"
     }
+  },
+  {
+    slug: "como-calcular-ganho-de-capital-venda-imovel-gcap",
+    title: "Ganho de Capital na Venda de Imóveis: Como Calcular no GCAP, Prazos e Regras de Isenção",
+    subtitle: "Entenda as alíquotas do imposto de renda sobre lucro imobiliário, a regra dos 180 dias e como emitir o DARF sem multas.",
+    excerpt: "Vendeu um imóvel e teve lucro? Saiba como apurar o Ganho de Capital no programa GCAP da Receita Federal, as hipóteses legais de isenção e os prazos fatais para pagamento do imposto.",
+    description: "Guia completo sobre Ganho de Capital na alienação de imóveis: como funciona o GCAP, prazos do DARF, fatores de redução da Lei 11.196/2005 e isenção de 180 dias.",
+    category: "Imposto de Renda",
+    categorySlug: "imposto-de-renda",
+    publishedAt: "2026-09-05T09:00:00-03:00",
+    updatedAt: "2026-09-05T09:00:00-03:00",
+    readTime: "7 min de leitura",
+    author: {
+      name: "Equipe Técnica Olá, Contador",
+      role: "Contadores Certificados com CRC Ativo",
+      crc: "CRC/SC 042819/O",
+      bio: "Especialistas em tributação sobre patrimônio imobiliário e apuração de ganho de capital para pessoas físicas.",
+    },
+    tags: ["ganho de capital", "gcap", "venda de imovel", "darf ganho de capital", "isencao 180 dias", "irpf"],
+    keyTakeaways: [
+      "O imposto sobre o lucro imobiliário NÃO é pago na declaração anual do ano seguinte, mas até o último dia útil do mês subsequente à venda.",
+      "A alíquota inicial é de 15% sobre o ganho de capital líquido para lucros de até R$ 5 milhões.",
+      "Quem vende imóvel residencial e compra outro residencial no Brasil em até 180 dias tem isenção total ou proporcional do IR.",
+      "Imóveis adquiridos até 1969 são totalmente isentos de ganho de capital, e imóveis comprados entre 1969 e 1988 possuem percentuais crescentes de redução.",
+      "Custos de corretagem, ITBI, reformas comprovadas com notas fiscais e juros de financiamento podem ser incorporados ao custo de aquisição para reduzir o imposto."
+    ],
+    content: [
+      {
+        id: "o-que-e-ganho-de-capital",
+        heading: "1. O que é o Ganho de Capital e quando ele incide?",
+        paragraphs: [
+          "O Ganho de Capital é a diferença positiva entre o valor de alienação (venda) de um bem ou direito e o seu respectivo custo de aquisição (valor histórico declarado no IRPF).",
+          "Se você comprou um apartamento por R$ 300.000 e vendeu por R$ 500.000, o seu ganho de capital bruto é de R$ 200.000. Sobre essa parcela incide o Imposto de Renda da Pessoa Física (IRPF), apurado por meio do software oficial da Receita Federal: o GCAP (Programa de Ganhos de Capital)."
+        ],
+        callout: {
+          type: "warning",
+          title: "Atenção ao Prazo Fatal do DARF",
+          text: "Muitos contribuintes erram achando que só pagarão o imposto na declaração de ajuste anual do ano seguinte. O imposto de ganho de capital deve ser pago até o último dia útil do mês seguinte ao do recebimento da venda. Atrasos geram multa diária de 0,33% até 20% mais juros pela taxa SELIC."
+        }
+      },
+      {
+        id: "tabela-aliquotas-progressivas",
+        heading: "2. Tabela de Alíquotas do Ganho de Capital",
+        paragraphs: [
+          "Desde a edição da Lei nº 13.259/2016, as alíquotas de ganho de capital para pessoas físicas são progressivas de acordo com o montante do lucro apurado:"
+        ],
+        table: {
+          headers: ["Faixa de Ganho de Capital", "Alíquota do IRPF"],
+          rows: [
+            ["Até R$ 5.000.000,00", "15%"],
+            ["De R$ 5.000.000,01 até R$ 10.000.000,00", "17,5%"],
+            ["De R$ 10.000.000,01 até R$ 30.000.000,00", "20%"],
+            ["Acima de R$ 30.000.000,00", "22,5%"]
+          ]
+        }
+      },
+      {
+        id: "hipoteses-de-isencao-legal",
+        heading: "3. Principais hipóteses de isenção de imposto na venda",
+        paragraphs: [
+          "A legislação prevê situações específicas em que o contribuinte é dispensado do recolhimento de imposto de renda sobre o ganho imobiliário:",
+          "Conhecer essas exceções pode representar uma economia de dezenas de milhares de reais."
+        ],
+        bullets: [
+          "Regra dos 180 dias (Art. 39 da Lei 11.196/2005): Isenção total ou proporcional para quem vende imóvel residencial e utiliza todo o produto da venda na aquisição de outro imóvel residencial no Brasil dentro do prazo improrrogável de 180 dias. Esse benefício só pode ser usufruído uma vez a cada 5 anos.",
+          "Venda de único imóvel até R$ 440.000: Isento se o valor de venda for igual ou inferior a R$ 440 mil, desde que o contribuinte não tenha realizado outra alienação de imóvel nos últimos 5 anos.",
+          "Bens de pequeno valor: Vendas de bens e direitos cujo valor total seja igual ou inferior a R$ 35.000 no mês são isentas.",
+          "Imóveis adquiridos até 1969: Totalmente isentos por lei.",
+          "Fatores de redução (FR1 e FR2): Imóveis adquiridos entre 1969 e 1988, ou entre 1988 e 2005, contam com coeficientes de redução que diminuem expressivamente a base de cálculo."
+        ],
+        callout: {
+          type: "tip",
+          title: "Despesas que Reduzem o Imposto",
+          text: "Você tem o direito legal de abater da base de cálculo: a comissão de corretagem imobiliária comprovada, o imposto ITBI pago na compra, custos com escritura e registro de imóveis, e benfeitorias/reformas comprovadas com notas fiscais desde que incorporadas à declaração de bens."
+        }
+      },
+      {
+        id: "passo-a-passo-apuracao-gcap",
+        heading: "4. Passo a passo para apurar no programa GCAP",
+        paragraphs: [
+          "O preenchimento do GCAP exige atenção aos detalhes para não cair na malha fina nem pagar tributo a mais:",
+          "1. Faça o download do programa GCAP correspondente ao ano-calendário da alienação.",
+          "2. Cadastre a operação na aba 'Bens Imóveis', informando dados da matrícula, cartório, data de aquisição e custo original.",
+          "3. Informe se houve parcelamento ou pagamento à vista.",
+          "4. Se for utilizar a isenção dos 180 dias, assinale o campo específico informando a intenção de compra do novo imóvel.",
+          "5. O programa calculará o imposto devido e emitirá o DARF com código de receita 4600.",
+          "6. Na declaração anual de ajuste seguinte, basta importar o arquivo gerado pelo GCAP direto no programa do IRPF."
+        ]
+      }
+    ],
+    faqs: [
+      {
+        question: "Vendi meu imóvel parcelado, quando pago o DARF?",
+        answer: "No caso de venda a prazo ou em parcelas, o ganho de capital é tributado proporcionalmente a cada mês em que a parcela for recebida pelo vendedor."
+      },
+      {
+        question: "Posso usar a isenção dos 180 dias para quitar financiamento de imóvel existente?",
+        answer: "Sim, a Receita Federal alterou seu entendimento recente (Instrução Normativa RFB nº 2.070/2022) permitindo que o valor da venda seja utilizado na quitação total ou amortização de financiamento imobiliário residencial pré-existente no prazo de 180 dias."
+      },
+      {
+        question: "E se eu não conseguir comprar o novo imóvel dentro dos 180 dias?",
+        answer: "Se o prazo expirar sem a compra, o imposto se torna exigível retroativamente à data original da venda, incidindo multa de mora e juros SELIC acumulados desde o mês subsequente à alienação."
+      },
+      {
+        question: "Como um contador pode me ajudar no ganho de capital?",
+        answer: "O contador analisa sua escritura, contratos e comprovantes de reforma para maximizar todas as deduções legais possíveis e aplicar corretamente os fatores de redução, evitando que você pague imposto indevido ou seja autuado pela Receita."
+      }
+    ],
+    relatedSlugs: [
+      "como-sair-da-malha-fina-irpf",
+      "radar-fiscal-consultar-dividas-receita-pgfn",
+      "contabilidade-sob-demanda-sem-mensalidade"
+    ],
+    cta: {
+      badge: "Apuração de Ganho de Capital",
+      title: "Vendeu um imóvel ou está planejando vender?",
+      description: "Nossa equipe calcula seu GCAP com parecer técnico assinado, aplica todas as deduções e isenções legais e emite sua memória de cálculo.",
+      buttonText: "Apurar meu ganho de capital (R$ 199)",
+      buttonHref: "/precos?servico=irpf"
+    }
+  },
+  {
+    slug: "cpf-suspenso-ou-pendente-regularizacao-como-resolver",
+    title: "CPF Suspenso ou Pendente de Regularização: Causas, Riscos e Como Resolver Urgente",
+    subtitle: "Entenda por que a Receita Federal bloqueia o documento, o perigo de contas bancárias congeladas e o passo a passo para regularizar.",
+    excerpt: "Descubra o motivo exato do seu CPF estar pendente ou suspenso na Receita Federal, como consultar no portal e-CAC e como regularizar seu documento em poucas horas sem filas.",
+    description: "Saiba como regularizar CPF suspenso ou pendente de regularização na Receita Federal: passo a passo no e-CAC, resolução de declarações de IRPF em atraso e desbloqueio bancário.",
+    category: "Dívida Ativa & Regularização",
+    categorySlug: "divida-ativa-regularizacao",
+    publishedAt: "2026-09-05T09:30:00-03:00",
+    updatedAt: "2026-09-05T09:30:00-03:00",
+    readTime: "6 min de leitura",
+    author: {
+      name: "Equipe Técnica Olá, Contador",
+      role: "Contadores Certificados com CRC Ativo",
+      crc: "CRC/SC 042819/O",
+      bio: "Especialistas em regularização cadastral e fiscal de pessoas físicas junto à Receita Federal do Brasil.",
+    },
+    tags: ["cpf irregular", "cpf suspenso", "cpf pendente de regularizacao", "receita federal", "regularizar cpf", "ecac"],
+    keyTakeaways: [
+      "A causa mais frequente de CPF Pendente de Regularização é a falta de entrega de alguma declaração de Imposto de Renda (IRPF) obrigatória nos últimos 5 anos.",
+      "CPF Suspenso normalmente decorre de inconsistências cadastrais (nome divergente de certidão, data de nascimento errada ou ausência de título de eleitor).",
+      "Um CPF irregular bloqueia abertura e movimentação de contas bancárias, recebimento de Pix, emissão de passaporte, financiamentos habitacionais e concursos públicos.",
+      "A regularização pela entrega da declaração em atraso costuma restabelecer o status de 'Regular' no sistema da Receita Federal em até 48 a 72 horas.",
+      "O Olá, Contador identifica a pendência exata através do e-CAC e elabora as retificações ou declarações necessárias para regularizar seu documento imediatamente."
+    ],
+    content: [
+      {
+        id: "diferenca-status-cpf",
+        heading: "1. As diferenças entre CPF Regular, Pendente, Suspenso e Cancelado",
+        paragraphs: [
+          "Muitas pessoas confundem os status da situação cadastral do CPF no banco de dados da Receita Federal. Cada situação possui uma causa jurídica distinta e requer uma solução diferente:"
+        ],
+        table: {
+          headers: ["Status do CPF", "Significado Legal", "Como Resolver"],
+          rows: [
+            ["Regular", "Cadastro sem pendências ativas conhecidas", "Nenhuma ação necessária"],
+            ["Pendente de Regularização", "O contribuinte deixou de entregar pelo menos uma declaração de IRPF obrigatória nos últimos 5 anos", "Transmitir a declaração omissa ou retificadora correspondente"],
+            ["Suspenso", "Informações cadastrais incorretas ou incompletas (nome, mãe, data de nascimento, título)", "Pedido de regularização cadastral pelo site da RFB ou processo digital"],
+            ["Cancelado", "Decisão administrativa ou judicial (ex: multiplicidade de inscrições) ou perda", "Exige atendimento presencial ou processo administrativo"],
+            ["Nulo", "Fraude confirmada na inscrição", "Processo fiscal especial na Receita Federal"],
+            ["Titular Falecido", "Registrado após a certidão de óbito ser informada pelo cartório", "Regularização via inventário/espólio"]
+          ]
+        }
+      },
+      {
+        id: "consequencias-praticas-cpf-irregular",
+        heading: "2. O que acontece na sua vida quando o CPF fica irregular?",
+        paragraphs: [
+          "Manter o CPF com pendências na Receita Federal desencadeia um efeito cascata imediato em toda a sua vida financeira e civil:",
+          "Os bancos e fintechs realizam varreduras automáticas periódicas contra a base de dados da Receita Federal. Ao detectar irregularidade, as instituições são obrigadas por normas do Banco Central a bloquear transações."
+        ],
+        bullets: [
+          "Bloqueio de contas correntes, poupanças e contas de pagamento (Nubank, Inter, Itaú, Bradesco etc.).",
+          "Impossibilidade de realizar ou receber transferências via Pix.",
+          "Impedimento para emitir ou renovar Passaporte na Polícia Federal.",
+          "Bloqueio de benefícios previdenciários e assistenciais (INSS, Bolsa Família).",
+          "Impedimento para contratação de empréstimos, consórcios e financiamento imobiliário.",
+          "Impossibilidade de assumir cargos públicos em caso de aprovação em concurso.",
+          "Impossibilidade de matrícula em universidades públicas ou privadas conveniadas ao MEC."
+        ],
+        callout: {
+          type: "warning",
+          title: "Alerta de Fraudes",
+          text: "Cuidado com sites falsos cobrando taxas ilegítimas para 'limpar CPF'. A regularização cadastral na Receita é gratuita. O único custo legítimo pode ser o pagamento de eventual multa por entrega de IRPF em atraso (mínimo de R$ 165,74) devida à União via DARF oficial."
+        }
+      },
+      {
+        id: "como-consultar-e-resolver",
+        heading: "3. Como consultar a pendência no e-CAC e regularizar",
+        paragraphs: [
+          "O primeiro passo para resolver é acessar o portal e-CAC da Receita Federal utilizando uma conta gov.br nível Prata ou Ouro.",
+          "Dentro do portal, acesse a aba 'Declarações e Demonstrativos' > 'Meu Imposto de Renda' e verifique os anos com o status de 'Omissão de Declaração' ou 'Pendências de Malha'.",
+          "Ao identificar o ano pendente, basta levantar os informes de rendimentos de fontes pagadoras, saldos bancários e despesas daquele ano-base e transmitir a declaração correspondente.",
+          "Assim que a declaração for processada pela base da Receita (geralmente em 24 a 48 horas), o status do seu CPF retorna automaticamente para 'Regular'."
+        ]
+      }
+    ],
+    faqs: [
+      {
+        question: "Quanto tempo demora para o CPF voltar a ficar regular?",
+        answer: "Após o envio da declaração em atraso ou correção cadastral, o sistema da Receita Federal costuma atualizar a situação cadastral em 24 a 72 horas úteis."
+      },
+      {
+        question: "O que acontece com o meu saldo bancário enquanto o CPF estiver pendente?",
+        answer: "O seu dinheiro continua sendo seu e não é confiscado, mas a instituição financeira pode bloquear retiradas, saques e transferências para cumprir a regulação do Banco Central até a regularização."
+      },
+      {
+        question: "Qual o valor da multa por entregar declaração em atraso?",
+        answer: "A multa mínima por atraso na entrega da declaração de IRPF é de R$ 165,74, podendo chegar a até 20% do imposto devido. Se você tiver imposto a restituir, a multa é deduzida automaticamente do valor da restituição."
+      },
+      {
+        question: "O Olá, Contador pode resolver meu CPF sem eu ter que ir na Receita Federal?",
+        answer: "Sim! Nossos contadores habilitados identificam a causa exata no e-CAC, confeccionam e transmitem a declaração de regularização e fornecem o comprovante oficial com parecer técnico assinado por R$ 199."
+      }
+    ],
+    relatedSlugs: [
+      "como-sair-da-malha-fina-irpf",
+      "radar-fiscal-consultar-dividas-receita-pgfn",
+      "divida-ativa-da-uniao-como-consultar-e-parcelar-pgfn"
+    ],
+    cta: {
+      badge: "Regularização de CPF",
+      title: "Seu CPF está suspenso ou com pendências?",
+      description: "Descubra a causa imediatamente e receba auxílio de um contador com CRC para regularizar seu documento e liberar suas contas.",
+      buttonText: "Regularizar meu CPF agora",
+      buttonHref: "/radar"
+    }
   }
 ];
 
