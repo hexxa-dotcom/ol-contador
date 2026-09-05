@@ -38,7 +38,7 @@ export function SiteHeader({
   active, 
   transparentOnTop = active === "home" 
 }: { 
-  active?: "home" | "precos" | "radar" | "blog"; 
+  active?: "home" | "precos" | "radar" | "blog" | "servicos"; 
   transparentOnTop?: boolean; 
 }) {
   const [menuMobileAberto, setMenuMobileAberto] = useState(false);
@@ -109,6 +109,9 @@ export function SiteHeader({
             <Link className="public-lk" href="/#como-funciona">
               Como funciona
             </Link>
+            <Link className="public-lk" href="/servicos" aria-current={active === "servicos" ? "page" : undefined}>
+              Serviços
+            </Link>
             <Link className="public-lk" href="/radar" aria-current={active === "radar" ? "page" : undefined}>
               Radar Fiscal
             </Link>
@@ -155,6 +158,13 @@ export function SiteHeader({
                 onClick={() => setMenuMobileAberto(false)}
               >
                 <span>Como funciona</span>
+              </Link>
+              <Link 
+                className={`public-mobile-lk ${active === "servicos" ? "active" : ""}`} 
+                href="/servicos" 
+                onClick={() => setMenuMobileAberto(false)}
+              >
+                <span>Serviços Especializados</span>
               </Link>
               <Link 
                 className={`public-mobile-lk ${active === "radar" ? "active" : ""}`} 
@@ -300,39 +310,48 @@ export function SiteFooter() {
           </a>
         </div>
 
-        {/* COLUNA 2: SERVIÇOS (Desktop) */}
+        {/* COLUNA 2: PESSOA FÍSICA (SEO & Links Diretos) */}
         <div className="public-rodape-col-servicos">
-          <h4 className="public-rodape-heading">Serviços</h4>
+          <h4 className="public-rodape-heading">Para Você (PF)</h4>
           <ul className="public-rodape-links">
-            <li><Link href="/precos">Pessoa Física</Link></li>
-            <li><Link href="/precos">Pessoa Jurídica</Link></li>
-            <li><Link href="/radar">Radar Fiscal</Link></li>
+            <li><Link href="/servicos/decore-contador-declaracao-renda">Emissão de DECORE</Link></li>
+            <li><Link href="/servicos/regularizar-cpf-suspenso-pendente">Regularizar CPF</Link></li>
+            <li><Link href="/servicos/malha-fina-imposto-de-renda">Malha Fina IRPF</Link></li>
+            <li><Link href="/servicos/ganho-de-capital-gcap-imoveis">Ganho de Capital (GCAP)</Link></li>
+            <li><Link href="/servicos/carne-leao-autonomos-exterior">Carnê-Leão Mensal</Link></li>
+            <li><Link href="/servicos" style={{ color: "#EE5F3A", fontWeight: 600 }}>Ver todos para PF →</Link></li>
           </ul>
         </div>
 
-        {/* COLUNA 3: INSTITUCIONAL (Desktop) */}
+        {/* COLUNA 3: MEI & EMPRESAS (SEO & Links Diretos) */}
+        <div className="public-rodape-col-servicos">
+          <h4 className="public-rodape-heading">MEI & Empresas</h4>
+          <ul className="public-rodape-links">
+            <li><Link href="/servicos/regularizacao-mei-das-atrasado">Regularizar MEI & DAS</Link></li>
+            <li><Link href="/servicos/baixa-cancelamento-cnpj-mei">Baixa de CNPJ MEI</Link></li>
+            <li><Link href="/servicos/regularizacao-cnpj-inapto-omissao">CNPJ Inapto (Reativação)</Link></li>
+            <li><Link href="/servicos/baixa-encerramento-cnpj-com-dividas">Baixa com Dívidas</Link></li>
+            <li><Link href="/servicos/parcelamento-dividas-simples-nacional">Parcelamentos PGFN</Link></li>
+            <li><Link href="/servicos" style={{ color: "#EE5F3A", fontWeight: 600 }}>Ver todos para Empresas →</Link></li>
+          </ul>
+        </div>
+
+        {/* COLUNA 4: INSTITUCIONAL & CONTATO */}
         <div className="public-rodape-col-institucional">
           <h4 className="public-rodape-heading">Institucional</h4>
           <ul className="public-rodape-links">
+            <li><Link href="/servicos">Catálogo de Serviços</Link></li>
             <li><Link href="/blog">Blog & Guias Fiscais</Link></li>
+            <li><Link href="/radar">Radar Fiscal</Link></li>
             <li><Link href="/validar-relatorio">Validar Relatório</Link></li>
             <li><Link href="/termos">Termos de Uso</Link></li>
-            <li><Link href="/privacidade">Política de Privacidade</Link></li>
             <li><Link href="/login">Área do Cliente</Link></li>
+            <li style={{ marginTop: "8px", paddingTop: "8px", borderTop: "1px solid rgba(255,255,255,0.08)" }}>
+              <a href="mailto:ola@olacontador.com.br" className="public-rodape-email-link">
+                ola@olacontador.com.br
+              </a>
+            </li>
           </ul>
-        </div>
-
-        {/* COLUNA 4: CONTATO */}
-        <div className="public-rodape-col-contato">
-          <h4 className="public-rodape-heading">Contato</h4>
-          <p className="public-rodape-contact-text">
-            <a href="mailto:ola@olacontador.com.br" className="public-rodape-email-link">
-              ola@olacontador.com.br
-            </a>
-          </p>
-          <span className="public-rodape-horario-text">
-            Suporte via chat seguro na plataforma
-          </span>
         </div>
       </div>
 

@@ -100,6 +100,10 @@ export default async function PrecosPage() {
               <div className={styles.duvidaCasoRodape}>
                 <span className={styles.duvidaGarantiaBadge}>✓ 100% de reembolso se não pudermos ajudar</span>
                 <span className={styles.duvidaDivisor}>·</span>
+                <Link href="/servicos" className={styles.duvidaEmailLink} style={{ color: "#EE5F3A", fontWeight: 700 }}>
+                  Ver catálogo de serviços específicos &rarr;
+                </Link>
+                <span className={styles.duvidaDivisor}>·</span>
                 <a href="mailto:ola@olacontador.com.br?subject=D%C3%BAvida%20sobre%20meu%20caso%20fiscal" className={styles.duvidaEmailLink}>
                   Tirar dúvida por e-mail &rarr;
                 </a>
