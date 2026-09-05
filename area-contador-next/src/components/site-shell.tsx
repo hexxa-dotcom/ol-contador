@@ -38,7 +38,7 @@ export function SiteHeader({
   active, 
   transparentOnTop = active === "home" 
 }: { 
-  active?: "home" | "precos" | "radar"; 
+  active?: "home" | "precos" | "radar" | "blog"; 
   transparentOnTop?: boolean; 
 }) {
   const [menuMobileAberto, setMenuMobileAberto] = useState(false);
@@ -112,6 +112,9 @@ export function SiteHeader({
             <Link className="public-lk" href="/radar" aria-current={active === "radar" ? "page" : undefined}>
               Radar Fiscal
             </Link>
+            <Link className="public-lk" href="/blog" aria-current={active === "blog" ? "page" : undefined}>
+              Blog
+            </Link>
             <EntrarMenu />
             <Link className="public-lk-highlight" href="/precos" aria-current={active === "precos" ? "page" : undefined}>
               <span>Resolver meu caso</span>
@@ -159,6 +162,13 @@ export function SiteHeader({
                 onClick={() => setMenuMobileAberto(false)}
               >
                 <span>Radar Fiscal</span>
+              </Link>
+              <Link 
+                className={`public-mobile-lk ${active === "blog" ? "active" : ""}`} 
+                href="/blog" 
+                onClick={() => setMenuMobileAberto(false)}
+              >
+                <span>Blog & Guias</span>
               </Link>
               <Link 
                 className="public-mobile-cta-btn" 
@@ -304,6 +314,7 @@ export function SiteFooter() {
         <div className="public-rodape-col-institucional">
           <h4 className="public-rodape-heading">Institucional</h4>
           <ul className="public-rodape-links">
+            <li><Link href="/blog">Blog & Guias Fiscais</Link></li>
             <li><Link href="/validar-relatorio">Validar Relatório</Link></li>
             <li><Link href="/termos">Termos de Uso</Link></li>
             <li><Link href="/privacidade">Política de Privacidade</Link></li>
