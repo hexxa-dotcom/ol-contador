@@ -9,7 +9,7 @@ import { createCipheriv, createDecipheriv, createHash, createHmac, randomBytes, 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "./supabase/database.types";
 
-const GRAPH_VERSION = "v21.0";
+const GRAPH_VERSION = "v26.0";
 const APP_ID = process.env.INSTAGRAM_APP_ID || "";
 const APP_SECRET = process.env.INSTAGRAM_APP_SECRET || "";
 // Mesmo app da Meta usado pro WhatsApp ("Ola-contador") — o app secret é um
@@ -101,6 +101,19 @@ async function graphFetch(path: string, accessToken: string, body: unknown) {
     return { ok: false as const, error: data };
   }
   return { ok: true as const, data };
+}
+
+// Busca o @usuário de quem mandou uma DM (o evento de mensagem só traz o
+// ID numérico, `sender.id`, diferente do evento de comentário que já vem
+// com o username) — evita mostrar o ID gigante como "nome" na lista de
+// conversas. `instagram_business_basic` (já solicitada) cobre essa consulta.
+export async function buscarUsernameInstagram(admin: Admin, igsid: string): Promise<string | null> {
+  const conta = await obterContaInstagram(admin);
+  if (!conta) return null;
+  const res = await fetch(`https://graph.instagram.com/${GRAPH_VERSION}/${igsid}?fields=username&access_token=${conta.accessToken}`);
+  if (!res.ok) return null;
+  const data = (await res.json().catch(() => ({}))) as { username?: string };
+  return data.username || null;
 }
 
 // Mensagem livre — só funciona dentro da janela de 24h desde a última

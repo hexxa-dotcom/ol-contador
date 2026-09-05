@@ -2824,10 +2824,11 @@ function InstagramPanel({ clientsData }: { clientsData: ClientsData }) {
     setEnviando(false);
     if (!response.ok) {
       const result = await response.json().catch(() => ({}));
+      const detalheMeta = result?.detalhe?.error?.message as string | undefined;
       setErroEnvio(
         result.error === "instagram_nao_conectado"
           ? "Conecte a conta do Instagram em Configurações antes de responder."
-          : "Não foi possível enviar — a pessoa pode estar fora da janela de 24h de resposta.",
+          : detalheMeta || "Não foi possível enviar — a pessoa pode estar fora da janela de 24h de resposta.",
       );
       return;
     }
@@ -2877,7 +2878,9 @@ function InstagramPanel({ clientsData }: { clientsData: ClientsData }) {
                 >
                   <span className="avatar">{(conversa.ig_username || conversa.ig_user_id).slice(0, 2).toUpperCase()}</span>
                   <span>
-                    <strong>{conversa.ig_username ? `@${conversa.ig_username}` : conversa.ig_user_id}</strong>
+                    <strong style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", display: "block" }}>
+                      {conversa.ig_username ? `@${conversa.ig_username}` : `Conta ${conversa.ig_user_id.slice(-6)}`}
+                    </strong>
                     <small>{conversa.cliente_nome ? `Vinculado a ${conversa.cliente_nome}` : "Não vinculado a cliente"}</small>
                   </span>
                   {conversa.nao_lida && <Badge className="attention">Nova</Badge>}
@@ -2915,7 +2918,7 @@ function InstagramPanel({ clientsData }: { clientsData: ClientsData }) {
             {selecionada ? (
               <>
                 <div className="chat-client-copy">
-                  <strong>{selecionada.ig_username ? `@${selecionada.ig_username}` : selecionada.ig_user_id}</strong>
+                  <strong>{selecionada.ig_username ? `@${selecionada.ig_username}` : `Conta ${selecionada.ig_user_id.slice(-6)}`}</strong>
                   <small>{selecionada.cliente_nome ? `Vinculado a ${selecionada.cliente_nome}` : "Não vinculado a cliente"}</small>
                 </div>
                 <div className="chat-actions-desktop">

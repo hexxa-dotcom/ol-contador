@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { adminClient } from "@/lib/supabase/admin";
 import { registrarErro } from "@/lib/observability";
-import { verifyInstagramWebhookSignature, sendInstagramText, dentroDoLimiteDeEnvio, obterContaInstagram } from "@/lib/instagram";
+import { verifyInstagramWebhookSignature, sendInstagramText, dentroDoLimiteDeEnvio, obterContaInstagram, buscarUsernameInstagram } from "@/lib/instagram";
 
 export const runtime = "nodejs";
 
@@ -89,15 +89,19 @@ async function processarMensagemDireta(admin: NonNullable<ReturnType<typeof admi
     .eq("ig_user_id", senderId)
     .maybeSingle();
 
-  const conversaId =
-    conversaExistente?.id ||
-    (
+  let conversaId = conversaExistente?.id;
+  if (!conversaId) {
+    // Conversa nova: busca o @usuário antes de criar, pra não mostrar o ID
+    // numérico gigante na lista (o evento de mensagem não traz o username).
+    const username = await buscarUsernameInstagram(admin, senderId);
+    conversaId = (
       await admin
         .from("instagram_conversas")
-        .insert({ ig_user_id: senderId, ultima_mensagem_em: new Date().toISOString(), nao_lida: true })
+        .insert({ ig_user_id: senderId, ig_username: username, ultima_mensagem_em: new Date().toISOString(), nao_lida: true })
         .select("id")
         .single()
     ).data?.id;
+  }
 
   if (!conversaId) return;
 
@@ -200,7 +204,7 @@ async function processarComentario(admin: NonNullable<ReturnType<typeof adminCli
   }
 
   if (campanha.resposta_publica_ativa && campanha.resposta_publica_texto) {
-    await fetch(`https://graph.instagram.com/v21.0/${comentarioId}/replies`, {
+    await fetch(`https://graph.instagram.com/v26.0/${comentarioId}/replies`, {
       method: "POST",
       headers: { Authorization: `Bearer ${conta?.accessToken || ""}`, "Content-Type": "application/json" },
       body: JSON.stringify({ message: campanha.resposta_publica_texto }),
