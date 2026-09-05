@@ -280,6 +280,18 @@ export function CheckoutClient() {
   // preferir o link por e-mail depois. O token do login automático (se veio)
   // fica guardado pra usar só quando ela escolher "iniciar agora".
   async function finalizarComLoginAutomatico(emailDoPedido: string, autoLogin: { tokenHash: string } | null, pago: boolean) {
+    if (typeof window !== "undefined" && typeof window.gtag === "function") {
+      try {
+        window.gtag("event", "purchase", {
+          transaction_id: pedido?.servicoId ? `${pedido.servicoId}_${Date.now()}` : undefined,
+          value: pedido ? (pedido.precoCents / 100) : undefined,
+          currency: "BRL",
+          items: [{ item_name: pedido?.servicoNome || "Atendimento Contábil" }],
+        });
+      } catch {
+        /* ignore */
+      }
+    }
     setPronto({ pago, email: emailDoPedido, tokenHash: autoLogin?.tokenHash || null });
   }
 
@@ -411,6 +423,17 @@ export function CheckoutClient() {
       if (data.status === "paid") {
         void finalizarComLoginAutomatico(payloadBase.email, data.autoLogin, true);
         return;
+      }
+      if (typeof window !== "undefined" && typeof window.gtag === "function") {
+        try {
+          window.gtag("event", "generate_lead", {
+            value: data.valor,
+            currency: "BRL",
+            transaction_id: data.cobrancaId,
+          });
+        } catch {
+          /* ignore */
+        }
       }
       setPagamento({ cobrancaId: data.cobrancaId, pollToken: data.pollToken, pixImage: data.pixImage, pixPayload: data.pixPayload, invoiceUrl: data.invoiceUrl, metodoPagamento: data.metodoPagamento, valor: data.valor });
       iniciarPolling(data.cobrancaId, data.pollToken, payloadBase.email);

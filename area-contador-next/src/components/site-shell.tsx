@@ -19,8 +19,24 @@ export function useFunilSessao(): string {
 }
 
 // Telemetria pública best-effort do funil comercial — nunca lança, nunca
-// bloqueia a navegação.
-export async function registrarEventoFunil(sessaoRef: string, evento: string, extra: { servicoId?: string; origem?: string } = {}) {
+// bloqueia a navegação. Envia para o backend e para o GA4 / Google Tag.
+export async function registrarEventoFunil(
+  sessaoRef: string, 
+  evento: string, 
+  extra: { servicoId?: string; origem?: string; valorCents?: number } = {}
+) {
+  if (typeof window !== "undefined" && typeof window.gtag === "function") {
+    try {
+      window.gtag("event", evento, {
+        event_category: "funil_comercial",
+        event_label: extra.servicoId || extra.origem,
+        value: extra.valorCents ? extra.valorCents / 100 : undefined,
+      });
+    } catch {
+      /* ignore */
+    }
+  }
+
   if (!sessaoRef) return;
   try {
     await fetch("/api/funnel-metrics", {

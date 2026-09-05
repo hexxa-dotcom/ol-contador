@@ -18,7 +18,8 @@ export default async function PublicLayout({ children }: { children: React.React
   // primeiro, variável de ambiente da Vercel como fallback. Lido aqui no
   // servidor pra não depender de rebuild quando o contador troca o ID.
   const admin = adminClient();
-  const gaMeasurementId = admin ? await getSystemSecret(admin, "NEXT_PUBLIC_GA_MEASUREMENT_ID") : process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID || null;
+  const dbSecret = admin ? await getSystemSecret(admin, "NEXT_PUBLIC_GA_MEASUREMENT_ID") : null;
+  const gaMeasurementId = dbSecret || process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID || "G-5YBB80H0EC";
   return (
     <div className="site-public font-sans">
       <GoogleAnalytics measurementId={gaMeasurementId} />
