@@ -62,7 +62,7 @@ export const BLOG_POSTS: BlogPost[] = [
     title: "Contabilidade Sob Demanda: O que é, como funciona e por que você não precisa pagar mensalidade",
     subtitle: "Entenda o modelo sem mensalidade fixa com contadores de verdade com CRC para resolver demandas pontuais.",
     excerpt: "Você não precisa ficar preso a uma mensalidade contábil de R$ 300 a R$ 800 todos os meses se só precisa de suporte esporádico. Conheça a contabilidade sob demanda com preço fixo por atendimento.",
-    description: "Guia completo sobre contabilidade sob demanda: como funciona o atendimento sem mensalidade, garantia de devolução, parecer técnico com CRC e comparativo de custos.",
+    description: "Guia completo sobre contabilidade sob demanda: como funciona o atendimento sem mensalidade, parecer técnico com CRC e comparativo de custos.",
     category: "Contabilidade Sem Mensalidade",
     categorySlug: "contabilidade-sem-mensalidade",
     publishedAt: "2026-09-01T08:00:00-03:00",
@@ -77,7 +77,7 @@ export const BLOG_POSTS: BlogPost[] = [
     tags: ["contabilidade sob demanda", "preço fixo", "sem mensalidade", "contador online", "relatório crc"],
     keyTakeaways: [
       "A contabilidade tradicional cobra mensalidade mesmo nos meses em que o cliente não tem movimentação ou dúvidas.",
-      "No modelo sob demanda, você só paga quando tem um problema real a resolver (R$ 199 para PF, R$ 399 para PJ).",
+      "No modelo sob demanda, você só paga quando tem um problema real a resolver (R$ 199 para PF, R$ 349 no plano Empresas 1).",
       "Todo atendimento gera um parecer técnico assinado por contador habilitado no CRC com valor legal.",
       "Se o contador avaliar o caso e constatar que não há solução viável, o valor pago é devolvido em 100% integralmente.",
       "Ideal para autônomos, prestadores de serviço, sócios de empresas inativas e pessoas físicas com pendências fiscais."
@@ -121,10 +121,10 @@ export const BLOG_POSTS: BlogPost[] = [
         table: {
           headers: ["Característica", "Escritório Tradicional", "Plataforma Sob Demanda"],
           rows: [
-            ["Custo Financeiro", "R$ 350 a R$ 900 / mês (R$ 4.200 a R$ 10.800/ano)", "Preço fixo por serviço (R$ 199 a R$ 399)"],
+            ["Custo Financeiro", "R$ 350 a R$ 900 / mês (R$ 4.200 a R$ 10.800/ano)", "Preço fixo por serviço (R$ 199 a R$ 349)"],
             ["Contrato e Fidelidade", "Contrato anual com multa de rescisão", "Sem contrato, sem fidelidade, use quando quiser"],
             ["Assinatura e CRC", "Geralmente apenas em balanços anuais", "Parecer técnico assinado com CRC em cada caso"],
-            ["Garantia de Devolução", "Raramente oferecida", "100% de reembolso se não pudermos ajudar"],
+            ["Retorno Pós-Atendimento", "Raramente incluso, cobrado à parte", "Retorno grátis em até 7 dias"],
             ["Forma de Atendimento", "E-mails lentos ou reuniões presenciais", "Chat seguro e portal do cliente em tempo real"]
           ]
         }
@@ -146,11 +146,7 @@ export const BLOG_POSTS: BlogPost[] = [
     faqs: [
       {
         question: "Preciso ter empresa aberta (CNPJ) para usar a contabilidade sob demanda?",
-        answer: "Não. Atendemos pessoas físicas para questões de malha fina, imposto de renda, ganho de capital em imóveis/veículos, previdência e profissionais liberais autônomos. Se tiver CNPJ (MEI, Simples Nacional ou Ltda), temos o plano dedicado para Pessoa Jurídica."
-      },
-      {
-        question: "O que acontece se o contador não conseguir resolver minha pendência?",
-        answer: "Temos garantia incondicional de devolução de 100% do valor. Se após a análise documental nosso contador identificar que não há recurso ou alternativa viável, você é reembolsado integralmente."
+        answer: "Não. Atendemos pessoas físicas para questões de malha fina, imposto de renda, ganho de capital em imóveis/veículos, previdência e profissionais liberais autônomos. Se tiver CNPJ (MEI, Simples Nacional ou Ltda), temos o plano Empresas 1, dedicado a micro e pequenas empresas."
       },
       {
         question: "Qual o prazo de resposta do atendimento?",
@@ -169,7 +165,7 @@ export const BLOG_POSTS: BlogPost[] = [
     cta: {
       badge: "Preço Fixo Sem Mensalidade",
       title: "Tem uma dúvida fiscal ou pendência para resolver hoje?",
-      description: "Fale diretamente com nossos contadores certificados. Atendimento rápido, preço fixo e garantia total de devolução.",
+      description: "Fale diretamente com nossos contadores certificados. Atendimento rápido, preço fixo e relatório assinado com CRC.",
       buttonText: "Resolver meu caso agora",
       buttonHref: "/precos"
     }
@@ -484,7 +480,7 @@ export const BLOG_POSTS: BlogPost[] = [
       },
       {
         question: "Como funciona o suporte contábil para emissão de pró-labore no Olá, Contador?",
-        answer: "Nosso atendimento para Pessoa Jurídica avalia sua composição de faturamento, calcula a proporção exata do Fator R e emite sua guia de pró-labore e DAS com garantia técnica por preço fixo e sem mensalidade."
+        answer: "Nosso atendimento do plano Empresas 1 avalia sua composição de faturamento, calcula a proporção exata do Fator R e emite sua guia de pró-labore e DAS com garantia técnica por preço fixo e sem mensalidade."
       }
     ],
     relatedSlugs: [

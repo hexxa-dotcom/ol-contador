@@ -451,6 +451,7 @@ export type Database = {
           name: string
           notas: string | null
           numero: string | null
+          observacoes: string | null
           onboarding_pendente: boolean
           perfil_operacional: Json
           phone: string | null
@@ -495,6 +496,7 @@ export type Database = {
           name: string
           notas?: string | null
           numero?: string | null
+          observacoes?: string | null
           onboarding_pendente?: boolean
           perfil_operacional?: Json
           phone?: string | null
@@ -539,6 +541,7 @@ export type Database = {
           name?: string
           notas?: string | null
           numero?: string | null
+          observacoes?: string | null
           onboarding_pendente?: boolean
           perfil_operacional?: Json
           phone?: string | null
@@ -697,6 +700,7 @@ export type Database = {
           expira_em: string | null
           id: number
           observacao: string | null
+          servico_id: string | null
           status: string
           usado_em: string | null
           valor_cents: number
@@ -712,6 +716,7 @@ export type Database = {
           expira_em?: string | null
           id?: never
           observacao?: string | null
+          servico_id?: string | null
           status?: string
           usado_em?: string | null
           valor_cents: number
@@ -727,6 +732,7 @@ export type Database = {
           expira_em?: string | null
           id?: never
           observacao?: string | null
+          servico_id?: string | null
           status?: string
           usado_em?: string | null
           valor_cents?: number
@@ -1078,6 +1084,45 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      leads_empresariais: {
+        Row: {
+          created_at: string
+          email: string | null
+          empresa: string | null
+          id: number
+          mensagem: string | null
+          nome: string
+          respondido_em: string | null
+          servico_slug: string | null
+          status: string
+          telefone: string | null
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          empresa?: string | null
+          id?: never
+          mensagem?: string | null
+          nome: string
+          respondido_em?: string | null
+          servico_slug?: string | null
+          status?: string
+          telefone?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          empresa?: string | null
+          id?: never
+          mensagem?: string | null
+          nome?: string
+          respondido_em?: string | null
+          servico_slug?: string | null
+          status?: string
+          telefone?: string | null
+        }
+        Relationships: []
       }
       lembretes_enviados: {
         Row: {

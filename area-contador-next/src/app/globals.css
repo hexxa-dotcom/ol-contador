@@ -495,6 +495,9 @@ select { width: auto; min-width: 160px; }
 
 .portal-spotlight-tag {
   display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
 .portal-spotlight-tag span {
@@ -503,6 +506,12 @@ select { width: auto; min-width: 160px; }
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: #64748b;
+}
+
+.portal-spotlight-protocolo {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.06);
 }
 
 .portal-spotlight-title {
@@ -3456,6 +3465,17 @@ select { width: auto; min-width: 160px; }
   color: var(--foreground);
 }
 
+.triagem-resumo-protocolo {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: var(--muted-foreground);
+}
+.triagem-resumo-protocolo strong {
+  font-weight: 800;
+  color: var(--foreground);
+  letter-spacing: 0.01em;
+}
+
 .triagem-resumo-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -4205,6 +4225,10 @@ select { width: auto; min-width: 160px; }
   grid-template-columns: minmax(0, 1fr) minmax(0, 1.35fr);
   gap: 20px;
   align-items: start;
+}
+
+.triagem-govbr-step {
+  margin-top: 14px;
 }
 
 .portal-agenda-card {
@@ -5207,15 +5231,19 @@ select { width: auto; min-width: 160px; }
 }
 
 /* ---------- GAVETA / SLIDE-OVER DA FICHA DO CLIENTE (ESTILO KOMMO) ---------- */
+/* position:fixed (não absolute) + z-index 120 igual ao padrão .dialog-backdrop
+   usado em todo o resto do sistema (ex. "Gerar crédito") — antes disso, a
+   gaveta ficava presa dentro de .chat-layout (que tem overflow:hidden e
+   border-radius:20px), cortada pelas bordas do card do chat em vez de cobrir
+   a tela inteira como qualquer outro modal. */
 .client-drawer-overlay {
-  position: absolute;
+  position: fixed;
   inset: 0;
-  z-index: 50;
+  z-index: 120;
   pointer-events: none;
-  overflow: hidden;
 }
 .client-drawer-backdrop {
-  position: absolute;
+  position: fixed;
   inset: 0;
   background: rgba(15, 23, 42, 0.25);
   backdrop-filter: blur(2px);
@@ -5752,7 +5780,11 @@ tr:hover td { background: #f8fafc; }
 .fila-atendimento-prazos { display: block; }
 .fila-atendimento-acoes { flex: 0 0 auto; display: flex; align-items: center; gap: 8px; }
 .fila-atendimento-row .button { flex: 0 0 auto; }
-.fila-detalhes-dialog { width: min(560px, 100%); max-height: 86vh; }
+/* Faltava o padding-base que os outros diálogos herdam de .profile-dialog
+   (este aqui não usa essa classe) — sem isso, cabeçalho/corpo/ações ficavam
+   colados na borda do card, sem nenhuma respiração, parecendo quebrado. */
+.fila-detalhes-dialog { width: min(560px, 100%); max-height: 86vh; padding: 22px; display: flex; flex-direction: column; gap: 16px; overflow: hidden; background: rgba(255, 255, 255, 0.94); }
+.fila-detalhes-dialog .dossier-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; padding-right: 2px; }
 .fila-detalhes-contato { margin: 0 0 16px; font-size: 11.5px; color: var(--muted-foreground); }
 .fila-detalhes-dialog h3 { margin: 0 0 10px; font-size: 12px; }
 
@@ -5850,6 +5882,11 @@ tr:hover td { background: #f8fafc; }
 .vault-reveal { margin-top: 12px; padding: 13px; border-radius: 16px; border: 1px solid rgba(232,103,35,.24); background: rgba(255,248,244,.92); display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .vault-reveal strong { flex-basis: 100%; color: #9c422d; font-size: 11px; }
 .vault-reveal code { padding: 8px 10px; border-radius: 10px; border: 1px solid var(--border); background: white; font-size: 15px; word-break: break-all; }
+.vault-meta { margin-top: 8px; display: flex; flex-direction: column; gap: 2px; }
+.vault-meta small { color: var(--muted-foreground); font-size: 10.5px; }
+.vault-manual-form { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); }
+.vault-manual-form .inline-actions { flex-wrap: wrap; }
+.vault-manual-form .inline-actions .input { flex: 1 1 200px; }
 .client-document-list { display: grid; gap: 8px; margin: 14px 0; }
 .client-document-list > a { display: flex; align-items: center; gap: 10px; padding: 11px 13px; border: 1px solid var(--border); border-radius: 16px; background: rgba(255,255,255,.72); color: inherit; text-decoration: none; transition: .18s ease; }
 .client-document-list > a:hover { border-color: rgba(232,103,35,.28); transform: translateY(-1px); }
@@ -6778,7 +6815,8 @@ tr:hover td { background: #f8fafc; }
 }
 
 .dossier-form-grid input,
-.dossier-form-grid select {
+.dossier-form-grid select,
+.dossier-form-grid textarea {
   width: 100%;
   height: 40px;
   border-radius: 10px;
@@ -6790,8 +6828,17 @@ tr:hover td { background: #f8fafc; }
   transition: all 0.16s ease;
 }
 
+.dossier-form-grid textarea {
+  height: auto;
+  padding: 10px 12px;
+  resize: vertical;
+  font-family: inherit;
+  line-height: 1.5;
+}
+
 .dossier-form-grid input:focus,
-.dossier-form-grid select:focus {
+.dossier-form-grid select:focus,
+.dossier-form-grid textarea:focus {
   border-color: #0f172a;
   outline: none;
   box-shadow: 0 0 0 3px rgba(15, 23, 42, 0.07);
@@ -7745,6 +7792,7 @@ tr:hover td { background: #f8fafc; }
   .portal-hero-badge-wrap {
     order: -1;
     margin-bottom: 2px;
+    align-self: flex-end;
   }
   .portal-hero-kicker {
     font-size: 14px;

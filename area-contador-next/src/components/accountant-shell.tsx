@@ -51,9 +51,9 @@ const navGroups: NavGroup[] = [
     groupLabel: "Operacional",
     items: [
       { id: "dashboard", label: "Dashboard", icon: House },
-      { id: "atendimento", label: "Fila de Atendimento", icon: MessageCircle, badge: 0 },
+      { id: "atendimento", label: "CHAT", icon: MessageCircle, badge: 0 },
       { id: "clientes", label: "Clientes", icon: Users },
-      { id: "acompanhamento", label: "Processos & Dossiês", icon: ClipboardList },
+      { id: "acompanhamento", label: "Atendimento", icon: ClipboardList },
       { id: "agendamentos", label: "Agendamentos", icon: CalendarDays },
     ],
   },

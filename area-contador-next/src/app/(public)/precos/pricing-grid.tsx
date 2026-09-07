@@ -13,6 +13,7 @@ import {
   ChevronUp
 } from "lucide-react";
 import styles from "./precos.module.css";
+import { LeadForm } from "@/components/lead-form";
 
 interface PricingGridProps {
   pfCents: number;
@@ -20,20 +21,91 @@ interface PricingGridProps {
   consultaCents: number;
 }
 
+type PlanoId = "pf" | "pj" | "sob-demanda";
+
+// Só os 3 exemplos mais essenciais aparecem de cara — o resto fica atrás do
+// "mostrar mais", pra não deixar o card comprido com todos os serviços
+// atendidos de uma vez.
+const CHIPS_PF = [
+  "Regularizar CPF pendente/suspenso",
+  "Malha fina & cartas da Receita",
+  "Declarar / retificar IRPF",
+  "Carnê-leão autônomo & exterior",
+  "Parcelamento PF & CND",
+  "Emissão de DECORE",
+  "Ganho de Capital (GCAP / Imóveis)",
+  "+ Pendências fiscais de PF",
+];
+const CHIPS_PJ = [
+  "Parcelamento de guias DAS / dívida ativa do MEI",
+  "Guias DAS atrasadas & recálculo",
+  "Declaração DASN-SIMEI",
+  "Desenquadramento MEI para ME",
+  "Certidão Negativa (CND) do MEI",
+  "+ Pendências de MEI & Simples",
+];
+const CHIPS_SOB_DEMANDA = [
+  "Abertura de Empresa / CNPJ",
+  "Baixa & encerramento de CNPJ",
+  "Reativação de CNPJ Inapto",
+  "Parcelamento de dívidas fiscais",
+  "CND para empresas",
+  "Registro de Associações & Terceiro Setor",
+  "Apoio a Advogados, Contadores e Empresas",
+  "Processos & dossiês na Receita (e-CAC)",
+  "Alteração contratual & sócios",
+  "Múltiplos anos acumulados",
+  "+ Outras demandas de empresas",
+];
+const CHIPS_VISIVEIS_PADRAO = 3;
+
 export function PricingGrid({ pfCents, pjCents, consultaCents }: PricingGridProps) {
-  const [selectedPlan, setSelectedPlan] = useState<"pf" | "pj" | "sob-demanda">("pj");
+  const [selectedPlan, setSelectedPlan] = useState<PlanoId>("pj");
   const [expandedCards, setExpandedCards] = useState<{ pf: boolean; pj: boolean; "sob-demanda": boolean }>({
     pf: false,
     pj: false,
     "sob-demanda": false,
   });
+  const [expandedChips, setExpandedChips] = useState<{ pf: boolean; pj: boolean; "sob-demanda": boolean }>({
+    pf: false,
+    pj: false,
+    "sob-demanda": false,
+  });
 
-  const toggleExpand = (plan: "pf" | "pj" | "sob-demanda", e: React.MouseEvent) => {
+  const toggleExpand = (plan: PlanoId, e: React.MouseEvent) => {
     e.stopPropagation();
     setExpandedCards((prev) => ({ ...prev, [plan]: !prev[plan] }));
   };
 
+  const toggleChips = (plan: PlanoId, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setExpandedChips((prev) => ({ ...prev, [plan]: !prev[plan] }));
+  };
+
   const money = (cents: number) => new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 0 }).format(cents / 100);
+
+  function renderChips(plan: PlanoId, chips: string[], chipClass: string, destaqueClass: string, btnClass: string) {
+    const expandido = expandedChips[plan];
+    const visiveis = expandido ? chips : chips.slice(0, CHIPS_VISIVEIS_PADRAO);
+    const restantes = chips.length - CHIPS_VISIVEIS_PADRAO;
+    return (
+      <>
+        <div className={styles.chipsWrap}>
+          {visiveis.map((chip) => (
+            <span key={chip} className={`${chipClass} ${chip.startsWith("+") ? destaqueClass : ""}`}>
+              {chip}
+            </span>
+          ))}
+        </div>
+        {restantes > 0 && (
+          <button type="button" className={btnClass} onClick={(e) => toggleChips(plan, e)}>
+            <span>{expandido ? "Ver menos exemplos" : `+ ver mais ${restantes}`}</span>
+            {expandido ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+          </button>
+        )}
+      </>
+    );
+  }
 
   return (
     <div className={styles.planosContainer}>
@@ -58,6 +130,7 @@ export function PricingGrid({ pfCents, pjCents, consultaCents }: PricingGridProp
           )}
 
           <div className={styles.planoHeader}>
+            <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: "0.06em", textTransform: "uppercase", color: "#0C5446", marginBottom: 4, display: "block" }}>Para Você</span>
             <div className={styles.planoNomeFlex}>
               <span className={styles.planoTitulo}>Pessoa Física</span>
               <div className={styles.planoIconBadge}>
@@ -80,14 +153,7 @@ export function PricingGrid({ pfCents, pjCents, consultaCents }: PricingGridProp
 
           <div className={styles.resolveSection}>
             <div className={styles.resolveRotulo}>Exemplos do que resolvemos:</div>
-            <div className={styles.chipsWrap}>
-              <span className={styles.chipLight}>Regularizar CPF pendente/suspenso</span>
-              <span className={styles.chipLight}>Malha fina & cartas da Receita</span>
-              <span className={styles.chipLight}>Declarar / retificar IRPF</span>
-              <span className={styles.chipLight}>Carnê-leão autônomo & exterior</span>
-              <span className={styles.chipLight}>Parcelamento PF & CND</span>
-              <span className={`${styles.chipLight} ${styles.chipDestaque}`}>+ Pendências fiscais de PF</span>
-            </div>
+            {renderChips("pf", CHIPS_PF, styles.chipLight, styles.chipDestaque, styles.btnExpandir)}
           </div>
 
           {/* LISTA DE ENTREGÁVEIS (REDUZIDA / EXPANSÍVEL) */}
@@ -168,7 +234,7 @@ export function PricingGrid({ pfCents, pjCents, consultaCents }: PricingGridProp
             href="/agendar?plano=pf"
             className={`${styles.btnCard} ${selectedPlan === "pf" ? styles.btnCardSelected : styles.btnCardSecondary}`}
           >
-            <span>Agendar Pessoa Física</span>
+            <span>Quero Regularizar meu CPF</span>
             <ArrowRight size={18} />
           </Link>
         </div>
@@ -190,8 +256,9 @@ export function PricingGrid({ pfCents, pjCents, consultaCents }: PricingGridProp
           )}
 
           <div className={styles.planoHeader}>
+            <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: "0.06em", textTransform: "uppercase", color: "#FF9C7E", marginBottom: 4, display: "block" }}>Para Sua Empresa · Micro e Pequenas</span>
             <div className={styles.planoNomeFlex}>
-              <span className={`${styles.planoTitulo} ${styles.textLight}`}>Pessoa Jurídica</span>
+              <span className={`${styles.planoTitulo} ${styles.textLight}`}>Empresas 1</span>
               <div className={`${styles.planoIconBadge} ${styles.iconDark}`}>
                 <Building2 size={22} />
               </div>
@@ -212,15 +279,7 @@ export function PricingGrid({ pfCents, pjCents, consultaCents }: PricingGridProp
 
           <div className={styles.resolveSection}>
             <div className={`${styles.resolveRotulo} ${styles.textCoral}`}>Exemplos do que resolvemos:</div>
-            <div className={styles.chipsWrap}>
-              <span className={styles.chipDark}>Parcelamentos de dívidas (Simples & PGFN)</span>
-              <span className={styles.chipDark}>Guias DAS atrasadas & recálculo</span>
-              <span className={styles.chipDark}>Declaração DASN-SIMEI</span>
-              <span className={styles.chipDark}>CNPJ inapto & pendências cadastrais</span>
-              <span className={styles.chipDark}>Desenquadramento MEI para ME</span>
-              <span className={styles.chipDark}>Emissão de CND da empresa</span>
-              <span className={`${styles.chipDark} ${styles.chipDestaqueDark}`}>+ Pendências de MEI & Simples</span>
-            </div>
+            {renderChips("pj", CHIPS_PJ, styles.chipDark, styles.chipDestaqueDark, `${styles.btnExpandir} ${styles.btnExpandirDark}`)}
           </div>
 
           {/* LISTA DE ENTREGÁVEIS (REDUZIDA / EXPANSÍVEL) */}
@@ -285,7 +344,7 @@ export function PricingGrid({ pfCents, pjCents, consultaCents }: PricingGridProp
             href="/agendar?plano=pj"
             className={`${styles.btnCard} ${styles.btnCardCoral}`}
           >
-            <span>Agendar Pessoa Jurídica</span>
+            <span>Quero Regularizar meu CNPJ</span>
             <ArrowRight size={18} />
           </Link>
         </div>
@@ -293,52 +352,44 @@ export function PricingGrid({ pfCents, pjCents, consultaCents }: PricingGridProp
         {/* 3. SERVIÇOS SOB MEDIDA */}
         <div
           onClick={() => setSelectedPlan("sob-demanda")}
-          className={`${styles.planoCard} ${styles.planoLight} ${selectedPlan === "sob-demanda" ? styles.planoSelecionado : ""}`}
+          className={`${styles.planoCard} ${styles.planoWarm} ${selectedPlan === "sob-demanda" ? styles.planoSelecionadoWarm : ""}`}
         >
           {selectedPlan === "sob-demanda" ? (
-            <div className={styles.badgeSelecionado}>
+            <div className={styles.badgeSelecionado} style={{ background: "#C23F1F" }}>
               <CheckCircle2 size={14} />
               <span>Plano Selecionado</span>
             </div>
           ) : (
-            <div className={styles.badgeDestaqueFixo} style={{ background: "#F3F4F6", color: "#1F2937" }}>
-              <span>Aberturas, Baixas & Especiais</span>
+            <div className={styles.badgeDestaqueFixo} style={{ background: "rgba(194, 63, 31, 0.14)", color: "#9A3412" }}>
+              <span>Empresas 2</span>
             </div>
           )}
 
           <div className={styles.planoHeader}>
+            <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: "0.06em", textTransform: "uppercase", color: "#C23F1F", marginBottom: 4, display: "block" }}>Para Sua Empresa · Todo Tipo de Empresa</span>
             <div className={styles.planoNomeFlex}>
-              <span className={styles.planoTitulo}>Serviços Sob Medida</span>
+              <span className={styles.planoTitulo}>Empresas 2</span>
               <div className={styles.planoIconBadge}>
                 <Zap size={22} />
               </div>
             </div>
             <p className={styles.planoSubtitulo}>
-              Para abertura de empresa, baixa de CNPJ, registro de associações, apoio para advogados, DECORE, ganho de capital ou Lucro Presumido/Real.
+              Para empresas de qualquer porte e regime tributário — não é para pendências do dia a dia (essas ficam nos planos Pessoa Física e Empresas 1 acima): abertura de empresa, baixa de CNPJ, registro de associações e apoio contábil para advogados, contadores e demais empresas.
             </p>
           </div>
 
           <div className={styles.precoBox}>
-            <div className={styles.precoSobConsultaTitle}>Sob Consulta</div>
-            <div className={styles.precoUnidade}>ou Diagnóstico por R$ {money(consultaCents)}</div>
-            <div className={styles.precoPagamento}>diagnóstico 100% abatido do valor do serviço aprovado</div>
+            <div className={styles.precoFlex}>
+              <span className={styles.moeda}>R$</span>
+              <span className={styles.precoNum}>{money(consultaCents)}</span>
+            </div>
+            <div className={styles.precoUnidade}>valor de referência, fechado por escrito</div>
+            <div className={styles.precoPagamento}>não sabe qual serviço é o seu? fale com a gente — a triagem é gratuita</div>
           </div>
 
           <div className={styles.resolveSection}>
             <div className={styles.resolveRotulo}>Exemplos do que resolvemos:</div>
-            <div className={styles.chipsWrap}>
-              <span className={styles.chipLight}>Abertura de Empresa / CNPJ</span>
-              <span className={styles.chipLight}>Baixa & encerramento de CNPJ</span>
-              <span className={styles.chipLight}>Registro de Associações & Terceiro Setor</span>
-              <span className={styles.chipLight}>Apoio contábil para Advogados</span>
-              <span className={styles.chipLight}>Processos & dossiês na Receita (e-CAC)</span>
-              <span className={styles.chipLight}>Emissão de DECORE / Renda</span>
-              <span className={styles.chipLight}>Ganho de Capital (GCAP / Imóveis)</span>
-              <span className={styles.chipLight}>Alteração contratual & sócios</span>
-              <span className={styles.chipLight}>Múltiplos anos acumulados</span>
-              <span className={styles.chipLight}>Lucro Presumido ou Lucro Real</span>
-              <span className={`${styles.chipLight} ${styles.chipDestaque}`}>+ Projetos sob medida</span>
-            </div>
+            {renderChips("sob-demanda", CHIPS_SOB_DEMANDA, styles.chipLight, styles.chipDestaque, styles.btnExpandir)}
           </div>
 
           {/* LISTA DE ENTREGÁVEIS (REDUZIDA / EXPANSÍVEL) */}
@@ -346,16 +397,16 @@ export function PricingGrid({ pfCents, pjCents, consultaCents }: PricingGridProp
             <div className={styles.entregavelItem}>
               <CheckCircle2 size={18} className={styles.checkIconLight} />
               <div className={styles.entregavelText}>
-                <b>Diagnóstico inicial por R$ {money(consultaCents)}</b>
-                <small>O contador analisa o caso a fundo e entrega escopo, prazo e valor por escrito. Aprovou? O valor é 100% abatido do total.</small>
+                <b>Preço fechado de R$ {money(consultaCents)}</b>
+                <small>Valor de referência já fechado — sem diagnóstico prévio pago à parte, sem sustos no final.</small>
               </div>
             </div>
 
             <div className={styles.entregavelItem}>
               <CheckCircle2 size={18} className={styles.checkIconLight} />
               <div className={styles.entregavelText}>
-                <b>Escopo, prazo e valor fechados por escrito</b>
-                <small>Orçamento formal antes de começar o trabalho — zero surpresas ou cobranças extras no final.</small>
+                <b>Não sabe qual serviço é o seu?</b>
+                <small>Fale com a gente antes de contratar — a triagem do seu caso é gratuita e sem compromisso.</small>
               </div>
             </div>
 
@@ -373,8 +424,8 @@ export function PricingGrid({ pfCents, pjCents, consultaCents }: PricingGridProp
                 <div className={styles.entregavelItem}>
                   <CheckCircle2 size={18} className={styles.checkIconLight} />
                   <div className={styles.entregavelText}>
-                    <b>Sem compromisso de fechar</b>
-                    <small>Você decide com a proposta formal na mão. Se optar por não seguir, o relatório de diagnóstico é seu.</small>
+                    <b>Escopo fechado por escrito</b>
+                    <small>Antes de começar o trabalho, você recebe o escopo e o prazo por escrito — zero surpresas.</small>
                   </div>
                 </div>
               </>
@@ -395,15 +446,30 @@ export function PricingGrid({ pfCents, pjCents, consultaCents }: PricingGridProp
             href="/agendar?plano=sob-demanda"
             className={`${styles.btnCard} ${selectedPlan === "sob-demanda" ? styles.btnCardSelected : styles.btnCardOutline}`}
           >
-            <span>Pedir Orçamento Sob Medida</span>
+            <span>Contratar por R$ {money(consultaCents)}</span>
             <ArrowRight size={18} />
           </Link>
         </div>
 
       </div>
 
-      <div className={styles.observacaoRecorrencia}>
-        * O acompanhamento das obrigações mensais da empresa é realizado via recorrência, acordado com o contador no atendimento.
+      <div
+        style={{
+          marginTop: 28,
+          padding: "22px 24px",
+          borderRadius: 20,
+          border: "1px solid rgba(34, 49, 47, 0.12)",
+          background: "#FFFFFF",
+          maxWidth: 480,
+          marginLeft: "auto",
+          marginRight: "auto",
+          textAlign: "center",
+        }}
+      >
+        <p style={{ margin: "0 0 12px", fontSize: 13, fontWeight: 700, color: "#22312F" }}>
+          Não sabe qual serviço é o seu? Fale com a gente — a triagem é gratuita.
+        </p>
+        <LeadForm ctaLabel="Não sei qual serviço é o meu — falar com a gente" accentColor="#000000" />
       </div>
     </div>
   );

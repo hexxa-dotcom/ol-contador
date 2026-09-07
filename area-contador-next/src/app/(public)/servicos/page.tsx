@@ -20,7 +20,7 @@ export const metadata: Metadata = {
   },
   openGraph: {
     title: "Serviços Contábeis Sob Demanda — Pessoa Física, MEI e Empresas",
-    description: "Sem mensalidade fixa. Resolva sua pendência fiscal pontual com parecer técnico assinado por contadores habilitados no CRC e garantia de devolução.",
+    description: "Sem mensalidade fixa. Resolva sua pendência fiscal pontual com parecer técnico assinado por contadores habilitados no CRC.",
     url: "https://www.olacontador.com.br/servicos",
     siteName: "Olá, Contador",
     locale: "pt_BR",
@@ -97,7 +97,7 @@ export default function ServicosIndexPage() {
             </h1>
 
             <p className={styles.heroSubtitle}>
-              Resolva qualquer demanda eventual de Pessoa Física, MEI ou Pequena Empresa sem ficar preso a mensalidades contábeis. Parecer formal assinado com CRC e garantia de devolução.
+              Resolva qualquer demanda eventual de Pessoa Física, Empresas 1 (Micro e Pequenas) ou Empresas 2 (Todo Tipo de Empresa) sem ficar preso a mensalidades contábeis. Parecer formal assinado com CRC.
             </p>
 
             {/* TRUST BAR */}
@@ -116,7 +116,7 @@ export default function ServicosIndexPage() {
               </div>
               <div className={styles.trustItem}>
                 <RefreshCcw size={18} className={styles.trustIcon} />
-                <span>100% de Reembolso se não Resolver</span>
+                <span>Retorno Grátis em até 7 Dias</span>
               </div>
             </div>
           </section>

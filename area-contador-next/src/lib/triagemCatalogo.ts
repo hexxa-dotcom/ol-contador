@@ -17,6 +17,10 @@ export type TriagemAssunto = {
   icone: string;
   perguntas: TriagemPergunta[];
   documentos: string[];
+  // Assuntos que tipicamente exigem acesso ao e-CAC/gov.br do cliente pro
+  // contador executar — nesses casos a triagem oferece o Cofre gov.br
+  // (PortalCofreGovBr) como um passo extra, opcional.
+  requerGovBr?: boolean;
 };
 
 export type TriagemRegras = { minimoRelato: number; obrigatoriaParaChat: boolean };
@@ -36,6 +40,7 @@ export const CATALOGO_PADRAO: TriagemAssunto[] = [
       { id: "valor", label: "A Receita cobra algum valor?", tipo: "texto", opcional: true, dica: "Ex.: R$ 3.200,00" },
     ],
     documentos: ["Notificação da Receita", "Declaração do IR do ano citado", "Comprovante de Rendimentos", "CPF e RG"],
+    requerGovBr: true,
   },
   {
     id: "vendi-bem",
@@ -85,6 +90,7 @@ export const CATALOGO_PADRAO: TriagemAssunto[] = [
       { id: "multa", label: "Já recebeu alguma cobrança de multa?", tipo: "sim-nao", opcional: true },
     ],
     documentos: ["Comprovante de Rendimentos", "Informes bancários", "Declarações anteriores", "CPF e RG"],
+    requerGovBr: true,
   },
   {
     id: "outro",

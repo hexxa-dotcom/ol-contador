@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/supabase/database.types";
 import { CATALOGO_PADRAO, REGRAS_PADRAO, type TriagemAssunto, type TriagemRegras } from "@/lib/triagemCatalogo";
+import { protocoloAtendimento } from "@/lib/protocolo";
 
 export type PortalMessage = {
   id: string;
@@ -22,6 +23,7 @@ export type PortalAppointment = {
   time: string | null;
   status: string | null;
   taxType: string | null;
+  protocolo: string;
 };
 
 export type PortalAtendimentoExpress = {
@@ -32,6 +34,7 @@ export type PortalAtendimentoExpress = {
   contratadoEm: string;
   prazoConclusaoEm: string;
   concluidoEm: string | null;
+  protocolo: string;
 };
 
 export type PortalDocument = {
@@ -328,7 +331,7 @@ export async function loadPortalData(supabase: SupabaseClient<Database>, clientI
     contador,
     messages,
     unreadMessages: messages.filter((m) => m.sender === "agent" && !m.readAt).length,
-    appointments: (appointmentsResult.data ?? []).map((a) => ({ id: a.id, date: a.date, time: a.time, status: a.status, taxType: a.tax_type })),
+    appointments: (appointmentsResult.data ?? []).map((a) => ({ id: a.id, date: a.date, time: a.time, status: a.status, taxType: a.tax_type, protocolo: protocoloAtendimento("agendado", a.id) })),
     atendimentosExpress: (expressResult.data ?? []).map((e) => ({
       id: e.id,
       servicoId: e.servico_id,
@@ -337,6 +340,7 @@ export async function loadPortalData(supabase: SupabaseClient<Database>, clientI
       contratadoEm: e.contratado_em,
       prazoConclusaoEm: e.prazo_conclusao_em,
       concluidoEm: e.concluido_em,
+      protocolo: protocoloAtendimento("express", e.id),
     })),
     triagem: triagensResult.data && triagensResult.data.length
       ? (() => {

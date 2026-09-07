@@ -98,10 +98,12 @@ import {
   cancelServiceCredit,
   changeChatStage,
   clearNotifications,
+  createAtendimentoSemCheckout,
   createClientRecord,
   createManualAppointment,
   createReport,
   createReportRevision,
+  deleteServiceCredit,
   createServiceCredit,
   createTask,
   deleteNotification,
@@ -206,7 +208,7 @@ const tabsByView: Record<string, string[]> = {
   agenda: [
     "Agenda do Dia",
     "Calendário Geral & Lista",
-    "Disponibilidade & Consulta Manual",
+    "Disponibilidade & Atendimento Manual",
   ],
   acompanhamento: ["Fila de Atendimento", "Acompanhamento"],
   clientes: ["Visão Geral", "Clientes Recorrentes"],
@@ -2727,6 +2729,7 @@ const emptyDossier = (client: ClientRecord): ClientDossierInput => ({
   treatment: client.treatment || "",
   honorarios: Number(client.honorarios) || 0,
   notas: client.notas || "",
+  observacoes: client.observacoes || "",
   prazoEstimadoConclusao: client.prazo_estimado_conclusao || "",
   checklist:
     client.checklist &&
@@ -3243,7 +3246,10 @@ export function ClientesIntegralView({
     status: "idle" | "loading" | "empty" | "pending" | "viewed" | "deleted" | "expired" | "error";
     expiresAt?: string;
     password?: string;
+    createdAt?: string | null;
+    viewedAt?: string | null;
   }>({ status: "idle" });
+  const [vaultManualForm, setVaultManualForm] = useState({ senha: "", ttlHours: 48 });
   const [documentAnalysis, setDocumentAnalysis] = useState<
     Record<number, Record<string, unknown>>
   >({});
@@ -3577,16 +3583,18 @@ export function ClientesIntegralView({
     window.sessionStorage.removeItem("contador-open-client");
     open(client, "recorrencia");
   }, []);
-  async function callVault(action: "status" | "reveal" | "delete", clientId: string) {
+  async function callVault(action: "status" | "reveal" | "delete" | "store", clientId: string, extra?: { password?: string; ttlHours?: number; authorized?: boolean }) {
     const response = await fetch("/api/clients/vault", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action, clientId }),
+      body: JSON.stringify({ action, clientId, ...extra }),
     });
     const result = (await response.json().catch(() => ({}))) as {
       status?: "empty" | "pending" | "viewed" | "deleted" | "expired";
       expiresAt?: string;
       password?: string;
+      createdAt?: string | null;
+      viewedAt?: string | null;
       error?: string;
     };
     if (!response.ok) throw new Error(result.error || "vault_failed");
@@ -3598,10 +3606,44 @@ export function ClientesIntegralView({
       setVault({
         status: result.status || "empty",
         expiresAt: result.expiresAt,
+        createdAt: result.createdAt,
+        viewedAt: result.viewedAt,
       });
     } catch {
       setVault({ status: "error" });
     }
+  }
+  // Cadastro manual: o contador digita a senha que recebeu do cliente por
+  // outro canal (telefone, presencial) direto no cofre — mesma criptografia
+  // e mesma regra de visualização única de sempre, só que quem "guarda" a
+  // senha agora pode ser a equipe, não só o próprio cliente.
+  function storeVaultManual() {
+    if (!selected) return;
+    if (vaultManualForm.senha.length < 8) {
+      feedback("A senha do gov.br precisa ter pelo menos 8 caracteres.");
+      return;
+    }
+    setVault((value) => ({ ...value, status: "loading" }));
+    startTransition(async () => {
+      try {
+        const result = await callVault("store", selected.id, {
+          password: vaultManualForm.senha,
+          ttlHours: vaultManualForm.ttlHours,
+          authorized: true,
+        });
+        setVault({
+          status: result.status || "pending",
+          expiresAt: result.expiresAt,
+          createdAt: result.createdAt,
+          viewedAt: result.viewedAt,
+        });
+        setVaultManualForm({ senha: "", ttlHours: 48 });
+        feedback("Senha do gov.br protegida no cofre.");
+      } catch {
+        setVault({ status: "error" });
+        feedback("Não foi possível salvar a senha agora.");
+      }
+    });
   }
   async function revealVault() {
     if (!selected) return;
@@ -3628,6 +3670,59 @@ export function ClientesIntegralView({
     } catch {
       setVault({ status: "error" });
       feedback("Não foi possível apagar a credencial agora.");
+    }
+  }
+  const [uploadingManualDoc, setUploadingManualDoc] = useState(false);
+  // Documento avulso adicionado pela equipe direto no processo do cliente —
+  // diferente do checklist (que só marca "recebido: sim/não"), isto de fato
+  // sobe um arquivo pro storage, sem precisar vincular a nenhum item
+  // específico do checklist.
+  async function uploadManualDocument() {
+    if (!selected) return;
+    const file = await new Promise<File | null>((resolve) => {
+      const input = document.createElement("input");
+      input.type = "file";
+      input.accept = "image/*,application/pdf";
+      input.addEventListener("change", () => resolve(input.files?.[0] || null));
+      input.click();
+    });
+    if (!file) return;
+    if (file.size > 10 * 1024 * 1024) {
+      feedback("O arquivo deve ter no máximo 10 MB.");
+      return;
+    }
+    const supabase = createBrowserClient();
+    if (!supabase) {
+      feedback("Conexão indisponível.");
+      return;
+    }
+    setUploadingManualDoc(true);
+    const safeName = file.name.normalize("NFKD").replace(/[^a-zA-Z0-9._-]/g, "_").slice(-120);
+    const path = `${selected.id}/${Date.now()}_${safeName}`;
+    try {
+      const { error: storageError } = await supabase.storage
+        .from("documentos")
+        .upload(path, file, { contentType: file.type || "application/octet-stream", upsert: false });
+      if (storageError) throw storageError;
+      const { error: recordError } = await supabase.from("documentos").insert({
+        cliente_ref: selected.id,
+        file_name: file.name,
+        mime: file.type,
+        size_bytes: file.size,
+        storage_path: path,
+        uploaded_by: "contador",
+        checklist_item: null,
+      });
+      if (recordError) {
+        await supabase.storage.from("documentos").remove([path]);
+        throw recordError;
+      }
+      feedback("Documento adicionado ao processo.");
+      window.location.reload();
+    } catch {
+      feedback("Não foi possível anexar esse arquivo agora.");
+    } finally {
+      setUploadingManualDoc(false);
     }
   }
   function resetClientAccess() {
@@ -4065,6 +4160,26 @@ export function ClientesIntegralView({
 
                 <div className="dossier-section-card">
                   <div className="dossier-section-title">
+                    <ClipboardList size={15} />
+                    <span>Observações</span>
+                  </div>
+                  <div className="dossier-form-grid">
+                    <label className="span-2">
+                      Observação rápida sobre este cliente
+                      <textarea
+                        rows={3}
+                        placeholder="Ex.: prefere ser chamado pelo WhatsApp, já teve atraso em pagamento, etc."
+                        value={dossier.observacoes}
+                        onChange={(event) =>
+                          setDossier({ ...dossier, observacoes: event.target.value })
+                        }
+                      />
+                    </label>
+                  </div>
+                </div>
+
+                <div className="dossier-section-card">
+                  <div className="dossier-section-title">
                     <MapPin size={15} />
                     <span>Endereço & Localização</span>
                   </div>
@@ -4183,6 +4298,42 @@ export function ClientesIntegralView({
                             Expira em {new Date(vault.expiresAt).toLocaleString("pt-BR")}
                           </small>
                         )}
+                      </div>
+                    )}
+                    {(vault.createdAt || vault.viewedAt) && (
+                      <div className="vault-meta">
+                        {vault.createdAt && (
+                          <small>Enviada em {new Date(vault.createdAt).toLocaleString("pt-BR")}</small>
+                        )}
+                        {vault.viewedAt && (
+                          <small>Última visualização em {new Date(vault.viewedAt).toLocaleString("pt-BR")}</small>
+                        )}
+                      </div>
+                    )}
+                    {(vault.status === "empty" || vault.status === "deleted" || vault.status === "expired" || vault.status === "viewed") && (
+                      <div className="vault-manual-form">
+                        <div className="triagem-field-header">
+                          <span className="triagem-field-label">Cadastrar senha manualmente</span>
+                        </div>
+                        <div className="inline-actions">
+                          <Input
+                            type="password"
+                            placeholder="Senha recebida do cliente"
+                            value={vaultManualForm.senha}
+                            onChange={(event) => setVaultManualForm((value) => ({ ...value, senha: event.target.value }))}
+                          />
+                          <select
+                            value={vaultManualForm.ttlHours}
+                            onChange={(event) => setVaultManualForm((value) => ({ ...value, ttlHours: Number(event.target.value) }))}
+                          >
+                            <option value={24}>Expira em 24h</option>
+                            <option value={48}>Expira em 48h</option>
+                            <option value={72}>Expira em 72h</option>
+                          </select>
+                          <Button className="secondary" onClick={storeVaultManual}>
+                            Salvar no cofre
+                          </Button>
+                        </div>
                       </div>
                     )}
                     {vault.password && (
@@ -4471,6 +4622,11 @@ export function ClientesIntegralView({
                     <span>Honorários</span>
                     <strong>{money(Number(selected.honorarios) || 0)}</strong>
                   </section>
+                </div>
+                <div className="inline-actions" style={{ marginBottom: 12 }}>
+                  <Button className="secondary" disabled={uploadingManualDoc} onClick={() => void uploadManualDocument()}>
+                    <Upload size={14} /> {uploadingManualDoc ? "Enviando…" : "Adicionar documento ao processo"}
+                  </Button>
                 </div>
                 <div className="client-document-list">
                   {selectedDocuments.map((document) => {
@@ -8717,6 +8873,30 @@ export function AcompanhamentoIntegralView({
   const [tab, setTab] = useState(tabsByView.acompanhamento[0]);
   const [detalhes, setDetalhes] = useState<ExpressItem | null>(null);
   const [assignees, setAssignees] = useState<Array<{id:string;name:string}>>([]);
+  const [novoModal, setNovoModal] = useState(false);
+  const [novoPending, setNovoPending] = useState(false);
+  const [novoForm, setNovoForm] = useState({
+    name: "",
+    cpf: "",
+    email: "",
+    phone: "",
+    modalidade: "express" as "express" | "agendado" | "recorrente",
+    date: "",
+    time: "",
+    recorrenteTipo: "Acompanhamento mensal",
+  });
+  function criarAtendimentoSemCheckout() {
+    setNovoPending(true);
+    void createAtendimentoSemCheckout(novoForm).then((result) => {
+      setNovoPending(false);
+      feedback(result.message);
+      if (result.ok) {
+        setNovoModal(false);
+        setNovoForm({ name: "", cpf: "", email: "", phone: "", modalidade: "express", date: "", time: "", recorrenteTipo: "Acompanhamento mensal" });
+        window.location.reload();
+      }
+    });
+  }
   const kanbanValue = data.settings.find(
     (item) => item.chave === "kanban_etapas",
   )?.valor;
@@ -8832,9 +9012,14 @@ export function AcompanhamentoIntegralView({
         }
         action={
           tab === "Fila de Atendimento" ? (
-            <Badge className={filaExpress.length + filaLegacy.length ? "attention" : "success"}>
-              {filaExpress.length + filaLegacy.length} na fila
-            </Badge>
+            <div className="inline-actions">
+              <Button className="secondary" onClick={() => setNovoModal(true)}>
+                <Plus size={16} /> Novo Atendimento
+              </Button>
+              <Badge className={filaExpress.length + filaLegacy.length ? "attention" : "success"}>
+                {filaExpress.length + filaLegacy.length} na fila
+              </Badge>
+            </div>
           ) : (
             <Badge className="success">
               {express.length + Object.keys(legacyMap).length} processos
@@ -8842,6 +9027,76 @@ export function AcompanhamentoIntegralView({
           )
         }
       />
+      {novoModal && (
+        <div className="dialog-backdrop">
+          <Card className="profile-dialog" role="dialog" aria-modal="true">
+            <div className="dialog-head">
+              <div>
+                <h2>Novo atendimento</h2>
+                <p>Cadastra o cliente e já entra na fila, sem passar pelo checkout de pagamento.</p>
+              </div>
+              <Button className="icon ghost" onClick={() => setNovoModal(false)}>
+                <X size={18} />
+              </Button>
+            </div>
+            <div className="profile-form">
+              <label>
+                Nome completo
+                <Input value={novoForm.name} onChange={(event) => setNovoForm((value) => ({ ...value, name: event.target.value }))} />
+              </label>
+              <label>
+                CPF / CNPJ
+                <Input value={novoForm.cpf} onChange={(event) => setNovoForm((value) => ({ ...value, cpf: event.target.value }))} />
+              </label>
+              <label>
+                E-mail
+                <Input type="email" value={novoForm.email} onChange={(event) => setNovoForm((value) => ({ ...value, email: event.target.value }))} />
+              </label>
+              <label>
+                Telefone / WhatsApp
+                <Input value={novoForm.phone} onChange={(event) => setNovoForm((value) => ({ ...value, phone: event.target.value }))} />
+              </label>
+              <label>
+                Tipo de atendimento
+                <select
+                  value={novoForm.modalidade}
+                  onChange={(event) => setNovoForm((value) => ({ ...value, modalidade: event.target.value as typeof value.modalidade }))}
+                >
+                  <option value="express">Express (sem agendamento)</option>
+                  <option value="agendado">Agendado</option>
+                  <option value="recorrente">Recorrente</option>
+                </select>
+              </label>
+              {novoForm.modalidade === "agendado" && (
+                <>
+                  <label>
+                    Data
+                    <Input type="date" value={novoForm.date} onChange={(event) => setNovoForm((value) => ({ ...value, date: event.target.value }))} />
+                  </label>
+                  <label>
+                    Horário
+                    <Input type="time" value={novoForm.time} onChange={(event) => setNovoForm((value) => ({ ...value, time: event.target.value }))} />
+                  </label>
+                </>
+              )}
+              {novoForm.modalidade === "recorrente" && (
+                <label>
+                  Tipo de recorrência
+                  <Input value={novoForm.recorrenteTipo} onChange={(event) => setNovoForm((value) => ({ ...value, recorrenteTipo: event.target.value }))} />
+                </label>
+              )}
+            </div>
+            <div className="dialog-actions">
+              <Button className="secondary" onClick={() => setNovoModal(false)}>
+                Cancelar
+              </Button>
+              <Button disabled={novoPending} onClick={criarAtendimentoSemCheckout}>
+                {novoPending ? "Criando…" : "Criar e colocar na fila"}
+              </Button>
+            </div>
+          </Card>
+        </div>
+      )}
       <Tabs view="acompanhamento" active={tab} onChange={setTab} />
       {tab === "Fila de Atendimento" ? (
         <Card className="fila-atendimento-list">
@@ -10256,7 +10511,7 @@ export function AgendaIntegralView({
     <div className="view-stack">
       <PageTitle
         title="Agenda Operacional"
-        description="Gestão diária de consultas, calendário geral, horários públicos e bloqueios."
+        description="Gestão diária de atendimentos, calendário geral, horários públicos e bloqueios."
         action={
           <Badge className="success">
             {data.appointments.length} agendamentos
@@ -10271,7 +10526,7 @@ export function AgendaIntegralView({
             ? "Agenda do Dia"
             : subTab === "geral"
             ? "Calendário Geral & Lista"
-            : "Disponibilidade & Consulta Manual"
+            : "Disponibilidade & Atendimento Manual"
         }
         onChange={(val) => {
           if (val === "Agenda do Dia") setSubTab("dia");
@@ -10320,7 +10575,7 @@ export function AgendaIntegralView({
                   className="primary"
                   onClick={() => setSubTab("disponibilidade")}
                 >
-                  <Plus size={16} /> Nova Consulta Manual
+                  <Plus size={16} /> Novo Atendimento Manual
                 </Button>
               </div>
             </div>
@@ -10618,7 +10873,7 @@ export function AgendaIntegralView({
             <div className="card-heading">
               <div>
                 <Plus size={18} />
-                <strong>Nova Consulta Manual</strong>
+                <strong>Novo Atendimento Manual</strong>
               </div>
             </div>
             <div className="profile-form">
@@ -10711,7 +10966,7 @@ export function AgendaIntegralView({
                   onClick={createAppointment}
                 >
                   <CalendarDays size={15} />
-                  {pending ? "Salvando…" : "Agendar Consulta"}
+                  {pending ? "Salvando…" : "Agendar Atendimento"}
                 </Button>
               </div>
             </div>
@@ -10840,6 +11095,7 @@ export function FinanceiroIntegralView({
     value: "",
     note: "",
     expiresAt: "",
+    servicoId: "",
   });
   const [message, setMessage] = useState("");
   const [chargeResult, setChargeResult] = useState<FinanceChargeResult | null>(
@@ -11005,6 +11261,7 @@ export function FinanceiroIntegralView({
         valueCents,
         note: creditForm.note,
         expiresAt: creditForm.expiresAt || undefined,
+        servicoId: creditForm.servicoId || null,
       });
       setMessage(result.message);
       if (result.ok) {
@@ -11021,6 +11278,14 @@ export function FinanceiroIntegralView({
     if (!window.confirm("Cancelar este crédito?")) return;
     startTransition(async () => {
       const result = await cancelServiceCredit(id);
+      feedback(result.message);
+      if (result.ok) window.location.reload();
+    });
+  }
+  function deleteCredit(id: number) {
+    if (!window.confirm("Excluir este crédito permanentemente da lista?")) return;
+    startTransition(async () => {
+      const result = await deleteServiceCredit(id);
       feedback(result.message);
       if (result.ok) window.location.reload();
     });
@@ -11391,13 +11656,21 @@ export function FinanceiroIntegralView({
                         >
                           Link
                         </Button>
-                        {credit.status === "ativo" && (
+                        {credit.status === "ativo" ? (
                           <Button
                             className="ghost danger-text"
                             disabled={pending}
                             onClick={() => cancelCredit(credit.id)}
                           >
                             Cancelar
+                          </Button>
+                        ) : (
+                          <Button
+                            className="ghost danger-text"
+                            disabled={pending}
+                            onClick={() => deleteCredit(credit.id)}
+                          >
+                            Excluir
                           </Button>
                         )}
                       </div>
@@ -11762,6 +12035,29 @@ export function FinanceiroIntegralView({
               </Button>
             </div>
             <div className="profile-form">
+              <label>
+                Serviço (opcional — preenche o valor automaticamente)
+                <select
+                  style={{ width: "100%" }}
+                  value={creditForm.servicoId}
+                  onChange={(event) => {
+                    const servicoId = event.target.value;
+                    const servico = data.services.find((item) => item.id === servicoId);
+                    setCreditForm((value) => ({
+                      ...value,
+                      servicoId,
+                      value: servico ? String((servico.price_cents || 0) / 100).replace(".", ",") : value.value,
+                    }));
+                  }}
+                >
+                  <option value="">Valor livre (sem vincular a um serviço)</option>
+                  {data.services.filter((item) => item.active).map((item) => (
+                    <option key={item.id} value={item.id}>
+                      {item.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
               <label>
                 Valor (R$)
                 <Input

@@ -221,6 +221,9 @@ function computeProximaAcao(data: PortalData): ProximaAcao {
 function PortalProximaAcaoCard({ data, onNavigate }: { data: PortalData; onNavigate: (id: string) => void }) {
   const acao = computeProximaAcao(data);
   const Icon = acao.Icon;
+  const atendimentoAtivo = data.atendimentosExpress.find((item) => item.status !== "concluido" && item.status !== "cancelado");
+  const agendamentoAtivo = data.appointments.find((item) => item.status !== "done" && item.status !== "cancelled");
+  const protocolo = atendimentoAtivo?.protocolo || agendamentoAtivo?.protocolo || null;
   return (
     <div className={`portal-spotlight-card tone-${acao.tone}`}>
       <div className="portal-spotlight-left">
@@ -230,6 +233,7 @@ function PortalProximaAcaoCard({ data, onNavigate }: { data: PortalData; onNavig
         <div className="portal-spotlight-content">
           <div className="portal-spotlight-tag">
             <span>Ação Recomendada</span>
+            {protocolo && <span className="portal-spotlight-protocolo">Protocolo {protocolo}</span>}
           </div>
           <h2 className="portal-spotlight-title">{acao.title}</h2>
           <p className="portal-spotlight-desc">{acao.text}</p>
@@ -496,6 +500,26 @@ function PortalCriarSenhaCard({ clientId, senhaDefinida }: { clientId: string; s
   );
 }
 
+// Aviso fixo de que o cliente pode tirar dúvidas a qualquer momento durante
+// o atendimento — não some sozinho e não é vinculado a nenhum evento, só
+// lembra que o canal está sempre disponível.
+function PortalAvisoContatoCard({ onNavigate }: { onNavigate: (id: string) => void }) {
+  return (
+    <Card className="portal-tile aviso-contato-card">
+      <div className="card-heading">
+        <div>
+          <MessageCircle size={18} />
+          <strong>Alguma dúvida durante o atendimento?</strong>
+        </div>
+      </div>
+      <p>É só mandar uma mensagem por aqui a qualquer momento — a equipe responde direto no seu espaço do cliente.</p>
+      <Button className="secondary compact" onClick={() => onNavigate("caixa-postal")}>
+        Enviar mensagem
+      </Button>
+    </Card>
+  );
+}
+
 // Atalhos pra seções que NÃO existem na barra inferior do celular (Início,
 // Documentos, Suporte e Agenda já estão lá) — evita repetir ali em cima o
 // que o cliente já alcança com uma navegação. Substitui o grid de 4 tiles
@@ -598,6 +622,9 @@ export function PortalDashboardView({ data, onNavigate }: { data: PortalData; on
 
       {/* CARD DE DESTAQUE: PRÓXIMA AÇÃO */}
       <PortalProximaAcaoCard data={data} onNavigate={onNavigate} />
+
+      {/* AVISO: DÚVIDAS DURANTE O ATENDIMENTO */}
+      <PortalAvisoContatoCard onNavigate={onNavigate} />
 
       {/* CARD DE CRIAR SENHA (DISPENSÁVEL) */}
       <PortalCriarSenhaCard clientId={data.client.id} senhaDefinida={data.client.senhaDefinida} />
@@ -2545,6 +2572,11 @@ export function PortalTriagemView({
                 {isExpress ? "Documentos Enviados para Execução" : "Diagnóstico Pré-atendimento Enviado"}
               </span>
               <h3 className="triagem-resumo-title">{assunto?.titulo || "Caso em Análise"}</h3>
+              {(expressAtivo?.protocolo || proximoAtendimento?.protocolo) && (
+                <p className="triagem-resumo-protocolo">
+                  Seu protocolo: <strong>{expressAtivo?.protocolo || proximoAtendimento?.protocolo}</strong>
+                </p>
+              )}
             </div>
             <Button className="secondary compact" onClick={() => setEditando(true)}>
               Editar informações
@@ -2772,6 +2804,23 @@ export function PortalTriagemView({
                   })}
                 </div>
               </Card>
+
+              {/* PASSO 4 (SÓ QUANDO O ASSUNTO EXIGE ACESSO AO GOV.BR): COFRE DE SENHA */}
+              {assunto.requerGovBr && (
+                <div className="triagem-govbr-step">
+                  <div className="portal-agenda-step-header">
+                    <span className="portal-agenda-step-num">4</span>
+                    <div>
+                      <h3 className="portal-agenda-step-title">Acesso ao gov.br (opcional)</h3>
+                      <p className="portal-agenda-step-desc">
+                        Esse caso costuma precisar entrar no e-CAC. Se puder, proteja sua senha do gov.br no cofre abaixo —
+                        ela é vista uma única vez pelo contador e apagada em seguida.
+                      </p>
+                    </div>
+                  </div>
+                  <PortalCofreGovBr clientId={clientId} />
+                </div>
+              )}
             </>
           )}
         </motion.div>

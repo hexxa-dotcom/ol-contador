@@ -1,0 +1,46 @@
+<!--
+  Template do e-mail de acesso (magic link / primeiro acesso) do Supabase Auth.
+
+  Este arquivo NÃO é lido pelo app nem aplicado automaticamente — o Supabase
+  Auth manda esse e-mail direto (fora do código deste repositório, via
+  supabase.auth.signInWithOtp / admin.generateLink com type "magiclink" em
+  src/lib/pagamento.ts). Pra valer, cole o conteúdo abaixo em:
+
+    Supabase Dashboard → Authentication → Email Templates → Magic Link
+
+  IMPORTANTE: o link usa {{ .SiteURL }}/login?token_hash={{ .TokenHash }}&type=magiclink
+  — NÃO trocar por {{ .ConfirmationURL }}. Esta app tem um /login próprio que lê
+  token_hash+type da URL e chama supabase.auth.verifyOtp() direto no cliente
+  (src/app/(public)/login/login-form.tsx:28-38), em vez de usar o fluxo padrão
+  do Supabase (/auth/v1/verify). Usar .ConfirmationURL aqui quebraria o login.
+-->
+<div style="background-color:#F7F5EF;padding:32px 16px;font-family:'Outfit',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+  <div style="max-width:540px;margin:0 auto;background:#FFFFFF;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.06);border:1px solid #E8E5DD;">
+    <div style="background:#093726;padding:22px 28px;text-align:left;">
+      <div style="font-size:22px;font-weight:800;color:#FFFFFF;letter-spacing:-0.5px;line-height:1.2;">Olá<span style="color:#FF6A45;">,</span> Contador</div>
+      <div style="font-size:11px;color:rgba(255,255,255,0.8);margin-top:3px;">Seu contador pessoal a um clique de distância.</div>
+    </div>
+    <div style="padding:28px;color:#1B2520;font-size:14.5px;line-height:1.6;">
+      <p style="margin-top:0;font-size:15.5px;font-weight:700;color:#093726;">Seu acesso está pronto!</p>
+      <p>
+        Prazer em ter você por aqui. Clique no botão abaixo para entrar direto na sua área do cliente —
+        sem precisar de senha, é só um clique.
+      </p>
+      <p style="color:#5A6B69;font-size:13px;">
+        Por segurança, esse link é de uso único e expira em pouco tempo. Se você não pediu esse acesso, pode ignorar este e-mail.
+      </p>
+      <div style="margin-top:26px;padding-top:18px;border-top:1px solid #EFECE6;text-align:center;">
+        <a href="{{ .SiteURL }}/login?token_hash={{ .TokenHash }}&type=magiclink" style="display:inline-block;background:#093726;color:#FFFFFF;text-decoration:none;font-weight:700;font-size:13px;padding:11px 24px;border-radius:6px;">Acessar minha área do cliente</a>
+      </div>
+    </div>
+    <div style="background:#F2EFE9;padding:18px 28px;text-align:center;font-size:11px;color:#758079;line-height:1.7;">
+      Este é um e-mail automático do <strong>Olá, Contador</strong>.<br>
+      Acesse <a href="https://www.olacontador.com.br" style="color:#093726;text-decoration:none;font-weight:600;">www.olacontador.com.br</a> para acompanhar seus atendimentos.
+      <div style="margin-top:10px;">
+        <a href="https://instagram.com/olacontador" style="color:#093726;text-decoration:none;font-weight:600;">@olacontador no Instagram</a>
+        &nbsp;·&nbsp;
+        <a href="mailto:ola@olacontador.com.br" style="color:#093726;text-decoration:none;font-weight:600;">ola@olacontador.com.br</a>
+      </div>
+    </div>
+  </div>
+</div>

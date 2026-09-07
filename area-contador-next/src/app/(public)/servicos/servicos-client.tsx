@@ -119,7 +119,7 @@ export function ServicosClient({ servicos }: ServicosClientProps) {
             onClick={() => setCategoriaAtiva("mei")}
           >
             <Store size={15} />
-            MEI
+            Empresas 1
             <span className={styles.filterCount}>{contagens.mei}</span>
           </button>
 
@@ -129,7 +129,7 @@ export function ServicosClient({ servicos }: ServicosClientProps) {
             onClick={() => setCategoriaAtiva("pequenas-empresas")}
           >
             <Building2 size={15} />
-            Pequenas Empresas (Sob Demanda)
+            Empresas 2
             <span className={styles.filterCount}>{contagens["pequenas-empresas"]}</span>
           </button>
         </div>
@@ -174,12 +174,12 @@ export function ServicosClient({ servicos }: ServicosClientProps) {
                 <div className={styles.cardFooter}>
                   <div className={styles.priceWrapper}>
                     <span className={styles.priceLabel}>
-                      {isSobDemanda ? "Diagnóstico Inicial" : "Preço Fixo"}
+                      {isSobDemanda ? "Valor de Referência" : "Preço Fixo"}
                     </span>
                     <div className={styles.priceValue}>
                       {money(item.priceCents)}
                       <small>
-                        {isSobDemanda ? "· 100% abatido do serviço" : `· ${item.prazo}`}
+                        {isSobDemanda ? "· fechado por escrito" : `· ${item.prazo}`}
                       </small>
                     </div>
                   </div>
@@ -190,7 +190,7 @@ export function ServicosClient({ servicos }: ServicosClientProps) {
                       <ChevronRight size={14} />
                     </Link>
                     <Link href={`/agendar?plano=${targetPlano}`} className={styles.btnHire}>
-                      {isSobDemanda ? "Pedir Diagnóstico" : "Contratar"}
+                      Contratar
                       <ArrowRight size={14} />
                     </Link>
                   </div>

@@ -4,13 +4,13 @@ import { HomePage } from "./home-page";
 
 export const metadata: Metadata = {
   title: "Olá, Contador — Contabilidade sob demanda para seu caso",
-  description: "Conte o que está acontecendo, envie os documentos pelo celular, e a nossa equipe de contadores cuida do seu caso do começo ao fim. Se não resolvermos, devolvemos seu dinheiro.",
+  description: "Conte o que está acontecendo, envie os documentos pelo celular, e a nossa equipe de contadores cuida do seu caso do começo ao fim, com relatório assinado com CRC.",
   alternates: { canonical: "https://www.olacontador.com.br/" },
   openGraph: {
     type: "website",
     siteName: "Olá, Contador",
     title: "Olá, Contador — Contabilidade sob demanda para seu caso",
-    description: "Conte o que está acontecendo, envie os documentos pelo celular, e a nossa equipe de contadores cuida do seu caso do começo ao fim. Se não resolvermos, devolvemos seu dinheiro.",
+    description: "Conte o que está acontecendo, envie os documentos pelo celular, e a nossa equipe de contadores cuida do seu caso do começo ao fim, com relatório assinado com CRC.",
     url: "https://www.olacontador.com.br/",
     locale: "pt_BR",
   },
@@ -31,7 +31,7 @@ function jsonLdServico(pfCents: number, pjCents: number) {
     "@type": "ProfessionalService",
     name: "Olá, Contador",
     url: "https://www.olacontador.com.br/",
-    description: "Atendimento contábil sob demanda com contadores especializados, dedicado ao seu caso. Envie o caso e os documentos pelo celular, com garantia de reembolso.",
+    description: "Atendimento contábil sob demanda com contadores especializados, dedicado ao seu caso. Envie o caso e os documentos pelo celular e receba relatório assinado com CRC.",
     areaServed: "BR",
     priceRange: `${formatReais(pfCents)} - ${formatReais(pjCents)}`,
   };
@@ -58,7 +58,7 @@ async function precoDe(id: string, fallbackCents: number): Promise<number> {
 export const dynamic = "force-dynamic";
 
 export default async function Page() {
-  const [pf, pj, consulta] = await Promise.all([precoDe("pf", 19900), precoDe("pj-atendimento", 34900), precoDe("consulta", 9900)]);
+  const [pf, pj, consulta] = await Promise.all([precoDe("pf", 19900), precoDe("pj-atendimento", 34900), precoDe("consulta", 79900)]);
 
   return (
     <>

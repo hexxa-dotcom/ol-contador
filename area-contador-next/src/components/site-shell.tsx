@@ -341,13 +341,13 @@ export function SiteFooter() {
 
         {/* COLUNA 3: MEI & EMPRESAS (SEO & Links Diretos) */}
         <div className="public-rodape-col-servicos">
-          <h4 className="public-rodape-heading">MEI & Empresas</h4>
+          <h4 className="public-rodape-heading">Empresas 1</h4>
           <ul className="public-rodape-links">
             <li><Link href="/servicos/regularizacao-mei-das-atrasado">Regularizar MEI & DAS</Link></li>
             <li><Link href="/servicos/baixa-cancelamento-cnpj-mei">Baixa de CNPJ MEI</Link></li>
-            <li><Link href="/servicos/regularizacao-cnpj-inapto-omissao">CNPJ Inapto (Reativação)</Link></li>
-            <li><Link href="/servicos/baixa-encerramento-cnpj-com-dividas">Baixa com Dívidas</Link></li>
-            <li><Link href="/servicos/parcelamento-dividas-simples-nacional">Parcelamentos PGFN</Link></li>
+            <li><Link href="/servicos/declaracao-anual-dasn-simei-atrasada">Declaração Anual MEI (DASN)</Link></li>
+            <li><Link href="/servicos/desenquadramento-mei-para-microempresa">Desenquadramento de MEI</Link></li>
+            <li><Link href="/servicos/certidoes-negativas-cnd-mei">Certidões Negativas do MEI</Link></li>
             <li><Link href="/servicos" style={{ color: "#EE5F3A", fontWeight: 600 }}>Ver todos para Empresas →</Link></li>
           </ul>
         </div>

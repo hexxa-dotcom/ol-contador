@@ -240,8 +240,8 @@
 
 /* BASE CARD 3D */
 .planoCard {
-  border-radius: 28px;
-  padding: 40px 32px;
+  border-radius: 22px;
+  padding: 28px 24px;
   display: flex;
   flex-direction: column;
   position: relative;
@@ -295,6 +295,57 @@
   transform: translateY(-6px) scale(1.01);
 }
 
+/* CARD "EMPRESAS 2" — TOM ÂMBAR/CORAL, PRA DISTINGUIR DOS OUTROS DOIS
+   (branco puro no PF, verde escuro no Empresas 1) */
+.planoWarm {
+  background: linear-gradient(140deg, #FFF3EC 0%, #FDE3D5 55%, #FBD2BC 100%);
+  border: 1px solid rgba(194, 74, 33, 0.22);
+  box-shadow: 0 16px 36px -20px rgba(194, 74, 33, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.85);
+}
+
+.planoWarm:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 24px 48px -18px rgba(194, 74, 33, 0.34);
+}
+
+.planoSelecionadoWarm {
+  border: 2.5px solid #C23F1F !important;
+  box-shadow: 0 0 0 4px rgba(194, 63, 31, 0.22), 0 24px 50px -15px rgba(194, 63, 31, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.85) !important;
+  transform: translateY(-6px) scale(1.01);
+}
+
+/* Dentro do card Empresas 2 (âmbar/coral), os textos que herdavam o verde
+   padrão (rótulo, chips, preço, ícones de check, botão expandir) ficavam
+   destoando do fundo pêssego — recolore só aqui pra combinar com o tom do
+   card. */
+.planoWarm .resolveRotulo {
+  color: #C23F1F;
+}
+.planoWarm .chipLight {
+  background: rgba(194, 63, 31, 0.1);
+  color: #9A3412;
+}
+.planoWarm .checkIconLight {
+  color: #C23F1F;
+}
+.planoWarm .precoSobConsultaTitle,
+.planoWarm .moeda,
+.planoWarm .precoNum {
+  color: #9A3412;
+}
+.planoWarm .precoPagamento {
+  color: #C23F1F;
+}
+.planoWarm .btnExpandir {
+  border-color: rgba(194, 63, 31, 0.22);
+  background: rgba(194, 63, 31, 0.06);
+  color: #9A3412;
+}
+.planoWarm .btnExpandir:hover {
+  background: rgba(194, 63, 31, 0.12);
+  border-color: #C23F1F;
+}
+
 /* BADGES DE STATUS */
 .badgeSelecionado {
   position: absolute;
@@ -341,7 +392,7 @@
 
 /* HEADER DO CARD */
 .planoHeader {
-  margin-bottom: 20px;
+  margin-bottom: 14px;
 }
 
 .planoNomeFlex {
@@ -353,15 +404,15 @@
 
 .planoTitulo {
   font-family: 'Bricolage Grotesque', sans-serif;
-  font-size: 1.6rem;
+  font-size: 1.4rem;
   font-weight: 800;
   color: var(--pub-ink, #22312F);
 }
 
 .planoIconBadge {
-  width: 42px;
-  height: 42px;
-  border-radius: 14px;
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
   background: rgba(34, 49, 47, 0.06);
   display: flex;
   align-items: center;
@@ -375,16 +426,16 @@
 }
 
 .planoSubtitulo {
-  font-size: 0.94rem;
+  font-size: 0.85rem;
   color: var(--pub-ink-soft, #5A6B69);
-  line-height: 1.5;
-  min-height: 52px;
+  line-height: 1.45;
+  min-height: 40px;
 }
 
 /* PREÇO */
 .precoBox {
-  margin: 12px 0 20px;
-  padding-bottom: 16px;
+  margin: 10px 0 16px;
+  padding-bottom: 12px;
   border-bottom: 1px solid rgba(34, 49, 47, 0.08);
 }
 
@@ -400,14 +451,14 @@
 
 .moeda {
   font-family: 'Bricolage Grotesque', sans-serif;
-  font-size: 1.4rem;
+  font-size: 1.2rem;
   font-weight: 800;
   color: var(--pub-green, #0C5446);
 }
 
 .precoNum {
   font-family: 'Bricolage Grotesque', sans-serif;
-  font-size: 3.2rem;
+  font-size: 2.7rem;
   font-weight: 800;
   letter-spacing: -0.04em;
   color: var(--pub-green, #0C5446);
@@ -416,7 +467,7 @@
 
 .precoSobConsultaTitle {
   font-family: 'Bricolage Grotesque', sans-serif;
-  font-size: 2.1rem;
+  font-size: 1.8rem;
   font-weight: 800;
   letter-spacing: -0.03em;
   color: var(--pub-green, #0C5446);
@@ -439,7 +490,7 @@
 
 /* SEÇÃO RESOLVE (CHIPS) */
 .resolveSection {
-  margin-bottom: 24px;
+  margin-bottom: 16px;
 }
 
 .resolveRotulo {
@@ -491,9 +542,9 @@
 .entregaveisList {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 10px;
   flex: 1;
-  margin-bottom: 24px;
+  margin-bottom: 16px;
 }
 
 .entregavelItem {
@@ -516,7 +567,7 @@
 
 .entregavelText b {
   display: block;
-  font-size: 0.94rem;
+  font-size: 0.88rem;
   font-weight: 700;
   color: var(--pub-ink, #22312F);
   line-height: 1.35;
@@ -524,7 +575,7 @@
 
 .entregavelText small {
   display: block;
-  font-size: 0.83rem;
+  font-size: 0.79rem;
   color: var(--pub-ink-soft, #5A6B69);
   line-height: 1.4;
   margin-top: 2px;
@@ -934,8 +985,8 @@
     display: none;
   }
   .planoCard, .planoCardDestaque {
-    padding: 32px 20px;
-    border-radius: 24px;
+    padding: 24px 18px;
+    border-radius: 20px;
   }
   .btnExpandir {
     width: 100%;

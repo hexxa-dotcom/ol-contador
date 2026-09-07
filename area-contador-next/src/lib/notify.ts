@@ -32,6 +32,41 @@ async function sendEmail(to: string, subject: string, html: string) {
   return { ok: true, id: (data as { id?: string }).id };
 }
 
+// Layout único reaproveitado por todo e-mail transacional — extraído do que
+// era uma string HTML só dentro de notifyCliente, pra poder ser usado
+// também no e-mail de senha/primeiro acesso (ver EMAIL_PRIMEIRO_ACESSO_HTML
+// mais abaixo, colado manualmente no Supabase Auth porque aquele e-mail é
+// disparado pelo próprio Supabase, fora do código deste app).
+function buildEmailHtml(params: { greeting: string; bodyHtml: string; ctaLabel?: string; ctaUrl?: string }): string {
+  const cta = params.ctaLabel && params.ctaUrl
+    ? `<div style="margin-top:26px;padding-top:18px;border-top:1px solid #EFECE6;text-align:center;">
+        <a href="${params.ctaUrl}" style="display:inline-block;background:#093726;color:#FFFFFF;text-decoration:none;font-weight:700;font-size:13px;padding:11px 24px;border-radius:6px;">${params.ctaLabel}</a>
+      </div>`
+    : "";
+  return `<div style="background-color:#F7F5EF;padding:32px 16px;font-family:'Outfit',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+    <div style="max-width:540px;margin:0 auto;background:#FFFFFF;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.06);border:1px solid #E8E5DD;">
+      <div style="background:#093726;padding:22px 28px;text-align:left;">
+        <div style="font-size:22px;font-weight:800;color:#FFFFFF;letter-spacing:-0.5px;line-height:1.2;">Olá<span style="color:#FF6A45;">,</span> Contador</div>
+        <div style="font-size:11px;color:rgba(255,255,255,0.8);margin-top:3px;">Seu contador pessoal a um clique de distância.</div>
+      </div>
+      <div style="padding:28px;color:#1B2520;font-size:14.5px;line-height:1.6;">
+        <p style="margin-top:0;font-size:15.5px;font-weight:700;color:#093726;">${params.greeting}</p>
+        <div>${params.bodyHtml}</div>
+        ${cta}
+      </div>
+      <div style="background:#F2EFE9;padding:18px 28px;text-align:center;font-size:11px;color:#758079;line-height:1.7;">
+        Este é um e-mail automático do <strong>Olá, Contador</strong>.<br>
+        Acesse <a href="https://www.olacontador.com.br" style="color:#093726;text-decoration:none;font-weight:600;">www.olacontador.com.br</a> para acompanhar seus atendimentos.
+        <div style="margin-top:10px;">
+          <a href="https://instagram.com/olacontador" style="color:#093726;text-decoration:none;font-weight:600;">@olacontador no Instagram</a>
+          &nbsp;·&nbsp;
+          <a href="mailto:ola@olacontador.com.br" style="color:#093726;text-decoration:none;font-weight:600;">ola@olacontador.com.br</a>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
 function whatsappConfigured() {
   return waConfigured();
 }
@@ -91,25 +126,12 @@ async function notifyCliente(cliente: ClienteNotify | null, subject: string, mes
   const results: Record<string, unknown> = {};
   try {
     if (emailConfigured() && cliente.email) {
-      const html = `<div style="background-color:#F7F5EF;padding:32px 16px;font-family:'Outfit',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
-        <div style="max-width:540px;margin:0 auto;background:#FFFFFF;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.06);border:1px solid #E8E5DD;">
-          <div style="background:#093726;padding:22px 28px;text-align:left;">
-            <div style="font-size:22px;font-weight:800;color:#FFFFFF;letter-spacing:-0.5px;line-height:1.2;">Olá<span style="color:#FF6A45;">,</span> Contador</div>
-            <div style="font-size:11px;color:rgba(255,255,255,0.8);margin-top:3px;">Seu contador pessoal a um clique de distância.</div>
-          </div>
-          <div style="padding:28px;color:#1B2520;font-size:14.5px;line-height:1.6;">
-            <p style="margin-top:0;font-size:15.5px;font-weight:700;color:#093726;">Olá, ${cliente.name || "Cliente"}!</p>
-            <div>${message}</div>
-            <div style="margin-top:26px;padding-top:18px;border-top:1px solid #EFECE6;text-align:center;">
-              <a href="https://www.olacontador.com.br" style="display:inline-block;background:#093726;color:#FFFFFF;text-decoration:none;font-weight:700;font-size:13px;padding:11px 24px;border-radius:6px;">Acessar a Plataforma</a>
-            </div>
-          </div>
-          <div style="background:#F2EFE9;padding:14px 28px;text-align:center;font-size:11px;color:#758079;">
-            Este é um e-mail automático do <strong>Olá, Contador</strong>.<br>
-            Acesse <a href="https://www.olacontador.com.br" style="color:#093726;text-decoration:none;font-weight:600;">www.olacontador.com.br</a> para acompanhar seus atendimentos.
-          </div>
-        </div>
-      </div>`;
+      const html = buildEmailHtml({
+        greeting: `Olá, ${cliente.name || "Cliente"}!`,
+        bodyHtml: message,
+        ctaLabel: "Acessar a Plataforma",
+        ctaUrl: "https://www.olacontador.com.br",
+      });
       results.email = await sendEmail(cliente.email, subject, html);
     }
     if (whatsappOutboundConfigured() && cliente.phone) {

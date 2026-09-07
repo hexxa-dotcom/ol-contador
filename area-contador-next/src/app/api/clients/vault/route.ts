@@ -77,7 +77,10 @@ export async function POST(request: Request) {
 
   try {
     if (action === "store") {
-      if (!acesso.isOwner) return NextResponse.json({ error: "only_client_can_store" }, { status: 403, headers });
+      // O próprio cliente cadastra pelo Cofre gov.br no portal; a equipe
+      // também pode cadastrar manualmente pela Ficha do Cliente quando
+      // recebe a senha por outro canal (telefone, presencial).
+      if (!acesso.isOwner && !acesso.isStaff) return NextResponse.json({ error: "forbidden" }, { status: 403, headers });
       const password = String(body?.password || "");
       const ttlHours = [24, 48, 72].includes(Number(body?.ttlHours)) ? Number(body?.ttlHours) : 48;
       if (password.length < 8 || password.length > 256) {
@@ -108,7 +111,7 @@ export async function POST(request: Request) {
         .select("*")
         .single();
       if (error) throw error;
-      await auditar(admin, clientId, userId, "stored", { ttlHours });
+      await auditar(admin, clientId, userId, "stored", { ttlHours, actorType: acesso.isStaff ? "staff" : "client" });
       return NextResponse.json(statusPublico(data), { headers });
     }
 

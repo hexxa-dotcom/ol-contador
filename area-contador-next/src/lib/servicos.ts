@@ -1,4 +1,4 @@
-export type CategoriaServico = "Pessoa Física" | "MEI" | "Pequenas Empresas";
+export type CategoriaServico = "Pessoa Física" | "Empresas 1" | "Empresas 2";
 
 export interface ServicoFaq {
   question: string;
@@ -383,7 +383,7 @@ export const SERVICOS: ServicoItem[] = [
     slug: "declaracao-irpf-atrasada-anos-anteriores",
     title: "Declaração de IRPF em Atraso: Regularização de Múltiplos Anos Fiscais",
     shortTitle: "IRPF em Atraso (Múltiplos Anos)",
-    subtitle: "Envio de declarações de imposto de renda não entregues nos últimos 5 anos com cálculo de multa mínima e recuperação de dados.",
+    subtitle: "Envio de declarações de imposto de renda não entregues nos últimos 5 anos com cálculo de multa mínima e recuperação de dados. Se aparecerem mais anos pendentes durante a análise, cada um extra sai com 20% de desconto.",
     category: "Pessoa Física",
     categorySlug: "pessoa-fisica",
     badge: "Regularização Histórica",
@@ -391,10 +391,12 @@ export const SERVICOS: ServicoItem[] = [
     prazo: "Em até 24h úteis",
     modalidadePadrao: "express",
     description: "Levantamento do histórico fiscal junto ao e-CAC, recuperação de informes de rendimentos esquecidos e transmissão de declarações em atraso dos anos de 2020 a 2025 para regularização definitiva.",
-    excerpt: "Deixou de declarar Imposto de Renda nos anos anteriores? Levantamos todos os seus informes esquecidos na Receita e transmitimos suas declarações pendentes com segurança.",
+    excerpt: "Deixou de declarar Imposto de Renda em anos anteriores? Comece regularizando 1 ano por R$ 199 — se o contador identificar outros anos pendentes no meio do caminho, você decide se quer resolver, e cada um adicional sai com 20% de desconto.",
     tags: ["irpf em atraso", "declarar imposto atrasado", "multa atraso irpf", "regularizar anos anteriores ir"],
     publicoAlvo: "Contribuintes que não declararam IRPF em anos anteriores e estão com pendências ou CPF bloqueado.",
     oQueEstaIncluso: [
+      "Regularização de 1 declaração por R$ 199 pra começar.",
+      "Se o contador identificar outros anos pendentes durante a análise, você é avisado e decide se quer incluir — cada ano adicional autorizado sai com 20% de desconto (R$ 159,20).",
       "Acesso aos informes pré-preenchidos e bases históricas da Receita Federal.",
       "Elaboração técnica da declaração escolhendo a modalidade mais vantajosa (simplificada ou deduções legais).",
       "Transmissão oficial ao sistema da Receita Federal.",
@@ -406,14 +408,19 @@ export const SERVICOS: ServicoItem[] = [
       "Informes de rendimentos bancários e de fontes pagadoras dos anos em aberto (auxiliamos na obtenção direta pelo e-CAC)."
     ],
     passoAPasso: [
-      { passo: "1", titulo: "Levantamento Histórico", descricao: "Puxamos do sistema da Receita os dados que os bancos e empresas já enviaram sobre você." },
-      { passo: "2", titulo: "Preenchimento Seguro", descricao: "Confeccionamos cada ano pendente evitando inconsistências que pudessem gerar malha fina." },
-      { passo: "3", titulo: "Emissão dos Recibos", descricao: "Você recebe os comprovantes oficiais e sua situação fica 100% limpa perante o Fisco." }
+      { passo: "1", titulo: "Levantamento Histórico", descricao: "Puxamos do sistema da Receita os dados que os bancos e empresas já enviaram sobre você — e conferimos se há outros anos em aberto além do que você já sabia." },
+      { passo: "2", titulo: "Você Decide se Inclui os Extras", descricao: "Se aparecer mais algum ano pendente, avisamos o valor (com 20% de desconto cada) e só seguimos com o que você autorizar." },
+      { passo: "3", titulo: "Preenchimento Seguro", descricao: "Confeccionamos cada ano aprovado evitando inconsistências que pudessem gerar malha fina." },
+      { passo: "4", titulo: "Emissão dos Recibos", descricao: "Você recebe os comprovantes oficiais e sua situação fica 100% limpa perante o Fisco." }
     ],
     faqs: [
       {
         question: "Qual o valor da multa por entregar IRPF atrasado?",
         answer: "A multa mínima por atraso na entrega da declaração é de R$ 165,74 por ano, podendo chegar até 20% do imposto devido. Se você tiver restituição a receber, o valor da multa é descontado automaticamente da própria restituição."
+      },
+      {
+        question: "Tenho vários anos atrasados. Preciso informar tudo antes de contratar?",
+        answer: "Não precisa saber com certeza. Você contrata a regularização de 1 ano por R$ 199, e durante a análise do seu histórico na Receita o contador confere se existe mais alguma pendência. Se existir, você é avisado do valor — cada ano adicional que você autorizar sai com 20% de desconto (R$ 159,20) — e nada é feito sem sua aprovação."
       }
     ],
     serviceParam: "pf"
@@ -467,7 +474,7 @@ export const SERVICOS: ServicoItem[] = [
     title: "Regularização de MEI e Parcelamento de Guias DAS em Atraso",
     shortTitle: "Regularização de MEI & DAS",
     subtitle: "Recalcule impostos atrasados, evite o cancelamento do CNPJ e negocie parcelamentos no Simples Nacional.",
-    category: "MEI",
+    category: "Empresas 1",
     categorySlug: "mei",
     badge: "Mais Procurado MEI",
     priceCents: 34900,
@@ -510,7 +517,7 @@ export const SERVICOS: ServicoItem[] = [
     title: "Baixa e Cancelamento Definitivo de CNPJ MEI (Mesmo com Dívidas)",
     shortTitle: "Baixa de CNPJ MEI",
     subtitle: "Encerre as atividades do seu MEI com segurança jurídica, transmita a declaração de extinção e pare de gerar novas guias DAS.",
-    category: "MEI",
+    category: "Empresas 1",
     categorySlug: "mei",
     badge: "Encerramento Seguro",
     priceCents: 34900,
@@ -549,7 +556,7 @@ export const SERVICOS: ServicoItem[] = [
     title: "Declaração Anual do MEI (DASN-SIMEI) em Atraso ou Retificadora",
     shortTitle: "Declaração Anual MEI (DASN)",
     subtitle: "Transmissão da declaração de faturamento do MEI fora do prazo, correção de valores e cálculo do DARF de multa.",
-    category: "MEI",
+    category: "Empresas 1",
     categorySlug: "mei",
     badge: "Evite Multas Extras",
     priceCents: 34900,
@@ -589,7 +596,7 @@ export const SERVICOS: ServicoItem[] = [
     title: "Desenquadramento de MEI para Microempresa (ME - Simples Nacional)",
     shortTitle: "Desenquadramento de MEI para ME",
     subtitle: "Transição segura quando seu faturamento ultrapassou R$ 81.000 ou você precisa admitir sócios ou novas atividades.",
-    category: "MEI",
+    category: "Empresas 1",
     categorySlug: "mei",
     badge: "Crescimento de Empresa",
     priceCents: 34900,
@@ -629,7 +636,7 @@ export const SERVICOS: ServicoItem[] = [
     title: "Emissão de CNDs e Regularidade Completa do MEI (Federal, Estadual, Municipal e FGTS)",
     shortTitle: "Certidões Negativas do MEI (CND)",
     subtitle: "Pacote completo de certidões negativas de débito para licitações, empréstimos bancários e credenciamento de fornecedores.",
-    category: "MEI",
+    category: "Empresas 1",
     categorySlug: "mei",
     badge: "Crédito & Licitação",
     priceCents: 34900,
@@ -668,7 +675,7 @@ export const SERVICOS: ServicoItem[] = [
     title: "Negociação de Dívidas do MEI na Dívida Ativa da União (PGFN / Regularize)",
     shortTitle: "Dívida Ativa do MEI (PGFN)",
     subtitle: "Negocie débitos de DAS inscritos em dívida ativa com descontos de até 70% pela Transação Tributária.",
-    category: "MEI",
+    category: "Empresas 1",
     categorySlug: "mei",
     badge: "Descontos até 70%",
     priceCents: 34900,
@@ -711,18 +718,18 @@ export const SERVICOS: ServicoItem[] = [
     title: "Regularização de CNPJ Inapto por Omissão de Declarações na Receita Federal",
     shortTitle: "Reativação de CNPJ Inapto",
     subtitle: "Levantamento de declarações omissas (DEFIS, DCTF, ECF), transmissão das obrigações e reativação da empresa.",
-    category: "Pequenas Empresas",
+    category: "Empresas 2",
     categorySlug: "pequenas-empresas",
-    badge: "Diagnóstico R$ 99 · Sob Medida",
-    priceCents: 9900,
-    prazo: "Diagnóstico em até 48h úteis",
+    badge: "R$ 799 · Preço de Referência",
+    priceCents: 79900,
+    prazo: "Em até 5 dias úteis",
     modalidadePadrao: "sob-medida",
     description: "Reativação de empresas declaradas 'Inaptas' por omissão contínua de obrigações acessórias perante a Receita Federal do Brasil, eliminando bloqueio de emissão de notas fiscais, contas bancárias e responsabilidade ilimitada dos sócios.",
-    excerpt: "Seu CNPJ está como 'Inapto' por omissão de declarações na Receita Federal? O contador diagnostica seu caso por R$ 99 e passa o orçamento exato para reativar seu CNPJ (com valor 100% abatido).",
+    excerpt: "Seu CNPJ está como 'Inapto' por omissão de declarações na Receita Federal? Reativamos por um valor fechado de R$ 799, sem sustos no meio do caminho.",
     tags: ["cnpj inapto", "regularizar cnpj", "omissao declaracoes receita", "reativar empresa", "defis atrasada"],
     publicoAlvo: "Empresas do Simples Nacional ou Lucro Presumido que ficaram anos sem contador e tiveram o CNPJ declarado inapto.",
     oQueEstaIncluso: [
-      "Diagnóstico técnico inicial aprofundado por R$ 99 com orçamento fechado (100% abatido se aprovar o serviço).",
+      "Preço fechado de R$ 799 — sem diagnóstico prévio pago à parte, sem sustos no valor final.",
       "Auditoria eletrônica de todas as pendências que motivaram o ato declaratório de inaptidão.",
       "Elaboração e transmissão de todas as declarações omissas (DEFIS, DCTFWeb, PGDAS, SPED, ECF ou DCTF).",
       "Protocolo de restabelecimento cadastral do CNPJ junto à Receita Federal.",
@@ -734,14 +741,14 @@ export const SERVICOS: ServicoItem[] = [
       "Certificado digital da empresa (e-CNPJ) ou procuração eletrônica no e-CAC via gov.br do sócio administrador."
     ],
     passoAPasso: [
-      { passo: "1", titulo: "Diagnóstico Inicial (R$ 99)", descricao: "O contador acessa o dossiê da empresa no e-CAC e mapeia todas as obrigações que faltam ser entregues." },
-      { passo: "2", titulo: "Proposta por Escrito", descricao: "Apresentamos o escopo completo, prazo e valor total fechado. Os R$ 99 pagos no diagnóstico são 100% abatidos." },
+      { passo: "1", titulo: "Diagnóstico Inicial", descricao: "O contador acessa o dossiê da empresa no e-CAC e mapeia todas as obrigações que faltam ser entregues." },
+      { passo: "2", titulo: "Proposta por Escrito", descricao: "Apresentamos o escopo completo, prazo e valor total fechado." },
       { passo: "3", titulo: "Execução & Reativação", descricao: "Confeccionamos e transmitimos as declarações e acompanhamos até o CNPJ voltar ao status de 'Ativa'." }
     ],
     faqs: [
       {
-        question: "Como funciona o valor de R$ 99 do diagnóstico?",
-        answer: "O valor de R$ 99 é pago na hora de agendar para que o contador analise a fundo o histórico do CNPJ e monte um parecer formal com escopo e valor fechado. Se você aprovar a proposta, esses R$ 99 são integralmente abatidos do valor final do serviço."
+        question: "Não sei se meu caso se enquadra aqui. Preciso pagar pra descobrir?",
+        answer: "Não. Se você tiver dúvida sobre qual serviço é o seu, fale com a gente antes — a triagem é gratuita e a gente te indica o caminho certo, mesmo que não seja este."
       },
       {
         question: "Quais os perigos de manter um CNPJ inapto?",
@@ -755,18 +762,18 @@ export const SERVICOS: ServicoItem[] = [
     title: "Baixa e Encerramento Definitivo de CNPJ Inativo ou com Débitos",
     shortTitle: "Baixa de CNPJ com Dívidas",
     subtitle: "Extinção regular de empresas na Junta Comercial, Receita Federal, Estado e Prefeitura sem impedimento de débitos fiscais.",
-    category: "Pequenas Empresas",
+    category: "Empresas 2",
     categorySlug: "pequenas-empresas",
-    badge: "Diagnóstico R$ 99 · Sob Medida",
-    priceCents: 9900,
-    prazo: "Diagnóstico em até 48h úteis",
+    badge: "R$ 799 · Preço de Referência",
+    priceCents: 79900,
+    prazo: "Em até 5 dias úteis",
     modalidadePadrao: "sob-medida",
     description: "Encerramento formal de microempresas (ME) e empresas de pequeno porte (EPP): elaboração de Distrato Social, registro na Junta Comercial, baixa do CNPJ na Receita Federal e cancelamento de inscrições estadual e municipal.",
-    excerpt: "Quer fechar de vez uma empresa parada que só gera taxas e dor de cabeça? Diagnosticamos as pendências por R$ 99 e passamos o orçamento fechado para extinguir seu CNPJ.",
+    excerpt: "Quer fechar de vez uma empresa parada que só gera taxas e dor de cabeça? Cuidamos de todo o processo de extinção do CNPJ por um valor fechado de R$ 799.",
     tags: ["baixa cnpj", "fechar empresa com divida", "distrato social", "encerrar cnpj simples nacional"],
     publicoAlvo: "Sócios de empresas inativas, sem movimentação ou com débitos acumulados que desejam estancar a geração de novas taxas e obrigações.",
     oQueEstaIncluso: [
-      "Diagnóstico técnico inicial por R$ 99 com levantamento de débitos e taxas da Junta Comercial (100% abatido do serviço aprovado).",
+      "Preço fechado de R$ 799, com levantamento de débitos e taxas da Junta Comercial incluído.",
       "Redação do Distrato Social formal ou Requerimento de Empresário para extinção.",
       "Protocolo e registro na Junta Comercial do Estado.",
       "Baixa definitiva da inscrição no CNPJ perante a Receita Federal.",
@@ -792,41 +799,49 @@ export const SERVICOS: ServicoItem[] = [
     serviceParam: "sob-demanda"
   },
   {
-    slug: "parcelamento-dividas-simples-nacional",
-    title: "Parcelamento de Dívidas do Simples Nacional e Transação Tributária PGFN",
-    shortTitle: "Parcelamento do Simples Nacional",
-    subtitle: "Negociação de débitos de DAS, Simples Nacional e PGFN com prazo de até 60 a 145 meses e descontos sobre juros.",
-    category: "Pequenas Empresas",
+    slug: "parcelamento-dividas-fiscais-empresas",
+    title: "Parcelamento de Dívidas Fiscais e Transação Tributária PGFN para Empresas",
+    shortTitle: "Parcelamento de Dívidas Fiscais",
+    subtitle: "Negociação de débitos federais e PGFN para empresas de qualquer porte e regime — Simples Nacional, Lucro Presumido ou Lucro Real.",
+    category: "Empresas 2",
     categorySlug: "pequenas-empresas",
-    badge: "Diagnóstico R$ 99 · Sob Medida",
-    priceCents: 9900,
-    prazo: "Diagnóstico em até 48h úteis",
+    badge: "R$ 799 · Preço de Referência",
+    priceCents: 79900,
+    prazo: "Em até 5 dias úteis",
     modalidadePadrao: "sob-medida",
-    description: "Consolidação e parcelamento de débitos do Simples Nacional apurados no PGDAS-D, evitando exclusão do regime tributário favorecido e suspendendo cobranças executivas com emissão de CND Positiva com Efeitos de Negativa.",
-    excerpt: "Sua empresa acumulou dívidas no Simples Nacional e corre risco de exclusão? Analisamos seus débitos por R$ 99 e estruturamos a negociação em até 60x ou 145x com descontos.",
-    tags: ["parcelamento simples nacional", "divida das simples", "parcelamento pgfn empresa", "exclusao simples nacional parcelar"],
-    publicoAlvo: "Micro e pequenas empresas do Simples Nacional com débitos em cobrança na Receita Federal ou em Dívida Ativa da PGFN.",
+    description: "Consolidação e parcelamento de débitos fiscais federais — Simples Nacional (PGDAS-D), ou débitos junto à PGFN de empresas de qualquer regime tributário —, evitando exclusão do enquadramento e suspendendo cobranças executivas com emissão de CND Positiva com Efeitos de Negativa. Preço fechado de R$ 799 — sem diagnóstico prévio pago à parte: o valor já cobre o processo completo.",
+    excerpt: "Sua empresa acumulou dívidas fiscais e corre risco de cobrança executiva ou exclusão de regime? Negociamos o melhor parcelamento por um valor fechado de R$ 799 — vale para qualquer porte ou regime de empresa.",
+    tags: ["parcelamento de dividas fiscais", "parcelamento simples nacional", "parcelamento pgfn empresa", "transacao tributaria", "divida fiscal empresa"],
+    publicoAlvo: "Empresas de qualquer porte e regime tributário — MEI, Simples Nacional, Lucro Presumido ou Lucro Real — com débitos em cobrança na Receita Federal ou em Dívida Ativa da PGFN.",
     oQueEstaIncluso: [
-      "Diagnóstico inicial por R$ 99 com simulação dos melhores editais de parcelamento e transação (100% abatido do serviço aprovado).",
-      "Levantamento consolidado de todas as competências não quitadas no portal do Simples Nacional e e-CAC.",
-      "Simulação de parcelamento convencional (até 60 meses) vs. Transação Tributária da PGFN (com descontos de até 70%).",
-      "Transmissão do pedido de adesão oficial ao parcelamento.",
-      "Emissão da primeira guia DAS de entrada para confirmação do acordo.",
+      "Preço fechado de R$ 799 — sem diagnóstico prévio pago à parte.",
+      "Levantamento consolidado de todas as competências não quitadas (Simples Nacional, DCTF ou PGFN, conforme o regime da empresa).",
+      "Simulação de parcelamento convencional vs. Transação Tributária da PGFN (com descontos de até 70%).",
+      "Transmissão do pedido de adesão oficial ao parcelamento mais vantajoso pro seu caso.",
+      "Emissão da primeira guia de entrada para confirmação do acordo.",
       "Liberação e emissão da Certidão Negativa com Efeitos de Positiva (CPEN)."
     ],
     documentosNecessarios: [
-      "Número do CNPJ e Código de Acesso do Simples Nacional ou Certificado Digital e-CNPJ.",
+      "Número do CNPJ e Certificado Digital e-CNPJ ou procuração eletrônica no e-CAC.",
       "Acesso à conta gov.br do responsável legal."
     ],
     passoAPasso: [
-      { passo: "1", titulo: "Diagnóstico Consolidado", descricao: "Apuramos o total dos débitos com juros e multas e montamos a simulação comparativa." },
-      { passo: "2", titulo: "Adesão ao Melhor Plano", descricao: "Selecionamos a modalidade que garante o menor valor de parcela mensal viável para a sua empresa." },
-      { passo: "3", titulo: "Guia de Ativação", descricao: "Entregamos a primeira parcela para quitação e proteção imediata do seu CNPJ." }
+      { passo: "1", titulo: "Levantamento Consolidado", descricao: "Apuramos o total dos débitos com juros e multas e montamos a simulação comparativa pro regime da sua empresa." },
+      { passo: "2", titulo: "Proposta por Escrito", descricao: "Apresentamos a modalidade que garante o menor valor de parcela mensal viável, com valor fechado." },
+      { passo: "3", titulo: "Adesão & Guia de Ativação", descricao: "Entregamos a primeira parcela para quitação e proteção imediata do seu CNPJ." }
     ],
     faqs: [
       {
-        question: "O parcelamento impede a exclusão da minha empresa do Simples Nacional?",
-        answer: "Sim! Ao aderir ao parcelamento e pagar a primeira parcela antes do prazo fatal do Termo de Exclusão, a exigibilidade dos créditos tributários fica suspensa e sua empresa permanece enquadrada no Simples Nacional."
+        question: "Esse serviço é só para empresas do Simples Nacional?",
+        answer: "Não. Atendemos empresas de qualquer regime — Simples Nacional, Lucro Presumido ou Lucro Real — que precisem negociar dívidas fiscais federais. O rito muda conforme o regime, mas o processo de negociação é o mesmo trabalho pra nós."
+      },
+      {
+        question: "O parcelamento impede a exclusão da minha empresa do regime atual?",
+        answer: "Sim! Ao aderir ao parcelamento e pagar a primeira parcela antes do prazo fatal, a exigibilidade dos créditos tributários fica suspensa e sua empresa permanece enquadrada no regime atual."
+      },
+      {
+        question: "Não sei se meu caso se enquadra aqui. Preciso pagar pra descobrir?",
+        answer: "Não. Se você tiver dúvida sobre qual serviço é o seu, fale com a gente antes — a triagem é gratuita e a gente te indica o caminho certo, mesmo que não seja este."
       }
     ],
     serviceParam: "sob-demanda"
@@ -836,18 +851,18 @@ export const SERVICOS: ServicoItem[] = [
     title: "Defesa e Reenquadramento Contra Exclusão do Simples Nacional",
     shortTitle: "Defesa Exclusão do Simples",
     subtitle: "Atuação técnica para impugnar o Termo de Exclusão do Simples Nacional (ADE) ou solicitar reenquadramento extraordinário.",
-    category: "Pequenas Empresas",
+    category: "Empresas 2",
     categorySlug: "pequenas-empresas",
-    badge: "Diagnóstico R$ 99 · Sob Medida",
-    priceCents: 9900,
-    prazo: "Diagnóstico em até 48h úteis",
+    badge: "R$ 799 · Preço de Referência",
+    priceCents: 79900,
+    prazo: "Em até 5 dias úteis",
     modalidadePadrao: "sob-medida",
     description: "Intervenção contábil rápida para empresas que receberam o Termo de Exclusão do Simples Nacional por débitos fiscais ou divergências cadastrais, realizando a regularização emergencial para garantir a permanência no regime.",
-    excerpt: "Recebeu o Termo de Exclusão do Simples Nacional? Diagnosticamos as causas por R$ 99 e elaboramos a defesa e regularização tempestiva para manter sua empresa no Simples.",
+    excerpt: "Recebeu o Termo de Exclusão do Simples Nacional? Diagnosticamos as causas e elaboramos a defesa e regularização tempestiva por um valor fechado de R$ 799.",
     tags: ["exclusao simples nacional", "termo de exclusao simples", "impugnacao simples nacional", "reenquadramento simples"],
     publicoAlvo: "Empresas intimadas com Ato Declaratório Executivo (ADE) de exclusão do Simples Nacional.",
     oQueEstaIncluso: [
-      "Diagnóstico emergencial por R$ 99 dos motivos listados no Ato Declaratório Executivo (100% abatido do serviço aprovado).",
+      "Preço fechado de R$ 799, com levantamento emergencial dos motivos listados no Ato Declaratório Executivo.",
       "Plano emergencial de quitação ou parcelamento das pendências apontadas dentro do prazo legal de 30 dias.",
       "Protocolo de impugnação administrativa digital no e-CAC fundamentada em parecer contábil.",
       "Acompanhamento da homologação da opção retroativa pelo Simples Nacional.",
@@ -874,19 +889,20 @@ export const SERVICOS: ServicoItem[] = [
     slug: "emissao-cnd-conjunta-empresa-rfb-pgfn",
     title: "Emissão e Desbloqueio de CND Conjunta para Empresas (RFB / PGFN / FGTS)",
     shortTitle: "CND para Empresas",
-    subtitle: "Identificação e remoção de travas cadastrais para emissão de Certidão Negativa de Débitos Federal para sua empresa.",
-    category: "Pequenas Empresas",
+    subtitle: "Identificação e remoção de travas cadastrais para emissão de Certidão Negativa de Débitos Federal — empresas de qualquer porte e regime tributário.",
+    category: "Empresas 2",
     categorySlug: "pequenas-empresas",
-    badge: "Diagnóstico R$ 99 · Sob Medida",
-    priceCents: 9900,
-    prazo: "Diagnóstico em até 48h úteis",
+    badge: "R$ 799 · Preço de Referência",
+    priceCents: 79900,
+    prazo: "Em até 5 dias úteis",
     modalidadePadrao: "sob-medida",
-    description: "Auditoria fiscal em todas as bases tributárias federais para localizar a causa do travamento da CND da empresa, efetuando acertos em DCTF, EFD-Reinf ou parcelamentos para emissão imediata da certidão.",
-    excerpt: "Sua empresa precisa de Certidão Negativa de Débitos (CND) e ela não sai? Identificamos a trava fiscal por R$ 99 e passamos o plano de desembaraço imediato.",
+    description: "Auditoria fiscal em todas as bases tributárias federais para localizar a causa do travamento da CND da empresa, efetuando acertos em DCTF, EFD-Reinf ou parcelamentos para emissão imediata da certidão. Preço fechado de R$ 799 — sem diagnóstico prévio pago à parte: o valor já cobre o processo completo.",
+    excerpt: "Sua empresa precisa de Certidão Negativa de Débitos (CND) e ela não sai? Liberamos a certidão por um valor fechado de R$ 799.",
     tags: ["cnd empresa", "certidao negativa pessoa juridica", "cnd conjunta rfb pgfn", "certidao federal empresa"],
-    publicoAlvo: "Pequenas empresas com pagamentos retidos por clientes, aprovação de crédito bancário ou participação em concorrências.",
+    publicoAlvo: "Empresas de qualquer porte e regime tributário com pagamentos retidos por clientes, aprovação de crédito bancário ou participação em concorrências.",
     oQueEstaIncluso: [
-      "Diagnóstico inicial por R$ 99 com varredura completa nas bases da Receita e PGFN (100% abatido do serviço aprovado).",
+      "Preço fechado de R$ 799 — sem diagnóstico prévio pago à parte.",
+      "Varredura completa nas bases da Receita Federal e da PGFN pra localizar a causa exata do travamento.",
       "Identificação de divergências de GFIP/DCTFWeb ou pagamentos não alocados (REDARF).",
       "Pedido eletrônico de revisão ou desembaraço de débitos com exigibilidade suspensa.",
       "Emissão da Certidão Conjunta Negativa ou Positiva com Efeitos de Negativa.",
@@ -898,13 +914,17 @@ export const SERVICOS: ServicoItem[] = [
     ],
     passoAPasso: [
       { passo: "1", titulo: "Diagnóstico da Trava", descricao: "Descobrimos exatamente qual guia ou obrigação está impedindo a emissão da certidão." },
-      { passo: "2", titulo: "Correção Imediata", descricao: "Realizamos o ajuste do pagamento (REDARF) ou retificação contábil sem filas." },
+      { passo: "2", titulo: "Proposta por Escrito", descricao: "Apresentamos o valor fechado do ajuste necessário antes de qualquer execução." },
       { passo: "3", titulo: "Liberação da CND", descricao: "Apresentamos a certidão válida e ativa para seus clientes ou instituição financeira." }
     ],
     faqs: [
       {
         question: "Por que minha empresa tem débitos suspensos mas a certidão não sai automaticamente?",
         answer: "Geralmente ocorre por atraso na compensação bancária ou falta de sincronização entre o sistema de parcelamento e a base central da Receita. Nosso contador realiza o procedimento de reconhecimento para forçar a emissão."
+      },
+      {
+        question: "Não sei se meu caso se enquadra aqui. Preciso pagar pra descobrir?",
+        answer: "Não. Se você tiver dúvida sobre qual serviço é o seu, fale com a gente antes — a triagem é gratuita e a gente te indica o caminho certo, mesmo que não seja este."
       }
     ],
     serviceParam: "sob-demanda"
@@ -914,18 +934,18 @@ export const SERVICOS: ServicoItem[] = [
     title: "Alteração Contratual: Troca de Sócios (QSA), Endereço e Atividades (CNAE)",
     shortTitle: "Alteração Contratual & CNAE",
     subtitle: "Elaboração de aditivo contratual consolidado, DBE na Receita Federal e registro na Junta Comercial.",
-    category: "Pequenas Empresas",
+    category: "Empresas 2",
     categorySlug: "pequenas-empresas",
-    badge: "Diagnóstico R$ 99 · Sob Medida",
-    priceCents: 9900,
-    prazo: "Diagnóstico em até 48h úteis",
+    badge: "R$ 799 · Preço de Referência",
+    priceCents: 79900,
+    prazo: "Em até 5 dias úteis",
     modalidadePadrao: "sob-medida",
     description: "Serviço societário completo para atualizar dados da sua empresa: entrada ou saída de sócios, transferência de quotas, inclusão de novas atividades econômicas (CNAE), mudança de endereço ou razão social.",
-    excerpt: "Precisa alterar sócios, endereço ou atividades da sua empresa? Fazemos o diagnóstico por R$ 99 com orçamento fechado para todo o trâmite na Junta e Receita.",
+    excerpt: "Precisa alterar sócios, endereço ou atividades da sua empresa? Cuidamos de todo o trâmite na Junta e Receita por um valor fechado de R$ 799.",
     tags: ["alteracao contratual", "troca de socios qsa", "incluir cnae empresa", "mudar endereco cnpj"],
     publicoAlvo: "Empresários que estão reestruturando a sociedade ou expandindo a gama de serviços oferecidos pelo CNPJ.",
     oQueEstaIncluso: [
-      "Diagnóstico prévio por R$ 99 com viabilidade locacional e enquadramento tributário do novo CNAE (100% abatido do serviço aprovado).",
+      "Preço fechado de R$ 799, com avaliação da viabilidade locacional e enquadramento tributário do novo CNAE.",
       "Redação jurídica e contábil do Aditivo ao Contrato Social.",
       "Emissão do Documento Básico de Entrada (DBE) no portal Redesim da Receita Federal.",
       "Protocolo e tramitação eletrônica na Junta Comercial estadual.",
@@ -955,18 +975,18 @@ export const SERVICOS: ServicoItem[] = [
     title: "Abertura de Processos Digitais e Dossiês de Atendimento no e-CAC",
     shortTitle: "Processos Digitais no e-CAC",
     subtitle: "Protocolo de requerimentos administrativos, pedidos de restituição (PER/DCOMP) e juntada de documentos oficiais.",
-    category: "Pequenas Empresas",
+    category: "Empresas 2",
     categorySlug: "pequenas-empresas",
-    badge: "Diagnóstico R$ 99 · Sob Medida",
-    priceCents: 9900,
-    prazo: "Diagnóstico em até 48h úteis",
+    badge: "R$ 799 · Preço de Referência",
+    priceCents: 79900,
+    prazo: "Em até 5 dias úteis",
     modalidadePadrao: "sob-medida",
     description: "Representação técnica contábil para abertura de processos administrativos e dossiês digitais de atendimento perante auditores da Receita Federal do Brasil, eliminando a necessidade de agendamento presencial.",
-    excerpt: "Precisa protocolar um requerimento formal na Receita Federal? Diagnosticamos a viabilidade por R$ 99 e passamos o valor fechado para instruir seu processo com parecer assinado.",
+    excerpt: "Precisa protocolar um requerimento formal na Receita Federal? Instruímos seu processo com parecer assinado por um valor fechado de R$ 799.",
     tags: ["processo digital ecac", "dossie de atendimento receita", "requerimento rfb", "redarf per dcomp"],
     publicoAlvo: "Empresas e pessoas físicas que possuem demandas complexas ou atípicas que exigem análise manual por parte de um auditor fiscal.",
     oQueEstaIncluso: [
-      "Diagnóstico inicial por R$ 99 com análise documental e fundamentação legal (100% abatido do serviço aprovado).",
+      "Preço fechado de R$ 799, com análise documental e fundamentação legal.",
       "Estruturação jurídica e contábil da petição ou requerimento inicial.",
       "Formatação e indexação dos documentos comprobatórios conforme padrões da Portaria RFB.",
       "Abertura do Dossiê Digital de Atendimento (DDA) no sistema oficial do e-CAC.",
@@ -986,6 +1006,129 @@ export const SERVICOS: ServicoItem[] = [
       {
         question: "Ainda é necessário ir presencialmente a uma agência da Receita Federal?",
         answer: "Não! Mais de 95% dos serviços da Receita Federal hoje são obrigatoriamente realizados por meio de Processos Digitais no e-CAC. Nossos contadores realizam todo o trâmite eletronicamente com validade jurídica nacional."
+      }
+    ],
+    serviceParam: "sob-demanda"
+  },
+  {
+    slug: "abertura-de-empresa-cnpj",
+    title: "Abertura de Empresa e CNPJ com Registro na Junta Comercial e Receita Federal",
+    shortTitle: "Abertura de Empresa/CNPJ",
+    subtitle: "Contrato social, enquadramento no Simples Nacional, registro na Junta Comercial, CNPJ e inscrições municipal/estadual.",
+    category: "Empresas 2",
+    categorySlug: "pequenas-empresas",
+    badge: "R$ 799 · Preço de Referência",
+    priceCents: 79900,
+    prazo: "Em até 5 dias úteis",
+    modalidadePadrao: "sob-medida",
+    description: "Constituição completa de empresa do zero, da definição do melhor enquadramento dentro do Simples Nacional para a atividade até o CNPJ ativo e pronto para emitir nota fiscal, incluindo registro na Junta Comercial e inscrições municipal e estadual quando aplicável.",
+    excerpt: "Vai sair do MEI ou abrir uma empresa do zero? Indicamos o melhor enquadramento e cuidamos do processo completo por um valor fechado de R$ 799.",
+    tags: ["abertura de empresa", "abrir cnpj", "contrato social", "junta comercial", "sair do mei"],
+    publicoAlvo: "Empreendedores saindo do MEI, sócios formalizando um negócio já em operação, ou quem está começando uma empresa do zero.",
+    oQueEstaIncluso: [
+      "Preço fechado de R$ 799 — sem diagnóstico prévio pago à parte.",
+      "Definição do enquadramento tributário mais vantajoso dentro do Simples Nacional para o seu ramo de atividade.",
+      "Elaboração do Contrato Social (ou Requerimento de Empresário, conforme o tipo societário).",
+      "Registro na Junta Comercial do estado e obtenção do CNPJ na Receita Federal.",
+      "Inscrição Estadual (se contribuinte de ICMS) e Municipal/Alvará (se prestador de serviço), quando exigidas pelo município.",
+      "Parecer técnico contábil assinado por contador habilitado no CRC."
+    ],
+    documentosNecessarios: [
+      "RG, CPF e comprovante de residência de todos os sócios.",
+      "Nome fantasia, atividade principal (CNAE) pretendida e endereço da sede."
+    ],
+    passoAPasso: [
+      { passo: "1", titulo: "Diagnóstico Inicial", descricao: "Levantamos a atividade, o faturamento esperado e o melhor enquadramento tributário para o seu caso." },
+      { passo: "2", titulo: "Proposta por Escrito", descricao: "Apresentamos o escopo completo, prazo e valor total fechado." },
+      { passo: "3", titulo: "Registro & CNPJ Ativo", descricao: "Preparamos o contrato social, registramos na Junta Comercial e acompanhamos até o CNPJ sair ativo." }
+    ],
+    faqs: [
+      {
+        question: "Quanto tempo leva para abrir uma empresa?",
+        answer: "Depende do estado e do tipo de atividade, mas a maioria dos casos fica pronta entre 5 e 15 dias úteis após o diagnóstico, já com CNPJ ativo e pronto para emitir nota fiscal."
+      },
+      {
+        question: "Vocês abrem empresa em qualquer regime tributário?",
+        answer: "Trabalhamos com abertura dentro do Simples Nacional, o regime adequado para a grande maioria dos pequenos negócios. No diagnóstico, avaliamos se o seu caso se enquadra e qual a melhor opção dentro dele."
+      }
+    ],
+    serviceParam: "sob-demanda"
+  },
+  {
+    slug: "registro-de-associacoes-terceiro-setor",
+    title: "Registro e Constituição de Associações e Organizações do Terceiro Setor",
+    shortTitle: "Registro de Associações",
+    subtitle: "Estatuto social, ata de fundação, CNPJ e registro em cartório para associações, ONGs e entidades sem fins lucrativos.",
+    category: "Empresas 2",
+    categorySlug: "pequenas-empresas",
+    badge: "R$ 799 · Preço de Referência",
+    priceCents: 79900,
+    prazo: "Em até 5 dias úteis",
+    modalidadePadrao: "sob-medida",
+    description: "Constituição formal de associações, ONGs e demais entidades do terceiro setor: elaboração do estatuto social, ata de fundação, registro no Cartório de Registro Civil de Pessoas Jurídicas e obtenção do CNPJ como entidade sem fins lucrativos.",
+    excerpt: "Seu grupo, coletivo ou ONG precisa de CNPJ para captar recursos ou emitir recibos? Cuidamos do registro completo por um valor fechado de R$ 799.",
+    tags: ["registro de associacao", "terceiro setor", "estatuto social", "ong cnpj", "cartorio pessoa juridica"],
+    publicoAlvo: "Grupos comunitários, coletivos culturais, igrejas, ONGs e iniciativas sociais que precisam de CNPJ e personalidade jurídica formal.",
+    oQueEstaIncluso: [
+      "Preço fechado de R$ 799 — sem diagnóstico prévio pago à parte.",
+      "Elaboração do Estatuto Social conforme o Código Civil e a finalidade da entidade.",
+      "Redação da Ata de Assembleia Geral de Fundação e eleição da diretoria.",
+      "Registro no Cartório de Registro Civil de Pessoas Jurídicas (RCPJ).",
+      "Obtenção do CNPJ como entidade sem fins lucrativos junto à Receita Federal.",
+      "Orientação sobre certificações posteriores (CEBAS, Utilidade Pública) quando aplicável ao caso."
+    ],
+    documentosNecessarios: [
+      "RG, CPF e comprovante de residência dos membros fundadores.",
+      "Ata da reunião de fundação (se já existir) e definição da finalidade estatutária da entidade."
+    ],
+    passoAPasso: [
+      { passo: "1", titulo: "Diagnóstico Inicial", descricao: "Entendemos a finalidade da entidade e a estrutura de diretoria pretendida." },
+      { passo: "2", titulo: "Proposta por Escrito", descricao: "Apresentamos o escopo completo, prazo e valor total fechado." },
+      { passo: "3", titulo: "Registro & CNPJ Ativo", descricao: "Elaboramos o estatuto, registramos em cartório e obtemos o CNPJ da entidade." }
+    ],
+    faqs: [
+      {
+        question: "Associação precisa pagar imposto como empresa?",
+        answer: "Não. Entidades sem fins lucrativos têm regras próprias e, em geral, imunidade ou isenção de diversos tributos — o diagnóstico já avalia o enquadramento correto pra sua entidade."
+      }
+    ],
+    serviceParam: "sob-demanda"
+  },
+  {
+    slug: "apoio-contabil-advogados",
+    title: "Apoio Contábil Especializado para Advogados, Contadores e Demais Empresas",
+    shortTitle: "Apoio a Advogados, Contadores e Empresas",
+    subtitle: "Perícia contábil, cálculos de liquidação, apuração de haveres e pareceres técnicos para escritórios de advocacia, colegas contadores e empresas em geral.",
+    category: "Empresas 2",
+    categorySlug: "pequenas-empresas",
+    badge: "R$ 799 · Preço de Referência",
+    priceCents: 79900,
+    prazo: "Em até 5 dias úteis",
+    modalidadePadrao: "sob-medida",
+    description: "Suporte técnico contábil para advogados e escritórios, colegas contadores que precisam de um segundo parecer ou apoio pontual, e empresas em geral: elaboração de pareceres técnicos, cálculos de liquidação de sentença, apuração de haveres em dissolução societária e assistência técnica em perícia contábil, com parecer assinado por contador habilitado no CRC.",
+    excerpt: "Precisa de um parecer contábil técnico pra embasar um processo, um segundo parecer contábil ou apoio pontual? Fechamos o valor do trabalho em R$ 799.",
+    tags: ["pericia contabil", "apoio contabil advogados", "calculo de liquidacao", "apuracao de haveres", "assistente tecnico contabil", "apoio entre contadores"],
+    publicoAlvo: "Advogados e escritórios que precisam de parecer contábil técnico, contadores que precisam de apoio pontual ou um segundo parecer, e empresas em geral com demandas contábeis específicas.",
+    oQueEstaIncluso: [
+      "Preço fechado de R$ 799 — sem diagnóstico prévio pago à parte.",
+      "Elaboração de parecer técnico contábil para uso em processo judicial ou extrajudicial.",
+      "Cálculos de liquidação de sentença, apuração de haveres em dissolução societária ou revisão de cálculos periciais.",
+      "Assistência técnica em perícia contábil (elaboração de quesitos, impugnação de laudo).",
+      "Parecer assinado por contador habilitado no CRC, apto a ser juntado aos autos."
+    ],
+    documentosNecessarios: [
+      "Cópia da petição, laudo pericial ou sentença relacionados ao caso.",
+      "Documentos contábeis e financeiros da parte envolvida (balanços, extratos, contratos)."
+    ],
+    passoAPasso: [
+      { passo: "1", titulo: "Diagnóstico Inicial", descricao: "Analisamos os autos e a natureza do cálculo ou parecer necessário." },
+      { passo: "2", titulo: "Proposta por Escrito", descricao: "Apresentamos o escopo completo, prazo e valor total fechado." },
+      { passo: "3", titulo: "Entrega do Parecer", descricao: "Elaboramos o parecer ou cálculo técnico, assinado por contador habilitado no CRC, pronto para juntar aos autos." }
+    ],
+    faqs: [
+      {
+        question: "O parecer contábil substitui o perito nomeado pelo juiz?",
+        answer: "Não. Trabalhamos como assistente técnico contábil da parte, apoiando com cálculos e pareceres próprios — a nomeação do perito judicial continua a cargo do juízo."
       }
     ],
     serviceParam: "sob-demanda"

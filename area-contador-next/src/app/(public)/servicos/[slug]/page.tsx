@@ -7,6 +7,7 @@ import {
   getRelatedServicos 
 } from "@/lib/servicos";
 import { SiteHeader, SiteFooter } from "@/components/site-shell";
+import { LeadForm } from "@/components/lead-form";
 import { ServicoFaqAccordion } from "./servico-faq";
 import { 
   ShieldCheck, 
@@ -51,7 +52,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const url = `https://www.olacontador.com.br/servicos/${servico.slug}`;
 
   return {
-    title: `${servico.title} — ${servico.categorySlug === "pequenas-empresas" ? "Diagnóstico Sob Demanda" : "Preço Fixo"} | Olá, Contador`,
+    title: `${servico.title} — ${servico.categorySlug === "pequenas-empresas" ? "Valor de Referência" : "Preço Fixo"} | Olá, Contador`,
     description: servico.description,
     alternates: {
       canonical: url,
@@ -319,25 +320,25 @@ export default async function ServicoDetailPage({ params }: Props) {
                 const isSobDemanda = servico.categorySlug === "pequenas-empresas";
                 const isMEI = servico.categorySlug === "mei";
                 const targetPlano = servico.serviceParam || (isSobDemanda ? "sob-demanda" : isMEI ? "pj" : "pf");
-                const ctaText = isSobDemanda 
-                  ? "Solicitar Análise do Caso (R$ 99)" 
-                  : isMEI 
-                    ? "Contratar Atendimento MEI" 
+                const ctaText = isSobDemanda
+                  ? `Contratar por ${money(servico.priceCents)}`
+                  : isMEI
+                    ? "Contratar Atendimento MEI"
                     : "Contratar Atendimento PF";
 
                 return (
                   <div className={styles.sidebarCard}>
                     <div className={styles.sidebarBadge}>
                       <ShieldCheck size={14} />
-                      Garantia Total ou Reembolso
+                      {isSobDemanda ? "Valor de Referência" : "Preço Combinado Antes de Começar"}
                     </div>
 
                     <div className={styles.sidebarPrice}>
                       {money(servico.priceCents)}
                     </div>
                     <div className={styles.sidebarPriceSub}>
-                      {isSobDemanda 
-                        ? "Taxa de análise do caso · 100% abatida do valor aprovado" 
+                      {isSobDemanda
+                        ? "Fechado por escrito · sem diagnóstico prévio pago à parte"
                         : "Preço fixo combinado antes · Sem mensalidade"}
                     </div>
 
@@ -360,21 +361,27 @@ export default async function ServicoDetailPage({ params }: Props) {
                       </li>
                     </ul>
 
-                    <Link 
-                      href={`/agendar?plano=${targetPlano}`} 
+                    <Link
+                      href={`/agendar?plano=${targetPlano}`}
                       className={styles.sidebarCtaBtn}
                     >
                       {ctaText}
                       <ArrowRight size={18} />
                     </Link>
 
-                    <Link 
-                      href={`/agendar?plano=${targetPlano}`} 
-                      className={styles.sidebarSecondaryBtn}
-                    >
-                      <CalendarCheck size={16} />
-                      Agendar com horário marcado
-                    </Link>
+                    {isSobDemanda ? (
+                      <div style={{ marginTop: 10 }}>
+                        <LeadForm servicoSlug={servico.slug} ctaLabel="Não sei se é esse o meu serviço — falar com a gente" />
+                      </div>
+                    ) : (
+                      <Link
+                        href={`/agendar?plano=${targetPlano}`}
+                        className={styles.sidebarSecondaryBtn}
+                      >
+                        <CalendarCheck size={16} />
+                        Agendar com horário marcado
+                      </Link>
+                    )}
                   </div>
                 );
               })()}
@@ -391,7 +398,7 @@ export default async function ServicoDetailPage({ params }: Props) {
                 </div>
                 <div className={styles.trustMiniItem}>
                   <RefreshCcw size={16} style={{ color: "#0F172A" }} />
-                  <span>100% de devolução se não pudermos ajudar</span>
+                  <span>Documentos e conversa protegidos no chat seguro</span>
                 </div>
               </div>
             </aside>

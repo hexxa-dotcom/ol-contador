@@ -61,33 +61,51 @@ export async function GET() {
       { id: "parcelamento-pf", titulo: "Parcelamento de dívidas fiscais e CND da Pessoa Física", resumo: "Negociação de débitos na Receita Federal e PGFN" },
       { id: "restituicao-travada", titulo: "Restituição de Imposto de Renda travada ou retida", resumo: "Identificação da pendência e liberação na Receita" },
       { id: "isencao-molestia", titulo: "Isenção de IRPF por moléstia / doença grave", resumo: "Processo de isenção e restituição retroativa" },
+      { id: "decore", titulo: "Emissão de DECORE / Comprovação de Renda", resumo: "Documento oficial para bancos e comprovação de rendimentos" },
+      { id: "gcap-venda", titulo: "Ganho de Capital (GCAP) — Venda de imóveis e bens", resumo: "Cálculo do imposto, apuração de lucro, isenções e DARF" },
       { id: "outro", titulo: "Outra regularização de Pessoa Física", resumo: "Descreva sua situação com suas palavras" }
     ],
     "pj-atendimento": [
-      { id: "parcelamento-pj", titulo: "Parcelamento de dívidas e débitos fiscais (Simples & PGFN)", resumo: "Negociação de débitos junto à Receita Federal e Procuradoria" },
+      { id: "parcelamento-pj", titulo: "Parcelamento de guias DAS / dívida ativa do MEI (PGFN)", resumo: "Negociação de débitos do MEI junto à Receita Federal e Procuradoria" },
       { id: "guias-das", titulo: "Guias DAS / impostos do MEI em atraso e recálculo", resumo: "Emissão, recálculo de juros e quitação" },
       { id: "dasn-simei", titulo: "Declaração Anual do MEI (DASN-SIMEI) em atraso", resumo: "Transmissão fora do prazo e regularização de multas" },
-      { id: "cnpj-inapto", titulo: "CNPJ inapto, suspenso ou bloqueado no Simples Nacional", resumo: "Levantamento de omissões e reativação do CNPJ" },
       { id: "desenquadramento-mei", titulo: "Desenquadramento de MEI para Microempresa (ME)", resumo: "Excesso de faturamento ou transição de atividade" },
-      { id: "cnd-pj", titulo: "Certidão Negativa de Débitos (CND) e desembaraço fiscal", resumo: "Emissão de certidões e regularidade cadastral da empresa" },
-      { id: "outro", titulo: "Outra regularização de MEI ou Simples Nacional", resumo: "Descreva sua situação com suas palavras" }
+      { id: "cnd-pj", titulo: "Certidão Negativa de Débitos (CND) do MEI", resumo: "Emissão de certidões e regularidade cadastral do MEI" },
+      { id: "outro", titulo: "Outra regularização de MEI", resumo: "Descreva sua situação com suas palavras" }
     ],
     consulta: [
       { id: "abertura-empresa", titulo: "Abertura de Empresa / CNPJ completo", resumo: "Contrato social, Junta Comercial, CNPJ e alvarás" },
       { id: "baixa-cnpj", titulo: "Baixa e encerramento definitivo de CNPJ", resumo: "Distrato social e baixa em todos os órgãos" },
+      { id: "cnpj-inapto", titulo: "CNPJ inapto, suspenso ou bloqueado no Simples Nacional", resumo: "Levantamento de omissões e reativação do CNPJ" },
       { id: "associacoes", titulo: "Registro de Associação ou Terceiro Setor", resumo: "Estatuto social, cartório e obtenção de CNPJ na Receita Federal" },
       { id: "processos-ecac", titulo: "Abertura de Processos e Dossiês no e-CAC / Receita", resumo: "Requerimentos, impugnações e defesas administrativas" },
       { id: "advogados-apoio", titulo: "Apoio societário e contábil para Advogados", resumo: "Sociedade Unipessoal de Advocacia (OAB), cálculos e rotina fiscal" },
-      { id: "decore", titulo: "Emissão de DECORE / Comprovação de Renda", resumo: "Documento oficial para bancos e comprovação de rendimentos" },
-      { id: "gcap-venda", titulo: "Ganho de Capital (GCAP) — Venda de imóveis e bens", resumo: "Cálculo do imposto, apuração de lucro, isenções e DARF" },
       { id: "alteracao-contratual", titulo: "Alteração Contratual, troca de sócios ou CNAE", resumo: "Aditivo contratual e adequação cadastral" },
       { id: "multiplos-anos", titulo: "Regularização de múltiplos anos fiscais acumulados", resumo: "Levantamento e regularização histórica completa" },
-      { id: "lucro-presumido-real", titulo: "Empresas de Lucro Presumido ou Lucro Real", resumo: "Demandas e consultoria para empresas de médio/grande porte" },
+      { id: "defesa-exclusao", titulo: "Defesa de Exclusão do Simples Nacional", resumo: "Impugnação de ato declaratório de exclusão" },
       { id: "planejamento", titulo: "Planejamento tributário e consultoria preventiva", resumo: "Estratégia legal de redução de carga tributária" },
-      { id: "outro", titulo: "Outro projeto ou serviço sob medida", resumo: "Descreva seu caso com suas palavras" }
+      { id: "outro", titulo: "Outro projeto ou demanda específica", resumo: "Descreva seu caso com suas palavras" }
+    ],
+    "parcelamento-simples-nacional": [
+      { id: "parcelamento-simples", titulo: "Parcelamento de dívidas fiscais / PGFN (qualquer regime)", resumo: "Negociação, consolidação e adesão ao melhor plano de parcelamento" },
+      { id: "outro", titulo: "Outra situação de dívida da empresa", resumo: "Descreva sua situação com suas palavras" }
+    ],
+    "cnd-empresa": [
+      { id: "cnd-empresa-travada", titulo: "Certidão Negativa de Débitos (CND) da empresa travada", resumo: "Identificação e remoção da trava fiscal para emissão da certidão" },
+      { id: "outro", titulo: "Outra pendência cadastral da empresa", resumo: "Descreva sua situação com suas palavras" }
     ]
   };
 
+  // ATENÇÃO: isto sempre sobrescreve o campo `itens` vindo do banco pelos
+  // arrays fixos acima — o `itens` salvo em `servicos` (editável em
+  // Financeiro → Planos & Links de Pagamento) NÃO é usado aqui pros 5 ids
+  // conhecidos (pf, pj-atendimento, consulta, parcelamento-simples-nacional,
+  // cnd-empresa). Isso é intencional (o dropdown de "assunto" do checkout é
+  // curado à mão), mas significa que editar `itens` pelo admin não muda o
+  // que o cliente vê nesses planos — só mudaria pra um serviço NOVO, sem id
+  // conhecido aqui (cai no fallback ITENS_PADRAO.pf). Sempre que mudar os
+  // planos, atualizar aqui E o valor salvo no banco (pra não ficarem
+  // divergentes se alguém remover esse override no futuro).
   const servicos = (servicosRes.data || []).map((s) => {
     const padrao = ITENS_PADRAO[s.id] || ITENS_PADRAO.pf;
     return {

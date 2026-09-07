@@ -74,6 +74,10 @@ export async function POST(request: Request) {
         phone: phone || null,
         status: "pending",
         user_id: novoUser.user.id,
+        // Já nasce com senha de verdade no Auth (createUser acima recebeu
+        // `password`) — sem marcar aqui, o PortalCriarSenhaCard ficaria
+        // pedindo pra criar uma senha que já existe.
+        senha_definida: Boolean(senha),
       });
       if (insertError) {
         // Rollback manual: não há transação cross-serviço entre Auth e a tabela.
@@ -107,6 +111,11 @@ export async function POST(request: Request) {
       });
       if (updateError) throw updateError;
     }
+
+    // Senha de verdade foi definida no Auth pelos dois ramos acima — sem
+    // isto, o PortalCriarSenhaCard não sabe que já existe uma senha e
+    // continua pedindo pro cliente criar outra.
+    await admin.from("clientes").update({ senha_definida: true }).eq("id", clientId);
 
     return NextResponse.json({ ok: true });
   } catch (e) {
