@@ -1295,6 +1295,8 @@ export type Database = {
           orgao: string
           parcelas_pagas: number
           status: string
+          tributo: string | null
+          data_inicio: string | null
           updated_at: string
           valor_parcela_cents: number
           valor_total_cents: number
@@ -1311,6 +1313,8 @@ export type Database = {
           orgao: string
           parcelas_pagas?: number
           status?: string
+          tributo?: string | null
+          data_inicio?: string | null
           updated_at?: string
           valor_parcela_cents?: number
           valor_total_cents?: number
@@ -1327,6 +1331,8 @@ export type Database = {
           orgao?: string
           parcelas_pagas?: number
           status?: string
+          tributo?: string | null
+          data_inicio?: string | null
           updated_at?: string
           valor_parcela_cents?: number
           valor_total_cents?: number

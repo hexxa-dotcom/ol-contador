@@ -8294,15 +8294,112 @@ tr:hover td { background: #f8fafc; }
   box-shadow: none !important;
 }
 
-.public-nav-container { display: flex; align-items: center; justify-content: space-between; width: 100%; margin: 0 auto; padding: 14px 48px; }
-.public-brand { display: flex; align-items: center; gap: 11px; text-decoration: none; flex-shrink: 0; transition: transform 0.2s ease; }
+/* ==================== MODO PÍLULAS GÊMEAS FLUTUANTES (SCROLL NA HOME) ==================== */
+.public-nav-wrap.is-pills {
+  background: transparent !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border-bottom: none !important;
+  box-shadow: none !important;
+  pointer-events: none;
+  padding-top: 14px;
+  padding-bottom: 14px;
+}
+
+.public-nav-wrap.is-pills .public-nav-container {
+  pointer-events: none;
+  padding: 0 48px;
+}
+
+/* Pílula 1: Logotipo Encapsulado */
+.public-nav-wrap.is-pills .public-brand {
+  pointer-events: auto;
+  gap: 10px;
+  padding: 7px 18px 7px 14px;
+  background: rgba(4, 25, 20, 0.88);
+  backdrop-filter: blur(20px) saturate(1.8);
+  -webkit-backdrop-filter: blur(20px) saturate(1.8);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  box-shadow: 0 10px 30px -8px rgba(0, 0, 0, 0.55), 0 2px 6px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+}
+
+.public-nav-wrap.is-pills .public-brand:hover {
+  background: rgba(4, 25, 20, 0.96);
+  border-color: rgba(255, 255, 255, 0.28);
+  transform: translateY(-1px);
+  box-shadow: 0 14px 34px -8px rgba(0, 0, 0, 0.65), inset 0 1px 0 rgba(255, 255, 255, 0.22);
+}
+
+.public-nav-wrap.is-pills .public-brand img {
+  width: 28px;
+  height: 29px;
+}
+
+.public-nav-wrap.is-pills .public-brand span {
+  font-size: 19px;
+}
+
+/* Pílula 2: Menus e Botões Encapsulados Juntos */
+.public-nav-wrap.is-pills .public-nav-links {
+  pointer-events: auto;
+  gap: 22px;
+  background: rgba(4, 25, 20, 0.88);
+  backdrop-filter: blur(20px) saturate(1.8);
+  -webkit-backdrop-filter: blur(20px) saturate(1.8);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  box-shadow: 0 10px 30px -8px rgba(0, 0, 0, 0.55), 0 2px 6px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  padding: 6px 8px 6px 22px;
+}
+
+.public-nav-wrap.is-pills .public-nav-links:hover {
+  border-color: rgba(255, 255, 255, 0.28);
+  box-shadow: 0 14px 34px -8px rgba(0, 0, 0, 0.65), inset 0 1px 0 rgba(255, 255, 255, 0.22);
+}
+
+.public-nav-wrap.is-pills .public-lk {
+  font-size: 0.88rem;
+  font-weight: 650;
+  color: rgba(255, 255, 255, 0.88);
+}
+
+.public-nav-wrap.is-pills .public-lk-highlight {
+  margin-left: 2px;
+  padding: 6px 14px;
+  font-size: 0.86rem;
+}
+
+/* Botão Toggle no Mobile */
+.public-nav-wrap.is-pills .public-mobile-toggle {
+  pointer-events: auto;
+  background: rgba(4, 25, 20, 0.88);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  border-radius: 999px;
+  width: 42px;
+  height: 42px;
+}
+
+@media (max-width: 768px) {
+  .public-nav-wrap.is-pills {
+    padding-top: 10px;
+    padding-bottom: 10px;
+  }
+  .public-nav-wrap.is-pills .public-nav-container {
+    padding: 0 20px;
+  }
+}
+
+.public-nav-container { display: flex; align-items: center; justify-content: space-between; width: 100%; margin: 0 auto; padding: 14px 48px; transition: padding 0.3s ease; }
+.public-brand { display: flex; align-items: center; gap: 11px; text-decoration: none; flex-shrink: 0; border: 1px solid transparent; padding: 6px 0; border-radius: 999px; transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
 .public-brand:hover { transform: translateY(-1px); }
 .public-brand img { transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1); }
 .public-brand:hover img { transform: scale(1.1) rotate(5deg); }
 .public-brand span { font-family: var(--font-sans), 'Plus Jakarta Sans', var(--font-hanken), sans-serif; font-weight: 800; font-size: 22px; letter-spacing: -0.035em; color: #ffffff; }
 .public-brand i { font-style: normal; color: #FF9C7E; display: inline-block; transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1); }
 .public-brand:hover i { transform: scale(1.2); color: #FFA88B; }
-.public-nav-links { display: flex; align-items: center; gap: 28px; font-size: 0.95rem; font-weight: 700; margin-left: auto; }
+.public-nav-links { display: flex; align-items: center; gap: 28px; font-size: 0.95rem; font-weight: 700; margin-left: auto; border: 1px solid transparent; padding: 6px 0; border-radius: 999px; transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
 .public-lk { position: relative; color: rgba(255, 255, 255, 0.85); opacity: .9; transition: opacity .15s, color .2s; text-decoration: none; }
 .public-lk:hover { opacity: 1; color: #ffffff; }
 .public-lk::after { content: ""; position: absolute; left: 0; bottom: -4px; width: 100%; height: 2px; background: #FF9C7E; transform: scaleX(0); transform-origin: right; transition: transform .3s ease; }

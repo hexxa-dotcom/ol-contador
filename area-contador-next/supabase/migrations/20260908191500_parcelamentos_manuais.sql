@@ -5,7 +5,7 @@
 -- integração externa.
 create table if not exists parcelamentos_manuais (
   id bigserial primary key,
-  cliente_ref uuid not null references clientes(id) on delete cascade,
+  cliente_ref text not null references clientes(id) on delete cascade,
   orgao text not null,
   descricao text,
   valor_total_cents integer not null default 0,

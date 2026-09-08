@@ -111,6 +111,7 @@ import {
   createServiceCredit,
   createTask,
   marcarParcelaPaga,
+  updateRecurrenceLabel,
   deleteNotification,
   deleteAppointment,
   deleteServicePlan,
@@ -239,6 +240,9 @@ const radarSistemasPorAba: Record<string, string[]> = {
   "Dívida Ativa": ["PGFN-SIDA"],
   CND: ["CND"],
 };
+
+const TIPOS_RECORRENCIA = ["Parcelamento Fiscal", "Assessoria Contábil Mensal", "Consultoria Recorrente", "Outro"];
+const TRIBUTOS_PARCELAMENTO = ["Imposto de Renda (IRPF/IRPJ)", "INSS", "ICMS", "ISS", "Simples Nacional", "PGFN / Dívida Ativa", "Outro"];
 
 const tabsByView: Record<string, string[]> = {
   agenda: [
@@ -3289,7 +3293,7 @@ export function ClientesIntegralView({
   const [vaultManualForm, setVaultManualForm] = useState({ senha: "", ttlHours: 48, permanente: false });
   const [parcelamentoFormOpen, setParcelamentoFormOpen] = useState(false);
   const [parcelamentoPending, setParcelamentoPending] = useState(false);
-  const [parcelamentoForm, setParcelamentoForm] = useState({
+  const emptyParcelamentoForm = {
     orgao: "",
     descricao: "",
     valorTotal: "",
@@ -3297,7 +3301,10 @@ export function ClientesIntegralView({
     valorParcela: "",
     diaVencimento: "",
     observacoes: "",
-  });
+    tributo: "",
+    dataInicio: "",
+  };
+  const [parcelamentoForm, setParcelamentoForm] = useState(emptyParcelamentoForm);
   function criarParcelamentoManual() {
     if (!selected) return;
     const orgao = parcelamentoForm.orgao.trim();
@@ -3316,11 +3323,13 @@ export function ClientesIntegralView({
         valorParcelaCents: Math.round((Number(parcelamentoForm.valorParcela.replace(",", ".")) || 0) * 100),
         diaVencimento: parcelamentoForm.diaVencimento ? Number(parcelamentoForm.diaVencimento) : null,
         observacoes: parcelamentoForm.observacoes,
+        tributo: parcelamentoForm.tributo,
+        dataInicio: parcelamentoForm.dataInicio,
       });
       setParcelamentoPending(false);
       feedback(result.message);
       if (result.ok) {
-        setParcelamentoForm({ orgao: "", descricao: "", valorTotal: "", numeroParcelas: "", valorParcela: "", diaVencimento: "", observacoes: "" });
+        setParcelamentoForm(emptyParcelamentoForm);
         setParcelamentoFormOpen(false);
         window.location.reload();
       }
@@ -3397,6 +3406,7 @@ export function ClientesIntegralView({
   const [aiDossierPending, setAiDossierPending] = useState(false);
   const [recurrence, setRecurrence] = useState({
     tipo: "Acompanhamento mensal",
+    tipoCustom: "",
     diaVenc: 10,
     valor: 0,
   });
@@ -3475,6 +3485,136 @@ export function ClientesIntegralView({
     : [];
   const clientesComParcelamentoAtivo = new Set(
     data.parcelamentosManuais.filter((item) => item.status === "ativo").map((item) => item.cliente_ref),
+  );
+  function previsaoTermino(dataInicio: string, numeroParcelas: number): string {
+    const [ano, mes, dia] = dataInicio.split("-").map(Number);
+    const data = new Date(ano, mes - 1 + Math.max(0, numeroParcelas - 1), dia);
+    return data.toLocaleDateString("pt-BR");
+  }
+  const parcelamentosCardInner = (
+    <>
+      <div className="dossier-side-head">
+        <Landmark size={16} />
+        <strong>Parcelamentos Fiscais (Manual)</strong>
+      </div>
+      {!selectedParcelamentos.length && (
+        <p className="muted">
+          Nenhum parcelamento registrado. Use pra acompanhar acordos com PGFN,
+          Receita Federal ou prefeitura que não passam pelo Radar Fiscal (PF ou
+          regimes fora do Simples Nacional/MEI).
+        </p>
+      )}
+      {selectedParcelamentos.map((item) => (
+        <div key={item.id} className="parcelamento-manual-item">
+          <div className="parcelamento-manual-item-head">
+            <div>
+              <strong>{item.orgao}{item.tributo ? ` · ${item.tributo}` : ""}</strong>
+              <span>
+                {item.parcelas_pagas}/{item.numero_parcelas} parcelas · {money((item.valor_total_cents || 0) / 100)}
+                {item.dia_vencimento ? ` · vence dia ${item.dia_vencimento}` : ""}
+              </span>
+              {item.data_inicio && (
+                <span>
+                  Início em {new Date(`${item.data_inicio}T00:00:00`).toLocaleDateString("pt-BR")} · término previsto em {previsaoTermino(item.data_inicio, item.numero_parcelas)}
+                </span>
+              )}
+            </div>
+            <Badge className={item.status === "quitado" ? "success" : item.status === "ativo" ? "attention" : ""}>
+              {item.status}
+            </Badge>
+          </div>
+          {item.status === "ativo" && (
+            <div className="inline-actions">
+              <Button className="secondary compact" onClick={() => pagarParcelaManual(item.id)}>
+                Marcar parcela paga
+              </Button>
+              <Button className="ghost compact" onClick={() => encerrarParcelamentoManual(item.id)}>
+                Encerrar
+              </Button>
+            </div>
+          )}
+          {item.status !== "ativo" && (
+            <div className="inline-actions">
+              <Button className="ghost compact" onClick={() => excluirParcelamentoManual(item.id)}>
+                <Trash2 size={13} /> Excluir
+              </Button>
+            </div>
+          )}
+        </div>
+      ))}
+      {!parcelamentoFormOpen ? (
+        <Button className="secondary" onClick={() => setParcelamentoFormOpen(true)}>
+          <Plus size={14} /> Novo parcelamento
+        </Button>
+      ) : (
+        <div className="vault-manual-form">
+          <Input
+            placeholder="Órgão (PGFN, Receita Federal, Prefeitura...)"
+            value={parcelamentoForm.orgao}
+            onChange={(event) => setParcelamentoForm((value) => ({ ...value, orgao: event.target.value }))}
+          />
+          <select
+            value={parcelamentoForm.tributo}
+            onChange={(event) => setParcelamentoForm((value) => ({ ...value, tributo: event.target.value }))}
+          >
+            <option value="">Tributo (opcional)</option>
+            {TRIBUTOS_PARCELAMENTO.map((item) => (
+              <option key={item} value={item}>{item}</option>
+            ))}
+          </select>
+          <Input
+            placeholder="Descrição (opcional)"
+            value={parcelamentoForm.descricao}
+            onChange={(event) => setParcelamentoForm((value) => ({ ...value, descricao: event.target.value }))}
+          />
+          <div className="inline-actions">
+            <Input
+              placeholder="Valor total (R$)"
+              value={parcelamentoForm.valorTotal}
+              onChange={(event) => setParcelamentoForm((value) => ({ ...value, valorTotal: event.target.value }))}
+            />
+            <Input
+              placeholder="Nº de parcelas"
+              value={parcelamentoForm.numeroParcelas}
+              onChange={(event) => setParcelamentoForm((value) => ({ ...value, numeroParcelas: event.target.value }))}
+            />
+          </div>
+          <div className="inline-actions">
+            <Input
+              placeholder="Valor da parcela (R$)"
+              value={parcelamentoForm.valorParcela}
+              onChange={(event) => setParcelamentoForm((value) => ({ ...value, valorParcela: event.target.value }))}
+            />
+            <Input
+              placeholder="Dia de vencimento"
+              value={parcelamentoForm.diaVencimento}
+              onChange={(event) => setParcelamentoForm((value) => ({ ...value, diaVencimento: event.target.value }))}
+            />
+          </div>
+          <label>
+            Início do parcelamento
+            <Input
+              type="date"
+              value={parcelamentoForm.dataInicio}
+              onChange={(event) => setParcelamentoForm((value) => ({ ...value, dataInicio: event.target.value }))}
+            />
+          </label>
+          <Input
+            placeholder="Observações (opcional)"
+            value={parcelamentoForm.observacoes}
+            onChange={(event) => setParcelamentoForm((value) => ({ ...value, observacoes: event.target.value }))}
+          />
+          <div className="inline-actions">
+            <Button className="secondary" disabled={parcelamentoPending} onClick={criarParcelamentoManual}>
+              {parcelamentoPending ? "Salvando…" : "Salvar parcelamento"}
+            </Button>
+            <Button className="ghost" onClick={() => setParcelamentoFormOpen(false)}>
+              Cancelar
+            </Button>
+          </div>
+        </div>
+      )}
+    </>
   );
   const selectedCharges = selected
     ? operationsData.charges.filter((item) => item.cliente_ref === selected.id)
@@ -3665,8 +3805,11 @@ export function ClientesIntegralView({
     setSelected(client);
     setDossier(emptyDossier(client));
     setSection(next);
+    const tipoSalvo = client.recorrente_tipo || "";
+    const tipoConhecido = TIPOS_RECORRENCIA.includes(tipoSalvo);
     setRecurrence({
-      tipo: client.recorrente_tipo || "Acompanhamento mensal",
+      tipo: tipoConhecido ? tipoSalvo : tipoSalvo ? "Outro" : "Parcelamento Fiscal",
+      tipoCustom: tipoConhecido ? "" : tipoSalvo,
       diaVenc: client.recorrente_dia_venc || 10,
       valor: Number(client.honorarios) || 0,
     });
@@ -3950,10 +4093,18 @@ export function ClientesIntegralView({
       window.location.reload();
     });
   }
+  function tipoRecorrenciaResolvido() {
+    return recurrence.tipo === "Outro" ? recurrence.tipoCustom.trim() : recurrence.tipo;
+  }
   async function toggleRecurrence(ativar: boolean) {
     if (!selected) return;
     if (ativar && recurrence.valor <= 0) {
       feedback("Informe um valor mensal maior que zero.");
+      return;
+    }
+    const tipoResolvido = tipoRecorrenciaResolvido();
+    if (ativar && tipoResolvido.length < 2) {
+      feedback("Informe o tipo da recorrência.");
       return;
     }
     if (
@@ -3966,7 +4117,7 @@ export function ClientesIntegralView({
     const response = await fetch("/api/finance/recurrence", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ clientId: selected.id, ativar, ...recurrence }),
+      body: JSON.stringify({ clientId: selected.id, ativar, tipo: tipoResolvido, diaVenc: recurrence.diaVenc, valor: recurrence.valor }),
     });
     const result = await response
       .json()
@@ -3982,7 +4133,7 @@ export function ClientesIntegralView({
     const updated = {
       ...selected,
       recorrente: ativar,
-      recorrente_tipo: ativar ? recurrence.tipo : null,
+      recorrente_tipo: ativar ? tipoResolvido : null,
       recorrente_dia_venc: ativar ? recurrence.diaVenc : null,
       honorarios: ativar ? recurrence.valor : selected.honorarios,
     };
@@ -3996,6 +4147,23 @@ export function ClientesIntegralView({
         ? "Recorrência e cobrança automática ativadas."
         : "Recorrência cancelada.",
     );
+  }
+  function salvarTipoRecorrencia() {
+    if (!selected) return;
+    const tipoResolvido = tipoRecorrenciaResolvido();
+    if (tipoResolvido.length < 2) {
+      feedback("Informe o tipo da recorrência.");
+      return;
+    }
+    startTransition(async () => {
+      const result = await updateRecurrenceLabel(selected.id, tipoResolvido);
+      feedback(result.message);
+      if (result.ok) {
+        const updated = { ...selected, recorrente_tipo: tipoResolvido };
+        setSelected(updated);
+        setClients((items) => items.map((item) => (item.id === updated.id ? updated : item)));
+      }
+    });
   }
   return (
     <div className="view-stack">
@@ -4758,107 +4926,7 @@ export function ClientesIntegralView({
                     </div>
                   </div>
 
-                  <div className="dossier-side-card">
-                    <div className="dossier-side-head">
-                      <Landmark size={16} />
-                      <strong>Parcelamentos Fiscais (Manual)</strong>
-                    </div>
-                    {!selectedParcelamentos.length && (
-                      <p className="muted">
-                        Nenhum parcelamento registrado. Use pra acompanhar acordos com PGFN,
-                        Receita Federal ou prefeitura que não passam pelo Radar Fiscal (PF ou
-                        regimes fora do Simples Nacional/MEI).
-                      </p>
-                    )}
-                    {selectedParcelamentos.map((item) => (
-                      <div key={item.id} className="parcelamento-manual-item">
-                        <div className="parcelamento-manual-item-head">
-                          <div>
-                            <strong>{item.orgao}</strong>
-                            <span>
-                              {item.parcelas_pagas}/{item.numero_parcelas} parcelas · {money((item.valor_total_cents || 0) / 100)}
-                              {item.dia_vencimento ? ` · vence dia ${item.dia_vencimento}` : ""}
-                            </span>
-                          </div>
-                          <Badge className={item.status === "quitado" ? "success" : item.status === "ativo" ? "attention" : ""}>
-                            {item.status}
-                          </Badge>
-                        </div>
-                        {item.status === "ativo" && (
-                          <div className="inline-actions">
-                            <Button className="secondary compact" onClick={() => pagarParcelaManual(item.id)}>
-                              Marcar parcela paga
-                            </Button>
-                            <Button className="ghost compact" onClick={() => encerrarParcelamentoManual(item.id)}>
-                              Encerrar
-                            </Button>
-                          </div>
-                        )}
-                        {item.status !== "ativo" && (
-                          <div className="inline-actions">
-                            <Button className="ghost compact" onClick={() => excluirParcelamentoManual(item.id)}>
-                              <Trash2 size={13} /> Excluir
-                            </Button>
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                    {!parcelamentoFormOpen ? (
-                      <Button className="secondary" onClick={() => setParcelamentoFormOpen(true)}>
-                        <Plus size={14} /> Novo parcelamento
-                      </Button>
-                    ) : (
-                      <div className="vault-manual-form">
-                        <Input
-                          placeholder="Órgão (PGFN, Receita Federal, Prefeitura...)"
-                          value={parcelamentoForm.orgao}
-                          onChange={(event) => setParcelamentoForm((value) => ({ ...value, orgao: event.target.value }))}
-                        />
-                        <Input
-                          placeholder="Descrição (opcional)"
-                          value={parcelamentoForm.descricao}
-                          onChange={(event) => setParcelamentoForm((value) => ({ ...value, descricao: event.target.value }))}
-                        />
-                        <div className="inline-actions">
-                          <Input
-                            placeholder="Valor total (R$)"
-                            value={parcelamentoForm.valorTotal}
-                            onChange={(event) => setParcelamentoForm((value) => ({ ...value, valorTotal: event.target.value }))}
-                          />
-                          <Input
-                            placeholder="Nº de parcelas"
-                            value={parcelamentoForm.numeroParcelas}
-                            onChange={(event) => setParcelamentoForm((value) => ({ ...value, numeroParcelas: event.target.value }))}
-                          />
-                        </div>
-                        <div className="inline-actions">
-                          <Input
-                            placeholder="Valor da parcela (R$)"
-                            value={parcelamentoForm.valorParcela}
-                            onChange={(event) => setParcelamentoForm((value) => ({ ...value, valorParcela: event.target.value }))}
-                          />
-                          <Input
-                            placeholder="Dia de vencimento"
-                            value={parcelamentoForm.diaVencimento}
-                            onChange={(event) => setParcelamentoForm((value) => ({ ...value, diaVencimento: event.target.value }))}
-                          />
-                        </div>
-                        <Input
-                          placeholder="Observações (opcional)"
-                          value={parcelamentoForm.observacoes}
-                          onChange={(event) => setParcelamentoForm((value) => ({ ...value, observacoes: event.target.value }))}
-                        />
-                        <div className="inline-actions">
-                          <Button className="secondary" disabled={parcelamentoPending} onClick={criarParcelamentoManual}>
-                            {parcelamentoPending ? "Salvando…" : "Salvar parcelamento"}
-                          </Button>
-                          <Button className="ghost" onClick={() => setParcelamentoFormOpen(false)}>
-                            Cancelar
-                          </Button>
-                        </div>
-                      </div>
-                    )}
-                  </div>
+                  <div className="dossier-side-card">{parcelamentosCardInner}</div>
                 </div>
               </div>
             )}
@@ -5058,17 +5126,34 @@ export function ClientesIntegralView({
                   <div className="form-grid">
                     <label>
                       Tipo
-                      <Input
+                      <select
                         value={recurrence.tipo}
-                        disabled={Boolean(selected.recorrente)}
                         onChange={(event) =>
                           setRecurrence({
                             ...recurrence,
                             tipo: event.target.value,
                           })
                         }
-                      />
+                      >
+                        {TIPOS_RECORRENCIA.map((item) => (
+                          <option key={item} value={item}>{item}</option>
+                        ))}
+                      </select>
                     </label>
+                    {recurrence.tipo === "Outro" && (
+                      <label>
+                        Descreva o tipo
+                        <Input
+                          value={recurrence.tipoCustom}
+                          onChange={(event) =>
+                            setRecurrence({
+                              ...recurrence,
+                              tipoCustom: event.target.value,
+                            })
+                          }
+                        />
+                      </label>
+                    )}
                     <label>
                       Dia do vencimento
                       <Input
@@ -5102,15 +5187,30 @@ export function ClientesIntegralView({
                       />
                     </label>
                   </div>
-                  <Button
-                    className={selected.recorrente ? "danger" : ""}
-                    onClick={() => void toggleRecurrence(!selected.recorrente)}
-                  >
-                    {selected.recorrente
-                      ? "Cancelar recorrência"
-                      : "Ativar cobrança mensal"}
-                  </Button>
+                  {selected.recorrente && (
+                    <small className="dossier-field-hint">
+                      Valor e dia de vencimento já ativos na Asaas não são editáveis por aqui — só o tipo.
+                    </small>
+                  )}
+                  <div className="inline-actions">
+                    {selected.recorrente && (
+                      <Button className="secondary" onClick={salvarTipoRecorrencia}>
+                        Salvar tipo
+                      </Button>
+                    )}
+                    <Button
+                      className={selected.recorrente ? "danger" : ""}
+                      onClick={() => void toggleRecurrence(!selected.recorrente)}
+                    >
+                      {selected.recorrente
+                        ? "Cancelar recorrência"
+                        : "Ativar cobrança mensal"}
+                    </Button>
+                  </div>
                 </Card>
+                {(selected.recorrente ? selected.recorrente_tipo : tipoRecorrenciaResolvido()) === "Parcelamento Fiscal" && (
+                  <Card>{parcelamentosCardInner}</Card>
+                )}
                 <Card>
                   <div className="card-heading">
                     <div>
