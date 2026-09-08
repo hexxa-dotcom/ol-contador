@@ -892,6 +892,7 @@ export type Database = {
           expires_at: string
           id: string
           iv: string | null
+          permanente: boolean
           status: string
           viewed_at: string | null
           viewed_by: string | null
@@ -905,6 +906,7 @@ export type Database = {
           expires_at: string
           id?: string
           iv?: string | null
+          permanente?: boolean
           status?: string
           viewed_at?: string | null
           viewed_by?: string | null
@@ -918,6 +920,7 @@ export type Database = {
           expires_at?: string
           id?: string
           iv?: string | null
+          permanente?: boolean
           status?: string
           viewed_at?: string | null
           viewed_by?: string | null
@@ -1278,6 +1281,65 @@ export type Database = {
           title?: string
         }
         Relationships: []
+      }
+      parcelamentos_manuais: {
+        Row: {
+          cliente_ref: string
+          created_at: string
+          created_by: string | null
+          descricao: string | null
+          dia_vencimento: number | null
+          id: number
+          numero_parcelas: number
+          observacoes: string | null
+          orgao: string
+          parcelas_pagas: number
+          status: string
+          updated_at: string
+          valor_parcela_cents: number
+          valor_total_cents: number
+        }
+        Insert: {
+          cliente_ref: string
+          created_at?: string
+          created_by?: string | null
+          descricao?: string | null
+          dia_vencimento?: number | null
+          id?: number
+          numero_parcelas?: number
+          observacoes?: string | null
+          orgao: string
+          parcelas_pagas?: number
+          status?: string
+          updated_at?: string
+          valor_parcela_cents?: number
+          valor_total_cents?: number
+        }
+        Update: {
+          cliente_ref?: string
+          created_at?: string
+          created_by?: string | null
+          descricao?: string | null
+          dia_vencimento?: number | null
+          id?: number
+          numero_parcelas?: number
+          observacoes?: string | null
+          orgao?: string
+          parcelas_pagas?: number
+          status?: string
+          updated_at?: string
+          valor_parcela_cents?: number
+          valor_total_cents?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "parcelamentos_manuais_cliente_ref_fkey"
+            columns: ["cliente_ref"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       rate_limits: {
         Row: {

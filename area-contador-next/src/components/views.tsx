@@ -78,6 +78,7 @@ import {
   Input,
 } from "@/components/ui/primitives";
 import { emptyDashboardData, type DashboardData } from "@/lib/dashboard";
+import { validarCpfCnpj, mascaraCpfCnpj, validarTelefone, mascaraTelefone } from "@/lib/documento";
 import { baixarRelatorioPdf } from "@/lib/reportPdf";
 import {
   emptyClientsData,
@@ -95,17 +96,21 @@ import {
 import { InsightChart } from "@/components/insight-chart";
 import {
   announceChatDocument,
+  atualizarParcelamentoManual,
   cancelServiceCredit,
   changeChatStage,
   clearNotifications,
   createAtendimentoSemCheckout,
   createClientRecord,
   createManualAppointment,
+  createParcelamentoManual,
   createReport,
   createReportRevision,
+  deleteParcelamentoManual,
   deleteServiceCredit,
   createServiceCredit,
   createTask,
+  marcarParcelaPaga,
   deleteNotification,
   deleteAppointment,
   deleteServicePlan,
@@ -190,6 +195,37 @@ function InstagramGlyph({ size = 20 }: { size?: number }) {
 
 function feedback(message: string) {
   window.dispatchEvent(new CustomEvent("app-feedback", { detail: message }));
+}
+
+// Mostrado embaixo de todo campo de CPF/CNPJ: só se manifesta quando o
+// número de dígitos já bate com CPF (11) ou CNPJ (14), pra não incomodar
+// enquanto a pessoa ainda está digitando.
+function CpfCnpjHint({ value }: { value: string }) {
+  const digitos = value.replace(/\D/g, "");
+  if (digitos.length !== 11 && digitos.length !== 14) return null;
+  const valido = validarCpfCnpj(value).valido;
+  return (
+    <small className={`dossier-field-hint ${valido ? "ok" : "error"}`}>
+      {valido
+        ? digitos.length === 11
+          ? "CPF válido"
+          : "CNPJ válido"
+        : "Número inválido — confira os dígitos"}
+    </small>
+  );
+}
+
+// Mesma lógica do CpfCnpjHint, pro campo de telefone: só aparece quando
+// já tem dígitos suficientes pra formar um número (10 ou 11).
+function TelefoneHint({ value }: { value: string }) {
+  const digitos = value.replace(/\D/g, "");
+  if (digitos.length !== 10 && digitos.length !== 11) return null;
+  const valido = validarTelefone(value);
+  return (
+    <small className={`dossier-field-hint ${valido ? "ok" : "error"}`}>
+      {valido ? "Telefone válido" : "DDD inválido — confira o número"}
+    </small>
+  );
 }
 
 // Mapeia a aba visível do Radar Fiscal pros prefixos reais de id_sistema
@@ -3248,8 +3284,71 @@ export function ClientesIntegralView({
     password?: string;
     createdAt?: string | null;
     viewedAt?: string | null;
+    permanente?: boolean;
   }>({ status: "idle" });
-  const [vaultManualForm, setVaultManualForm] = useState({ senha: "", ttlHours: 48 });
+  const [vaultManualForm, setVaultManualForm] = useState({ senha: "", ttlHours: 48, permanente: false });
+  const [parcelamentoFormOpen, setParcelamentoFormOpen] = useState(false);
+  const [parcelamentoPending, setParcelamentoPending] = useState(false);
+  const [parcelamentoForm, setParcelamentoForm] = useState({
+    orgao: "",
+    descricao: "",
+    valorTotal: "",
+    numeroParcelas: "",
+    valorParcela: "",
+    diaVencimento: "",
+    observacoes: "",
+  });
+  function criarParcelamentoManual() {
+    if (!selected) return;
+    const orgao = parcelamentoForm.orgao.trim();
+    if (orgao.length < 2) {
+      feedback("Informe o órgão do parcelamento (PGFN, Receita Federal...).");
+      return;
+    }
+    setParcelamentoPending(true);
+    startTransition(async () => {
+      const result = await createParcelamentoManual({
+        clientId: selected.id,
+        orgao,
+        descricao: parcelamentoForm.descricao,
+        valorTotalCents: Math.round((Number(parcelamentoForm.valorTotal.replace(",", ".")) || 0) * 100),
+        numeroParcelas: Number(parcelamentoForm.numeroParcelas) || 1,
+        valorParcelaCents: Math.round((Number(parcelamentoForm.valorParcela.replace(",", ".")) || 0) * 100),
+        diaVencimento: parcelamentoForm.diaVencimento ? Number(parcelamentoForm.diaVencimento) : null,
+        observacoes: parcelamentoForm.observacoes,
+      });
+      setParcelamentoPending(false);
+      feedback(result.message);
+      if (result.ok) {
+        setParcelamentoForm({ orgao: "", descricao: "", valorTotal: "", numeroParcelas: "", valorParcela: "", diaVencimento: "", observacoes: "" });
+        setParcelamentoFormOpen(false);
+        window.location.reload();
+      }
+    });
+  }
+  function pagarParcelaManual(id: number) {
+    startTransition(async () => {
+      const result = await marcarParcelaPaga(id);
+      feedback(result.message);
+      if (result.ok) window.location.reload();
+    });
+  }
+  function encerrarParcelamentoManual(id: number) {
+    if (!window.confirm("Encerrar este parcelamento? Ele sai da lista de ativos.")) return;
+    startTransition(async () => {
+      const result = await atualizarParcelamentoManual(id, { status: "cancelado" });
+      feedback(result.message);
+      if (result.ok) window.location.reload();
+    });
+  }
+  function excluirParcelamentoManual(id: number) {
+    if (!window.confirm("Excluir este parcelamento definitivamente?")) return;
+    startTransition(async () => {
+      const result = await deleteParcelamentoManual(id);
+      feedback(result.message);
+      if (result.ok) window.location.reload();
+    });
+  }
   const [documentAnalysis, setDocumentAnalysis] = useState<
     Record<number, Record<string, unknown>>
   >({});
@@ -3371,6 +3470,12 @@ export function ClientesIntegralView({
   const selectedTriages = selected
     ? data.triages.filter((item) => item.cliente_ref === selected.id)
     : [];
+  const selectedParcelamentos = selected
+    ? data.parcelamentosManuais.filter((item) => item.cliente_ref === selected.id)
+    : [];
+  const clientesComParcelamentoAtivo = new Set(
+    data.parcelamentosManuais.filter((item) => item.status === "ativo").map((item) => item.cliente_ref),
+  );
   const selectedCharges = selected
     ? operationsData.charges.filter((item) => item.cliente_ref === selected.id)
     : [];
@@ -3583,7 +3688,7 @@ export function ClientesIntegralView({
     window.sessionStorage.removeItem("contador-open-client");
     open(client, "recorrencia");
   }, []);
-  async function callVault(action: "status" | "reveal" | "delete" | "store", clientId: string, extra?: { password?: string; ttlHours?: number; authorized?: boolean }) {
+  async function callVault(action: "status" | "reveal" | "delete" | "store", clientId: string, extra?: { password?: string; ttlHours?: number; authorized?: boolean; permanente?: boolean }) {
     const response = await fetch("/api/clients/vault", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -3595,6 +3700,7 @@ export function ClientesIntegralView({
       password?: string;
       createdAt?: string | null;
       viewedAt?: string | null;
+      permanente?: boolean;
       error?: string;
     };
     if (!response.ok) throw new Error(result.error || "vault_failed");
@@ -3608,6 +3714,7 @@ export function ClientesIntegralView({
         expiresAt: result.expiresAt,
         createdAt: result.createdAt,
         viewedAt: result.viewedAt,
+        permanente: result.permanente,
       });
     } catch {
       setVault({ status: "error" });
@@ -3615,8 +3722,9 @@ export function ClientesIntegralView({
   }
   // Cadastro manual: o contador digita a senha que recebeu do cliente por
   // outro canal (telefone, presencial) direto no cofre — mesma criptografia
-  // e mesma regra de visualização única de sempre, só que quem "guarda" a
-  // senha agora pode ser a equipe, não só o próprio cliente.
+  // de sempre. Por padrão segue a regra de visualização única + expiração;
+  // com "permanente" marcado, a senha fica guardada sem prazo e pode ser
+  // vista de novo sempre que precisar (toda visualização fica registrada).
   function storeVaultManual() {
     if (!selected) return;
     if (vaultManualForm.senha.length < 8) {
@@ -3629,6 +3737,7 @@ export function ClientesIntegralView({
         const result = await callVault("store", selected.id, {
           password: vaultManualForm.senha,
           ttlHours: vaultManualForm.ttlHours,
+          permanente: vaultManualForm.permanente,
           authorized: true,
         });
         setVault({
@@ -3636,9 +3745,10 @@ export function ClientesIntegralView({
           expiresAt: result.expiresAt,
           createdAt: result.createdAt,
           viewedAt: result.viewedAt,
+          permanente: result.permanente,
         });
-        setVaultManualForm({ senha: "", ttlHours: 48 });
-        feedback("Senha do gov.br protegida no cofre.");
+        setVaultManualForm({ senha: "", ttlHours: 48, permanente: false });
+        feedback(vaultManualForm.permanente ? "Senha do gov.br salva permanentemente." : "Senha do gov.br protegida no cofre.");
       } catch {
         setVault({ status: "error" });
         feedback("Não foi possível salvar a senha agora.");
@@ -3650,7 +3760,7 @@ export function ClientesIntegralView({
     setVault((value) => ({ ...value, status: "loading" }));
     try {
       const result = await callVault("reveal", selected.id);
-      setVault({ status: "viewed", password: result.password });
+      setVault({ status: result.status || "viewed", password: result.password, permanente: result.permanente });
       window.setTimeout(
         () => setVault((value) => ({ ...value, password: undefined })),
         60_000,
@@ -3748,6 +3858,14 @@ export function ClientesIntegralView({
   }
   function save() {
     if (!dossier) return;
+    if (dossier.cpf.replace(/\D/g, "") && !validarCpfCnpj(dossier.cpf).valido) {
+      feedback("CPF/CNPJ inválido — confira os números digitados.");
+      return;
+    }
+    if (dossier.phone.replace(/\D/g, "") && !validarTelefone(dossier.phone)) {
+      feedback("Telefone inválido — confira o número digitado.");
+      return;
+    }
     startTransition(async () => {
       const result = await saveClientDossier(dossier);
       feedback(result.message);
@@ -3794,6 +3912,14 @@ export function ClientesIntegralView({
     const senha = createForm.senha;
     if (senha.length < 6) {
       feedback("A senha inicial precisa ter pelo menos 6 caracteres.");
+      return;
+    }
+    if (!validarCpfCnpj(createForm.cpf).valido) {
+      feedback("CPF/CNPJ inválido — confira os números digitados.");
+      return;
+    }
+    if (createForm.phone.replace(/\D/g, "") && !validarTelefone(createForm.phone)) {
+      feedback("Telefone inválido — confira o número digitado.");
       return;
     }
     startTransition(async () => {
@@ -3977,13 +4103,18 @@ export function ClientesIntegralView({
                     </div>
                   </td>
                   <td>
-                    {client.recorrente ? (
-                      <Badge className="success">
-                        {client.recorrente_tipo || "Mensal"}
-                      </Badge>
-                    ) : (
-                      <span className="muted">Avulso</span>
-                    )}
+                    <div className="inline-actions" style={{ gap: 6, flexWrap: "wrap" }}>
+                      {client.recorrente ? (
+                        <Badge className="success">
+                          {client.recorrente_tipo || "Mensal"}
+                        </Badge>
+                      ) : (
+                        <span className="muted">Avulso</span>
+                      )}
+                      {clientesComParcelamentoAtivo.has(client.id) && (
+                        <Badge className="attention">Parcelamento Manual</Badge>
+                      )}
+                    </div>
                   </td>
                   <td>
                     <Badge>{client.status || "waiting"}</Badge>
@@ -4032,6 +4163,12 @@ export function ClientesIntegralView({
                   <div className="client-dossier-title-row">
                     <h2>{selected.name}</h2>
                     <span className="client-dossier-tag">Ficha do Cliente</span>
+                    {selected.recorrente && (
+                      <Badge className="success">{selected.recorrente_tipo || "Recorrente"}</Badge>
+                    )}
+                    {selectedParcelamentos.some((item) => item.status === "ativo") && (
+                      <Badge className="attention">Parcelamento Manual</Badge>
+                    )}
                   </div>
                   <p>{selected.cpf ? `CPF/CNPJ: ${selected.cpf}` : selected.email || "Cadastro interno"}</p>
                 </div>
@@ -4105,9 +4242,10 @@ export function ClientesIntegralView({
                       <Input
                         value={dossier.cpf}
                         onChange={(event) =>
-                          setDossier({ ...dossier, cpf: event.target.value })
+                          setDossier({ ...dossier, cpf: mascaraCpfCnpj(event.target.value) })
                         }
                       />
+                      <CpfCnpjHint value={dossier.cpf} />
                     </label>
                     <label>
                       E-mail
@@ -4124,9 +4262,10 @@ export function ClientesIntegralView({
                       <Input
                         value={dossier.phone}
                         onChange={(event) =>
-                          setDossier({ ...dossier, phone: event.target.value })
+                          setDossier({ ...dossier, phone: mascaraTelefone(event.target.value) })
                         }
                       />
+                      <TelefoneHint value={dossier.phone} />
                     </label>
                     <label>
                       Status do Atendimento
@@ -4269,31 +4408,32 @@ export function ClientesIntegralView({
                   <div className="gov-readiness-box">
                     <div className="card-heading">
                       <div>
-                        <strong>Cofre Temporário gov.br</strong>
+                        <strong>{vault.status === "pending" && vault.permanente ? "Senha gov.br (permanente)" : "Cofre Temporário gov.br"}</strong>
                       </div>
                       <Badge className={vault.status === "pending" ? "success" : ""}>
                         {vault.status === "loading"
                           ? "Consultando…"
                           : vault.status === "pending"
-                            ? "Credencial disponível"
+                            ? vault.permanente ? "Salva permanentemente" : "Credencial disponível"
                             : vault.status === "error"
                               ? "Indisponível"
                               : "Sem credencial pendente"}
                       </Badge>
                     </div>
                     <p className="muted">
-                      Nenhuma senha é salva no cadastro, chat ou relatórios. O cofre
-                      permite uma única visualização e apaga o conteúdo cifrado.
+                      {vault.status === "pending" && vault.permanente
+                        ? "Senha guardada sem expiração automática. Nenhuma senha aparece no cadastro, chat ou relatórios — só quem abrir aqui e visualizar; toda visualização fica registrada no log de auditoria."
+                        : "Nenhuma senha é salva no cadastro, chat ou relatórios. O cofre permite uma única visualização e apaga o conteúdo cifrado."}
                     </p>
                     {vault.status === "pending" && (
                       <div className="inline-actions">
                         <Button className="secondary" onClick={revealVault}>
-                          Revelar uma única vez
+                          {vault.permanente ? "Ver senha" : "Revelar uma única vez"}
                         </Button>
                         <Button className="ghost" onClick={deleteVault}>
-                          Apagar sem visualizar
+                          Apagar {vault.permanente ? "" : "sem visualizar"}
                         </Button>
-                        {vault.expiresAt && (
+                        {!vault.permanente && vault.expiresAt && (
                           <small>
                             Expira em {new Date(vault.expiresAt).toLocaleString("pt-BR")}
                           </small>
@@ -4322,23 +4462,40 @@ export function ClientesIntegralView({
                             value={vaultManualForm.senha}
                             onChange={(event) => setVaultManualForm((value) => ({ ...value, senha: event.target.value }))}
                           />
-                          <select
-                            value={vaultManualForm.ttlHours}
-                            onChange={(event) => setVaultManualForm((value) => ({ ...value, ttlHours: Number(event.target.value) }))}
-                          >
-                            <option value={24}>Expira em 24h</option>
-                            <option value={48}>Expira em 48h</option>
-                            <option value={72}>Expira em 72h</option>
-                          </select>
+                          {!vaultManualForm.permanente && (
+                            <select
+                              value={vaultManualForm.ttlHours}
+                              onChange={(event) => setVaultManualForm((value) => ({ ...value, ttlHours: Number(event.target.value) }))}
+                            >
+                              <option value={24}>Expira em 24h</option>
+                              <option value={48}>Expira em 48h</option>
+                              <option value={72}>Expira em 72h</option>
+                            </select>
+                          )}
                           <Button className="secondary" onClick={storeVaultManual}>
                             Salvar no cofre
                           </Button>
                         </div>
+                        <label className="inline-checkbox">
+                          <input
+                            type="checkbox"
+                            checked={vaultManualForm.permanente}
+                            onChange={(event) => setVaultManualForm((value) => ({ ...value, permanente: event.target.checked }))}
+                          />
+                          Guardar permanentemente (sem expiração, visualizável quando precisar)
+                        </label>
+                        <small className="dossier-field-hint">
+                          Use o modo permanente só quando for realmente necessário guardar por mais tempo — prefira sempre o cofre temporário.
+                        </small>
                       </div>
                     )}
                     {vault.password && (
                       <div className="vault-reveal" role="status">
-                        <strong>Exibição única — será ocultada em 60 segundos</strong>
+                        <strong>
+                          {vault.permanente
+                            ? "Guardada permanentemente — esta exibição será ocultada em 60 segundos"
+                            : "Exibição única — será ocultada em 60 segundos"}
+                        </strong>
                         <code>{vault.password}</code>
                         <Button
                           className="secondary"
@@ -4599,6 +4756,108 @@ export function ClientesIntegralView({
                         <Plus size={14} /> Adicionar
                       </Button>
                     </div>
+                  </div>
+
+                  <div className="dossier-side-card">
+                    <div className="dossier-side-head">
+                      <Landmark size={16} />
+                      <strong>Parcelamentos Fiscais (Manual)</strong>
+                    </div>
+                    {!selectedParcelamentos.length && (
+                      <p className="muted">
+                        Nenhum parcelamento registrado. Use pra acompanhar acordos com PGFN,
+                        Receita Federal ou prefeitura que não passam pelo Radar Fiscal (PF ou
+                        regimes fora do Simples Nacional/MEI).
+                      </p>
+                    )}
+                    {selectedParcelamentos.map((item) => (
+                      <div key={item.id} className="parcelamento-manual-item">
+                        <div className="parcelamento-manual-item-head">
+                          <div>
+                            <strong>{item.orgao}</strong>
+                            <span>
+                              {item.parcelas_pagas}/{item.numero_parcelas} parcelas · {money((item.valor_total_cents || 0) / 100)}
+                              {item.dia_vencimento ? ` · vence dia ${item.dia_vencimento}` : ""}
+                            </span>
+                          </div>
+                          <Badge className={item.status === "quitado" ? "success" : item.status === "ativo" ? "attention" : ""}>
+                            {item.status}
+                          </Badge>
+                        </div>
+                        {item.status === "ativo" && (
+                          <div className="inline-actions">
+                            <Button className="secondary compact" onClick={() => pagarParcelaManual(item.id)}>
+                              Marcar parcela paga
+                            </Button>
+                            <Button className="ghost compact" onClick={() => encerrarParcelamentoManual(item.id)}>
+                              Encerrar
+                            </Button>
+                          </div>
+                        )}
+                        {item.status !== "ativo" && (
+                          <div className="inline-actions">
+                            <Button className="ghost compact" onClick={() => excluirParcelamentoManual(item.id)}>
+                              <Trash2 size={13} /> Excluir
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                    {!parcelamentoFormOpen ? (
+                      <Button className="secondary" onClick={() => setParcelamentoFormOpen(true)}>
+                        <Plus size={14} /> Novo parcelamento
+                      </Button>
+                    ) : (
+                      <div className="vault-manual-form">
+                        <Input
+                          placeholder="Órgão (PGFN, Receita Federal, Prefeitura...)"
+                          value={parcelamentoForm.orgao}
+                          onChange={(event) => setParcelamentoForm((value) => ({ ...value, orgao: event.target.value }))}
+                        />
+                        <Input
+                          placeholder="Descrição (opcional)"
+                          value={parcelamentoForm.descricao}
+                          onChange={(event) => setParcelamentoForm((value) => ({ ...value, descricao: event.target.value }))}
+                        />
+                        <div className="inline-actions">
+                          <Input
+                            placeholder="Valor total (R$)"
+                            value={parcelamentoForm.valorTotal}
+                            onChange={(event) => setParcelamentoForm((value) => ({ ...value, valorTotal: event.target.value }))}
+                          />
+                          <Input
+                            placeholder="Nº de parcelas"
+                            value={parcelamentoForm.numeroParcelas}
+                            onChange={(event) => setParcelamentoForm((value) => ({ ...value, numeroParcelas: event.target.value }))}
+                          />
+                        </div>
+                        <div className="inline-actions">
+                          <Input
+                            placeholder="Valor da parcela (R$)"
+                            value={parcelamentoForm.valorParcela}
+                            onChange={(event) => setParcelamentoForm((value) => ({ ...value, valorParcela: event.target.value }))}
+                          />
+                          <Input
+                            placeholder="Dia de vencimento"
+                            value={parcelamentoForm.diaVencimento}
+                            onChange={(event) => setParcelamentoForm((value) => ({ ...value, diaVencimento: event.target.value }))}
+                          />
+                        </div>
+                        <Input
+                          placeholder="Observações (opcional)"
+                          value={parcelamentoForm.observacoes}
+                          onChange={(event) => setParcelamentoForm((value) => ({ ...value, observacoes: event.target.value }))}
+                        />
+                        <div className="inline-actions">
+                          <Button className="secondary" disabled={parcelamentoPending} onClick={criarParcelamentoManual}>
+                            {parcelamentoPending ? "Salvando…" : "Salvar parcelamento"}
+                          </Button>
+                          <Button className="ghost" onClick={() => setParcelamentoFormOpen(false)}>
+                            Cancelar
+                          </Button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -4996,9 +5255,10 @@ export function ClientesIntegralView({
                 <Input
                   value={createForm.cpf}
                   onChange={(event) =>
-                    setCreateForm({ ...createForm, cpf: event.target.value })
+                    setCreateForm({ ...createForm, cpf: mascaraCpfCnpj(event.target.value) })
                   }
                 />
+                <CpfCnpjHint value={createForm.cpf} />
               </label>
               <label>
                 E-mail
@@ -5015,9 +5275,10 @@ export function ClientesIntegralView({
                 <Input
                   value={createForm.phone}
                   onChange={(event) =>
-                    setCreateForm({ ...createForm, phone: event.target.value })
+                    setCreateForm({ ...createForm, phone: mascaraTelefone(event.target.value) })
                   }
                 />
+                <TelefoneHint value={createForm.phone} />
               </label>
               <label>
                 Senha inicial do portal
@@ -8886,6 +9147,14 @@ export function AcompanhamentoIntegralView({
     recorrenteTipo: "Acompanhamento mensal",
   });
   function criarAtendimentoSemCheckout() {
+    if (novoForm.cpf.replace(/\D/g, "") && !validarCpfCnpj(novoForm.cpf).valido) {
+      feedback("CPF/CNPJ inválido — confira os números digitados.");
+      return;
+    }
+    if (novoForm.phone.replace(/\D/g, "") && !validarTelefone(novoForm.phone)) {
+      feedback("Telefone inválido — confira o número digitado.");
+      return;
+    }
     setNovoPending(true);
     void createAtendimentoSemCheckout(novoForm).then((result) => {
       setNovoPending(false);
@@ -9046,7 +9315,8 @@ export function AcompanhamentoIntegralView({
               </label>
               <label>
                 CPF / CNPJ
-                <Input value={novoForm.cpf} onChange={(event) => setNovoForm((value) => ({ ...value, cpf: event.target.value }))} />
+                <Input value={novoForm.cpf} onChange={(event) => setNovoForm((value) => ({ ...value, cpf: mascaraCpfCnpj(event.target.value) }))} />
+                <CpfCnpjHint value={novoForm.cpf} />
               </label>
               <label>
                 E-mail
@@ -9054,7 +9324,8 @@ export function AcompanhamentoIntegralView({
               </label>
               <label>
                 Telefone / WhatsApp
-                <Input value={novoForm.phone} onChange={(event) => setNovoForm((value) => ({ ...value, phone: event.target.value }))} />
+                <Input value={novoForm.phone} onChange={(event) => setNovoForm((value) => ({ ...value, phone: mascaraTelefone(event.target.value) }))} />
+                <TelefoneHint value={novoForm.phone} />
               </label>
               <label>
                 Tipo de atendimento

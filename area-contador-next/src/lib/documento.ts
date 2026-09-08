@@ -41,3 +41,38 @@ export function validarCpfCnpj(valor: unknown): { valido: boolean; digitos: stri
   if (digitos.length === 14) return { valido: validarCNPJ(digitos), digitos };
   return { valido: false, digitos };
 }
+
+// Formata enquanto digita: até 11 dígitos vira CPF (000.000.000-00), acima
+// disso vira CNPJ (00.000.000/0000-00).
+export function mascaraCpfCnpj(valor: string): string {
+  const d = somenteDigitos(valor).slice(0, 14);
+  if (d.length <= 11) {
+    return d
+      .replace(/(\d{3})(\d)/, "$1.$2")
+      .replace(/(\d{3})(\d)/, "$1.$2")
+      .replace(/(\d{3})(\d{1,2})$/, "$1-$2");
+  }
+  return d
+    .replace(/(\d{2})(\d)/, "$1.$2")
+    .replace(/(\d{3})(\d)/, "$1.$2")
+    .replace(/(\d{3})(\d)/, "$1/$2")
+    .replace(/(\d{4})(\d{1,2})$/, "$1-$2");
+}
+
+// Formata telefone enquanto digita: 10 dígitos vira fixo (00) 0000-0000,
+// 11 vira celular (00) 00000-0000.
+export function mascaraTelefone(valor: string): string {
+  const d = somenteDigitos(valor).slice(0, 11);
+  if (d.length <= 10) {
+    return d.replace(/(\d{2})(\d)/, "($1) $2").replace(/(\d{4})(\d{1,4})$/, "$1-$2");
+  }
+  return d.replace(/(\d{2})(\d)/, "($1) $2").replace(/(\d{5})(\d{1,4})$/, "$1-$2");
+}
+
+// Telefone brasileiro: 10 (fixo) ou 11 (celular) dígitos, com DDD válido (11-99).
+export function validarTelefone(valor: unknown): boolean {
+  const d = somenteDigitos(valor);
+  if (d.length !== 10 && d.length !== 11) return false;
+  const ddd = parseInt(d.slice(0, 2), 10);
+  return ddd >= 11 && ddd <= 99;
+}

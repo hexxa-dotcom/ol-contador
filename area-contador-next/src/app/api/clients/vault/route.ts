@@ -23,6 +23,7 @@ function statusPublico(row: VaultRow | null) {
     expiresAt: row.expires_at,
     viewedAt: row.viewed_at || null,
     deletedAt: row.deleted_at || null,
+    permanente: row.permanente,
   };
 }
 
@@ -67,6 +68,7 @@ export async function POST(request: Request) {
     password?: string;
     ttlHours?: number;
     authorized?: boolean;
+    permanente?: boolean;
   } | null;
   const action: VaultAction = body?.action || "status";
   const clientId = String(body?.clientId || "").trim();
@@ -83,6 +85,10 @@ export async function POST(request: Request) {
       if (!acesso.isOwner && !acesso.isStaff) return NextResponse.json({ error: "forbidden" }, { status: 403, headers });
       const password = String(body?.password || "");
       const ttlHours = [24, 48, 72].includes(Number(body?.ttlHours)) ? Number(body?.ttlHours) : 48;
+      // Modo permanente: só a equipe pode ativar, e só quando digita a
+      // senha manualmente pela Ficha do Cliente — o cliente no portal
+      // sempre cai no cofre temporário de sempre.
+      const permanente = body?.permanente === true && acesso.isStaff;
       if (password.length < 8 || password.length > 256) {
         return NextResponse.json({ error: "invalid_password_length" }, { status: 400, headers });
       }
@@ -92,7 +98,9 @@ export async function POST(request: Request) {
 
       const encrypted = cifrar(password);
       const now = new Date();
-      const expiresAt = new Date(now.getTime() + ttlHours * 60 * 60 * 1000).toISOString();
+      const expiresAt = permanente
+        ? new Date(now.getTime() + 10 * 365 * 24 * 60 * 60 * 1000).toISOString()
+        : new Date(now.getTime() + ttlHours * 60 * 60 * 1000).toISOString();
       const { data, error } = await admin
         .from("govbr_credenciais_cofre")
         .upsert(
@@ -100,6 +108,7 @@ export async function POST(request: Request) {
             cliente_id: clientId,
             ...encrypted,
             status: "pending",
+            permanente,
             created_at: now.toISOString(),
             expires_at: expiresAt,
             viewed_at: null,
@@ -111,7 +120,7 @@ export async function POST(request: Request) {
         .select("*")
         .single();
       if (error) throw error;
-      await auditar(admin, clientId, userId, "stored", { ttlHours, actorType: acesso.isStaff ? "staff" : "client" });
+      await auditar(admin, clientId, userId, "stored", { ttlHours: permanente ? null : ttlHours, permanente, actorType: acesso.isStaff ? "staff" : "client" });
       return NextResponse.json(statusPublico(data), { headers });
     }
 
@@ -123,7 +132,7 @@ export async function POST(request: Request) {
     if (rowError) throw rowError;
     let row = rowData;
 
-    if (row && row.status === "pending" && new Date(row.expires_at) <= new Date()) {
+    if (row && !row.permanente && row.status === "pending" && new Date(row.expires_at) <= new Date()) {
       await admin
         .from("govbr_credenciais_cofre")
         .update({ status: "expired", ciphertext: null, iv: null, auth_tag: null, deleted_at: new Date().toISOString() })
@@ -152,9 +161,23 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: "credential_not_available", ...statusPublico(row) }, { status: 409, headers });
       }
 
+      const viewedAt = new Date().toISOString();
+
+      // Modo permanente: sem disputa de "primeira tela ganha" (pode ser
+      // revelada várias vezes), então só atualiza o carimbo de última
+      // visualização, sem apagar o conteúdo cifrado nem trocar o status.
+      if (row.permanente) {
+        await admin
+          .from("govbr_credenciais_cofre")
+          .update({ viewed_at: viewedAt, viewed_by: userId })
+          .eq("id", row.id);
+        const password = decifrar(row as { ciphertext: string; iv: string; auth_tag: string });
+        await auditar(admin, clientId, userId, "revealed_once", { permanente: true });
+        return NextResponse.json({ status: "pending", password, viewedAt, permanente: true }, { headers });
+      }
+
       // Reivindica a visualização de forma condicional: se duas telas tentarem
       // abrir juntas, só a primeira consegue mudar pending -> viewed.
-      const viewedAt = new Date().toISOString();
       const { data: claimed, error: claimError } = await admin
         .from("govbr_credenciais_cofre")
         .update({ status: "viewed", viewed_at: viewedAt, viewed_by: userId })

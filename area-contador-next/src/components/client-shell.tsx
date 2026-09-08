@@ -544,9 +544,9 @@ export function ClientShell({ data }: { data: PortalData }) {
             key="action-toast"
             className="action-toast"
             role="status"
-            initial={{ opacity: 0, x: "-50%", y: 12, scale: 0.97 }}
+            initial={{ opacity: 0, x: "-50%", y: -12, scale: 0.97 }}
             animate={{ opacity: 1, x: "-50%", y: 0, scale: 1 }}
-            exit={{ opacity: 0, x: "-50%", y: 12, scale: 0.97 }}
+            exit={{ opacity: 0, x: "-50%", y: -12, scale: 0.97 }}
             transition={{ duration: 0.28, ease: [0.2, 0.8, 0.2, 1] }}
           >
             <CheckCircle2 size={17} />

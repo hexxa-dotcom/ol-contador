@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { adminClient } from "@/lib/supabase/admin";
-import { validarCpfCnpj } from "@/lib/documento";
+import { validarCpfCnpj, validarTelefone } from "@/lib/documento";
 import { registrarErro } from "@/lib/observability";
 
 export const runtime = "nodejs";
@@ -50,6 +50,9 @@ export async function POST(request: Request) {
       }
       const { valido, digitos } = validarCpfCnpj(cpfCnpj);
       if (!valido) return NextResponse.json({ error: "cpf_cnpj_invalido" }, { status: 400 });
+      if (String(phone || "").replace(/\D/g, "") && !validarTelefone(phone)) {
+        return NextResponse.json({ error: "Telefone inválido — confira o número digitado." }, { status: 400 });
+      }
 
       const { data: existente } = await admin.from("clientes").select("id").eq("id", digitos).maybeSingle();
       if (existente) return NextResponse.json({ error: "Já existe um cliente com esse CPF/CNPJ." }, { status: 400 });
