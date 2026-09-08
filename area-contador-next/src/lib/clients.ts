@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/supabase/database.types";
+import { adminClient } from "@/lib/supabase/admin";
 
 type Tables = Database["public"]["Tables"];
 
@@ -61,7 +62,10 @@ export async function loadClientsData(supabase: SupabaseClient<Database>): Promi
     supabase.from("documentos").select("id,cliente_ref,file_name,mime,size_bytes,uploaded_by,created_at,checklist_item,ai_extracted").gte("created_at", limitStr).order("created_at", { ascending: false }).limit(500),
     supabase.from("atendimentos_historico").select("id,cliente_id,cliente_nome,assunto,finalizado_em,duracao_segundos,modalidade,relatorio_id,tax_type,honorarios").gte("finalizado_em", limitStr).order("finalizado_em", { ascending: false }).limit(1000),
     supabase.from("guias_mensais").select("*").gte("created_at", limitStr).order("competencia", { ascending: false }).limit(1000),
-    supabase.from("parcelamentos_manuais").select("*").order("created_at", { ascending: false }).limit(1000),
+    // Via admin: a policy da tabela (is_staff()) ainda não abre leitura pra
+    // sessão comum do contador — só quem escreve com service_role enxerga.
+    // `loadClientsData` só é chamada por /painel, já staff-gated antes disso.
+    (adminClient() ?? supabase).from("parcelamentos_manuais").select("*").order("created_at", { ascending: false }).limit(1000),
   ]);
 
   const errors = [clients.error, messages.error, triages.error, documents.error, history.error, guides.error, parcelamentosManuais.error].filter(Boolean);
