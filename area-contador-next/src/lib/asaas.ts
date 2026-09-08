@@ -200,6 +200,12 @@ export async function cancelSubscription(subscriptionId: string) {
   return asaasFetch(`/subscriptions/${subscriptionId}`, { method: "DELETE" });
 }
 
+// Pagamentos já gerados por uma assinatura recorrente — usado pra achar
+// a cobrança em aberto do mês e pegar o invoiceUrl pra mandar ao cliente.
+export async function getSubscriptionPayments(subscriptionId: string) {
+  return asaasFetch(`/subscriptions/${subscriptionId}/payments`);
+}
+
 export async function getPayment(paymentId: string) {
   return asaasFetch(`/payments/${paymentId}`);
 }

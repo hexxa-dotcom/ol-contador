@@ -1297,6 +1297,7 @@ export type Database = {
           status: string
           tributo: string | null
           data_inicio: string | null
+          avisos_enviados: number[]
           updated_at: string
           valor_parcela_cents: number
           valor_total_cents: number
@@ -1315,6 +1316,7 @@ export type Database = {
           status?: string
           tributo?: string | null
           data_inicio?: string | null
+          avisos_enviados?: number[]
           updated_at?: string
           valor_parcela_cents?: number
           valor_total_cents?: number
@@ -1333,6 +1335,7 @@ export type Database = {
           status?: string
           tributo?: string | null
           data_inicio?: string | null
+          avisos_enviados?: number[]
           updated_at?: string
           valor_parcela_cents?: number
           valor_total_cents?: number

@@ -97,6 +97,7 @@ import { InsightChart } from "@/components/insight-chart";
 import {
   announceChatDocument,
   atualizarParcelamentoManual,
+  avisarParcela,
   cancelServiceCredit,
   changeChatStage,
   clearNotifications,
@@ -3292,6 +3293,18 @@ export function ClientesIntegralView({
   }>({ status: "idle" });
   const [vaultManualForm, setVaultManualForm] = useState({ senha: "", ttlHours: 48, permanente: false });
   const [parcelamentoFormOpen, setParcelamentoFormOpen] = useState(false);
+  const [parcelamentoExpandidoId, setParcelamentoExpandidoId] = useState<number | null>(null);
+  const [avisandoParcela, setAvisandoParcela] = useState<string | null>(null);
+  function avisarParcelaClick(parcelamentoId: number, numeroParcela: number) {
+    const key = `${parcelamentoId}:${numeroParcela}`;
+    setAvisandoParcela(key);
+    startTransition(async () => {
+      const result = await avisarParcela(parcelamentoId, numeroParcela);
+      setAvisandoParcela(null);
+      feedback(result.message);
+      if (result.ok) window.location.reload();
+    });
+  }
   const [parcelamentoPending, setParcelamentoPending] = useState(false);
   const emptyParcelamentoForm = {
     orgao: "",
@@ -3486,9 +3499,9 @@ export function ClientesIntegralView({
   const clientesComParcelamentoAtivo = new Set(
     data.parcelamentosManuais.filter((item) => item.status === "ativo").map((item) => item.cliente_ref),
   );
-  function previsaoTermino(dataInicio: string, numeroParcelas: number): string {
+  function dataDaParcela(dataInicio: string, numeroParcela: number): string {
     const [ano, mes, dia] = dataInicio.split("-").map(Number);
-    const data = new Date(ano, mes - 1 + Math.max(0, numeroParcelas - 1), dia);
+    const data = new Date(ano, mes - 1 + Math.max(0, numeroParcela - 1), dia);
     return data.toLocaleDateString("pt-BR");
   }
   const parcelamentosCardInner = (
@@ -3515,14 +3528,57 @@ export function ClientesIntegralView({
               </span>
               {item.data_inicio && (
                 <span>
-                  Início em {new Date(`${item.data_inicio}T00:00:00`).toLocaleDateString("pt-BR")} · término previsto em {previsaoTermino(item.data_inicio, item.numero_parcelas)}
+                  Início em {new Date(`${item.data_inicio}T00:00:00`).toLocaleDateString("pt-BR")} · término previsto em {dataDaParcela(item.data_inicio, item.numero_parcelas)}
                 </span>
               )}
             </div>
-            <Badge className={item.status === "quitado" ? "success" : item.status === "ativo" ? "attention" : ""}>
-              {item.status}
-            </Badge>
+            <button
+              type="button"
+              className="parcelamento-manual-expand-btn"
+              onClick={() => setParcelamentoExpandidoId((value) => (value === item.id ? null : item.id))}
+              aria-label={parcelamentoExpandidoId === item.id ? "Fechar cronograma" : "Ver cronograma de parcelas"}
+            >
+              <Badge className={item.status === "quitado" ? "success" : item.status === "ativo" ? "attention" : ""}>
+                {item.status}
+              </Badge>
+              {parcelamentoExpandidoId === item.id ? <ChevronRight size={14} style={{ transform: "rotate(90deg)" }} /> : <ChevronRight size={14} />}
+            </button>
           </div>
+          {parcelamentoExpandidoId === item.id && (
+            <div className="parcelamento-cronograma">
+              {!item.data_inicio ? (
+                <p className="muted">Informe a data de início do parcelamento pra ver o cronograma de vencimentos.</p>
+              ) : (
+                Array.from({ length: item.numero_parcelas }, (_, idx) => idx + 1).map((numero) => {
+                  const paga = numero <= item.parcelas_pagas;
+                  const avisada = (item.avisos_enviados || []).includes(numero);
+                  const key = `${item.id}:${numero}`;
+                  return (
+                    <div key={numero} className="parcelamento-cronograma-row">
+                      <span className="parcelamento-cronograma-numero">{numero}/{item.numero_parcelas}</span>
+                      <span className="parcelamento-cronograma-data">{dataDaParcela(item.data_inicio!, numero)}</span>
+                      {paga ? (
+                        <Badge className="success">Paga</Badge>
+                      ) : (
+                        <span className="muted">Em aberto</span>
+                      )}
+                      {avisada ? (
+                        <span className="parcelamento-cronograma-avisado"><Check size={13} /> Avisado</span>
+                      ) : (
+                        <Button
+                          className="ghost compact"
+                          disabled={avisandoParcela === key}
+                          onClick={() => avisarParcelaClick(item.id, numero)}
+                        >
+                          {avisandoParcela === key ? "Enviando…" : "Avisar cliente"}
+                        </Button>
+                      )}
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          )}
           {item.status === "ativo" && (
             <div className="inline-actions">
               <Button className="secondary compact" onClick={() => pagarParcelaManual(item.id)}>
@@ -4164,6 +4220,31 @@ export function ClientesIntegralView({
         setClients((items) => items.map((item) => (item.id === updated.id ? updated : item)));
       }
     });
+  }
+  const [copiandoLinkRecorrencia, setCopiandoLinkRecorrencia] = useState(false);
+  function copiarLinkRecorrencia() {
+    if (!selected) return;
+    setCopiandoLinkRecorrencia(true);
+    void fetch("/api/finance/recurrence-link", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ clientId: selected.id }),
+    })
+      .then((response) => response.json().catch(() => ({})))
+      .then((result: { invoiceUrl?: string; error?: string }) => {
+        if (result.invoiceUrl) {
+          void navigator.clipboard.writeText(result.invoiceUrl);
+          feedback("Link copiado — cole pra mandar pro cliente.");
+        } else if (result.error === "sem_cobranca_pendente") {
+          feedback("Nenhuma cobrança em aberto encontrada pra essa recorrência ainda.");
+        } else if (result.error === "sem_recorrencia_ativa") {
+          feedback("Este cliente não tem recorrência ativa.");
+        } else {
+          feedback("Não foi possível buscar o link da cobrança.");
+        }
+      })
+      .catch(() => feedback("Não foi possível buscar o link da cobrança."))
+      .finally(() => setCopiandoLinkRecorrencia(false));
   }
   return (
     <div className="view-stack">
@@ -5196,6 +5277,11 @@ export function ClientesIntegralView({
                     {selected.recorrente && (
                       <Button className="secondary" onClick={salvarTipoRecorrencia}>
                         Salvar tipo
+                      </Button>
+                    )}
+                    {selected.recorrente && (
+                      <Button className="secondary" disabled={copiandoLinkRecorrencia} onClick={copiarLinkRecorrencia}>
+                        {copiandoLinkRecorrencia ? "Buscando…" : "Copiar link de pagamento"}
                       </Button>
                     )}
                     <Button
