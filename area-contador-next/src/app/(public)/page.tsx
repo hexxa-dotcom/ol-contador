@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { adminClient } from "@/lib/supabase/admin";
-import { HomePage } from "./home-page";
+import { HomePage, type HeroBannerConfig } from "./home-page";
 
 export const metadata: Metadata = {
   title: "Olá, Contador — Contabilidade sob demanda para seu caso",
@@ -55,16 +55,32 @@ async function precoDe(id: string, fallbackCents: number): Promise<number> {
   return data?.price_cents ?? fallbackCents;
 }
 
+async function heroConfigDe(): Promise<HeroBannerConfig | null> {
+  const admin = adminClient();
+  if (!admin) return null;
+  const { data } = await admin
+    .from("configuracoes")
+    .select("valor")
+    .eq("chave", "hero_banner_config")
+    .maybeSingle();
+  return (data?.valor as HeroBannerConfig) ?? null;
+}
+
 export const dynamic = "force-dynamic";
 
 export default async function Page() {
-  const [pf, pj, consulta] = await Promise.all([precoDe("pf", 19900), precoDe("pj-atendimento", 34900), precoDe("consulta", 79900)]);
+  const [pf, pj, consulta, heroConfig] = await Promise.all([
+    precoDe("pf", 19900),
+    precoDe("pj-atendimento", 34900),
+    precoDe("consulta", 79900),
+    heroConfigDe(),
+  ]);
 
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLdServico(pf, pj)) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD_FAQ) }} />
-      <HomePage precos={{ pf, pj, consulta }} />
+      <HomePage precos={{ pf, pj, consulta }} heroConfig={heroConfig} />
     </>
   );
 }

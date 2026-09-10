@@ -3,6 +3,7 @@
 import { useState } from "react";
 import type { ReactNode } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import { SiteHeader, SiteFooter } from "@/components/site-shell";
 import { Reveal, Carrossel } from "./carrossel";
@@ -82,108 +83,158 @@ function SeloEstrela({ children }: { children: ReactNode }) {
   return <div className={styles.seloEstrela}><span>{children}</span></div>;
 }
 
-export function HomePage({ precos }: { precos: { pf: number; pj: number; consulta: number } }) {
+export interface HeroBannerConfig {
+  texture?: "amassado" | "dobras" | "liso";
+  color?: "verde" | "creme" | "laranja";
+  layout?: "com-imagem" | "sem-imagem";
+  title?: string;
+  subtitle?: string;
+  ctaText?: string;
+}
+
+const DEFAULT_HERO_CONFIG: Required<HeroBannerConfig> = {
+  texture: "amassado",
+  color: "verde",
+  layout: "com-imagem",
+  title: "A forma mais simples de resolver seus problemas com a Receita",
+  subtitle: "Sem jargões, sem agendamentos demorados. Conectamos você diretamente a um contador especialista para destravar seu CPF, CNPJ ou IRPF em tempo recorde.",
+  ctaText: "Resolver meu caso agora",
+};
+
+function formatHeadline(text: string) {
+  if (text.includes("*")) {
+    const parts = text.split(/\*([^*]+)\*/g);
+    return parts.map((part, i) =>
+      i % 2 === 1 ? (
+        <span key={i} className={styles.heroGradientCoral}>
+          {part}
+        </span>
+      ) : (
+        part
+      )
+    );
+  }
+  if (text === DEFAULT_HERO_CONFIG.title) {
+    return (
+      <>
+        A forma mais simples de resolver seus<br />
+        <span className={styles.heroGradientCoral}>problemas com a Receita</span>
+      </>
+    );
+  }
+  return text;
+}
+
+export function HomePage({
+  precos,
+  heroConfig: serverHeroConfig,
+}: {
+  precos: { pf: number; pj: number; consulta: number };
+  heroConfig?: HeroBannerConfig | null;
+}) {
+  const currentConfig = { ...DEFAULT_HERO_CONFIG, ...(serverHeroConfig || {}) };
+  const texture = currentConfig.texture;
+  const color = currentConfig.color;
+  const layout = currentConfig.layout;
+  const title = currentConfig.title;
+  const subtitle = currentConfig.subtitle;
+  const ctaText = currentConfig.ctaText;
+
+  const colorClass =
+    color === "creme"
+      ? styles.heroCream
+      : color === "laranja"
+      ? styles.heroOrange
+      : styles.heroGreen;
+
+  const textureClass =
+    texture === "amassado"
+      ? styles.textureAmassado
+      : texture === "dobras"
+      ? styles.textureDobras
+      : "";
+
+  const layoutClass = layout === "sem-imagem" ? styles.heroCentered : "";
+
   return (
     <>
-      <SiteHeader active="home" />
+      <SiteHeader active="home" heroColor={color} />
 
       {/* =========================================================================
-          HERO SECTION (FINTECH PREMIUM & PROVA SOCIAL)
+          HERO BANNER INTEIRIÇO COM TEXTURAS & CORES CONFIGURÁVEIS
       ========================================================================= */}
-      <section className={`${styles.hero} ${styles.superficieEscura}`}>
-        <div className={styles.container}>
-          <div className={styles.heroGrid} style={{ position: "relative" }}>
-            <div className={styles.heroInner}>
-              <Reveal>
-                <div className={styles.eyebrowSocial}>
-                  <div className={styles.starsGroup}>
-                    {[1, 2, 3, 4, 5].map((s) => (
-                      <Star key={s} size={14} fill="#F59E0B" color="#F59E0B" />
-                    ))}
-                  </div>
-                  <strong>4.9/5</strong>
-                  <span>em mais de 1.400 casos resolvidos</span>
+      <section className={`${styles.hero} ${colorClass} ${layoutClass}`}>
+        {/* Imagem de Fundo Inteiriça do Banner (apenas se layout !== "sem-imagem") */}
+        {layout !== "sem-imagem" && (
+          <div className={styles.heroBackdrop}>
+            <Image
+              src="/illustrations/atendimento-hero-pf.png"
+              alt="Atendimento Contábil Sob Demanda — Olá, Contador"
+              fill
+              priority
+              quality={95}
+              className={styles.heroBackdropImage}
+            />
+            {/* Degradê de fusão para garantir contraste do texto à esquerda */}
+            <div className={styles.heroBackdropOverlay} />
+          </div>
+        )}
+
+        {/* Camada de Textura de Papel */}
+        {texture !== "liso" && textureClass && (
+          <div className={`${styles.heroPaperTexture} ${textureClass}`} />
+        )}
+
+        <div className={styles.heroContainer}>
+          <div className={styles.heroContent}>
+            <Reveal>
+              <div className={styles.eyebrowSocial}>
+                <div className={styles.starsGroup}>
+                  {[1, 2, 3, 4, 5].map((s) => (
+                    <Star key={s} size={14} fill="#F59E0B" color="#F59E0B" />
+                  ))}
                 </div>
-              </Reveal>
-
-              <h1 className={styles.heroTitleBold}>
-                A forma mais simples de resolver seus<br />
-                <span className={styles.heroGradientCoral}>problemas com a Receita</span>
-              </h1>
-
-              <p className={styles.heroSub}>
-                Sem jargões, sem agendamentos demorados. Conectamos você diretamente a um contador especialista para destravar seu CPF, CNPJ ou IRPF em tempo recorde.
-              </p>
-
-              <div className={styles.heroActions}>
-                <Link className={styles.btnCoralGlow} href="/precos">
-                  <span>Resolver meu caso agora</span>
-                  <ArrowRight size={18} />
-                </Link>
-                <Link className={styles.btnGhostGlass} href="#como-funciona">
-                  Como funciona
-                </Link>
+                <strong>4.9/5</strong>
+                <span>em mais de 1.400 casos resolvidos</span>
               </div>
+            </Reveal>
 
-              {/* Micro Badges de Confiança */}
-              <div className={styles.heroTrustBadges}>
-                <span><CheckCircle2 size={15} style={{ color: "#34D399" }} /> Sem baixar nada</span>
-                <span><CheckCircle2 size={15} style={{ color: "#34D399" }} /> Atendimento no mesmo dia</span>
-                <span><CheckCircle2 size={15} style={{ color: "#34D399" }} /> Contadores Especialistas</span>
-              </div>
+            <h1 className={styles.heroTitleBold}>
+              {formatHeadline(title)}
+            </h1>
 
-              {/* Prova Social com Avatares */}
-              <div className={styles.socialProofStrip}>
-                <div className={styles.avatarStack}>
-                  <div className={styles.stackAvatar} style={{ background: "#E25B38" }}>MC</div>
-                  <div className={styles.stackAvatar} style={{ background: "#059669" }}>FA</div>
-                  <div className={styles.stackAvatar} style={{ background: "#2563EB" }}>PL</div>
-                  <div className={styles.stackAvatar} style={{ background: "#7C3AED" }}>RM</div>
-                </div>
-                <div className={styles.socialProofText}>
-                  <strong>+1.420 contribuintes e empresas</strong>
-                  <span>regularizados com sucesso neste ano</span>
-                </div>
-              </div>
+            <p className={styles.heroSub}>
+              {subtitle}
+            </p>
+
+            <div className={styles.heroActions}>
+              <Link className={styles.btnCoralGlow} href="/precos">
+                <span>{ctaText}</span>
+                <ArrowRight size={18} />
+              </Link>
+              <Link className={styles.btnGhostGlass} href="#como-funciona">
+                Como funciona
+              </Link>
             </div>
 
-            {/* Lado Direito: Três Floating Cards Fintech */}
-            <div className={styles.heroVisual}>
-              <div className={styles.heroGlowBlob} />
-              <div className={styles.fintechStackWrap}>
-                
-                <div className={`${styles.fintechCard} ${styles.fintechCard1}`}>
-                  <div className={styles.fintechIconWrap} style={{ background: "rgba(226, 91, 56, 0.15)", color: "#FF9C7E" }}>
-                    <Zap size={22} />
-                  </div>
-                  <div className={styles.fintechCardText}>
-                    <strong>Atendimento Express</strong>
-                    <span>Casos resolvidos em até 24h sem burocracia de agendamento</span>
-                  </div>
-                  <span className={styles.fintechBadgeFast}>Hoje</span>
-                </div>
+            {/* Micro Badges de Confiança */}
+            <div className={styles.heroTrustBadges}>
+              <span><CheckCircle2 size={15} style={{ color: "#34D399" }} /> Sem baixar nada</span>
+              <span><CheckCircle2 size={15} style={{ color: "#34D399" }} /> Atendimento no mesmo dia</span>
+              <span><CheckCircle2 size={15} style={{ color: "#34D399" }} /> Contadores Especialistas</span>
+            </div>
 
-                <div className={`${styles.fintechCard} ${styles.fintechCard2}`}>
-                  <div className={styles.fintechIconWrap} style={{ background: "rgba(16, 185, 129, 0.15)", color: "#10B981" }}>
-                    <TrendingUp size={22} />
-                  </div>
-                  <div className={styles.fintechCardText}>
-                    <strong>99.4% Taxa de Regularização</strong>
-                    <span>Resolução de malha fina, CPF e CNPJ sem multas adicionais</span>
-                  </div>
-                  <span className={styles.fintechBadgeSuccess}>Aprovado</span>
-                </div>
-
-                <div className={`${styles.fintechCard} ${styles.fintechCard3}`}>
-                  <div className={styles.fintechIconWrap} style={{ background: "rgba(59, 130, 246, 0.15)", color: "#60A5FA" }}>
-                    <ShieldCheck size={22} />
-                  </div>
-                  <div className={styles.fintechCardText}>
-                    <strong>Relatório Assinado com CRC</strong>
-                    <span>PDF com parecer técnico do que foi feito, guardado na sua área do cliente</span>
-                  </div>
-                </div>
-
+            {/* Prova Social com Avatares */}
+            <div className={styles.socialProofStrip}>
+              <div className={styles.avatarStack}>
+                <div className={styles.stackAvatar} style={{ background: "#E25B38" }}>MC</div>
+                <div className={styles.stackAvatar} style={{ background: "#059669" }}>FA</div>
+                <div className={styles.stackAvatar} style={{ background: "#2563EB" }}>PL</div>
+                <div className={styles.stackAvatar} style={{ background: "#7C3AED" }}>RM</div>
+              </div>
+              <div className={styles.socialProofText}>
+                <strong>+1.420 contribuintes e empresas</strong>
+                <span>regularizados com sucesso neste ano</span>
               </div>
             </div>
           </div>

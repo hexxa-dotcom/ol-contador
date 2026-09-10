@@ -42,9 +42,9 @@ export default async function LoginPage({
 
         <div className={styles.formCard}>
           <div className={styles.brandHeader}>
-            <Link className={styles.brand} href="/" aria-label="Voltar para a página inicial">
-              <Image src="/logo.svg" alt="Olá, Contador" width={48} height={49} priority className={styles.brandLogo} />
-              <span className={styles.brandName}>
+            <Link className={styles.brandCapsule} href="/" aria-label="Voltar para a página inicial">
+              <Image src="/logo-light.svg" alt="Olá, Contador" width={28} height={29} priority />
+              <span>
                 Olá<i>,</i> Contador<i>.</i>
               </span>
             </Link>

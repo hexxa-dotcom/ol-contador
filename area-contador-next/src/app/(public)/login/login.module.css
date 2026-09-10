@@ -71,44 +71,50 @@
   text-align: center; 
 }
 
-/* MARCA E LOGOTIPO CENTRALIZADOS */
+/* MARCA E LOGOTIPO: oculta no desktop, exibida no mobile no formato de cápsula encapsulada */
 .brandHeader {
-  display: flex;
-  justify-content: center;
-  margin-bottom: 30px;
-  margin-top: 4px;
+  display: none;
 }
 
-.brand { 
-  display: inline-flex; 
-  align-items: center; 
-  justify-content: center; 
-  gap: 12px; 
+@media (max-width: 960px) {
+  .brandHeader {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 24px;
+    margin-top: 4px;
+  }
+}
+
+.brandCapsule {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
   text-decoration: none !important;
-  transition: transform 0.2s ease;
+  padding: 8px 18px;
+  border-radius: 999px;
+  background: #07322A;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 8px 24px rgba(7, 50, 42, 0.2);
+  transition: all 0.2s ease;
 }
 
-.brand:hover { 
-  transform: scale(1.02);
+.brandCapsule:hover {
+  transform: translateY(-1px);
+  background: #093726;
+  box-shadow: 0 10px 28px rgba(7, 50, 42, 0.28);
 }
 
-.brandLogo {
-  width: 44px;
-  height: 45px;
-  flex-shrink: 0;
-}
-
-.brandName { 
+.brandCapsule span {
   font-family: 'Bricolage Grotesque', sans-serif;
-  font-size: 25px; 
-  font-weight: 800; 
-  color: var(--pub-ink, #22312F); 
-  letter-spacing: -0.03em; 
+  font-size: 19px;
+  font-weight: 800;
+  color: #FFFFFF;
+  letter-spacing: -0.02em;
 }
 
-.brandName i { 
-  font-style: normal; 
-  color: #FF9C7E; 
+.brandCapsule i {
+  font-style: normal;
+  color: #FF9C7E;
 }
 
 .tituloForm { 
@@ -348,74 +354,103 @@
 }
 
 .painel[data-papel="contador"] { 
-  background: linear-gradient(152deg, #F58A6B 0%, #F1734F 45%, #E6603D 78%, #D9532F 100%); 
-  box-shadow: 0 24px 50px -20px rgba(217, 83, 47, 0.5); 
+  background: #093726; 
+  box-shadow: 0 24px 50px -20px rgba(9, 55, 38, 0.6); 
 }
 
-.vinheta { 
-  position: absolute; 
-  inset: 0; 
-  pointer-events: none; 
-  background: radial-gradient(ellipse 80% 74% at 50% 44%, transparent 46%, rgba(7, 50, 42, 0.3) 100%); 
+/* Imagem Inteiriça Oficial */
+.painelImagemInteira {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
 }
 
-.painelConteudo { 
-  position: relative; 
-  z-index: 1; 
-  height: 100%; 
-  display: flex; 
-  flex-direction: column; 
-  align-items: center; 
-  justify-content: center; 
-  padding: 56px 40px 108px; 
-  color: #FFFFFF; 
-  text-align: center; 
+.painelFotoBg {
+  object-fit: cover;
+  object-position: center top;
+  width: 100% !important;
+  height: 100% !important;
+  transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/* MARCA DO PAINEL LATERAL NO RODAPÉ / TERÇO INFERIOR */
-.painelMarca { 
-  position: absolute; 
-  bottom: 38px; 
-  left: 0; 
-  right: 0; 
-  z-index: 2; 
-  display: flex; 
-  align-items: center; 
-  justify-content: center; 
-  gap: 10px; 
-  text-decoration: none !important;
-  transition: opacity 0.2s ease, transform 0.2s ease;
-}
-
-.painelMarca:hover {
-  opacity: 0.9;
+.painel:hover .painelFotoBg {
   transform: scale(1.02);
 }
 
-.painelMarca span { 
-  font-family: 'Bricolage Grotesque', sans-serif;
-  font-size: 22px; 
-  font-weight: 800; 
-  letter-spacing: -0.02em; 
-  color: #FFFFFF; 
+.painelOverlayGradiente {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg, 
+    rgba(0, 0, 0, 0.48) 0%, 
+    rgba(0, 0, 0, 0.28) 22%, 
+    rgba(0, 0, 0, 0.05) 36%, 
+    transparent 50%
+  );
+  pointer-events: none;
+  z-index: 1;
 }
 
-.painelMarca i { 
-  font-style: normal; 
-  color: #FF9C7E; 
+/* Marca no topo */
+.painelMarcaTopo {
+  position: absolute;
+  top: 28px;
+  left: 28px;
+  z-index: 3;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none !important;
+  padding: 8px 16px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  transition: all 0.2s ease;
+}
+
+.painelMarcaTopo:hover {
+  background: rgba(0, 0, 0, 0.5);
+  transform: translateY(-1px);
+}
+
+.painelMarcaTopo span {
+  font-family: 'Bricolage Grotesque', sans-serif;
+  font-size: 18px;
+  font-weight: 800;
+  color: #FFFFFF;
+  letter-spacing: -0.02em;
+}
+
+.painelMarcaTopo i {
+  font-style: normal;
+  color: #FF9C7E;
+}
+
+/* Frases em slide no topo, entre a logo e a ilustração (sem card, tamanho menor) */
+.painelTextosTopo {
+  position: absolute;
+  top: 86px;
+  left: 28px;
+  right: 28px;
+  max-width: 440px;
+  z-index: 3;
+  pointer-events: none;
 }
 
 .slides { 
   display: grid; 
   width: 100%; 
-  max-width: 480px; 
 }
 
 .slide { 
   grid-area: 1 / 1; 
   opacity: 0; 
-  transform: translateY(10px); 
-  transition: opacity 0.7s ease, transform 0.7s cubic-bezier(0.2, 0.8, 0.2, 1); 
+  transform: translateY(6px); 
+  transition: opacity 0.4s ease, transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1); 
   pointer-events: none; 
 }
 
@@ -426,35 +461,35 @@
 
 .slide h3 { 
   font-family: 'Bricolage Grotesque', sans-serif;
-  font-size: clamp(2rem, 3.5vw, 2.7rem); 
-  font-weight: 800; 
-  letter-spacing: -0.03em; 
-  line-height: 1.12; 
-  margin: 0 auto 16px; 
+  font-size: 1.02rem; 
+  font-weight: 750; 
+  letter-spacing: -0.02em; 
+  line-height: 1.25; 
+  margin: 0 0 4px; 
   color: #FFFFFF; 
-  text-shadow: 0 2px 20px rgba(0, 0, 0, 0.2); 
-  text-align: center; 
+  text-align: left;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.55);
 }
 
 .slide p { 
-  font-size: 16px; 
-  color: #DCEDE7; 
-  line-height: 1.6; 
-  max-width: 380px; 
-  margin: 0 auto; 
-  text-align: center; 
+  font-size: 0.84rem; 
+  color: rgba(255, 255, 255, 0.92); 
+  line-height: 1.45; 
+  margin: 0; 
+  text-align: left; 
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.55);
 }
 
 .slidesPontos { 
   display: flex; 
-  gap: 8px; 
-  justify-content: center; 
-  margin-top: 36px; 
+  gap: 6px; 
+  justify-content: flex-start; 
+  margin-top: 10px; 
 }
 
 .slidesPontos span { 
-  width: 7px; 
-  height: 7px; 
+  width: 6px; 
+  height: 6px; 
   border-radius: 50%; 
   background: rgba(255, 255, 255, 0.35); 
   transition: background 0.3s ease, width 0.3s ease; 
@@ -462,6 +497,6 @@
 
 .slidesPontos span.ativo { 
   background: #FFFFFF; 
-  width: 22px; 
-  border-radius: 4px; 
+  width: 18px; 
+  border-radius: 3px; 
 }

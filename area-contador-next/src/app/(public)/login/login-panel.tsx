@@ -29,8 +29,17 @@ const FRASES: Record<"geral" | "cliente" | "contador", [string, string][]> = {
 };
 
 export function LoginPanel({ papel }: { papel: Papel }) {
-  const lista = papel === "cliente" ? FRASES.cliente : papel === "contador" ? FRASES.contador : FRASES.geral;
+  const isContador = papel === "contador";
+  const lista = isContador ? FRASES.contador : papel === "cliente" ? FRASES.cliente : FRASES.geral;
   const [atual, setAtual] = useState(0);
+
+  const imagemSrc = isContador
+    ? "/illustrations/empresas-sob-demanda.jpg"
+    : "/illustrations/mei-empreendedora.jpg";
+
+  const imagemAlt = isContador
+    ? "Painel do Escritório — Olá, Contador"
+    : "Área do Cliente — Olá, Contador";
 
   useEffect(() => {
     if (lista.length < 2) return;
@@ -54,15 +63,27 @@ export function LoginPanel({ papel }: { papel: Papel }) {
   return (
     <div className={styles.ladoImagem}>
       <div className={styles.painel} data-papel={papel ?? undefined}>
-        <div className={`${styles.luz} ${styles.luz1}`} aria-hidden="true" />
-        <div className={`${styles.luz} ${styles.luz2}`} aria-hidden="true" />
-        <div className={`${styles.luz} ${styles.luz3}`} aria-hidden="true" />
-        <div className={styles.vinheta} aria-hidden="true" />
-        <Link className={styles.painelMarca} href="/">
-          <Image src="/logo.svg" alt="" width={34} height={35} style={{ filter: "brightness(0) invert(1)" }} />
+        {/* Ilustração Inteiriça Oficial */}
+        <div className={styles.painelImagemInteira}>
+          <Image
+            src={imagemSrc}
+            alt={imagemAlt}
+            fill
+            priority
+            sizes="(max-width: 960px) 0vw, 45vw"
+            className={styles.painelFotoBg}
+          />
+          <div className={styles.painelOverlayGradiente} />
+        </div>
+
+        {/* Marca no topo */}
+        <Link className={styles.painelMarcaTopo} href="/" aria-label="Voltar para a página inicial">
+          <Image src="/logo-light.svg" alt="" width={32} height={33} />
           <span>Olá<i>,</i> Contador<i>.</i></span>
         </Link>
-        <div className={styles.painelConteudo} aria-hidden="true">
+
+        {/* Frases em slide no topo, entre a logo e a ilustração (sem card) */}
+        <div className={styles.painelTextosTopo}>
           <div className={styles.slides}>
             {lista.map(([titulo, texto], i) => (
               <div key={titulo} className={`${styles.slide} ${i === atual ? styles.ativo : ""}`}>

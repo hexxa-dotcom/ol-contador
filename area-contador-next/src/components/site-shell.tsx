@@ -52,10 +52,12 @@ export async function registrarEventoFunil(
 
 export function SiteHeader({ 
   active, 
-  transparentOnTop = active === "home" 
+  transparentOnTop = active === "home",
+  heroColor = "verde",
 }: { 
   active?: "home" | "precos" | "radar" | "blog" | "servicos"; 
   transparentOnTop?: boolean; 
+  heroColor?: "verde" | "creme" | "laranja";
 }) {
   const [menuMobileAberto, setMenuMobileAberto] = useState(false);
   const [scrolled, setScrolled] = useState(false);
@@ -73,7 +75,7 @@ export function SiteHeader({
   // Fecha o menu móvel ao redimensionar para desktop
   useEffect(() => {
     const onResize = () => {
-      if (window.innerWidth > 768) {
+      if (window.innerWidth > 1024) {
         setMenuMobileAberto(false);
       }
     };
@@ -104,14 +106,17 @@ export function SiteHeader({
   }, [menuMobileAberto]);
 
   const isTransparent = transparentOnTop && !scrolled && !menuMobileAberto;
+  const isScrolledPills = transparentOnTop && scrolled && !menuMobileAberto;
+  const isLightHeader = isTransparent && heroColor === "creme";
+  const logoSrc = isLightHeader ? "/logo.svg" : "/logo-light.svg";
 
   return (
     <header 
-      className={`public-nav-wrap ${isTransparent ? "is-transparent" : "is-solid"} ${transparentOnTop ? "is-overlay" : ""}`}
+      className={`public-nav-wrap ${isScrolledPills ? "is-pills" : isTransparent ? "is-transparent" : "is-solid"} ${transparentOnTop ? "is-overlay" : ""} ${isLightHeader ? "is-hero-cream" : ""}`}
     >
       <div className="public-nav-container">
         <Link className="public-brand" href="/" aria-label="Voltar para a página inicial" onClick={() => setMenuMobileAberto(false)}>
-          <Image src="/logo-light.svg" alt="Olá, Contador" width={34} height={35} priority />
+          <Image src={logoSrc} alt="Olá, Contador" width={34} height={35} priority />
           <span>
             Olá<i>,</i> Contador<i>.</i>
           </span>

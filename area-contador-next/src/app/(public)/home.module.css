@@ -72,33 +72,54 @@
   pointer-events: none;
   z-index: 0;
 }
-/* ---------- TESTER SWITCHER DA HERO ---------- */
+/* ---------- TESTER SWITCHER DA HERO (FLOATING PILL) ---------- */
 .heroTesterContainer {
-  background: #091312;
-  padding: 12px 24px;
+  position: fixed;
+  bottom: 28px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 99999;
   display: flex;
   justify-content: center;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  position: relative;
-  z-index: 40;
+  pointer-events: auto;
+  max-width: calc(100vw - 32px);
+  animation: floatIn 0.35s cubic-bezier(0.16, 1, 0.3, 1);
 }
+
+@keyframes floatIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 20px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
 .heroTesterPill {
   display: inline-flex;
   align-items: center;
-  gap: 12px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  gap: 10px;
+  background: rgba(9, 19, 18, 0.94);
+  backdrop-filter: blur(20px) saturate(1.8);
+  -webkit-backdrop-filter: blur(20px) saturate(1.8);
+  border: 1px solid rgba(52, 211, 153, 0.35);
   border-radius: 999px;
-  padding: 4px 6px 4px 16px;
+  padding: 6px 8px 6px 16px;
   flex-wrap: wrap;
   justify-content: center;
+  box-shadow: 0 20px 48px -8px rgba(0, 0, 0, 0.7), 0 4px 16px rgba(0, 0, 0, 0.4);
 }
 .testerHint {
-  color: #94a3b8;
+  color: #34d399;
   font-size: 0.8rem;
-  font-weight: 600;
+  font-weight: 750;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.06em;
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 .testerButtonsGroup {
   display: flex;
@@ -113,7 +134,7 @@
   color: #cbd5e1;
   font-size: 0.82rem;
   font-weight: 700;
-  padding: 6px 14px;
+  padding: 7px 14px;
   border-radius: 999px;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -121,27 +142,402 @@
 }
 .testerBtn:hover {
   color: #ffffff;
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.12);
 }
 .testerBtnActive {
   background: #E25B38 !important;
   color: #ffffff !important;
-  box-shadow: 0 2px 10px rgba(226, 91, 56, 0.4);
+  box-shadow: 0 4px 14px rgba(226, 91, 56, 0.45);
 }
 
-/* ---------- HERO GERAL ---------- */
-.hero { padding: 116px 0 60px; overflow: hidden; }
-.hero.superficieEscura .heroTitleBold { color: #ffffff; font-family: var(--font-sans), 'Plus Jakarta Sans', var(--font-hanken), sans-serif; font-weight: 800; font-size: clamp(2.2rem, 4.8vw, 3.4rem); line-height: 1.12; margin-bottom: 20px; letter-spacing: -.035em; text-wrap: balance; }
+/* ---------- HERO GERAL (BANNER INTEIRIÇO) ---------- */
+.hero {
+  position: relative;
+  background-color: #04382e;
+  background-image: 
+    radial-gradient(ellipse at 18% 28%, rgba(226, 91, 56, 0.16) 0%, transparent 42%),
+    radial-gradient(ellipse at 78% 36%, rgba(52, 211, 153, 0.14) 0%, transparent 48%),
+    linear-gradient(180deg, #05473a 0%, #032b23 100%);
+  color: #ffffff;
+  min-height: 640px;
+  padding: 130px 0 70px;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  isolation: isolate;
+  border-radius: 0 0 36px 36px;
+  border-bottom: 1px solid rgba(52, 211, 153, 0.3);
+  border-left: 1px solid rgba(52, 211, 153, 0.16);
+  border-right: 1px solid rgba(52, 211, 153, 0.16);
+  box-shadow: 0 20px 50px -10px rgba(3, 22, 18, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.18), inset 0 -2px 10px rgba(0, 0, 0, 0.4);
+}
+
+.heroBackdrop {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.heroBackdropImage {
+  object-fit: contain;
+  object-position: right center;
+  width: 100%;
+  height: 100%;
+  image-rendering: -webkit-optimize-contrast;
+}
+
+.heroBackdropOverlay {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  /* Degradê horizontal suave: 100% de nitidez sobre o texto à esquerda,
+     abrindo suavemente para dar destaque total à ilustração no centro-direita */
+  background: linear-gradient(
+    90deg,
+    #05473a 0%,
+    rgba(5, 71, 58, 0.98) 26%,
+    rgba(5, 71, 58, 0.75) 40%,
+    rgba(5, 71, 58, 0.12) 56%,
+    rgba(5, 71, 58, 0) 72%
+  );
+  pointer-events: none;
+}
+
+/* ---------- TEXTURAS DE PAPEL NO BANNER HERO ---------- */
+.heroPaperTexture {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 2;
+  background-repeat: repeat;
+  transition: opacity 0.3s ease, background-image 0.3s ease;
+}
+
+/* 1. Papel Amassado com Vincos Fortes (Impacto Máximo) */
+.textureCrumpledBold,
+.textureAmassado {
+  background-image: url('/textures/paper-crumpled-bold.jpg');
+  background-size: 720px 720px;
+  mix-blend-mode: overlay;
+  opacity: 0.52;
+  filter: contrast(1.3) brightness(1.05);
+}
+
+/* 2. Fibras Vivas Artesanais (Textura Orgânica Marcante) */
+.textureFibersBold {
+  background-image: url('/textures/paper-fibers-bold.jpg');
+  background-size: 520px 520px;
+  mix-blend-mode: overlay;
+  opacity: 0.42;
+  filter: contrast(1.25) brightness(1.1);
+}
+
+/* 3. Papel Reciclado Kraft (Grão e Polpa Ricos) */
+.textureRecycledRich {
+  background-image: url('/textures/paper-recycled.jpg');
+  background-size: 420px 420px;
+  mix-blend-mode: overlay;
+  opacity: 0.48;
+  filter: contrast(1.35) brightness(1.1);
+}
+
+/* 4. Papel com Dobras e Vincos Suaves */
+.textureCreasedSoft,
+.textureDobras {
+  background-image: url('/textures/paper-creased.jpg');
+  background-size: 580px 580px;
+  mix-blend-mode: overlay;
+  opacity: 0.42;
+  filter: contrast(1.3) brightness(1.05);
+}
+
+/* ---------- TEMAS DE COR DO BANNER HERO ---------- */
+
+/* 1. Verde Tradicional (Padrão) */
+.heroGreen {
+  background-color: #04382e;
+  background-image: 
+    radial-gradient(ellipse at 18% 28%, rgba(226, 91, 56, 0.16) 0%, transparent 42%),
+    radial-gradient(ellipse at 78% 36%, rgba(52, 211, 153, 0.14) 0%, transparent 48%),
+    linear-gradient(180deg, #05473a 0%, #032b23 100%);
+  color: #ffffff;
+  border-bottom: 1px solid rgba(52, 211, 153, 0.3);
+  border-left: 1px solid rgba(52, 211, 153, 0.16);
+  border-right: 1px solid rgba(52, 211, 153, 0.16);
+  box-shadow: 0 20px 50px -10px rgba(3, 22, 18, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.18), inset 0 -2px 10px rgba(0, 0, 0, 0.4);
+}
+
+/* 2. Creme Alabastro (Warm Linen / Papel) */
+.heroCream {
+  background-color: #F8F5EE;
+  background-image: 
+    radial-gradient(ellipse at 18% 28%, rgba(226, 91, 56, 0.08) 0%, transparent 42%),
+    radial-gradient(ellipse at 78% 36%, rgba(5, 71, 58, 0.08) 0%, transparent 48%),
+    linear-gradient(180deg, #FAF7F0 0%, #EDE6D8 100%);
+  color: #111827;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+  border-left: 1px solid rgba(0, 0, 0, 0.06);
+  border-right: 1px solid rgba(0, 0, 0, 0.06);
+  box-shadow: 0 20px 45px -10px rgba(71, 62, 49, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.95), inset 0 -2px 6px rgba(0, 0, 0, 0.04);
+}
+
+.heroCream .heroBackdropOverlay {
+  background: linear-gradient(
+    90deg,
+    #FAF7F0 0%,
+    rgba(250, 247, 240, 0.98) 26%,
+    rgba(250, 247, 240, 0.8) 42%,
+    rgba(250, 247, 240, 0.15) 58%,
+    rgba(250, 247, 240, 0) 74%
+  );
+}
+
+.heroCream .heroPaperTexture {
+  mix-blend-mode: multiply !important;
+  opacity: 0.45 !important;
+  filter: contrast(1.2) brightness(1.02) !important;
+}
+
+.heroCream .heroTitleBold {
+  color: #0F172A;
+}
+
+.heroCream .heroGradientCoral {
+  background: linear-gradient(135deg, #05473A 0%, #0D6B57 60%, #04382e 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.heroCream .heroSub {
+  color: #475569;
+}
+
+.heroCream .eyebrowSocial {
+  background: rgba(0, 0, 0, 0.05);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  color: #334155;
+}
+
+.heroCream .btnCoralGlow {
+  background: linear-gradient(135deg, #05473A 0%, #032b23 100%);
+  box-shadow: 0 4px 20px rgba(5, 71, 58, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+}
+.heroCream .btnCoralGlow:hover {
+  background: linear-gradient(135deg, #0B5C4C 0%, #05473A 100%);
+  box-shadow: 0 8px 28px rgba(5, 71, 58, 0.45);
+}
+
+.heroCream .btnGhostGlass {
+  background: rgba(0, 0, 0, 0.04);
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  color: #1E293B !important;
+}
+.heroCream .btnGhostGlass:hover {
+  background: rgba(0, 0, 0, 0.08);
+  border-color: rgba(0, 0, 0, 0.25);
+}
+
+.heroCream .heroTrustBadges {
+  color: #334155;
+}
+.heroCream .heroTrustBadges span svg {
+  color: #059669 !important;
+}
+
+.heroCream .socialProofStrip {
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+}
+.heroCream .socialProofText strong {
+  color: #0F172A;
+}
+.heroCream .socialProofText span {
+  color: #64748B;
+}
+
+/* 3. Laranja Terracota (Vibrante) */
+.heroOrange {
+  background-color: #BA3817;
+  background-image: 
+    radial-gradient(ellipse at 18% 28%, rgba(255, 220, 190, 0.22) 0%, transparent 42%),
+    radial-gradient(ellipse at 78% 36%, rgba(255, 140, 90, 0.2) 0%, transparent 48%),
+    linear-gradient(180deg, #E25B38 0%, #B83A1B 100%);
+  color: #ffffff;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.24);
+  border-left: 1px solid rgba(255, 255, 255, 0.14);
+  border-right: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow: 0 20px 50px -10px rgba(139, 38, 14, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.28), inset 0 -2px 10px rgba(0, 0, 0, 0.3);
+}
+
+.heroOrange .heroBackdropOverlay {
+  background: linear-gradient(
+    90deg,
+    #E25B38 0%,
+    rgba(226, 91, 56, 0.98) 26%,
+    rgba(226, 91, 56, 0.75) 40%,
+    rgba(226, 91, 56, 0.12) 56%,
+    rgba(226, 91, 56, 0) 72%
+  );
+}
+
+.heroOrange .heroPaperTexture {
+  mix-blend-mode: overlay;
+  opacity: 0.52;
+}
+
+.heroOrange .heroTitleBold {
+  color: #ffffff;
+}
+
+.heroOrange .heroGradientCoral {
+  background: linear-gradient(135deg, #FFF5EE 0%, #FFDFCF 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.heroOrange .heroSub {
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.heroOrange .eyebrowSocial {
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  color: #ffffff;
+}
+
+.heroOrange .btnCoralGlow {
+  background: #ffffff;
+  color: #B83A1B !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+.heroOrange .btnCoralGlow:hover {
+  background: #FFF5EE;
+  color: #9C2E13 !important;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.35);
+}
+
+.heroOrange .btnGhostGlass {
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  color: #ffffff !important;
+}
+.heroOrange .btnGhostGlass:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+.heroOrange .heroTrustBadges {
+  color: rgba(255, 255, 255, 0.92);
+}
+.heroOrange .heroTrustBadges span svg {
+  color: #FFDFCF !important;
+}
+
+.heroOrange .socialProofStrip {
+  border-top: 1px solid rgba(255, 255, 255, 0.18);
+}
+.heroOrange .socialProofText strong {
+  color: #ffffff;
+}
+.heroOrange .socialProofText span {
+  color: rgba(255, 255, 255, 0.78);
+}
+
+/* ---------- LAYOUT CENTRALIZADO (SEM IMAGEM) ---------- */
+.heroCentered {
+  text-align: center;
+  padding: 140px 0 90px;
+}
+
+.heroCentered .heroContainer {
+  display: flex;
+  justify-content: center;
+}
+
+.heroCentered .heroContent {
+  max-width: 860px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.heroCentered .heroTitleBold {
+  font-size: clamp(2.3rem, 4.4vw, 3.8rem);
+  line-height: 1.15;
+  margin-bottom: 24px;
+}
+
+.heroCentered .heroSub {
+  max-width: 700px;
+  font-size: 1.18rem;
+  line-height: 1.68;
+  margin: 0 auto 34px;
+}
+
+.heroCentered .heroActions {
+  justify-content: center;
+  margin-bottom: 30px;
+}
+
+.heroCentered .heroTrustBadges {
+  justify-content: center;
+  margin-bottom: 26px;
+}
+
+.heroCentered .socialProofStrip {
+  justify-content: center;
+  width: 100%;
+  max-width: 520px;
+  margin: 10px auto 0;
+}
+
+.heroContainer {
+  width: 100%;
+  max-width: 1540px;
+  margin: 0 auto;
+  padding: 0 48px;
+  position: relative;
+  z-index: 3;
+}
+
+.heroContent {
+  max-width: 500px;
+  position: relative;
+  z-index: 5;
+}
+
+.heroTitleBold {
+  color: #ffffff;
+  font-family: var(--font-sans), 'Plus Jakarta Sans', var(--font-hanken), sans-serif;
+  font-weight: 800;
+  font-size: clamp(2rem, 3.8vw, 3.1rem);
+  line-height: 1.14;
+  margin-bottom: 20px;
+  letter-spacing: -.035em;
+  text-wrap: balance;
+}
+
 .heroGradientCoral {
   background: linear-gradient(135deg, #FF9C7E 0%, #FF6B4A 50%, #FFA88B 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   font-weight: 800;
 }
-.hero.superficieEscura .heroSub { color: rgba(255,255,255,0.82); font-size: 1.08rem; line-height: 1.6; max-width: 540px; margin-bottom: 30px; }
-.heroGrid { display: grid; grid-template-columns: 1.15fr .85fr; gap: 44px; align-items: center; }
-@media (max-width: 960px) { .heroGrid { grid-template-columns: 1fr; gap: 36px; } }
-.heroInner { max-width: 620px; }
+
+.heroSub {
+  color: rgba(255, 255, 255, 0.88);
+  font-size: 1.08rem;
+  line-height: 1.62;
+  max-width: 540px;
+  margin-bottom: 30px;
+}
 
 /* CTAs e Ações */
 .heroActions { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-bottom: 26px; }
@@ -322,6 +718,59 @@
   z-index: 0;
   filter: blur(50px);
   pointer-events: none;
+}
+
+/* Ilustração Widescreen no Banner da Home */
+.heroImageWrap {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 620px;
+  border-radius: 26px;
+  overflow: hidden;
+  box-shadow: 0 28px 70px -15px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(255, 255, 255, 0.14);
+  background: #06281F;
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s ease;
+}
+
+.heroImageWrap:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 34px 80px -15px rgba(0, 0, 0, 0.75), 0 0 0 1px rgba(255, 255, 255, 0.25);
+}
+
+.heroIllustration {
+  width: 100%;
+  height: auto;
+  display: block;
+  object-fit: cover;
+}
+
+.heroImageFloatingBadge {
+  position: absolute;
+  bottom: 18px;
+  left: 18px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(9, 55, 38, 0.9);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 999px;
+  padding: 8px 16px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #FFFFFF;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+.heroImageBadgeDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #10B981;
+  box-shadow: 0 0 8px #10B981;
+  animation: pulsoLive 2s infinite;
 }
 
 /* ==================== CARD SHOWCASE INTERATIVO (OPÇÃO 1) ==================== */
@@ -648,12 +1097,37 @@
 .issueFooterGuarantee { display: flex; align-items: center; gap: 6px; font-size: 0.75rem; font-weight: 700; color: #FF9C7E; }
 
 /* Adaptações Mobile Globais */
+@media (max-width: 960px) {
+  .hero {
+    min-height: auto;
+    padding: 116px 0 56px;
+  }
+  .heroBackdropImage {
+    object-position: 75% center;
+    opacity: 0.85;
+  }
+  .heroBackdropOverlay {
+    background: linear-gradient(
+      180deg,
+      rgba(5, 71, 58, 0.98) 0%,
+      rgba(5, 71, 58, 0.92) 55%,
+      rgba(5, 71, 58, 0.78) 100%
+    );
+  }
+  .heroContent {
+    max-width: 100%;
+  }
+}
+
 @media (max-width: 760px) {
-  .hero { padding: 92px 0 40px; }
+  .hero { 
+    padding: 96px 0 44px; 
+    border-radius: 0 0 24px 24px;
+  }
+  .heroContainer { padding: 0 20px; }
   .heroTesterContainer { padding: 10px 14px; }
   .testerButtonsGroup { width: 100%; }
   .testerBtn { flex: 1; font-size: 0.74rem; padding: 6px 8px; text-align: center; }
-  .heroVisual { min-height: auto; margin-top: 10px; }
   .showcaseMockupCard, .fintechStackWrap, .issuePreviewCard { max-width: 100%; }
 }
 

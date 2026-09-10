@@ -22,3 +22,8 @@ yarn-error.log*
 *.pem
 *.key
 .secrets/
+
+# Mídias locais do usuário
+Midias /
+Midias/
+

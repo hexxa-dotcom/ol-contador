@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import {
   useCallback,
   useEffect,
@@ -23,6 +23,7 @@ import {
   CalendarDays,
   Check,
   CheckCircle2,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
   CircleCheckBig,
@@ -35,7 +36,9 @@ import {
   FileText,
   Filter,
   FolderOpen,
+  Image as ImageIcon,
   Landmark,
+  Layers,
   Link as LinkIcon,
   ListChecks,
   LockKeyhole,
@@ -47,6 +50,7 @@ import {
   MoreVertical,
   PanelLeftClose,
   PanelLeftOpen,
+  Palette,
   Paperclip,
   Pause,
   Play,
@@ -275,6 +279,7 @@ const tabsByView: Record<string, string[]> = {
   notificacoes: ["Avisos do Sistema", "Mensagens"],
   configuracoes: [
     "Geral & Notificações",
+    "Banner da Hero",
     "Área do Cliente",
     "Radar Fiscal",
     "Integracoes",
@@ -294,7 +299,7 @@ export function PageTitle({
 }: {
   title: string;
   badge?: ReactNode;
-  description: string;
+  description?: string;
   action?: ReactNode;
 }) {
   return (
@@ -304,7 +309,7 @@ export function PageTitle({
           <h1>{title}</h1>
           {badge}
         </div>
-        <p>{description}</p>
+        {description && <p>{description}</p>}
       </div>
       {action}
     </div>
@@ -344,22 +349,128 @@ function Tabs({
   );
 }
 
+function AnimatedMoney({
+  cents,
+  duration = 800,
+  triggerKey,
+}: {
+  cents: number;
+  duration?: number;
+  triggerKey?: any;
+}) {
+  const [currentCents, setCurrentCents] = useState(0);
+
+  useEffect(() => {
+    if (!cents || cents <= 0) {
+      setCurrentCents(0);
+      return;
+    }
+
+    let start: number | null = null;
+    let rafId: number;
+
+    const tick = (now: number) => {
+      if (start === null) start = now;
+      const elapsed = now - start;
+      const progress = Math.min(elapsed / duration, 1);
+      // easeOutCubic: fast initial count, smoothly settling
+      const easeOut = 1 - Math.pow(1 - progress, 3);
+      const val = Math.round(easeOut * cents);
+      setCurrentCents(val);
+
+      if (progress < 1) {
+        rafId = requestAnimationFrame(tick);
+      } else {
+        setCurrentCents(cents);
+      }
+    };
+
+    setCurrentCents(0);
+    rafId = requestAnimationFrame(tick);
+
+    return () => {
+      if (rafId) cancelAnimationFrame(rafId);
+    };
+  }, [cents, duration, triggerKey]);
+
+  return (
+    <>
+      {new Intl.NumberFormat("pt-BR", {
+        style: "currency",
+        currency: "BRL",
+      }).format(currentCents / 100)}
+    </>
+  );
+}
+
+function AnimatedCount({
+  value,
+  duration = 800,
+  triggerKey,
+}: {
+  value: number;
+  duration?: number;
+  triggerKey?: any;
+}) {
+  const [current, setCurrent] = useState(0);
+
+  useEffect(() => {
+    if (!value || value <= 0) {
+      setCurrent(0);
+      return;
+    }
+
+    let start: number | null = null;
+    let rafId: number;
+
+    const tick = (now: number) => {
+      if (start === null) start = now;
+      const elapsed = now - start;
+      const progress = Math.min(elapsed / duration, 1);
+      const easeOut = 1 - Math.pow(1 - progress, 3);
+      setCurrent(Math.round(easeOut * value));
+
+      if (progress < 1) {
+        rafId = requestAnimationFrame(tick);
+      } else {
+        setCurrent(value);
+      }
+    };
+
+    setCurrent(0);
+    rafId = requestAnimationFrame(tick);
+
+    return () => {
+      if (rafId) cancelAnimationFrame(rafId);
+    };
+  }, [value, duration, triggerKey]);
+
+  return <>{current}</>;
+}
+
 function Stat({
   label,
   value,
   hint,
   tone = "green",
+  showIcon = true,
+  action,
 }: {
   label: string;
-  value: string;
+  value: ReactNode;
   hint: string;
   tone?: "green" | "orange" | "blue";
+  showIcon?: boolean;
+  action?: ReactNode;
 }) {
   return (
     <Card className="stat">
-      <div className={`stat-icon ${tone}`}>
-        <CircleDollarSign size={18} />
-      </div>
+      {action && <div className="stat-action-slot">{action}</div>}
+      {showIcon && (
+        <div className={`stat-icon ${tone}`}>
+          <CircleDollarSign size={18} />
+        </div>
+      )}
       <span>{label}</span>
       <strong>{value}</strong>
       <small>{hint}</small>
@@ -378,6 +489,18 @@ export function DashboardView({
   const [monthlyGuides, setMonthlyGuides] = useState(data.monthlyGuides);
   const [taskFilter, setTaskFilter] = useState<"todas" | "pendentes" | "concluidas">("todas");
   const [taskOpen, setTaskOpen] = useState(false);
+  const [revenueVisible, setRevenueVisible] = useState(true);
+  const [revenueAnimKey, setRevenueAnimKey] = useState(0);
+
+  function toggleRevenue() {
+    setRevenueVisible((prev) => {
+      const next = !prev;
+      if (next) {
+        setRevenueAnimKey((k) => k + 1);
+      }
+      return next;
+    });
+  }
   const [taskForm, setTaskForm] = useState({
     texto: "",
     dataInicial: new Date().toISOString().slice(0, 10),
@@ -563,39 +686,67 @@ export function DashboardView({
       <PageTitle
         title="Dashboard"
         badge={<span className="topbar-portal-badge">Área Profissional</span>}
-        description="Faturamento, operação do dia, tarefas e guias mensais — nesta ordem."
-        action={
-          <Badge className={data.mode === "live" ? "success" : ""}>
-            {data.mode === "live" ? "Dados ao vivo" : "Modo de prévia"}
-          </Badge>
-        }
       />
       {/* 1. FATURAMENTO */}
-      <section>
-        <div className="section-label">Faturamento</div>
-        <div className="stats-grid billing-stats">
-          <Stat
-            label="Faturamento do Dia"
-            value={money(data.revenue.day)}
-            hint="Cobranças pagas hoje"
-          />
-          <Stat
-            label="Faturamento da Semana"
-            value={money(data.revenue.week)}
-            hint="Desde segunda-feira"
-          />
-          <Stat
-            label="Faturamento do Mês"
-            value={money(data.revenue.month)}
-            hint="Pagamentos confirmados no mês"
-          />
-          <Stat
-            label="Total Atendimentos / Mês"
-            value={String(data.completedThisMonth)}
-            hint={`${data.completedThisMonth} concluído${data.completedThisMonth === 1 ? "" : "s"} até agora`}
-            tone="orange"
-          />
+      <section className="billing-accordion-section">
+        <div className="billing-header-row">
+          <div className="section-label" style={{ marginBottom: 0 }}>
+            Faturamento, operação do dia, tarefas e guias mensais — nesta ordem.
+          </div>
+          <button
+            type="button"
+            onClick={toggleRevenue}
+            className="billing-text-toggle"
+            aria-expanded={revenueVisible}
+          >
+            <span>{revenueVisible ? "Recolher indicadores" : "Mostrar indicadores"}</span>
+            <div className={`billing-chevron-arrow ${revenueVisible ? "is-open" : ""}`}>
+              <ChevronDown size={14} />
+            </div>
+          </button>
         </div>
+
+        <AnimatePresence initial={false}>
+          {revenueVisible && (
+            <motion.div
+              key="billing-dropdown"
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+              style={{ overflow: "hidden" }}
+              className="billing-dropdown-motion"
+            >
+              <div className="stats-grid billing-stats">
+                <Stat
+                  label="Faturamento do Dia"
+                  value={<AnimatedMoney cents={data.revenue.day} triggerKey={revenueAnimKey} />}
+                  hint="Cobranças pagas hoje"
+                  showIcon={false}
+                />
+                <Stat
+                  label="Faturamento da Semana"
+                  value={<AnimatedMoney cents={data.revenue.week} triggerKey={revenueAnimKey} />}
+                  hint="Desde segunda-feira"
+                  showIcon={false}
+                />
+                <Stat
+                  label="Faturamento do Mês"
+                  value={<AnimatedMoney cents={data.revenue.month} triggerKey={revenueAnimKey} />}
+                  hint="Pagamentos confirmados no mês"
+                  showIcon={false}
+                />
+                <Stat
+                  label="Total Atendimentos / Mês"
+                  value={<AnimatedCount value={data.completedThisMonth} triggerKey={revenueAnimKey} />}
+                  hint={`${data.completedThisMonth} concluído${data.completedThisMonth === 1 ? "" : "s"} até agora`}
+                  tone="orange"
+                  showIcon={false}
+                />
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </section>
 
       {/* 2. OPERAÇÃO DO DIA */}
@@ -6899,6 +7050,17 @@ const settingsContent: Record<string, [string, string, string[]]> = {
       "Avisos ao cliente",
     ],
   ],
+  "Banner da Hero": [
+    "Banner da Hero (Página Inicial)",
+    "Controle visual da dobra principal da landing page: textura do papel, cor de fundo, presença da foto e textos.",
+    [
+      "Textura do papel (Amassado, Dobras, Liso)",
+      "Cor do banner (Verde, Creme, Laranja)",
+      "Presença de foto/ilustração",
+      "Título com destaque degradê",
+      "Subtítulo e texto do botão",
+    ],
+  ],
   "Área do Cliente": [
     "Área do Cliente",
     "Como o cliente ve o contador e regras do pre-atendimento.",
@@ -7050,6 +7212,15 @@ export function ConfiguracoesIntegralView({
     systemSounds: true,
     checkoutCartaoTransparente: false,
     ...configObject(data, "painel_preferencias"),
+  });
+  const [heroBanner, setHeroBanner] = useState({
+    texture: "amassado" as "amassado" | "dobras" | "liso",
+    color: "verde" as "verde" | "creme" | "laranja",
+    layout: "com-imagem" as "com-imagem" | "sem-imagem",
+    title: "A forma mais simples de resolver seus problemas com a Receita",
+    subtitle: "Sem jargões, sem agendamentos demorados. Conectamos você diretamente a um contador especialista para destravar seu CPF, CNPJ ou IRPF em tempo recorde.",
+    ctaText: "Resolver meu caso agora",
+    ...configObject(data, "hero_banner_config"),
   });
   const [clientArea, setClientArea] = useState({
     ...{
@@ -7523,6 +7694,312 @@ export function ConfiguracoesIntegralView({
                   { key: "painel_preferencias", value: panelPreferences },
                 ])}>
                   <Save size={15} /> {pending ? "Salvando…" : "Salvar configurações"}
+                </Button>
+              </div>
+            </>
+          )}
+          {tab === "Banner da Hero" && (
+            <>
+              {/* LIVE PREVIEW BOX */}
+              <div className="hero-admin-preview-wrapper">
+                <div className="hero-admin-preview-label">
+                  <span>Pré-visualização em Tempo Real</span>
+                  <small style={{ color: "#64748b", textTransform: "none", fontWeight: 500 }}>
+                    Exatamente como seus clientes verão na Página Inicial
+                  </small>
+                </div>
+                <div
+                  className={`hero-admin-preview theme-${heroBanner.color} ${
+                    heroBanner.layout === "sem-imagem" ? "layout-sem-imagem" : ""
+                  }`}
+                >
+                  {/* Textura */}
+                  {heroBanner.texture !== "liso" && (
+                    <div
+                      className={`hero-admin-preview-texture ${
+                        heroBanner.texture === "amassado" ? "amassado" : "dobras"
+                      }`}
+                    />
+                  )}
+
+                  {/* Ilustração (se layout !== sem-imagem) */}
+                  {heroBanner.layout !== "sem-imagem" && (
+                    <div className="hero-admin-preview-backdrop">
+                      <img
+                        src="/illustrations/atendimento-hero-pf.png"
+                        alt="Ilustração do Banner"
+                      />
+                      <div className="hero-admin-preview-backdrop-overlay" />
+                    </div>
+                  )}
+
+                  <div className="hero-admin-preview-content">
+                    <div className="hero-admin-preview-eyebrow">
+                      <span>★ 4.9/5 em +1.400 casos resolvidos</span>
+                    </div>
+
+                    <h3 className="hero-admin-preview-title">
+                      {heroBanner.title.includes("*") ? (
+                        heroBanner.title.split(/\*([^*]+)\*/g).map((part, i) =>
+                          i % 2 === 1 ? (
+                            <span key={i} className="hero-admin-preview-highlight">
+                              {part}
+                            </span>
+                          ) : (
+                            part
+                          )
+                        )
+                      ) : (
+                        heroBanner.title
+                      )}
+                    </h3>
+
+                    <p className="hero-admin-preview-sub">
+                      {heroBanner.subtitle}
+                    </p>
+
+                    <div className="hero-admin-preview-btn">
+                      <span>{heroBanner.ctaText || "Resolver meu caso agora"}</span>
+                      <ArrowUpRight size={14} />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* SELEÇÃO DE TEXTURA (3 OPÇÕES CONFORME SOLICITADO) */}
+              <div className="hero-customizer-section">
+                <h4 className="hero-customizer-section-title">
+                  <Layers size={16} /> 1. Textura do Papel (Acabamento)
+                </h4>
+                <p className="hero-customizer-section-desc">
+                  Escolha o toque tátil e profundidade de papel que envolve o banner.
+                </p>
+                <div className="hero-cards-grid">
+                  <button
+                    type="button"
+                    className={`hero-card-option ${heroBanner.texture === "amassado" ? "active" : ""}`}
+                    onClick={() => setHeroBanner({ ...heroBanner, texture: "amassado" })}
+                  >
+                    <div className="hero-card-option-icon">📜</div>
+                    <div className="hero-card-option-text">
+                      <strong>Papel Amassado</strong>
+                      <small>Vincos marcantes de alta definição com textura tátil viva.</small>
+                    </div>
+                    {heroBanner.texture === "amassado" && (
+                      <div className="hero-card-option-badge"><Check size={12} /></div>
+                    )}
+                  </button>
+
+                  <button
+                    type="button"
+                    className={`hero-card-option ${heroBanner.texture === "dobras" ? "active" : ""}`}
+                    onClick={() => setHeroBanner({ ...heroBanner, texture: "dobras" })}
+                  >
+                    <div className="hero-card-option-icon">📄</div>
+                    <div className="hero-card-option-text">
+                      <strong>Dobras Suaves</strong>
+                      <small>Linhas e vincos geométricos suaves e elegantes.</small>
+                    </div>
+                    {heroBanner.texture === "dobras" && (
+                      <div className="hero-card-option-badge"><Check size={12} /></div>
+                    )}
+                  </button>
+
+                  <button
+                    type="button"
+                    className={`hero-card-option ${heroBanner.texture === "liso" ? "active" : ""}`}
+                    onClick={() => setHeroBanner({ ...heroBanner, texture: "liso" })}
+                  >
+                    <div className="hero-card-option-icon">✨</div>
+                    <div className="hero-card-option-text">
+                      <strong>Liso (Sem textura)</strong>
+                      <small>Acabamento digital puro, limpo e sem granulação.</small>
+                    </div>
+                    {heroBanner.texture === "liso" && (
+                      <div className="hero-card-option-badge"><Check size={12} /></div>
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              {/* SELEÇÃO DE COR (3 OPÇÕES CONFORME SOLICITADO) */}
+              <div className="hero-customizer-section">
+                <h4 className="hero-customizer-section-title">
+                  <Palette size={16} /> 2. Cor de Fundo do Banner
+                </h4>
+                <p className="hero-customizer-section-desc">
+                  Altera toda a paleta do banner, botões, selos e contraste de texto automaticamente.
+                </p>
+                <div className="hero-cards-grid">
+                  <button
+                    type="button"
+                    className={`hero-card-option ${heroBanner.color === "verde" ? "active" : ""}`}
+                    onClick={() => setHeroBanner({ ...heroBanner, color: "verde" })}
+                  >
+                    <div className="hero-color-swatch verde" />
+                    <div className="hero-card-option-text">
+                      <strong>Verde Tradicional</strong>
+                      <small>Esmeralda profundo (#05473A) com destaques em coral vivo.</small>
+                    </div>
+                    {heroBanner.color === "verde" && (
+                      <div className="hero-card-option-badge"><Check size={12} /></div>
+                    )}
+                  </button>
+
+                  <button
+                    type="button"
+                    className={`hero-card-option ${heroBanner.color === "creme" ? "active" : ""}`}
+                    onClick={() => setHeroBanner({ ...heroBanner, color: "creme" })}
+                  >
+                    <div className="hero-color-swatch creme" />
+                    <div className="hero-card-option-text">
+                      <strong>Creme Alabastro</strong>
+                      <small>Tom linho suave e acolhedor (#FAF7F0) com botão esmeralda.</small>
+                    </div>
+                    {heroBanner.color === "creme" && (
+                      <div className="hero-card-option-badge"><Check size={12} /></div>
+                    )}
+                  </button>
+
+                  <button
+                    type="button"
+                    className={`hero-card-option ${heroBanner.color === "laranja" ? "active" : ""}`}
+                    onClick={() => setHeroBanner({ ...heroBanner, color: "laranja" })}
+                  >
+                    <div className="hero-color-swatch laranja" />
+                    <div className="hero-card-option-text">
+                      <strong>Laranja Terracota</strong>
+                      <small>Terracota marcante (#D94825) com botão branco e alto contraste.</small>
+                    </div>
+                    {heroBanner.color === "laranja" && (
+                      <div className="hero-card-option-badge"><Check size={12} /></div>
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              {/* SELEÇÃO DE IMAGEM / LAYOUT */}
+              <div className="hero-customizer-section">
+                <h4 className="hero-customizer-section-title">
+                  <ImageIcon size={16} /> 3. Presença da Ilustração / Foto
+                </h4>
+                <p className="hero-customizer-section-desc">
+                  Escolha se deseja a ilustração artística integrada ou um banner minimalista centrado na mensagem.
+                </p>
+                <div className="hero-cards-grid">
+                  <button
+                    type="button"
+                    className={`hero-card-option ${heroBanner.layout === "com-imagem" ? "active" : ""}`}
+                    onClick={() => setHeroBanner({ ...heroBanner, layout: "com-imagem" })}
+                  >
+                    <div className="hero-card-option-icon">🖼️</div>
+                    <div className="hero-card-option-text">
+                      <strong>Com Imagem</strong>
+                      <small>Ilustração do atendimento contábil integrada na lateral direita.</small>
+                    </div>
+                    {heroBanner.layout === "com-imagem" && (
+                      <div className="hero-card-option-badge"><Check size={12} /></div>
+                    )}
+                  </button>
+
+                  <button
+                    type="button"
+                    className={`hero-card-option ${heroBanner.layout === "sem-imagem" ? "active" : ""}`}
+                    onClick={() => setHeroBanner({ ...heroBanner, layout: "sem-imagem" })}
+                  >
+                    <div className="hero-card-option-icon">📝</div>
+                    <div className="hero-card-option-text">
+                      <strong>Sem Imagem (Texto Centralizado)</strong>
+                      <small>Layout limpo e direto, texto centralizado e foco exclusivo na frase.</small>
+                    </div>
+                    {heroBanner.layout === "sem-imagem" && (
+                      <div className="hero-card-option-badge"><Check size={12} /></div>
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              {/* EDIÇÃO DE TEXTOS */}
+              <div className="hero-customizer-section">
+                <h4 className="hero-customizer-section-title">
+                  <FileText size={16} /> 4. Textos do Banner
+                </h4>
+                <p className="hero-customizer-section-desc">
+                  Edite a frase de impacto, descrição e a chamada do botão.
+                </p>
+                <div className="form-grid">
+                  <label className="full">
+                    Título / Frase Principal
+                    <Input
+                      type="text"
+                      value={heroBanner.title}
+                      placeholder="Ex: A forma mais simples de resolver seus *problemas com a Receita*"
+                      onChange={(e) => setHeroBanner({ ...heroBanner, title: e.target.value })}
+                    />
+                    <span className="hero-text-hint">
+                      💡 Dica de design: coloque palavras entre <code>*asteriscos*</code> para aplicar o destaque especial em degradê!
+                    </span>
+                  </label>
+
+                  <label className="full">
+                    Subtítulo / Parágrafo Explicativo
+                    <textarea
+                      rows={3}
+                      style={{ width: "100%", padding: "10px 14px", borderRadius: "12px", border: "1px solid var(--border)", font: "inherit", resize: "vertical" }}
+                      value={heroBanner.subtitle}
+                      placeholder="Descreva a promessa e proposta de valor do serviço..."
+                      onChange={(e) => setHeroBanner({ ...heroBanner, subtitle: e.target.value })}
+                    />
+                  </label>
+
+                  <label>
+                    Texto do Botão de Ação (CTA)
+                    <Input
+                      type="text"
+                      value={heroBanner.ctaText}
+                      placeholder="Ex: Resolver meu caso agora"
+                      onChange={(e) => setHeroBanner({ ...heroBanner, ctaText: e.target.value })}
+                    />
+                  </label>
+                </div>
+              </div>
+
+              {/* BOTÕES DE AÇÃO */}
+              <div className="form-actions" style={{ marginTop: 20 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                  <Button
+                    className="secondary"
+                    disabled={pending}
+                    onClick={() => {
+                      setHeroBanner({
+                        texture: "amassado",
+                        color: "verde",
+                        layout: "com-imagem",
+                        title: "A forma mais simples de resolver seus problemas com a Receita",
+                        subtitle: "Sem jargões, sem agendamentos demorados. Conectamos você diretamente a um contador especialista para destravar seu CPF, CNPJ ou IRPF em tempo recorde.",
+                        ctaText: "Resolver meu caso agora",
+                      });
+                      feedback("Valores restaurados para o padrão. Clique em 'Salvar' para gravar.");
+                    }}
+                  >
+                    <RotateCcw size={14} /> Restaurar Padrão
+                  </Button>
+                  <a
+                    href="/"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="btn secondary compact"
+                    style={{ display: "inline-flex", alignItems: "center", gap: 6, textDecoration: "none", padding: "9px 14px", borderRadius: 10, fontSize: "0.85rem", fontWeight: 650, color: "#475569", border: "1px solid var(--border)" }}
+                  >
+                    <ExternalLink size={14} /> Ver Landing Page
+                  </a>
+                </div>
+
+                <Button
+                  disabled={pending}
+                  onClick={() => save("hero_banner_config", heroBanner, true)}
+                >
+                  <Save size={15} /> {pending ? "Salvando…" : "Salvar no Banner da Hero"}
                 </Button>
               </div>
             </>
