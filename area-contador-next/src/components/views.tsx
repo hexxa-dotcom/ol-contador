@@ -111,6 +111,7 @@ import {
   createParcelamentoManual,
   createReport,
   createReportRevision,
+  deliverServiceDocument,
   deleteParcelamentoManual,
   deleteServiceCredit,
   createServiceCredit,
@@ -10379,6 +10380,91 @@ export function RelatoriosIntegralView({
   });
   const [attachments, setAttachments] = useState(data.reportAttachments);
   const [aiReportPending, setAiReportPending] = useState(false);
+  // Entrega direta de documento pronto (ex.: PDF da DECORE) — atalho separado
+  // do editor de laudo narrativo acima: sem problema/solução pra preencher,
+  // só cliente + arquivo + título, ver deliverServiceDocument.
+  const [deliverModal, setDeliverModal] = useState(false);
+  const [deliverForm, setDeliverForm] = useState({
+    clientId: "",
+    atendimentoExpressId: "",
+    title: "",
+    note: "",
+  });
+  const [deliverFile, setDeliverFile] = useState<File | null>(null);
+  const [deliverPending, setDeliverPending] = useState(false);
+  const deliverCasosAbertos = data.express.filter(
+    (item) =>
+      item.cliente_ref === deliverForm.clientId &&
+      item.status !== "concluido" &&
+      item.status !== "cancelado",
+  );
+  function nomeServico(servicoId: string | null) {
+    return data.services.find((s) => s.id === servicoId)?.name || "Serviço";
+  }
+  async function deliverDocument() {
+    if (!deliverForm.clientId || !deliverFile || !deliverForm.title.trim()) {
+      feedback("Selecione o cliente, o título e o arquivo.");
+      return;
+    }
+    if (deliverFile.size > 15 * 1024 * 1024) {
+      feedback("O arquivo deve ter no máximo 15 MB.");
+      return;
+    }
+    setDeliverPending(true);
+    const supabase = createBrowserClient();
+    if (!supabase) {
+      feedback("Conexão indisponível.");
+      setDeliverPending(false);
+      return;
+    }
+    const safeName = deliverFile.name
+      .normalize("NFKD")
+      .replace(/[^a-zA-Z0-9._-]/g, "_")
+      .slice(-120);
+    const path = `${deliverForm.clientId}/${Date.now()}_${safeName}`;
+    try {
+      const { error: storageError } = await supabase.storage
+        .from("documentos")
+        .upload(path, deliverFile, {
+          contentType: deliverFile.type || "application/octet-stream",
+          upsert: false,
+        });
+      if (storageError) throw storageError;
+      const { data: doc, error: recordError } = await supabase
+        .from("documentos")
+        .insert({
+          cliente_ref: deliverForm.clientId,
+          file_name: deliverFile.name,
+          mime: deliverFile.type,
+          size_bytes: deliverFile.size,
+          storage_path: path,
+          uploaded_by: "contador",
+        })
+        .select("id")
+        .single();
+      if (recordError || !doc) throw recordError;
+      const result = await deliverServiceDocument({
+        clientId: deliverForm.clientId,
+        documentId: doc.id,
+        title: deliverForm.title,
+        atendimentoExpressId: deliverForm.atendimentoExpressId
+          ? Number(deliverForm.atendimentoExpressId)
+          : null,
+        note: deliverForm.note,
+      });
+      feedback(result.message);
+      if (result.ok) {
+        setDeliverModal(false);
+        setDeliverForm({ clientId: "", atendimentoExpressId: "", title: "", note: "" });
+        setDeliverFile(null);
+        window.location.reload();
+      }
+    } catch {
+      feedback("Não foi possível entregar o documento agora.");
+    } finally {
+      setDeliverPending(false);
+    }
+  }
   const [pending, startTransition] = useTransition();
   const clientDocuments = data.documents.filter(
     (item) => item.cliente_ref === form.clientId,
@@ -10732,16 +10818,122 @@ export function RelatoriosIntegralView({
         title="Relatórios de Atendimento"
         description="Rascunho, validação, entrega transacional, histórico e PDF."
         action={
-          <Button
-            onClick={() => {
-              openEditor();
-              setTab("Novo Relatório");
-            }}
-          >
-            <Plus size={16} /> Novo relatório
-          </Button>
+          <div className="inline-actions">
+            <Button
+              className="secondary"
+              onClick={() => setDeliverModal(true)}
+            >
+              <Send size={15} /> Entregar documento
+            </Button>
+            <Button
+              onClick={() => {
+                openEditor();
+                setTab("Novo Relatório");
+              }}
+            >
+              <Plus size={16} /> Novo relatório
+            </Button>
+          </div>
         }
       />
+      {deliverModal && (
+        <div className="dialog-backdrop">
+          <Card className="profile-dialog" role="dialog" aria-modal="true">
+            <div className="dialog-head">
+              <div>
+                <h2>Entregar documento pronto</h2>
+                <p>Pra documentos já prontos (ex.: PDF da DECORE emitido no CRC) — sem laudo narrativo. O cliente vê na hora em Documentos e na timeline.</p>
+              </div>
+              <Button className="icon ghost" onClick={() => setDeliverModal(false)}>
+                <X size={18} />
+              </Button>
+            </div>
+            <div className="profile-form">
+              <label>
+                Cliente
+                <select
+                  value={deliverForm.clientId}
+                  onChange={(event) =>
+                    setDeliverForm((value) => ({
+                      ...value,
+                      clientId: event.target.value,
+                      atendimentoExpressId: "",
+                    }))
+                  }
+                >
+                  <option value="">Selecione</option>
+                  {data.radarClients.map((client) => (
+                    <option value={client.id} key={client.id}>
+                      {client.name} · {client.cpf || "sem documento"}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              {deliverCasosAbertos.length > 0 && (
+                <label>
+                  Vincular ao atendimento (opcional)
+                  <select
+                    value={deliverForm.atendimentoExpressId}
+                    onChange={(event) =>
+                      setDeliverForm((value) => ({
+                        ...value,
+                        atendimentoExpressId: event.target.value,
+                      }))
+                    }
+                  >
+                    <option value="">Sem vínculo</option>
+                    {deliverCasosAbertos.map((item) => (
+                      <option value={item.id} key={item.id}>
+                        #{item.id} · {nomeServico(item.servico_id)}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              )}
+              <label>
+                Título do documento
+                <Input
+                  value={deliverForm.title}
+                  onChange={(event) =>
+                    setDeliverForm((value) => ({ ...value, title: event.target.value }))
+                  }
+                  placeholder="Ex.: DECORE — Comprovação de Renda"
+                />
+              </label>
+              <label>
+                Arquivo (PDF, PNG ou JPEG)
+                <input
+                  type="file"
+                  accept="application/pdf,image/png,image/jpeg"
+                  onChange={(event) => setDeliverFile(event.target.files?.[0] || null)}
+                />
+              </label>
+              <label>
+                Observação para o cliente (opcional)
+                <textarea
+                  value={deliverForm.note}
+                  onChange={(event) =>
+                    setDeliverForm((value) => ({ ...value, note: event.target.value }))
+                  }
+                  rows={3}
+                />
+              </label>
+            </div>
+            <div className="dialog-actions">
+              <Button
+                className="secondary"
+                onClick={() => setDeliverModal(false)}
+                disabled={deliverPending}
+              >
+                Cancelar
+              </Button>
+              <Button onClick={() => void deliverDocument()} disabled={deliverPending}>
+                <Send size={15} /> {deliverPending ? "Entregando…" : "Entregar ao cliente"}
+              </Button>
+            </div>
+          </Card>
+        </div>
+      )}
       <Tabs
         view="relatorios"
         active={tab}

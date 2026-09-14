@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/supabase/database.types";
-import { CATALOGO_PADRAO, REGRAS_PADRAO, type TriagemAssunto, type TriagemRegras } from "@/lib/triagemCatalogo";
+import { CATALOGO_PADRAO, REGRAS_PADRAO, identificarAssuntoPorServico, mesclarCatalogoServicos, type TriagemAssunto, type TriagemRegras } from "@/lib/triagemCatalogo";
 import { protocoloAtendimento } from "@/lib/protocolo";
 
 export type PortalMessage = {
@@ -58,7 +58,7 @@ export type PortalMailItem = {
   createdAt: string;
 };
 
-export type PortalReportAnexo = { id: number; titulo: string; url: string | null; tipo: string };
+export type PortalReportAnexo = { id: number; titulo: string; url: string | null; tipo: string; documentoId: number | null };
 export type PortalAvaliacao = { id: number; casoRef: string | null; relatorioId: number | null; nota: number; comentario: string | null; createdAt: string };
 
 export type PortalReport = {
@@ -246,7 +246,7 @@ export async function loadPortalData(supabase: SupabaseClient<Database>, clientI
     // quais horários já estão ocupados na agenda geral do escritório, igual ao
     // /api/appointments que o cliente.html consulta pra montar o calendário.
     supabase.from("agendamentos").select("date,time,status").not("status", "eq", "cancelled").gte("date", todayStr).lte("date", limitStr),
-    supabase.from("relatorio_anexos").select("id,relatorio_id,titulo,url,tipo").eq("cliente_ref", clientId).eq("visivel_cliente", true),
+    supabase.from("relatorio_anexos").select("id,relatorio_id,titulo,url,tipo,documento_id").eq("cliente_ref", clientId).eq("visivel_cliente", true),
     supabase.from("avaliacoes").select("id,caso_ref,relatorio_id,nota,comentario,created_at").eq("cliente_ref", clientId).order("created_at", { ascending: false }),
     supabase.from("atendimentos_express").select("id,servico_id,assunto,status,contratado_em,prazo_conclusao_em,concluido_em").eq("cliente_ref", clientId).order("contratado_em", { ascending: false }).limit(20),
     // Agenda fiscal só é relevante pra quem tem serviço recorrente ativo —
@@ -279,7 +279,13 @@ export async function loadPortalData(supabase: SupabaseClient<Database>, clientI
     configPorChave[row.chave] = row.valor;
   });
   const catalogoRemoto = configPorChave.triagem_assuntos;
-  const triagemCatalogo: TriagemAssunto[] = Array.isArray(catalogoRemoto) && catalogoRemoto.length ? (catalogoRemoto as TriagemAssunto[]) : CATALOGO_PADRAO;
+  const triagemCatalogo: TriagemAssunto[] = mesclarCatalogoServicos(
+    Array.isArray(catalogoRemoto) && catalogoRemoto.length ? (catalogoRemoto as TriagemAssunto[]) : CATALOGO_PADRAO,
+  );
+  const servicoNomeById: Record<string, string> = {};
+  (servicosResult.data ?? []).forEach((s) => {
+    servicoNomeById[s.id] = s.name;
+  });
   const regrasRemoto = configPorChave.triagem_regras;
   const triagemRegras: TriagemRegras =
     regrasRemoto && typeof regrasRemoto === "object" && !Array.isArray(regrasRemoto) ? { ...REGRAS_PADRAO, ...(regrasRemoto as Partial<TriagemRegras>) } : REGRAS_PADRAO;
@@ -335,7 +341,7 @@ export async function loadPortalData(supabase: SupabaseClient<Database>, clientI
     atendimentosExpress: (expressResult.data ?? []).map((e) => ({
       id: e.id,
       servicoId: e.servico_id,
-      assunto: e.assunto,
+      assunto: e.assunto || identificarAssuntoPorServico(e.servico_id ? servicoNomeById[e.servico_id] : null),
       status: e.status,
       contratadoEm: e.contratado_em,
       prazoConclusaoEm: e.prazo_conclusao_em,
@@ -372,7 +378,7 @@ export async function loadPortalData(supabase: SupabaseClient<Database>, clientI
       contadorCrc: r.contador_crc,
       versao: r.versao,
       prazoProximoPasso: r.prazo_proximo_passo,
-      anexos: (anexosResult.data ?? []).filter((a) => a.relatorio_id === r.id).map((a) => ({ id: a.id, titulo: a.titulo, url: a.url, tipo: a.tipo })),
+      anexos: (anexosResult.data ?? []).filter((a) => a.relatorio_id === r.id).map((a) => ({ id: a.id, titulo: a.titulo, url: a.url, tipo: a.tipo, documentoId: a.documento_id })),
     })),
     avaliacoes: (avaliacoesResult.data ?? []).map((a) => ({ id: a.id, casoRef: a.caso_ref, relatorioId: a.relatorio_id, nota: a.nota, comentario: a.comentario, createdAt: a.created_at })),
     triagemCatalogo,

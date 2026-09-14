@@ -2894,6 +2894,17 @@ function DocumentList({
   );
 }
 
+// Relatórios "documento" (ex.: DECORE) não têm laudo narrativo — o PDF de
+// verdade é o arquivo que o contador anexou, não o gerado a partir de
+// problema/solução. Por isso baixam o anexo direto (signed URL), em vez do
+// botão "Baixar Relatório Oficial (PDF)" (que monta um PDF a partir dos
+// campos narrativos, vazios nesse caso).
+async function baixarAnexoDocumento(documentoId: number) {
+  const result = await getDocumentDownloadUrl(documentoId);
+  if (result.ok) window.open(result.url, "_blank", "noopener,noreferrer");
+  else feedback(result.message);
+}
+
 function ReportList({ reports }: { reports: PortalReport[] }) {
   if (!reports.length) return null;
   return (
@@ -2918,7 +2929,7 @@ function ReportList({ reports }: { reports: PortalReport[] }) {
               </span>
             </div>
             <h3 className="portal-report-title">{report.titulo || "Relatório Oficial de Atendimento"}</h3>
-            {report.anexos.length > 0 && (
+            {report.anexos.length > 0 && !(report.tipoRelatorio === "documento" && report.anexos.length === 1) && (
               <div className="portal-report-anexos">
                 <span className="portal-report-anexos-label">Anexos complementares:</span>
                 <div className="portal-report-anexos-pills">
@@ -2938,33 +2949,43 @@ function ReportList({ reports }: { reports: PortalReport[] }) {
               </div>
             )}
             <div className="portal-report-footer">
-              <Button
-                className="portal-report-download-btn"
-                onClick={() =>
-                  void baixarRelatorioPdf({
-                    id: report.id,
-                    versao: report.versao,
-                    tipoRelatorio: report.tipoRelatorio,
-                    titulo: report.titulo,
-                    clienteNome: report.clienteNome,
-                    clienteCpf: report.clienteCpf,
-                    problema: report.problema,
-                    solucao: report.solucao,
-                    oqueFeito: report.oqueFeito,
-                    comoFeito: report.comoFeito,
-                    pendencias: report.pendencias,
-                    contadorAssinatura: report.contadorAssinatura,
-                    contadorNome: report.contadorNome,
-                    contadorCrc: report.contadorCrc,
-                    codigoValidacao: report.codigoValidacao,
-                    entregueEm: report.entregueEm,
-                    createdAt: report.createdAt,
-                  })
-                }
-              >
-                <Download size={14} />
-                <span>Baixar Relatório Oficial (PDF)</span>
-              </Button>
+              {report.tipoRelatorio === "documento" && report.anexos[0]?.documentoId ? (
+                <Button
+                  className="portal-report-download-btn"
+                  onClick={() => void baixarAnexoDocumento(report.anexos[0].documentoId as number)}
+                >
+                  <Download size={14} />
+                  <span>Baixar seu documento</span>
+                </Button>
+              ) : (
+                <Button
+                  className="portal-report-download-btn"
+                  onClick={() =>
+                    void baixarRelatorioPdf({
+                      id: report.id,
+                      versao: report.versao,
+                      tipoRelatorio: report.tipoRelatorio,
+                      titulo: report.titulo,
+                      clienteNome: report.clienteNome,
+                      clienteCpf: report.clienteCpf,
+                      problema: report.problema,
+                      solucao: report.solucao,
+                      oqueFeito: report.oqueFeito,
+                      comoFeito: report.comoFeito,
+                      pendencias: report.pendencias,
+                      contadorAssinatura: report.contadorAssinatura,
+                      contadorNome: report.contadorNome,
+                      contadorCrc: report.contadorCrc,
+                      codigoValidacao: report.codigoValidacao,
+                      entregueEm: report.entregueEm,
+                      createdAt: report.createdAt,
+                    })
+                  }
+                >
+                  <Download size={14} />
+                  <span>Baixar Relatório Oficial (PDF)</span>
+                </Button>
+              )}
             </div>
           </div>
         ))}

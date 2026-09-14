@@ -106,6 +106,52 @@ export function acharAssunto(catalogo: TriagemAssunto[], id: string): TriagemAss
   return catalogo.find((item) => item.id === id) || null;
 }
 
+// Triagens específicas por serviço contratado (ex.: DECORE) — diferente do
+// CATALOGO_PADRAO (assuntos genéricos que o cliente escolhe livremente),
+// estas entram automaticamente quando o serviço comprado tem um roteiro
+// próprio de perguntas/documentos. Ver identificarAssuntoPorServico e
+// mesclarCatalogoServicos, usados em src/lib/portal.ts.
+export const CATALOGO_SERVICOS_ESPECIFICOS: TriagemAssunto[] = [
+  {
+    id: "decore",
+    titulo: "Emissão da sua DECORE",
+    resumo: "Comprovação de renda para financiamento, aluguel, visto ou empréstimo",
+    icone: "file-check",
+    perguntas: [
+      { id: "finalidade", label: "Pra que você precisa da DECORE?", tipo: "escolha", opcoes: ["Financiamento imobiliário", "Aluguel", "Visto ou imigração", "Empréstimo bancário", "Outro"] },
+      { id: "atividade", label: "Qual sua atividade ou profissão?", tipo: "texto", dica: "Ex.: motorista de app, dentista, consultor autônomo" },
+      { id: "dequem", label: "Você recebe de pessoas físicas ou de empresas?", tipo: "escolha", opcoes: ["Só de pessoas físicas", "Só de empresas", "Dos dois"] },
+      { id: "periodo", label: "Qual período você precisa comprovar?", tipo: "texto", dica: "Ex.: últimos 6 meses, ou janeiro a junho de 2025" },
+      { id: "renda", label: "Qual sua renda média mensal, aproximadamente?", tipo: "texto", opcional: true, dica: "Ex.: R$ 4.500,00" },
+    ],
+    documentos: [
+      "Documento de identificação oficial com foto (RG ou CNH)",
+      "Extratos bancários dos meses a comprovar",
+      "Última declaração do IRPF com recibo de entrega (se houver)",
+      "Comprovantes de recebimento: notas fiscais, recibos de autônomo (RPA), contratos ou informe de rendimentos",
+    ],
+  },
+];
+
+// Detecta pelo NOME do serviço contratado (tabela `servicos`, sem coluna de
+// slug) qual roteiro específico usar. Pra adicionar um novo serviço com
+// triagem própria: acrescente o `if` aqui e a entrada correspondente em
+// CATALOGO_SERVICOS_ESPECIFICOS.
+export function identificarAssuntoPorServico(nomeServico: string | null | undefined): string | null {
+  const nome = (nomeServico || "").toLowerCase();
+  if (!nome) return null;
+  if (nome.includes("decore")) return "decore";
+  return null;
+}
+
+// Garante que os roteiros específicos por serviço estejam sempre disponíveis
+// no catálogo usado pelo portal, independente do que estiver salvo em
+// configuracoes.triagem_assuntos (evita depender de reconfiguração manual).
+export function mesclarCatalogoServicos(catalogo: TriagemAssunto[]): TriagemAssunto[] {
+  const existentes = new Set(catalogo.map((item) => item.id));
+  return [...catalogo, ...CATALOGO_SERVICOS_ESPECIFICOS.filter((item) => !existentes.has(item.id))];
+}
+
 // Porte de OC_TRIAGEM.completude — peso maior no relato, que é o que mais
 // economiza tempo na hora do atendimento.
 export function completude(

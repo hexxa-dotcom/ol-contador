@@ -592,6 +592,93 @@ export async function setCaixaPostalThreadStatus(input: { clientId: string; assu
 
 export async function setReportDocument(input:{reportId:number;documentId:number;attached:boolean;visibleToClient:boolean}){const supabase=await createClient();if(!supabase)return {ok:false as const,message:"Conexão indisponível."};const {data:claims}=await supabase.auth.getClaims();const userId=claims?.claims?.sub;if(!userId)return {ok:false as const,message:"Sessão expirada."};const [{data:staff},{data:report},{data:document}]=await Promise.all([supabase.from("staff").select("id").eq("id",userId).maybeSingle(),supabase.from("relatorios").select("id,cliente_ref,status,caso_ref").eq("id",input.reportId).maybeSingle(),supabase.from("documentos").select("id,cliente_ref,file_name,public_url,storage_path").eq("id",input.documentId).maybeSingle()]);if(!staff)return {ok:false as const,message:"Ação não autorizada."};if(!report||!document||report.cliente_ref!==document.cliente_ref)return {ok:false as const,message:"Documento ou relatório inválido."};if(report.status==="entregue")return {ok:false as const,message:"Crie uma revisão para alterar anexos de um relatório entregue."};if(!input.attached){const {error}=await supabase.from("relatorio_anexos").delete().eq("relatorio_id",report.id).eq("documento_id",document.id);if(error)return {ok:false as const,message:"Não foi possível remover o anexo."};revalidatePath("/");return {ok:true as const,message:"Anexo removido."};}const patch={relatorio_id:report.id,cliente_ref:report.cliente_ref,caso_ref:report.caso_ref,documento_id:document.id,titulo:document.file_name,tipo:"arquivo",url:document.public_url,referencia:document.storage_path,visivel_cliente:Boolean(input.visibleToClient),created_by:userId};const {data:existing}=await supabase.from("relatorio_anexos").select("id").eq("relatorio_id",report.id).eq("documento_id",document.id).maybeSingle();const query=existing?supabase.from("relatorio_anexos").update(patch).eq("id",existing.id):supabase.from("relatorio_anexos").insert(patch);const {data,error}=await query.select("*").single();if(error||!data)return {ok:false as const,message:"Não foi possível vincular o anexo."};revalidatePath("/");return {ok:true as const,data,message:"Documento vinculado ao relatório."};}
 
+// Entrega direta de um documento pronto (ex.: PDF da DECORE emitido no CRC) —
+// diferente de saveCompleteReport/deliver() (laudo narrativo "problema →
+// solução", que passa pelo proxy legado /api/operations "finalize-report"
+// pra entrega multicanal com retry). Aqui não há narrativa pra preencher e a
+// entrega é local: cria o relatório já "entregue", anexa o arquivo (subido
+// antes pelo chamador, como documentos.insert) e notifica o cliente direto.
+export async function deliverServiceDocument(input: {
+  clientId: string;
+  documentId: number;
+  title: string;
+  atendimentoExpressId?: number | null;
+  note?: string;
+}) {
+  const supabase = await createClient();
+  if (!supabase) return { ok: false as const, message: "Conexão indisponível." };
+  const { data: claims } = await supabase.auth.getClaims();
+  const userId = claims?.claims?.sub;
+  if (!userId) return { ok: false as const, message: "Sessão expirada." };
+
+  const [{ data: staff }, { data: client }, { data: document }, { data: config }] = await Promise.all([
+    supabase.from("staff").select("id,name,nome").eq("id", userId).maybeSingle(),
+    supabase.from("clientes").select("id,name,cpf,email,phone").eq("id", input.clientId).maybeSingle(),
+    supabase.from("documentos").select("id,cliente_ref,file_name,public_url,storage_path").eq("id", input.documentId).maybeSingle(),
+    supabase.from("configuracoes").select("valor").eq("chave", "perfil_contador").maybeSingle(),
+  ]);
+  if (!staff) return { ok: false as const, message: "Ação não autorizada." };
+  if (!client) return { ok: false as const, message: "Cliente não encontrado." };
+  if (!document || document.cliente_ref !== client.id) return { ok: false as const, message: "Documento inválido para este cliente." };
+
+  const professional = config?.valor && typeof config.valor === "object" && !Array.isArray(config.valor) ? (config.valor as Record<string, unknown>) : {};
+  if (!professional.crc || !professional.assinaturaDataUrl) {
+    return { ok: false as const, message: "Complete CRC e assinatura no seu perfil antes de entregar documentos." };
+  }
+
+  const title = input.title.trim().slice(0, 180) || document.file_name;
+  const now = new Date().toISOString();
+  const { data: report, error: reportError } = await supabase
+    .from("relatorios")
+    .insert({
+      cliente_ref: client.id,
+      cliente_nome: client.name,
+      cliente_cpf: client.cpf,
+      titulo: title,
+      tipo_relatorio: "documento",
+      formato: "documento",
+      status: "entregue",
+      entregue_em: now,
+      entregue_por: userId,
+      atendimento_express_id: input.atendimentoExpressId ?? null,
+      entregas: input.note?.trim().slice(0, 3000) || null,
+      codigo_validacao: crypto.randomUUID(),
+      contador_nome: typeof professional.name === "string" ? professional.name : staff.nome || staff.name,
+      contador_crc: typeof professional.crc === "string" ? professional.crc : null,
+      contador_logo: typeof professional.logoDataUrl === "string" ? professional.logoDataUrl : null,
+      contador_assinatura: typeof professional.assinaturaDataUrl === "string" ? professional.assinaturaDataUrl : null,
+      updated_at: now,
+    })
+    .select("id")
+    .single();
+  if (reportError || !report) return { ok: false as const, message: "Não foi possível registrar a entrega." };
+
+  const { error: anexoError } = await supabase.from("relatorio_anexos").insert({
+    relatorio_id: report.id,
+    cliente_ref: client.id,
+    documento_id: document.id,
+    titulo: document.file_name,
+    tipo: "arquivo",
+    url: document.public_url,
+    referencia: document.storage_path,
+    visivel_cliente: true,
+    created_by: userId,
+  });
+  if (anexoError) {
+    await supabase.from("relatorios").delete().eq("id", report.id);
+    return { ok: false as const, message: "Não foi possível anexar o arquivo ao relatório." };
+  }
+
+  void notify.notifyCliente(
+    client,
+    "Seu documento está pronto",
+    `Seu documento (<strong>${title}</strong>) já está disponível. Acesse sua Área do Cliente, em Documentos, para baixar.`,
+  );
+
+  revalidatePath("/");
+  return { ok: true as const, message: "Documento entregue ao cliente." };
+}
+
 export async function markMonthlyGuideGenerated(id: number) {
   if (!Number.isInteger(id) || id <= 0)
     return { ok: false as const, message: "Guia inválida." };
