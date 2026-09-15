@@ -701,6 +701,67 @@ export async function deliverServiceDocument(input: {
   return { ok: true as const, message: "Documento entregue ao cliente." };
 }
 
+// Desfaz uma entrega feita por deliverServiceDocument (ex.: envio de teste
+// por engano) — some do portal do cliente. Restrito a tipo_relatorio
+// "documento" pra não virar um jeito de apagar laudos narrativos entregues.
+export async function deleteDeliveredDocument(reportId: number) {
+  if (!Number.isInteger(reportId) || reportId <= 0) return { ok: false as const, message: "Entrega inválida." };
+  const supabase = await createClient();
+  if (!supabase) return { ok: false as const, message: "Conexão indisponível." };
+  const { data: claims } = await supabase.auth.getClaims();
+  const userId = claims?.claims?.sub;
+  if (!userId) return { ok: false as const, message: "Sessão expirada." };
+  const { data: staff } = await supabase.from("staff").select("id").eq("id", userId).maybeSingle();
+  if (!staff) return { ok: false as const, message: "Ação não autorizada." };
+  const { data: report } = await supabase.from("relatorios").select("id,tipo_relatorio").eq("id", reportId).maybeSingle();
+  if (!report) return { ok: false as const, message: "Entrega não encontrada." };
+  if (report.tipo_relatorio !== "documento") return { ok: false as const, message: "Essa entrega não pode ser excluída por aqui." };
+  await supabase.from("relatorio_anexos").delete().eq("relatorio_id", reportId);
+  const { error } = await supabase.from("relatorios").delete().eq("id", reportId);
+  if (error) return { ok: false as const, message: "Não foi possível excluir a entrega." };
+  revalidatePath("/");
+  return { ok: true as const, message: "Entrega excluída — o cliente não vê mais esse documento." };
+}
+
+// Substitui o arquivo de uma entrega já feita (ex.: subiu a versão errada) —
+// troca o anexo e atualiza título/data de entrega, mantendo o mesmo
+// relatório (o cliente não perde o histórico, só vê o arquivo novo).
+export async function replaceDeliveredDocument(input: { reportId: number; documentId: number; title?: string }) {
+  const supabase = await createClient();
+  if (!supabase) return { ok: false as const, message: "Conexão indisponível." };
+  const { data: claims } = await supabase.auth.getClaims();
+  const userId = claims?.claims?.sub;
+  if (!userId) return { ok: false as const, message: "Sessão expirada." };
+  const [{ data: staff }, { data: report }, { data: document }] = await Promise.all([
+    supabase.from("staff").select("id").eq("id", userId).maybeSingle(),
+    supabase.from("relatorios").select("id,cliente_ref,tipo_relatorio").eq("id", input.reportId).maybeSingle(),
+    supabase.from("documentos").select("id,cliente_ref,file_name,public_url,storage_path").eq("id", input.documentId).maybeSingle(),
+  ]);
+  if (!staff) return { ok: false as const, message: "Ação não autorizada." };
+  if (!report || report.tipo_relatorio !== "documento") return { ok: false as const, message: "Entrega inválida." };
+  if (!document || document.cliente_ref !== report.cliente_ref) return { ok: false as const, message: "Documento inválido para este cliente." };
+
+  await supabase.from("relatorio_anexos").delete().eq("relatorio_id", report.id);
+  const title = input.title?.trim().slice(0, 180) || document.file_name;
+  const now = new Date().toISOString();
+  const { error: anexoError } = await supabase.from("relatorio_anexos").insert({
+    relatorio_id: report.id,
+    cliente_ref: report.cliente_ref,
+    documento_id: document.id,
+    titulo: document.file_name,
+    tipo: "arquivo",
+    url: document.public_url,
+    referencia: document.storage_path,
+    visivel_cliente: true,
+    created_by: userId,
+  });
+  if (anexoError) return { ok: false as const, message: "Não foi possível substituir o arquivo." };
+  const { error: reportError } = await supabase.from("relatorios").update({ titulo: title, entregue_em: now, updated_at: now }).eq("id", report.id);
+  if (reportError) return { ok: false as const, message: "Arquivo trocado, mas não foi possível atualizar o título/data." };
+  revalidatePath("/");
+  return { ok: true as const, message: "Documento substituído." };
+}
+
 export async function markMonthlyGuideGenerated(id: number) {
   if (!Number.isInteger(id) || id <= 0)
     return { ok: false as const, message: "Guia inválida." };

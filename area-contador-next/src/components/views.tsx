@@ -85,6 +85,7 @@ import { emptyDashboardData, type DashboardData } from "@/lib/dashboard";
 import { validarCpfCnpj, mascaraCpfCnpj, validarTelefone, mascaraTelefone } from "@/lib/documento";
 import { baixarRelatorioPdf } from "@/lib/reportPdf";
 import { CATALOGO_PADRAO, acharAssunto, mesclarCatalogoServicos, type TriagemAssunto } from "@/lib/triagemCatalogo";
+import { protocoloAtendimento } from "@/lib/protocolo";
 import {
   emptyClientsData,
   type ClientMessage,
@@ -113,6 +114,8 @@ import {
   createReport,
   createReportRevision,
   deliverServiceDocument,
+  deleteDeliveredDocument,
+  replaceDeliveredDocument,
   deleteParcelamentoManual,
   deleteServiceCredit,
   createServiceCredit,
@@ -9878,6 +9881,19 @@ function encontrarProcesso(nomeServico: string | null | undefined, catalogo: Pro
   return catalogo.find((item) => item.servicoNome.trim() && nome.includes(item.servicoNome.toLowerCase().trim())) || null;
 }
 
+// Formata uma diferença de tempo (ms) em "Xd Yh" / "Xh Ymin" / "Xmin", pro
+// medidor de prazo do card de tarefa.
+function formatTempoRestante(ms: number): string {
+  const abs = Math.max(0, Math.abs(ms));
+  const horasTotais = Math.floor(abs / 3_600_000);
+  const dias = Math.floor(horasTotais / 24);
+  const horas = horasTotais % 24;
+  const minutos = Math.floor((abs % 3_600_000) / 60_000);
+  if (dias > 0) return `${dias}d ${horas}h`;
+  if (horas > 0) return `${horas}h ${minutos}min`;
+  return `${minutos}min`;
+}
+
 // Cronômetro do card de tarefa — persiste no mesmo campo que o cronômetro do
 // chat (clientes.perfil_operacional.chatTimer, via saveChatTimer), mas com UI
 // e lógica próprias e mais simples (sem os avisos automáticos do chat), pra
@@ -10050,6 +10066,57 @@ export function AcompanhamentoIntegralView({
       feedback("Não foi possível finalizar a entrega agora.");
     } finally {
       setTaskDeliverPending(false);
+    }
+  }
+  function limparFormularioEntrega() {
+    setTaskDeliverForm({ title: "", note: "" });
+    setTaskDeliverFile(null);
+  }
+  // Desfazer/corrigir uma entrega já feita (ex.: envio de teste por engano)
+  // — reaproveita o mesmo padrão de upload client-side já usado em
+  // finalizarEEntregar, mas contra deleteDeliveredDocument/replaceDeliveredDocument.
+  async function excluirDocumentoEntregue(reportId: number) {
+    if (!window.confirm("Excluir esta entrega? O cliente deixa de ver esse documento na hora.")) return;
+    const result = await deleteDeliveredDocument(reportId);
+    feedback(result.message);
+    if (result.ok) window.location.reload();
+  }
+  async function substituirDocumentoEntregue(reportId: number, clienteRef: string) {
+    const file = await new Promise<File | null>((resolve) => {
+      const input = document.createElement("input");
+      input.type = "file";
+      input.accept = "application/pdf,image/png,image/jpeg";
+      input.addEventListener("change", () => resolve(input.files?.[0] || null));
+      input.click();
+    });
+    if (!file) return;
+    if (file.size > 15 * 1024 * 1024) {
+      feedback("O arquivo deve ter no máximo 15 MB.");
+      return;
+    }
+    const supabase = createBrowserClient();
+    if (!supabase) {
+      feedback("Conexão indisponível.");
+      return;
+    }
+    const safeName = file.name.normalize("NFKD").replace(/[^a-zA-Z0-9._-]/g, "_").slice(-120);
+    const path = `${clienteRef}/${Date.now()}_${safeName}`;
+    try {
+      const { error: storageError } = await supabase.storage
+        .from("documentos")
+        .upload(path, file, { contentType: file.type || "application/octet-stream", upsert: false });
+      if (storageError) throw storageError;
+      const { data: doc, error: recordError } = await supabase
+        .from("documentos")
+        .insert({ cliente_ref: clienteRef, file_name: file.name, mime: file.type, size_bytes: file.size, storage_path: path, uploaded_by: "contador" })
+        .select("id")
+        .single();
+      if (recordError || !doc) throw recordError;
+      const result = await replaceDeliveredDocument({ reportId, documentId: doc.id });
+      feedback(result.message);
+      if (result.ok) window.location.reload();
+    } catch {
+      feedback("Não foi possível substituir o documento agora.");
     }
   }
   const [novoModal, setNovoModal] = useState(false);
@@ -10517,6 +10584,16 @@ export function AcompanhamentoIntegralView({
         const endereco = clienteAtual
           ? [clienteAtual.endereco, clienteAtual.numero, clienteAtual.bairro, clienteAtual.cidade, clienteAtual.estado].filter(Boolean).join(", ")
           : "";
+        const protocolo = protocoloAtendimento("express", detalhes.id);
+        const inicioPrazo = new Date(detalhes.contratado_em).getTime();
+        const fimPrazo = new Date(detalhes.prazo_conclusao_em).getTime();
+        const agora = Date.now();
+        const totalPrazo = fimPrazo - inicioPrazo;
+        const pctPrazo = totalPrazo > 0 ? Math.min(100, Math.max(0, ((agora - inicioPrazo) / totalPrazo) * 100)) : 0;
+        const atrasado = agora > fimPrazo && detalhes.status !== "concluido" && detalhes.status !== "cancelado";
+        const documentosEntregues = data.reports.filter(
+          (r) => r.atendimento_express_id === detalhes.id && r.tipo_relatorio === "documento" && r.status === "entregue",
+        );
 
         return (
           <div className="dialog-backdrop" onMouseDown={(event) => event.target === event.currentTarget && setDetalhes(null)}>
@@ -10524,7 +10601,11 @@ export function AcompanhamentoIntegralView({
               <div className="dialog-head">
                 <div>
                   <h2>{clientName(detalhes.cliente_ref)}</h2>
-                  <p>{nomeServicoAtual || detalhes.assunto || `Express #${detalhes.id}`}</p>
+                  <p>
+                    {nomeServicoAtual || detalhes.assunto || `Express #${detalhes.id}`}
+                    {" · "}
+                    <span className="tarefa-protocolo">{protocolo}</span>
+                  </p>
                 </div>
                 <Button className="icon ghost" onClick={() => setDetalhes(null)}>
                   <X size={18} />
@@ -10545,6 +10626,19 @@ export function AcompanhamentoIntegralView({
                     <small>Prazo final</small>
                   </div>
                 </div>
+
+                {detalhes.status !== "concluido" && detalhes.status !== "cancelado" && (
+                  <div className="tarefa-prazo-meter">
+                    <div className="tarefa-progress-bar prazo">
+                      <div style={{ width: `${pctPrazo}%` }} className={atrasado ? "atrasado" : ""} />
+                    </div>
+                    <small className={atrasado ? "atrasado" : ""}>
+                      {atrasado
+                        ? `Atrasado há ${formatTempoRestante(agora - fimPrazo)}`
+                        : `Faltam ${formatTempoRestante(fimPrazo - agora)} pro prazo`}
+                    </small>
+                  </div>
+                )}
 
                 <TarefaCronometro
                   key={detalhes.id}
@@ -10660,6 +10754,43 @@ export function AcompanhamentoIntegralView({
                   </div>
                 </div>
 
+                {documentosEntregues.length > 0 && (
+                  <div className="tarefa-secao">
+                    <h3>Documentos já entregues ao cliente</h3>
+                    <div className="tarefa-entregues-list">
+                      {documentosEntregues.map((report) => {
+                        const anexo = data.reportAttachments.find((a) => a.relatorio_id === report.id);
+                        return (
+                          <div className="tarefa-entregue-item" key={report.id}>
+                            <FileCheck2 size={16} />
+                            <span>
+                              <strong>{report.titulo || "Documento"}</strong>
+                              <small>{report.entregue_em ? `Entregue em ${formatDataHora(report.entregue_em)}` : "Entregue"}</small>
+                            </span>
+                            {anexo?.url && (
+                              <a href={anexo.url} target="_blank" rel="noreferrer" title="Ver arquivo">
+                                <ArrowUpRight size={14} />
+                              </a>
+                            )}
+                            <Button
+                              className="secondary compact"
+                              onClick={() => void substituirDocumentoEntregue(report.id, detalhes.cliente_ref)}
+                            >
+                              Substituir
+                            </Button>
+                            <Button
+                              className="secondary compact"
+                              onClick={() => void excluirDocumentoEntregue(report.id)}
+                            >
+                              <X size={13} /> Excluir
+                            </Button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
                 <div className="tarefa-secao">
                   <h3>Finalizar e entregar documento</h3>
                   <div className="form-grid">
@@ -10688,6 +10819,11 @@ export function AcompanhamentoIntegralView({
                       />
                     </label>
                   </div>
+                  {(taskDeliverForm.title || taskDeliverForm.note || taskDeliverFile) && (
+                    <Button className="secondary compact" onClick={limparFormularioEntrega}>
+                      Cancelar / limpar
+                    </Button>
+                  )}
                 </div>
               </div>
               <div className="dialog-actions">
