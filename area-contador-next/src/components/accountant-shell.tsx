@@ -5,8 +5,8 @@ import Image from "next/image";
 import Link from "next/link";
 import {
   BarChart3, Bell, CalendarDays, CheckCircle2, ChevronDown, CircleDollarSign,
-  ClipboardList, FileText, House, Landmark, LogOut, Menu, MessageCircle,
-  PanelLeftClose, PanelLeftOpen, Settings, UserRound, Users, Users2, X, Zap,
+  ClipboardList, FileText, House, Landmark, LogOut, Menu, MessageCircle, Moon,
+  PanelLeftClose, PanelLeftOpen, Settings, Sun, UserRound, Users, Users2, X, Zap,
 } from "lucide-react";
 import { Badge, Button } from "@/components/ui/primitives";
 import { AnimatePresence, motion } from "framer-motion";
@@ -35,7 +35,7 @@ const RelatoriosView = dynamic(() => import("@/components/views").then(mod => mo
 import type { DashboardData } from "@/lib/dashboard";
 import type { ClientsData } from "@/lib/clients";
 import type { OperationsData } from "@/lib/operations";
-import { signOut } from "@/app/auth/actions";
+import { signOut, saveSystemSetting } from "@/app/auth/actions";
 import { createClient as createBrowserClient } from "@/lib/supabase/client";
 import { playNotificationChime } from "@/lib/notificationSound";
 
@@ -51,7 +51,7 @@ const navGroups: NavGroup[] = [
     groupLabel: "Operacional",
     items: [
       { id: "dashboard", label: "Dashboard", icon: House },
-      { id: "atendimento", label: "CHAT", icon: MessageCircle, badge: 0 },
+      { id: "atendimento", label: "Chats", icon: MessageCircle, badge: 0 },
       { id: "clientes", label: "Clientes", icon: Users },
       { id: "acompanhamento", label: "Atendimento", icon: ClipboardList },
       { id: "agendamentos", label: "Agendamentos", icon: CalendarDays },
@@ -110,12 +110,52 @@ export function AccountantShell({ dashboardData, clientsData, operationsData, us
   const storedChatAppearance = operationsData.settings.find(
     (item) => item.chave === "chat_appearance",
   )?.valor;
-  const darkModeEnabled = Boolean(
+  const initialDarkMode = Boolean(
     storedChatAppearance &&
     typeof storedChatAppearance === "object" &&
     !Array.isArray(storedChatAppearance) &&
     (storedChatAppearance as Record<string, unknown>).dark === true,
   );
+  const [darkModeEnabled, setDarkModeEnabled] = useState<boolean>(initialDarkMode);
+
+  useEffect(() => {
+    if (
+      storedChatAppearance &&
+      typeof storedChatAppearance === "object" &&
+      !Array.isArray(storedChatAppearance) &&
+      typeof (storedChatAppearance as Record<string, unknown>).dark === "boolean"
+    ) {
+      setDarkModeEnabled((storedChatAppearance as Record<string, unknown>).dark === true);
+      return;
+    }
+    if (typeof window !== "undefined" && window.matchMedia) {
+      const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+      if (mediaQuery.matches) {
+        setDarkModeEnabled(true);
+      }
+    }
+  }, [storedChatAppearance]);
+
+  async function toggleDarkMode() {
+    const nextValue = !darkModeEnabled;
+    setDarkModeEnabled(nextValue);
+    const existing =
+      typeof storedChatAppearance === "object" &&
+      storedChatAppearance !== null &&
+      !Array.isArray(storedChatAppearance)
+        ? (storedChatAppearance as Record<string, unknown>)
+        : {};
+    try {
+      await saveSystemSetting({
+        key: "chat_appearance",
+        value: { ...existing, dark: nextValue },
+        visibleToClient: true,
+      });
+    } catch (err) {
+      console.error("Erro ao salvar modo escuro:", err);
+    }
+  }
+
   const [active, setActive] = useState("dashboard");
   const [currentUser, setCurrentUser] = useState({
     ...user,
@@ -396,6 +436,14 @@ export function AccountantShell({ dashboardData, clientsData, operationsData, us
             </div>
           </div>
           <div className="topbar-actions">
+            <Button
+              aria-label={darkModeEnabled ? "Mudar para modo claro" : "Mudar para modo escuro"}
+              title={darkModeEnabled ? "Mudar para modo claro" : "Mudar para modo escuro"}
+              className="icon floating-notification theme-toggle-button"
+              onClick={toggleDarkMode}
+            >
+              {darkModeEnabled ? <Sun size={18} /> : <Moon size={18} />}
+            </Button>
             <div className="notification-wrap" ref={notificationRef}>
               <Button
                 aria-label="Abrir notificações"
@@ -498,6 +546,17 @@ export function AccountantShell({ dashboardData, clientsData, operationsData, us
                         <span>Configurações</span>
                       </button>
                     )}
+                    <button
+                      role="menuitem"
+                      onClick={toggleDarkMode}
+                      style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%" }}
+                    >
+                      <div style={{ display: "flex", alignItems: "center", gap: "9px" }}>
+                        {darkModeEnabled ? <Sun size={16} /> : <Moon size={16} />}
+                        <span>{darkModeEnabled ? "Modo Claro" : "Modo Escuro"}</span>
+                      </div>
+                      <small style={{ opacity: 0.7, fontSize: "10px" }}>{darkModeEnabled ? "Ativado" : "Desativado"}</small>
+                    </button>
                     <div className="account-menu-separator" />
                     <form action={signOut}>
                       <button className="danger" role="menuitem" type="submit">

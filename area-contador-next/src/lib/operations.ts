@@ -13,7 +13,7 @@ export type ServicePlan = Tables["servicos"]["Row"];
 export type SettingRecord = Tables["configuracoes"]["Row"];
 export type RadarClient = Pick<Tables["clientes"]["Row"], "id"|"name"|"cpf"|"email"|"phone"|"regime_tributario"|"recorrente"|"recorrente_tipo">;
 export type ReportAttachment = Tables["relatorio_anexos"]["Row"];
-export type OperationDocument = Pick<Tables["documentos"]["Row"],"id"|"cliente_ref"|"file_name"|"mime"|"size_bytes"|"storage_path"|"public_url"|"created_at"|"ai_extracted">;
+export type OperationDocument = Pick<Tables["documentos"]["Row"],"id"|"cliente_ref"|"file_name"|"mime"|"size_bytes"|"storage_path"|"public_url"|"created_at"|"ai_extracted"|"checklist_item">;
 
 export type OperationsData = {
   appointments: Appointment[];
@@ -50,7 +50,7 @@ export async function loadOperationsData(supabase: SupabaseClient<Database>): Pr
     supabase.from("configuracoes").select("*").order("chave"),
     supabase.from("clientes").select("id,name,cpf,email,phone,regime_tributario,recorrente,recorrente_tipo").order("name").limit(2000),
     supabase.from("relatorio_anexos").select("*").gte("created_at", limitStr).order("created_at",{ascending:false}).limit(1000),
-    supabase.from("documentos").select("id,cliente_ref,file_name,mime,size_bytes,storage_path,public_url,created_at,ai_extracted").gte("created_at", limitStr).order("created_at",{ascending:false}).limit(1000),
+    supabase.from("documentos").select("id,cliente_ref,file_name,mime,size_bytes,storage_path,public_url,created_at,ai_extracted,checklist_item").gte("created_at", limitStr).order("created_at",{ascending:false}).limit(1000),
   ]);
   const errors = [appointments.error, express.error, charges.error, reports.error, mail.error, serproQueries.error, credits.error, services.error, settings.error, radarClients.error, reportAttachments.error, documents.error].filter(Boolean);
   return {

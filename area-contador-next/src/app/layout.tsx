@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Bricolage_Grotesque, Hanken_Grotesk, Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
+import "./dark-mode.css";
 
 export const viewport: Viewport = {
   width: "device-width",

@@ -1,0 +1,1009 @@
+/* ==========================================================================
+   MODO ESCURO — ÁREA DO CONTADOR (OLÁ, CONTADOR)
+   Design System: Slate / Chumbo (#0b1120 / #0f172a), Coral Accent (#EE5F3A)
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   1. CASCA GERAL & TOPBAR
+   -------------------------------------------------------------------------- */
+.app-shell.dark-mode {
+  color-scheme: dark;
+}
+
+.dark-mode .topbar {
+  background: transparent;
+}
+
+.dark-mode .topbar-brand-text {
+  color: #f8fafc;
+}
+
+.dark-mode .topbar-portal-badge {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #cbd5e1;
+}
+
+.dark-mode .global-search .input,
+.dark-mode .search-field .input {
+  background: rgba(15, 23, 42, 0.75);
+  border-color: rgba(255, 255, 255, 0.14);
+  color: #f8fafc;
+}
+
+.dark-mode .global-search .input::placeholder,
+.dark-mode .search-field .input::placeholder {
+  color: #64748b;
+}
+
+.dark-mode .global-search svg,
+.dark-mode .search-field > svg {
+  color: #94a3b8;
+}
+
+.dark-mode .notification-button svg {
+  color: #cbd5e1;
+}
+
+.dark-mode .button.floating-notification {
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(22, 32, 50, 0.75);
+  color: #f8fafc;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+}
+
+.dark-mode .button.floating-notification:hover {
+  border-color: rgba(255, 255, 255, 0.25);
+  background: rgba(30, 41, 59, 0.9);
+  color: #ffffff;
+}
+
+.dark-mode .button.floating-notification.is-open {
+  background: rgba(30, 41, 59, 0.95);
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.25);
+}
+
+.dark-mode .notification-popover {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(18, 27, 43, 0.96);
+  box-shadow: 0 20px 55px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.dark-mode .popover-title {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.dark-mode .popover-title strong {
+  color: #f8fafc;
+}
+
+.dark-mode .popover-title small {
+  color: #94a3b8;
+}
+
+.dark-mode .notification-list > button {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  color: #cbd5e1;
+}
+
+.dark-mode .notification-list > button:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.dark-mode .notification-list > button.unread {
+  background: rgba(238, 95, 58, 0.1);
+}
+
+.dark-mode .notification-list strong {
+  color: #f8fafc;
+}
+
+.dark-mode .notification-list small {
+  color: #94a3b8;
+}
+
+.dark-mode .notification-dot {
+  background: #475569;
+}
+
+.dark-mode .notification-empty {
+  color: #94a3b8;
+}
+
+.dark-mode .popover-footer {
+  background: rgba(15, 23, 42, 0.85);
+  color: #cbd5e1;
+}
+
+.dark-mode .popover-footer:hover {
+  color: #ffffff;
+}
+
+.dark-mode .account-glass {
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(22, 32, 50, 0.75);
+  color: #f8fafc;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.dark-mode .account-glass:hover {
+  background: rgba(30, 41, 59, 0.9);
+  border-color: rgba(255, 255, 255, 0.25);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+}
+
+.dark-mode .account-glass .avatar {
+  border-color: rgba(255, 255, 255, 0.2);
+  background: linear-gradient(135deg, #1E293B 0%, #0F172A 100%);
+  color: #ffffff;
+}
+
+.dark-mode .account-copy strong {
+  color: #f8fafc;
+}
+
+.dark-mode .account-copy small {
+  color: #94a3b8;
+}
+
+.dark-mode .account-glass > svg {
+  color: #94a3b8;
+}
+
+.dark-mode .account-popover {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(18, 27, 43, 0.96);
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.dark-mode .account-popover-head strong {
+  color: #f8fafc;
+}
+
+.dark-mode .account-popover-head small {
+  color: #94a3b8;
+}
+
+.dark-mode .account-popover > button {
+  color: #cbd5e1;
+}
+
+.dark-mode .account-popover > button:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.08);
+  color: #ffffff;
+}
+
+.dark-mode .account-popover > button small {
+  color: #94a3b8;
+}
+
+.dark-mode .account-popover > button.danger {
+  color: #f87171;
+}
+
+.dark-mode .account-popover form button {
+  color: #f87171;
+}
+
+.dark-mode .account-popover form button:hover {
+  background: rgba(239, 68, 68, 0.15);
+  color: #fca5a5;
+}
+
+.dark-mode .account-menu-separator {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.dark-mode .account-menu-font-size > span {
+  color: #94a3b8;
+}
+
+.dark-mode .account-menu-font-buttons button {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #cbd5e1;
+}
+
+.dark-mode .account-menu-font-buttons button[aria-pressed="true"] {
+  background: rgba(255, 255, 255, 0.16);
+  border-color: rgba(255, 255, 255, 0.25);
+  color: #ffffff;
+}
+
+.dark-mode .account-menu-font-buttons button:hover:not([aria-pressed="true"]) {
+  background: rgba(255, 255, 255, 0.08);
+  color: #ffffff;
+}
+
+/* --------------------------------------------------------------------------
+   2. SIDEBAR & NAVEGAÇÃO
+   -------------------------------------------------------------------------- */
+.dark-mode .sidebar-toggle-btn {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(22, 32, 50, 0.75);
+  color: #cbd5e1;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.dark-mode .sidebar-toggle-btn:hover {
+  background: rgba(30, 41, 59, 0.9);
+  border-color: rgba(255, 255, 255, 0.22);
+  color: #ffffff;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
+}
+
+.dark-mode .sidebar-header-label {
+  color: #64748b;
+}
+
+.dark-mode .nav-group-label {
+  color: #64748b;
+}
+
+.dark-mode .nav-group-divider {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.dark-mode .sidebar nav button {
+  color: #94a3b8;
+}
+
+.dark-mode .sidebar nav button > svg {
+  color: #94a3b8;
+}
+
+.dark-mode .sidebar nav button:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.08);
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.12);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
+}
+
+.dark-mode .sidebar nav button:hover:not(:disabled) > svg {
+  color: #ffffff;
+}
+
+.dark-mode .sidebar nav button.active {
+  background: rgba(30, 41, 59, 0.95) !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(255, 255, 255, 0.18) !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
+}
+
+.dark-mode .sidebar nav button.active > svg {
+  color: var(--coral-accent, #EE5F3A) !important;
+}
+
+.dark-mode .sidebar nav button.active::before {
+  background: var(--coral-accent, #EE5F3A);
+  box-shadow: 0 0 10px rgba(238, 95, 58, 0.6);
+}
+
+.dark-mode .sidebar nav button .badge {
+  background: rgba(238, 95, 58, 0.18);
+  color: #FF7A59;
+}
+
+.dark-mode .sidebar.collapsed nav button:hover:not(:disabled) {
+  background: rgba(30, 41, 59, 0.9);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+}
+
+.dark-mode .sidebar.collapsed nav button.active {
+  background: rgba(30, 41, 59, 0.95) !important;
+  border: 1.5px solid rgba(255, 255, 255, 0.25) !important;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.12) !important;
+}
+
+.dark-mode .sidebar.collapsed nav button.active > svg {
+  color: var(--coral-accent, #EE5F3A) !important;
+}
+
+.dark-mode .sidebar.collapsed nav button[data-tooltip]::after {
+  background: #0f172a;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: #ffffff;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.55);
+}
+
+/* --------------------------------------------------------------------------
+   3. CHAT & FILA DE ATENDIMENTO (PILOTO COMPLETO)
+   -------------------------------------------------------------------------- */
+.dark-mode .chat-layout {
+  border: 1.5px solid rgba(255, 255, 255, 0.12);
+  background: #0f172a;
+  box-shadow: 0 10px 32px rgba(0, 0, 0, 0.5);
+}
+
+.dark-mode .chat-tool-rail {
+  border-right: 1px solid rgba(255, 255, 255, 0.1);
+  background: #0b1120;
+}
+
+.dark-mode .chat-tool-rail button {
+  color: #94a3b8;
+}
+
+.dark-mode .chat-tool-rail button:hover {
+  border-color: rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.08);
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.dark-mode .chat-tool-rail button.active {
+  border-color: rgba(255, 255, 255, 0.2);
+  background: rgba(30, 41, 59, 0.95);
+  color: #ffffff;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+}
+
+.dark-mode .chat-tool-rail button.active::after {
+  background: #EE5F3A;
+  box-shadow: 0 0 10px rgba(238, 95, 58, 0.6);
+}
+
+.dark-mode .chat-side-panel {
+  border-right: 1px solid rgba(255, 255, 255, 0.1);
+  background: #111a2c;
+}
+
+.dark-mode .side-panel-heading {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.dark-mode .side-panel-heading strong {
+  color: #f8fafc;
+}
+
+.dark-mode .side-panel-heading small {
+  color: #94a3b8;
+}
+
+.dark-mode .chat-capsule {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(15, 23, 42, 0.8);
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.dark-mode .chat-capsule button {
+  color: #94a3b8;
+}
+
+.dark-mode .chat-capsule button:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: #f8fafc;
+}
+
+.dark-mode .chat-capsule button.active {
+  background: rgba(30, 41, 59, 0.95);
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+.dark-mode .capsule-count {
+  background: rgba(255, 255, 255, 0.1);
+  color: #cbd5e1;
+}
+
+.dark-mode .capsule-count.has-items {
+  background: #EE5F3A;
+  color: #ffffff;
+  box-shadow: 0 2px 6px rgba(238, 95, 58, 0.4);
+}
+
+.dark-mode .queue-search .input {
+  background: rgba(15, 23, 42, 0.8);
+  border-color: rgba(255, 255, 255, 0.12);
+  color: #f8fafc;
+}
+
+.dark-mode .queue-real-list > button {
+  background: #111a2c;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  color: #cbd5e1;
+}
+
+.dark-mode .queue-real-list > button:hover {
+  background: rgba(30, 41, 59, 0.6);
+  border-bottom-color: rgba(255, 255, 255, 0.12);
+}
+
+.dark-mode .queue-real-list > button.selected {
+  background: linear-gradient(90deg, rgba(30, 41, 59, 0.95) 0%, rgba(17, 26, 44, 0.95) 100%);
+  border-bottom-color: rgba(255, 255, 255, 0.12);
+  box-shadow: inset 3px 0 0 #EE5F3A;
+}
+
+.dark-mode .queue-real-list strong {
+  color: #f8fafc;
+}
+
+.dark-mode .queue-real-list small {
+  color: #94a3b8;
+}
+
+/* Copilot Lateral */
+.dark-mode .copilot-context {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(238, 95, 58, 0.12);
+  color: #cbd5e1;
+}
+
+.dark-mode .copilot-context strong {
+  color: #f8fafc;
+}
+
+.dark-mode .copilot-body {
+  background: var(--custom-copilot-bg, #0d1526);
+}
+
+.dark-mode .copilot-welcome p {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(22, 32, 50, 0.85);
+  color: #cbd5e1;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+.dark-mode .copilot-avatar {
+  background: #EE5F3A;
+  color: #ffffff;
+}
+
+.dark-mode .copilot-skill {
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  background: #111a2c;
+  color: #cbd5e1;
+}
+
+.dark-mode .copilot-skill select {
+  background: rgba(15, 23, 42, 0.8);
+  border-color: rgba(255, 255, 255, 0.12);
+  color: #f8fafc;
+}
+
+.dark-mode .copilot-chips {
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  background: #111a2c;
+}
+
+.dark-mode .copilot-chips button {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(15, 23, 42, 0.8);
+  color: #cbd5e1;
+}
+
+.dark-mode .copilot-chips button:hover {
+  border-color: #EE5F3A;
+  background: rgba(30, 41, 59, 0.9);
+  color: #ffffff;
+}
+
+.dark-mode .copilot-composer {
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  background: #111a2c;
+}
+
+.dark-mode .copilot-composer > .input {
+  background: rgba(15, 23, 42, 0.8);
+  border-color: rgba(255, 255, 255, 0.12);
+  color: #f8fafc;
+}
+
+.dark-mode .copilot-send-btn {
+  border: 1px solid rgba(255, 255, 255, 0.18) !important;
+  background: linear-gradient(135deg, #1E293B 0%, #0F172A 100%) !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4) !important;
+}
+
+.dark-mode .copilot-send-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #334155 0%, #1E293B 100%) !important;
+}
+
+/* Área Principal do Chat */
+.dark-mode .chat-main {
+  background: #0f172a;
+}
+
+.dark-mode .chat-header {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(18, 27, 43, 0.95);
+}
+
+.dark-mode .chat-client-copy strong {
+  color: #f8fafc;
+}
+
+.dark-mode .chat-header small {
+  color: #94a3b8;
+}
+
+.dark-mode .timer-capsule {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(15, 23, 42, 0.8);
+  color: #cbd5e1;
+}
+
+.dark-mode .timer-capsule button {
+  background: rgba(30, 41, 59, 0.9);
+  color: #f8fafc;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+}
+
+.dark-mode .timer-capsule.running {
+  border-color: rgba(238, 95, 58, 0.4);
+  background: rgba(238, 95, 58, 0.15);
+  color: #FF7A59;
+}
+
+.dark-mode .timer-capsule.running button {
+  color: #FF7A59;
+}
+
+.dark-mode .chat-action-button {
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(22, 32, 50, 0.85);
+  color: #cbd5e1;
+}
+
+.dark-mode .chat-action-button:hover {
+  border-color: rgba(255, 255, 255, 0.25);
+  background: rgba(30, 41, 59, 0.95);
+  color: #ffffff;
+}
+
+.dark-mode .chat-action-button.active-warning {
+  border-color: rgba(238, 95, 58, 0.4);
+  background: rgba(238, 95, 58, 0.16);
+  color: #FF7A59;
+}
+
+.dark-mode .chat-messages {
+  background: var(--custom-chat-bg, #0b1120);
+}
+
+.dark-mode .chat-message > div {
+  border: 1.5px solid rgba(255, 255, 255, 0.1);
+  background: #162236;
+  color: #f8fafc;
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.25);
+}
+
+.dark-mode .chat-message strong {
+  color: #f8fafc;
+}
+
+.dark-mode .chat-message small {
+  color: #94a3b8;
+}
+
+/* Balão do cliente */
+.dark-mode .chat-message.client > div {
+  background: var(--custom-client-bubble, #162236);
+  border: 1.5px solid rgba(255, 255, 255, 0.12);
+  color: #f8fafc;
+}
+
+/* Balão do contador (agente) */
+.dark-mode .chat-message.agent > div {
+  background: var(--custom-agent-bubble, #1e293b);
+  border: 1.5px solid rgba(255, 255, 255, 0.18);
+  color: #ffffff;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+}
+
+.dark-mode .chat-message.agent strong {
+  color: #cbd5e1;
+}
+
+.dark-mode .chat-message.agent small {
+  color: #94a3b8;
+}
+
+.dark-mode .chat-empty {
+  background: radial-gradient(circle at center, #162236 0%, #0b1120 70%);
+}
+
+.dark-mode .chat-empty h2 {
+  color: #f8fafc;
+}
+
+.dark-mode .chat-empty p {
+  color: #94a3b8;
+}
+
+.dark-mode .big-icon {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(22, 32, 50, 0.85);
+  color: #f8fafc;
+  box-shadow: 0 10px 24px -4px rgba(0, 0, 0, 0.4);
+}
+
+.dark-mode .composer {
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(18, 27, 43, 0.95);
+}
+
+.dark-mode .composer > .input {
+  background: rgba(15, 23, 42, 0.8);
+  border-color: rgba(255, 255, 255, 0.14);
+  color: #f8fafc;
+}
+
+.dark-mode .composer > .input:focus,
+.dark-mode .composer > .input:focus-visible {
+  border-color: var(--coral-accent, #EE5F3A);
+  box-shadow: 0 0 0 3px rgba(238, 95, 58, 0.22);
+}
+
+.dark-mode .chat-shortcuts button {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(15, 23, 42, 0.8);
+  color: #94a3b8;
+}
+
+.dark-mode .chat-shortcuts button:hover {
+  border-color: #EE5F3A;
+  background: rgba(30, 41, 59, 0.9);
+  color: #ffffff;
+}
+
+.dark-mode .shortcut-mic-pill {
+  border-color: rgba(238, 95, 58, 0.4) !important;
+  color: #FF7A59 !important;
+  background: rgba(238, 95, 58, 0.12) !important;
+}
+
+.dark-mode .shortcut-mic-pill:hover {
+  background: #EE5F3A !important;
+  color: #ffffff !important;
+}
+
+.dark-mode .composer-recording-bar {
+  background: linear-gradient(135deg, rgba(50, 18, 18, 0.95) 0%, rgba(70, 22, 22, 0.92) 100%);
+  border: 1px solid rgba(239, 68, 68, 0.45);
+}
+
+.dark-mode .recording-status-text {
+  color: #fca5a5;
+}
+
+.dark-mode .chat-recording-button {
+  background: linear-gradient(135deg, rgba(50, 18, 18, 0.95) 0%, rgba(70, 22, 22, 0.92) 100%) !important;
+  border: 1px solid rgba(239, 68, 68, 0.45) !important;
+  color: #f87171 !important;
+  box-shadow: 0 4px 14px rgba(239, 68, 68, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+.dark-mode .chat-recording-button:hover {
+  background: linear-gradient(135deg, rgba(65, 22, 22, 0.98) 0%, rgba(85, 28, 28, 0.95) 100%) !important;
+  border-color: rgba(248, 113, 113, 0.65) !important;
+}
+
+.dark-mode .chat-recording-time {
+  color: #fca5a5;
+}
+
+/* Gaveta / Slide-over de ficha do cliente */
+.dark-mode .chat-drawer-backdrop {
+  background: rgba(0, 0, 0, 0.6);
+}
+
+.dark-mode .drawer-content,
+.dark-mode .ficha-slideover {
+  background: #131d2e;
+  border-left: 1px solid rgba(255, 255, 255, 0.12);
+  color: #f8fafc;
+  box-shadow: -10px 0 40px rgba(0, 0, 0, 0.6);
+}
+
+/* --------------------------------------------------------------------------
+   4. DASHBOARD & INDICADORES
+   -------------------------------------------------------------------------- */
+.dark-mode .stat-card,
+.dark-mode .kpi-card,
+.dark-mode .dashboard-card {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(22, 32, 50, 0.85);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+}
+
+.dark-mode .stat-card strong,
+.dark-mode .kpi-card strong,
+.dark-mode .dashboard-card strong {
+  color: #f8fafc;
+}
+
+.dark-mode .stat-card small,
+.dark-mode .kpi-card small,
+.dark-mode .dashboard-card small {
+  color: #94a3b8;
+}
+
+.dark-mode .page-title h1 {
+  color: #f8fafc;
+}
+
+.dark-mode .page-title p,
+.dark-mode .muted {
+  color: #94a3b8;
+}
+
+.dark-mode .section-label {
+  color: #64748b;
+}
+
+.dark-mode .chart-box,
+.dark-mode .chart-container {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(22, 32, 50, 0.85);
+}
+
+/* --------------------------------------------------------------------------
+   5. TABELAS & LISTAS (CLIENTES, RELATÓRIOS, FINANCEIRO, RADAR)
+   -------------------------------------------------------------------------- */
+.dark-mode .table-wrap {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(22, 32, 50, 0.85);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+.dark-mode table thead th {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(15, 23, 42, 0.85);
+  color: #94a3b8;
+}
+
+.dark-mode table tbody tr {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  color: #cbd5e1;
+}
+
+.dark-mode table tbody tr:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.dark-mode table tbody td {
+  color: #cbd5e1;
+}
+
+.dark-mode table tbody td strong {
+  color: #f8fafc;
+}
+
+.dark-mode .filter-bar,
+.dark-mode .action-bar {
+  background: rgba(22, 32, 50, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* --------------------------------------------------------------------------
+   6. KANBAN (ACOMPANHAMENTO DE PROCESSOS & DOSSIÊS)
+   -------------------------------------------------------------------------- */
+.dark-mode .kanban-board,
+.dark-mode .processos-kanban {
+  background: transparent;
+}
+
+.dark-mode .kanban-column {
+  background: rgba(15, 23, 42, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.dark-mode .kanban-column-header strong {
+  color: #f8fafc;
+}
+
+.dark-mode .kanban-column-header small {
+  color: #94a3b8;
+}
+
+.dark-mode .kanban-card {
+  background: rgba(22, 32, 50, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #f8fafc;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
+}
+
+.dark-mode .kanban-card:hover {
+  background: rgba(30, 41, 59, 0.95);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.dark-mode .kanban-card strong {
+  color: #f8fafc;
+}
+
+.dark-mode .kanban-card p,
+.dark-mode .kanban-card small {
+  color: #94a3b8;
+}
+
+/* --------------------------------------------------------------------------
+   7. CONFIGURAÇÕES, PERFIL & COMPONENTES GENÉRICOS
+   -------------------------------------------------------------------------- */
+.dark-mode .settings-card,
+.dark-mode .card {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(22, 32, 50, 0.85);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+.dark-mode .settings-card h3,
+.dark-mode .settings-card strong,
+.dark-mode .card strong {
+  color: #f8fafc;
+}
+
+.dark-mode .settings-card p,
+.dark-mode .card p {
+  color: #94a3b8;
+}
+
+.dark-mode .settings-nav button {
+  color: #94a3b8;
+}
+
+.dark-mode .settings-nav button:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: #ffffff;
+}
+
+.dark-mode .settings-nav button.active {
+  background: rgba(30, 41, 59, 0.95);
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.18);
+}
+
+.dark-mode .settings-item-row {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.dark-mode .input,
+.dark-mode select,
+.dark-mode textarea {
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(15, 23, 42, 0.8);
+  color: #f8fafc;
+}
+
+.dark-mode .input:focus,
+.dark-mode select:focus,
+.dark-mode textarea:focus {
+  border-color: var(--coral-accent, #EE5F3A);
+  box-shadow: 0 0 0 3px rgba(238, 95, 58, 0.25);
+  outline: none;
+}
+
+.dark-mode .button.secondary {
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(22, 32, 50, 0.85);
+  color: #f8fafc;
+}
+
+.dark-mode .button.secondary:hover:not(:disabled) {
+  background: rgba(30, 41, 59, 0.95);
+  border-color: rgba(255, 255, 255, 0.25);
+  color: #ffffff;
+}
+
+.dark-mode .button.ghost {
+  color: #94a3b8;
+}
+
+.dark-mode .button.ghost:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.08);
+  color: #ffffff;
+}
+
+.dark-mode .badge {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.08);
+  color: #cbd5e1;
+}
+
+.dark-mode .badge.success {
+  border-color: rgba(16, 185, 129, 0.3);
+  background: rgba(16, 185, 129, 0.15);
+  color: #34d399;
+}
+
+.dark-mode .badge.attention {
+  border-color: rgba(238, 95, 58, 0.35);
+  background: rgba(238, 95, 58, 0.18);
+  color: #FF7A59;
+}
+
+/* Modais & Diálogos */
+.dark-mode .modal-backdrop,
+.dark-mode .dialog-backdrop {
+  background: rgba(0, 0, 0, 0.7);
+}
+
+.dark-mode .modal-box,
+.dark-mode .dialog-content {
+  background: #131d2e;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: #f8fafc;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.65);
+}
+
+/* --------------------------------------------------------------------------
+   8. MOBILE (BOTTOM NAVIGATION & DRAWERS)
+   -------------------------------------------------------------------------- */
+.dark-mode .bottom-nav {
+  background: rgba(11, 17, 32, 0.96) !important;
+  border-top-color: rgba(255, 255, 255, 0.12) !important;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+.dark-mode .bottom-nav-item {
+  color: #94a3b8;
+}
+
+.dark-mode .bottom-nav-item.active {
+  color: #ffffff;
+}
+
+.dark-mode .bottom-nav-item.active svg {
+  color: var(--coral-accent, #EE5F3A);
+}
+
+.dark-mode .bottom-nav-item.active::after {
+  background: var(--coral-accent, #EE5F3A);
+  box-shadow: 0 0 8px rgba(238, 95, 58, 0.6);
+}
+
+/* --------------------------------------------------------------------------
+   9. BOTÕES NO MODO ESCURO (OUTLINE & CONTORNO LEVE)
+   -------------------------------------------------------------------------- */
+.dark-mode .button {
+  border-color: rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.06);
+  color: #f8fafc;
+}
+
+.dark-mode .button:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.35);
+  color: #ffffff;
+}
+
+.dark-mode .button.secondary {
+  border-color: rgba(255, 255, 255, 0.14);
+  background: rgba(15, 23, 42, 0.6);
+  color: #cbd5e1;
+}
+
+.dark-mode .button.secondary:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.25);
+  color: #ffffff;
+}
+
+.dark-mode .orange-action {
+  border: 1.5px solid #EE5F3A !important;
+  background: rgba(238, 95, 58, 0.12) !important;
+  color: #FF8260 !important;
+  box-shadow: none !important;
+}
+
+.dark-mode .orange-action:hover:not(:disabled) {
+  background: rgba(238, 95, 58, 0.24) !important;
+  color: #ffffff !important;
+  border-color: #FF8260 !important;
+}
+
+.dark-mode .chat-finish-button {
+  border: 1.5px solid #EE5F3A;
+  background: rgba(238, 95, 58, 0.12);
+  color: #FF8260;
+  box-shadow: none;
+}
+
+.dark-mode .chat-finish-button:hover {
+  background: rgba(238, 95, 58, 0.24);
+  color: #ffffff;
+  border-color: #FF8260;
+}

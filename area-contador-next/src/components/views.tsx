@@ -94,6 +94,7 @@ import {
 } from "@/lib/clients";
 import {
   emptyOperationsData,
+  type Appointment,
   type ExpressItem,
   type MailItem,
   type OperationsData,
@@ -260,7 +261,7 @@ const tabsByView: Record<string, string[]> = {
     "Calendário Geral & Lista",
     "Disponibilidade & Atendimento Manual",
   ],
-  acompanhamento: ["Fila de Atendimento", "Acompanhamento"],
+  acompanhamento: ["Fila de Atendimento", "Em Atendimento"],
   clientes: ["Visão Geral", "Clientes Recorrentes"],
   relatorios: [
     "Aguardando Relatório",
@@ -1194,7 +1195,7 @@ export function AtendimentoView({
     chatBackground: String(appearanceStored.chatBackground || appearanceStored.chatBg || (isDarkChat ? "#0b1120" : "#f1f5f9")),
     accountantBubble: String(appearanceStored.accountantBubble || appearanceStored.bubbleContador || (isDarkChat ? "#1e293b" : "#0f172a")),
     clientBubble: String(appearanceStored.clientBubble || appearanceStored.bubbleCliente || (isDarkChat ? "#162236" : "#ffffff")),
-    copilotBackground: String(appearanceStored.copilotBackground || appearanceStored.copilotBg || (isDarkChat ? "#0d1526" : "#eaf1f6")),
+    copilotBackground: String(appearanceStored.copilotBackground || appearanceStored.copilotBg || (isDarkChat ? "#0d1526" : "#f8fafc")),
   };
   const shortcutValue = operationsData.settings.find((item) => item.chave === "chat_shortcuts")?.valor;
   const defaultChatShortcuts = [
@@ -7291,10 +7292,10 @@ export function ConfiguracoesIntegralView({
   const [appearance, setAppearance] = useState({
     ...{
       dark: false,
-      chatBackground: "#FFFFFF",
-      accountantBubble: "#164E37",
-      clientBubble: "#F0EDE6",
-      copilotBackground: "#EAF1F6",
+      chatBackground: "#F8FAFC",
+      accountantBubble: "#0F172A",
+      clientBubble: "#FFFFFF",
+      copilotBackground: "#F8FAFC",
     },
     ...configObject(data, "chat_appearance"),
   });
@@ -9856,7 +9857,20 @@ const integralStages = [
 // "Pendente de Início" saiu do quadro — agora vive só na aba Fila de
 // Atendimento. Continua em integralStages pra não sumir das opções de
 // mover-para-trás nos selects dos cards.
-const kanbanStages = integralStages.filter((stage) => stage.label !== "Pendente de Início");
+//
+// Kanban visual simplificado a pedido: "Em Análise Fiscal" e "Em Execução"
+// viram uma coluna só (o status granular continua existindo — dá pra
+// escolher "Em Análise Fiscal" no select do card — só não tem mais coluna
+// própria), e "Recorrência" saiu do quadro (vira ação dentro do card do
+// cliente legado; uma vez recorrente, o caso já pertence à aba "Clientes
+// Recorrentes", não a este quadro operacional). integralStages continua
+// intacto (com os dois) pra não tirar opção nenhuma dos selects.
+const kanbanStages = [
+  { label: "Em Execução", expressMatch: ["em_analise", "em_execucao", "processing"], expressTarget: "em_execucao", legacy: "active" },
+  { label: "Aguardando Docs", expressMatch: ["aguardando_documentos"], expressTarget: "aguardando_documentos", legacy: "docs" },
+  { label: "Pronto para Envio", expressMatch: ["pronto_envio"], expressTarget: "pronto_envio", legacy: "ready" },
+  { label: "Concluído", expressMatch: ["concluido"], expressTarget: "concluido", legacy: "done" },
+] as const;
 function tempoDesde(iso: string): string {
   const min = Math.floor((Date.now() - new Date(iso).getTime()) / 60000);
   if (min < 1) return "agora mesmo";
@@ -9892,6 +9906,55 @@ function formatTempoRestante(ms: number): string {
   if (dias > 0) return `${dias}d ${horas}h`;
   if (horas > 0) return `${horas}h ${minutos}min`;
   return `${minutos}min`;
+}
+
+// Desfazer/corrigir uma entrega de documento já feita (ex.: envio de teste
+// por engano) — usadas tanto no card de tarefa (AcompanhamentoIntegralView)
+// quanto na lista de Relatórios (RelatoriosIntegralView), por isso ficam no
+// escopo do módulo em vez de dentro de um componente só.
+async function excluirDocumentoEntregue(reportId: number) {
+  if (!window.confirm("Excluir esta entrega? O cliente deixa de ver esse documento na hora.")) return;
+  const result = await deleteDeliveredDocument(reportId);
+  feedback(result.message);
+  if (result.ok) window.location.reload();
+}
+async function substituirDocumentoEntregue(reportId: number, clienteRef: string) {
+  const file = await new Promise<File | null>((resolve) => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = "application/pdf,image/png,image/jpeg";
+    input.addEventListener("change", () => resolve(input.files?.[0] || null));
+    input.click();
+  });
+  if (!file) return;
+  if (file.size > 15 * 1024 * 1024) {
+    feedback("O arquivo deve ter no máximo 15 MB.");
+    return;
+  }
+  const supabase = createBrowserClient();
+  if (!supabase) {
+    feedback("Conexão indisponível.");
+    return;
+  }
+  const safeName = file.name.normalize("NFKD").replace(/[^a-zA-Z0-9._-]/g, "_").slice(-120);
+  const path = `${clienteRef}/${Date.now()}_${safeName}`;
+  try {
+    const { error: storageError } = await supabase.storage
+      .from("documentos")
+      .upload(path, file, { contentType: file.type || "application/octet-stream", upsert: false });
+    if (storageError) throw storageError;
+    const { data: doc, error: recordError } = await supabase
+      .from("documentos")
+      .insert({ cliente_ref: clienteRef, file_name: file.name, mime: file.type, size_bytes: file.size, storage_path: path, uploaded_by: "contador" })
+      .select("id")
+      .single();
+    if (recordError || !doc) throw recordError;
+    const result = await replaceDeliveredDocument({ reportId, documentId: doc.id });
+    feedback(result.message);
+    if (result.ok) window.location.reload();
+  } catch {
+    feedback("Não foi possível substituir o documento agora.");
+  }
 }
 
 // Cronômetro do card de tarefa — persiste no mesmo campo que o cronômetro do
@@ -10072,53 +10135,6 @@ export function AcompanhamentoIntegralView({
     setTaskDeliverForm({ title: "", note: "" });
     setTaskDeliverFile(null);
   }
-  // Desfazer/corrigir uma entrega já feita (ex.: envio de teste por engano)
-  // — reaproveita o mesmo padrão de upload client-side já usado em
-  // finalizarEEntregar, mas contra deleteDeliveredDocument/replaceDeliveredDocument.
-  async function excluirDocumentoEntregue(reportId: number) {
-    if (!window.confirm("Excluir esta entrega? O cliente deixa de ver esse documento na hora.")) return;
-    const result = await deleteDeliveredDocument(reportId);
-    feedback(result.message);
-    if (result.ok) window.location.reload();
-  }
-  async function substituirDocumentoEntregue(reportId: number, clienteRef: string) {
-    const file = await new Promise<File | null>((resolve) => {
-      const input = document.createElement("input");
-      input.type = "file";
-      input.accept = "application/pdf,image/png,image/jpeg";
-      input.addEventListener("change", () => resolve(input.files?.[0] || null));
-      input.click();
-    });
-    if (!file) return;
-    if (file.size > 15 * 1024 * 1024) {
-      feedback("O arquivo deve ter no máximo 15 MB.");
-      return;
-    }
-    const supabase = createBrowserClient();
-    if (!supabase) {
-      feedback("Conexão indisponível.");
-      return;
-    }
-    const safeName = file.name.normalize("NFKD").replace(/[^a-zA-Z0-9._-]/g, "_").slice(-120);
-    const path = `${clienteRef}/${Date.now()}_${safeName}`;
-    try {
-      const { error: storageError } = await supabase.storage
-        .from("documentos")
-        .upload(path, file, { contentType: file.type || "application/octet-stream", upsert: false });
-      if (storageError) throw storageError;
-      const { data: doc, error: recordError } = await supabase
-        .from("documentos")
-        .insert({ cliente_ref: clienteRef, file_name: file.name, mime: file.type, size_bytes: file.size, storage_path: path, uploaded_by: "contador" })
-        .select("id")
-        .single();
-      if (recordError || !doc) throw recordError;
-      const result = await replaceDeliveredDocument({ reportId, documentId: doc.id });
-      feedback(result.message);
-      if (result.ok) window.location.reload();
-    } catch {
-      feedback("Não foi possível substituir o documento agora.");
-    }
-  }
   const [novoModal, setNovoModal] = useState(false);
   const [novoPending, setNovoPending] = useState(false);
   const [novoForm, setNovoForm] = useState({
@@ -10236,19 +10252,42 @@ export function AcompanhamentoIntegralView({
       responsavel_id: result.responsavel_id,
       responsavel_nome: result.responsavel_nome,
     } : item));
+    // Mantém o card de tarefa em sincronia — assignExpress mexe em `express`
+    // (lista), mas `detalhes` é uma cópia separada aberta no modal.
+    setDetalhes((value) => (value && value.id === id ? { ...value, responsavel_id: result.responsavel_id, responsavel_nome: result.responsavel_nome } : value));
     feedback(result.responsavel_nome ? `Caso atribuído a ${result.responsavel_nome}.` : "Responsável removido do caso.");
   }
-  // Fila = casos ainda não iniciados (Express "aguardando_triagem" +
-  // equivalente legado "pending"), em ordem de chegada. Some da esteira: só
-  // aparece na esteira depois que "Iniciar atendimento" move o status.
+  // Fila = casos ainda não iniciados: Express ("aguardando_triagem"),
+  // Agendado (agendamentos ainda não feitos/cancelados) e o equivalente
+  // legado ("pending") — unificados numa lista só, numerada por ordem de
+  // chegada (contratado_em/created_at), com tag do tipo. Some da esteira:
+  // só aparece na esteira depois que "Iniciar atendimento" move o status.
   const filaExpress = express
     .filter((item) => item.status === "aguardando_triagem")
     .sort((a, b) => new Date(a.contratado_em).getTime() - new Date(b.contratado_em).getTime());
+  const filaAgendados = data.appointments
+    .filter((item) => item.status !== "done" && item.status !== "cancelled")
+    .sort((a, b) => new Date(a.created_at || `${a.date}T${a.time || "00:00"}`).getTime() - new Date(b.created_at || `${b.date}T${b.time || "00:00"}`).getTime());
   const filaLegacy = Object.entries(legacyMap).filter(([, status]) => status === "pending");
+  type FilaEntry =
+    | { kind: "express"; chegada: string; item: ExpressItem }
+    | { kind: "agendado"; chegada: string; item: Appointment };
+  const filaUnificada: FilaEntry[] = [
+    ...filaExpress.map((item) => ({ kind: "express" as const, chegada: item.contratado_em, item })),
+    ...filaAgendados.map((item) => ({ kind: "agendado" as const, chegada: item.created_at || `${item.date}T${item.time || "00:00"}`, item })),
+  ].sort((a, b) => new Date(a.chegada).getTime() - new Date(b.chegada).getTime());
   function iniciarExpress(item: ExpressItem) {
     void moveExpress(item.id, "em_analise").then((ok) => {
       if (ok) onNavigate?.("atendimento", item.cliente_ref);
     });
+  }
+  function iniciarAgendado(item: Appointment) {
+    const proceed = () => onNavigate?.("atendimento", item.cliente_ref || "");
+    if (item.status === "pending") {
+      void updateAppointmentStatus(item.id, "confirmed").then(() => proceed());
+    } else {
+      proceed();
+    }
   }
   // moveLegacy recarrega a página no sucesso (comportamento pré-existente),
   // então não dá pra encadear navegação depois — perderia o SPA state.
@@ -10270,8 +10309,8 @@ export function AcompanhamentoIntegralView({
               <Button className="secondary" onClick={() => setNovoModal(true)}>
                 <Plus size={16} /> Novo Atendimento
               </Button>
-              <Badge className={filaExpress.length + filaLegacy.length ? "attention" : "success"}>
-                {filaExpress.length + filaLegacy.length} na fila
+              <Badge className={filaUnificada.length + filaLegacy.length ? "attention" : "success"}>
+                {filaUnificada.length + filaLegacy.length} na fila
               </Badge>
             </div>
           ) : (
@@ -10356,31 +10395,53 @@ export function AcompanhamentoIntegralView({
       <Tabs view="acompanhamento" active={tab} onChange={setTab} />
       {tab === "Fila de Atendimento" ? (
         <Card className="fila-atendimento-list">
-          {filaExpress.map((item, index) => (
-            <div className="fila-atendimento-row" key={`e-${item.id}`}>
-              <span className="fila-atendimento-posicao">{index + 1}</span>
-              <div className="fila-atendimento-corpo">
-                <strong>{clientName(item.cliente_ref)}</strong>
-                <span>{item.assunto || item.servico_id || `Express #${item.id}`}</span>
-                <small>
-                  <Badge className="attention">Express</Badge> aguardando desde {tempoDesde(item.contratado_em)}
-                </small>
-                <small className="fila-atendimento-prazos">
-                  Contratado em {formatDataHora(item.contratado_em)} · Prazo final {formatDataHora(item.prazo_conclusao_em)}
-                </small>
+          {filaUnificada.map((entry, index) =>
+            entry.kind === "express" ? (
+              <div className="fila-atendimento-row" key={`e-${entry.item.id}`}>
+                <span className="fila-atendimento-posicao">{index + 1}</span>
+                <div className="fila-atendimento-corpo">
+                  <strong>{clientName(entry.item.cliente_ref)}</strong>
+                  <span>{entry.item.assunto || entry.item.servico_id || `Express #${entry.item.id}`}</span>
+                  <small>
+                    <Badge className="attention">Express</Badge> aguardando desde {tempoDesde(entry.item.contratado_em)}
+                  </small>
+                  <small className="fila-atendimento-prazos">
+                    Contratado em {formatDataHora(entry.item.contratado_em)} · Prazo final {formatDataHora(entry.item.prazo_conclusao_em)}
+                  </small>
+                </div>
+                <div className="fila-atendimento-acoes">
+                  <Button className="secondary" onClick={() => setDetalhes(entry.item)}>
+                    <ArrowUpRight size={14} />
+                    <span>Ver detalhes</span>
+                  </Button>
+                  <Button className="orange-action" disabled={moving === `e-${entry.item.id}`} onClick={() => iniciarExpress(entry.item)}>
+                    <Play size={14} />
+                    <span>Iniciar atendimento</span>
+                  </Button>
+                </div>
               </div>
-              <div className="fila-atendimento-acoes">
-                <Button className="secondary" onClick={() => setDetalhes(item)}>
-                  <ArrowUpRight size={14} />
-                  <span>Ver detalhes</span>
-                </Button>
-                <Button className="orange-action" disabled={moving === `e-${item.id}`} onClick={() => iniciarExpress(item)}>
-                  <Play size={14} />
-                  <span>Iniciar atendimento</span>
-                </Button>
+            ) : (
+              <div className="fila-atendimento-row" key={`a-${entry.item.id}`}>
+                <span className="fila-atendimento-posicao">{index + 1}</span>
+                <div className="fila-atendimento-corpo">
+                  <strong>{entry.item.cliente_ref ? clientName(entry.item.cliente_ref) : entry.item.client_name}</strong>
+                  <span>{entry.item.tax_type || `Agendamento #${entry.item.id}`}</span>
+                  <small>
+                    <Badge>Agendado</Badge> {entry.item.date ? `marcado para ${entry.item.date}${entry.item.time ? ` às ${entry.item.time}` : ""}` : "sem data marcada"}
+                  </small>
+                  <small className="fila-atendimento-prazos">
+                    Status: {entry.item.status === "confirmed" ? "confirmado" : "aguardando confirmação"}
+                  </small>
+                </div>
+                <div className="fila-atendimento-acoes">
+                  <Button className="orange-action" onClick={() => iniciarAgendado(entry.item)}>
+                    <Play size={14} />
+                    <span>Iniciar atendimento</span>
+                  </Button>
+                </div>
               </div>
-            </div>
-          ))}
+            ),
+          )}
           {filaLegacy.map(([clientId]) => (
             <div className="fila-atendimento-row" key={`l-${clientId}`}>
               <span className="fila-atendimento-posicao">—</span>
@@ -10394,21 +10455,18 @@ export function AcompanhamentoIntegralView({
               </Button>
             </div>
           ))}
-          {!filaExpress.length && !filaLegacy.length && (
+          {!filaUnificada.length && !filaLegacy.length && (
             <EmptyState>Fila vazia. Nenhum caso aguardando início.</EmptyState>
           )}
         </Card>
       ) : (
       <div className="kanban integral-kanban">
         {kanbanStages.map((stage, index) => {
-          const expressItems = express.filter(
-            (item) =>
-              item.status === stage.express ||
-              (stage.express === "em_analise" && item.status === "processing"),
+          const expressItems = express.filter((item) =>
+            (stage.expressMatch as readonly string[]).includes(item.status),
           );
           const legacyItems = Object.entries(legacyMap).filter(
-            ([, status]) =>
-              status === stage.legacy && stage.label !== "Em Execução",
+            ([, status]) => status === stage.legacy,
           );
           return (
             <div className="kanban-column" key={stage.label}>
@@ -10436,8 +10494,8 @@ export function AcompanhamentoIntegralView({
                   } catch {
                     return;
                   }
-                  if (payload.kind === "express" && stage.express && payload.id)
-                    void moveExpress(payload.id, stage.express);
+                  if (payload.kind === "express" && payload.id)
+                    void moveExpress(payload.id, stage.expressTarget);
                   else if (payload.kind === "legacy" && stage.legacy && payload.clientId)
                     void moveLegacy(payload.clientId, stage.legacy);
                 }}
@@ -10457,10 +10515,14 @@ export function AcompanhamentoIntegralView({
                       )
                     }
                   >
-                    <strong>
-                      {item.assunto || item.servico_id || `Express #${item.id}`}
-                    </strong>
-                    <span>{clientName(item.cliente_ref)}</span>
+                    <div className="kanban-item-head">
+                      <strong>{clientName(item.cliente_ref)}</strong>
+                      {item.status === "pronto_envio" && <Badge className="attention">Aguardando envio</Badge>}
+                    </div>
+                    <span>
+                      {data.services.find((s) => s.id === item.servico_id)?.name || item.assunto || `Express #${item.id}`}
+                    </span>
+                    <small className="kanban-item-protocolo">{protocoloAtendimento("express", item.id)}</small>
                     <small>
                       Prazo{" "}
                       {new Intl.DateTimeFormat("pt-BR", {
@@ -10477,7 +10539,7 @@ export function AcompanhamentoIntegralView({
                         setDetalhes(item);
                       }}
                     >
-                      <ArrowUpRight size={13} /> Abrir tarefa
+                      <ArrowUpRight size={13} /> Abrir atendimento
                     </button>
                     <label className="kanban-assignee">
                       <span>Responsável</span>
@@ -10605,6 +10667,17 @@ export function AcompanhamentoIntegralView({
                     {nomeServicoAtual || detalhes.assunto || `Express #${detalhes.id}`}
                     {" · "}
                     <span className="tarefa-protocolo">{protocolo}</span>
+                    <button
+                      type="button"
+                      className="tarefa-copiar-protocolo"
+                      title="Copiar protocolo"
+                      onClick={() => {
+                        void navigator.clipboard.writeText(protocolo);
+                        feedback("Protocolo copiado.");
+                      }}
+                    >
+                      <Copy size={12} />
+                    </button>
                   </p>
                 </div>
                 <Button className="icon ghost" onClick={() => setDetalhes(null)}>
@@ -10648,26 +10721,47 @@ export function AcompanhamentoIntegralView({
                 />
 
                 <div className="tarefa-secao">
-                  <h3>Etapa do atendimento</h3>
-                  <select
-                    disabled={moving === `e-${detalhes.id}`}
-                    value={detalhes.status}
-                    onChange={(event) => {
-                      const nextStatus = event.target.value;
-                      void moveExpress(detalhes.id, nextStatus).then((ok) => {
-                        if (ok) setDetalhes((value) => (value ? { ...value, status: nextStatus } : value));
-                      });
-                    }}
-                  >
-                    {integralStages
-                      .filter((option): option is typeof option & { express: string } => Boolean(option.express))
-                      .map((option) => (
-                        <option key={option.express} value={option.express}>
-                          {option.label}
+                  <h3>Etapa &amp; responsável</h3>
+                  <label className="tarefa-campo-label">
+                    Etapa
+                    <select
+                      disabled={moving === `e-${detalhes.id}`}
+                      value={detalhes.status}
+                      onChange={(event) => {
+                        const nextStatus = event.target.value;
+                        void moveExpress(detalhes.id, nextStatus).then((ok) => {
+                          if (ok) setDetalhes((value) => (value ? { ...value, status: nextStatus } : value));
+                        });
+                      }}
+                    >
+                      {integralStages
+                        .filter((option): option is typeof option & { express: string } => Boolean(option.express))
+                        .map((option) => (
+                          <option key={option.express} value={option.express}>
+                            {option.label}
+                          </option>
+                        ))}
+                      <option value="cancelado">Cancelado</option>
+                    </select>
+                  </label>
+                  <label className="tarefa-campo-label">
+                    Responsável
+                    <select
+                      disabled={moving === `a-${detalhes.id}`}
+                      value={detalhes.responsavel_id || ""}
+                      onChange={(event) => void assignExpress(detalhes.id, event.target.value)}
+                    >
+                      <option value="">Sem responsável</option>
+                      {detalhes.responsavel_id && !assignees.some((member) => member.id === detalhes.responsavel_id) && (
+                        <option value={detalhes.responsavel_id}>{detalhes.responsavel_nome || "Responsável atual"}</option>
+                      )}
+                      {assignees.map((member) => (
+                        <option key={member.id} value={member.id}>
+                          {member.name}
                         </option>
                       ))}
-                    <option value="cancelado">Cancelado</option>
-                  </select>
+                    </select>
+                  </label>
                 </div>
 
                 <div className="tarefa-secao">
@@ -10702,9 +10796,27 @@ export function AcompanhamentoIntegralView({
                   ) : (
                     <EmptyState>Nenhuma triagem enviada ainda.</EmptyState>
                   )}
+                  {assuntoTriagem?.documentos?.length ? (
+                    <div className="tarefa-docs-necessarios">
+                      <span className="tarefa-docs-necessarios-label">Documentos necessários:</span>
+                      <ul>
+                        {assuntoTriagem.documentos.map((docNome) => {
+                          const enviado = data.documents.some(
+                            (d) => d.cliente_ref === detalhes.cliente_ref && d.checklist_item === docNome,
+                          );
+                          return (
+                            <li key={docNome} className={enviado ? "enviado" : "pendente"}>
+                              {enviado ? <Check size={12} /> : <AlertTriangle size={12} />}
+                              {docNome}
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    </div>
+                  ) : null}
                 </div>
 
-                <div className="tarefa-secao">
+                <div className="tarefa-secao tarefa-secao-full">
                   <h3>
                     Checklist do processo
                     {checklistEntries.length > 0 ? ` (${concluidos}/${checklistEntries.length})` : ""}
@@ -10791,7 +10903,7 @@ export function AcompanhamentoIntegralView({
                   </div>
                 )}
 
-                <div className="tarefa-secao">
+                <div className="tarefa-secao tarefa-secao-full">
                   <h3>Finalizar e entregar documento</h3>
                   <div className="form-grid">
                     <label className="full">
@@ -10830,7 +10942,7 @@ export function AcompanhamentoIntegralView({
                 <Button className="secondary" onClick={() => setDetalhes(null)}>
                   Fechar
                 </Button>
-                {detalhes.status === "aguardando_triagem" && (
+                {detalhes.status === "aguardando_triagem" ? (
                   <Button
                     className="secondary"
                     disabled={moving === `e-${detalhes.id}`}
@@ -10842,6 +10954,18 @@ export function AcompanhamentoIntegralView({
                   >
                     <Play size={14} />
                     <span>Iniciar no chat</span>
+                  </Button>
+                ) : (
+                  <Button
+                    className="secondary"
+                    onClick={() => {
+                      const clienteRef = detalhes.cliente_ref;
+                      setDetalhes(null);
+                      onNavigate?.("atendimento", clienteRef);
+                    }}
+                  >
+                    <MessageCircle size={14} />
+                    <span>Abrir chat</span>
                   </Button>
                 )}
                 <Button className="orange-action" onClick={() => void finalizarEEntregar()} disabled={taskDeliverPending}>
@@ -11028,6 +11152,16 @@ export function RelatoriosIntegralView({
       [item.cliente_nome, item.titulo, item.caso_ref].some((value) =>
         value?.toLowerCase().includes(query.toLowerCase()),
       ),
+  );
+  // Casos Express já finalizados (execução concluída, "pronto_envio") que
+  // ainda não têm nenhum relatório/documento entregue vinculado — hoje eles
+  // não aparecem em lugar nenhum de Relatórios, só no Kanban de
+  // Acompanhamento. Mostrar aqui também fecha o funil: o contador vê quem
+  // está esperando o documento sem precisar trocar de tela.
+  const pendentesEntregaExpress = data.express.filter(
+    (item) =>
+      item.status === "pronto_envio" &&
+      !data.reports.some((r) => r.atendimento_express_id === item.id && r.status === "entregue"),
   );
   function applyReportTemplate() {
     const template = REPORT_TEMPLATES[reportTemplate];
@@ -11944,6 +12078,33 @@ export function RelatoriosIntegralView({
             </div>
             <Badge>{filtered.length}</Badge>
           </div>
+          {tab === "Aguardando Relatório" && pendentesEntregaExpress.length > 0 && (
+            <div className="records-list report-list pendentes-entrega-list">
+              <div className="pendentes-entrega-head">Aguardando envio do documento</div>
+              {pendentesEntregaExpress.map((item) => (
+                <article key={`pend-${item.id}`}>
+                  <div className="record-icon">
+                    <Clock3 size={17} />
+                  </div>
+                  <div>
+                    <strong>{data.radarClients.find((c) => c.id === item.cliente_ref)?.name || item.cliente_ref}</strong>
+                    <span>{nomeServico(item.servico_id)}</span>
+                  </div>
+                  <Badge className="attention">pronto p/ envio</Badge>
+                  <div className="table-actions">
+                    <Button
+                      onClick={() => {
+                        setDeliverForm({ clientId: item.cliente_ref, atendimentoExpressId: String(item.id), title: "", note: "" });
+                        setDeliverModal(true);
+                      }}
+                    >
+                      <Send size={14} /> Entregar documento
+                    </Button>
+                  </div>
+                </article>
+              ))}
+            </div>
+          )}
           <div className="records-list report-list">
             {filtered.map((report) => (
               <article key={report.id}>
@@ -11976,42 +12137,69 @@ export function RelatoriosIntegralView({
                   {report.status.replaceAll("_", " ")}
                 </Badge>
                 <div className="table-actions">
-                  {report.status !== "entregue" && (
-                    <Button
-                      className="secondary"
-                      onClick={() => {
-                        openEditor(report);
-                        setTab("Novo Relatório");
-                      }}
-                    >
-                      Editar
-                    </Button>
+                  {report.tipo_relatorio === "documento" ? (
+                    <>
+                      {(() => {
+                        const anexo = data.reportAttachments.find((a) => a.relatorio_id === report.id);
+                        return anexo?.url ? (
+                          <a className="button secondary" href={anexo.url} target="_blank" rel="noreferrer">
+                            Ver arquivo
+                          </a>
+                        ) : null;
+                      })()}
+                      <Button
+                        className="secondary"
+                        onClick={() => void substituirDocumentoEntregue(report.id, report.cliente_ref)}
+                      >
+                        Substituir
+                      </Button>
+                      <Button
+                        className="secondary"
+                        onClick={() => void excluirDocumentoEntregue(report.id)}
+                      >
+                        Excluir
+                      </Button>
+                    </>
+                  ) : (
+                    <>
+                      {report.status !== "entregue" && (
+                        <Button
+                          className="secondary"
+                          onClick={() => {
+                            openEditor(report);
+                            setTab("Novo Relatório");
+                          }}
+                        >
+                          Editar
+                        </Button>
+                      )}
+                      {report.status === "entregue" && (
+                        <Button
+                          className="secondary"
+                          disabled={pending}
+                          onClick={() => revise(report)}
+                        >
+                          Revisar
+                        </Button>
+                      )}
+                      {(Boolean(report.falha_entrega) ||
+                        report.status === "falha_na_entrega") && (
+                        <Button
+                          className="secondary"
+                          disabled={pending}
+                          onClick={() => void retryDelivery(report)}
+                        >
+                          Reenviar
+                        </Button>
+                      )}
+                      <Button
+                        className="secondary"
+                        onClick={() => printReport(report)}
+                      >
+                        Imprimir/PDF
+                      </Button>
+                    </>
                   )}
-                  {report.status === "entregue" && (
-                    <Button
-                      className="secondary"
-                      disabled={pending}
-                      onClick={() => revise(report)}
-                    >
-                      Revisar
-                    </Button>
-                  )}
-                  {(Boolean(report.falha_entrega) ||
-                    report.status === "falha_na_entrega") && (
-                    <Button
-                      className="secondary"
-                      disabled={pending}
-                      onClick={() => void retryDelivery(report)}
-                    >
-                      Reenviar
-                    </Button>
-                  )}
-                  <Button
-                    className="secondary"
-                    onClick={() => printReport(report)}
-                  >
-                    Imprimir/PDF
-                  </Button>
                 </div>
               </article>
             ))}
