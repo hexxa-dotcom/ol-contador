@@ -651,7 +651,17 @@ export async function deliverServiceDocument(input: {
     })
     .select("id")
     .single();
-  if (reportError || !report) return { ok: false as const, message: "Não foi possível registrar a entrega." };
+  if (reportError || !report) {
+    await registrarErro(adminClient(), {
+      origem: "deliverServiceDocument",
+      codigo: "relatorio_insert_falhou",
+      mensagem: reportError?.message || "sem dados retornados",
+      rota: "actions/deliverServiceDocument",
+      severidade: "erro",
+      contexto: { clientId: input.clientId, documentId: input.documentId },
+    });
+    return { ok: false as const, message: `Não foi possível registrar a entrega${reportError?.message ? `: ${reportError.message}` : "."}` };
+  }
 
   const { error: anexoError } = await supabase.from("relatorio_anexos").insert({
     relatorio_id: report.id,
@@ -666,7 +676,15 @@ export async function deliverServiceDocument(input: {
   });
   if (anexoError) {
     await supabase.from("relatorios").delete().eq("id", report.id);
-    return { ok: false as const, message: "Não foi possível anexar o arquivo ao relatório." };
+    await registrarErro(adminClient(), {
+      origem: "deliverServiceDocument",
+      codigo: "anexo_insert_falhou",
+      mensagem: anexoError.message,
+      rota: "actions/deliverServiceDocument",
+      severidade: "erro",
+      contexto: { clientId: input.clientId, documentId: input.documentId, reportId: report.id },
+    });
+    return { ok: false as const, message: `Não foi possível anexar o arquivo ao relatório${anexoError.message ? `: ${anexoError.message}` : "."}` };
   }
 
   void notify.notifyCliente(
