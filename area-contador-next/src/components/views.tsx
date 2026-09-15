@@ -84,6 +84,7 @@ import {
 import { emptyDashboardData, type DashboardData } from "@/lib/dashboard";
 import { validarCpfCnpj, mascaraCpfCnpj, validarTelefone, mascaraTelefone } from "@/lib/documento";
 import { baixarRelatorioPdf } from "@/lib/reportPdf";
+import { CATALOGO_PADRAO, acharAssunto, mesclarCatalogoServicos, type TriagemAssunto } from "@/lib/triagemCatalogo";
 import {
   emptyClientsData,
   type ClientMessage,
@@ -282,6 +283,7 @@ const tabsByView: Record<string, string[]> = {
     "Geral & Notificações",
     "Banner da Hero",
     "Área do Cliente",
+    "Processos por Serviço",
     "Radar Fiscal",
     "Integracoes",
     "Inteligência Artificial (AIA)",
@@ -1183,12 +1185,13 @@ export function AtendimentoView({
   const appearanceValue = operationsData.settings.find((item) => item.chave === "chat_appearance")?.valor;
   const appearanceStored = appearanceValue && typeof appearanceValue === "object" && !Array.isArray(appearanceValue)
     ? appearanceValue as Record<string, unknown> : {};
+  const isDarkChat = appearanceStored.dark === true;
   const chatAppearance = {
-    dark: appearanceStored.dark === true,
-    chatBackground: String(appearanceStored.chatBackground || appearanceStored.chatBg || "#f1f5f9"),
-    accountantBubble: String(appearanceStored.accountantBubble || appearanceStored.bubbleContador || "#0f172a"),
-    clientBubble: String(appearanceStored.clientBubble || appearanceStored.bubbleCliente || "#ffffff"),
-    copilotBackground: String(appearanceStored.copilotBackground || appearanceStored.copilotBg || "#eaf1f6"),
+    dark: isDarkChat,
+    chatBackground: String(appearanceStored.chatBackground || appearanceStored.chatBg || (isDarkChat ? "#0b1120" : "#f1f5f9")),
+    accountantBubble: String(appearanceStored.accountantBubble || appearanceStored.bubbleContador || (isDarkChat ? "#1e293b" : "#0f172a")),
+    clientBubble: String(appearanceStored.clientBubble || appearanceStored.bubbleCliente || (isDarkChat ? "#162236" : "#ffffff")),
+    copilotBackground: String(appearanceStored.copilotBackground || appearanceStored.copilotBg || (isDarkChat ? "#0d1526" : "#eaf1f6")),
   };
   const shortcutValue = operationsData.settings.find((item) => item.chave === "chat_shortcuts")?.valor;
   const defaultChatShortcuts = [
@@ -7238,6 +7241,15 @@ export function ConfiguracoesIntegralView({
   const [triageSubjects, setTriageSubjects] = useState(
     JSON.stringify(Array.isArray(initialTriageSubjects) ? initialTriageSubjects : [], null, 2),
   );
+  const initialProcessos = data.settings.find((item) => item.chave === "processos_servicos")?.valor;
+  const [processos, setProcessos] = useState<{ servicoNome: string; passos: string }[]>(
+    Array.isArray(initialProcessos)
+      ? (initialProcessos as { servicoNome: string; passos: string[] }[]).map((item) => ({
+          servicoNome: item.servicoNome || "",
+          passos: Array.isArray(item.passos) ? item.passos.join("\n") : "",
+        }))
+      : [],
+  );
   const legacyRadar = configObject(data, "radar_fiscal_config");
   const [radar, setRadar] = useState({
     ...{
@@ -8082,6 +8094,78 @@ export function ConfiguracoesIntegralView({
               </div>
             </>
           )}
+          {tab === "Processos por Serviço" && (
+            <>
+              <p className="settings-hint">
+                Defina o passo a passo de cada tipo de atendimento (ex.: DECORE, IR). No card de tarefa do
+                Acompanhamento, o contador pode carregar esses passos como checklist com um clique, e acompanhar o
+                progresso. O nome do serviço aqui é comparado com o nome contratado pelo cliente (não precisa ser
+                exato — só bater um trecho, ex.: "decore").
+              </p>
+              <div className="processos-servicos-list">
+                {processos.map((processo, index) => (
+                  <div className="processo-servico-item" key={index}>
+                    <div className="form-grid">
+                      <label className="full">
+                        Nome do serviço
+                        <Input
+                          value={processo.servicoNome}
+                          onChange={(event) =>
+                            setProcessos((value) =>
+                              value.map((item, i) => (i === index ? { ...item, servicoNome: event.target.value } : item)),
+                            )
+                          }
+                          placeholder="Ex.: DECORE"
+                        />
+                      </label>
+                      <label className="full">
+                        Passos (um por linha)
+                        <textarea
+                          rows={6}
+                          value={processo.passos}
+                          onChange={(event) =>
+                            setProcessos((value) =>
+                              value.map((item, i) => (i === index ? { ...item, passos: event.target.value } : item)),
+                            )
+                          }
+                          placeholder={"Conferir extratos enviados\nValidar lastro documental\nEmitir documento\nEntregar ao cliente"}
+                        />
+                      </label>
+                    </div>
+                    <Button
+                      className="secondary compact"
+                      onClick={() => setProcessos((value) => value.filter((_, i) => i !== index))}
+                    >
+                      <X size={13} /> Remover serviço
+                    </Button>
+                  </div>
+                ))}
+                {!processos.length && <EmptyState>Nenhum processo cadastrado ainda.</EmptyState>}
+              </div>
+              <div className="form-actions">
+                <Button
+                  className="secondary"
+                  onClick={() => setProcessos((value) => [...value, { servicoNome: "", passos: "" }])}
+                >
+                  <Plus size={14} /> Adicionar serviço
+                </Button>
+                <Button
+                  disabled={pending}
+                  onClick={() => {
+                    const catalogo = processos
+                      .map((item) => ({
+                        servicoNome: item.servicoNome.trim(),
+                        passos: item.passos.split("\n").map((linha) => linha.trim()).filter(Boolean),
+                      }))
+                      .filter((item) => item.servicoNome && item.passos.length);
+                    saveMany([{ key: "processos_servicos", value: catalogo, visible: false }]);
+                  }}
+                >
+                  <Save size={15} /> {pending ? "Salvando…" : "Salvar processos"}
+                </Button>
+              </div>
+            </>
+          )}
           {tab === "Radar Fiscal" && (
             <>
               <div className="settings-list">
@@ -8421,7 +8505,7 @@ export function ConfiguracoesIntegralView({
               <div className="settings-list">
                 <SettingSwitch
                   label="Modo escuro"
-                  note="Preferência visual do chat."
+                  note="Ativar tema escuro na área do contador e no chat."
                   checked={Boolean(appearance.dark)}
                   onChange={(value) =>
                     setAppearance({ ...appearance, dark: value })
@@ -9783,6 +9867,86 @@ function formatDataHora(iso: string): string {
   return new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" }).format(new Date(iso));
 }
 
+// Processo (checklist) padrão por tipo de serviço — cadastrado pelo próprio
+// contador em Configurações → Processos por Serviço (configuracoes.chave =
+// "processos_servicos"). Casa por substring no nome do serviço, mesma lógica
+// de identificarAssuntoPorServico em src/lib/triagemCatalogo.ts.
+type ProcessoServico = { servicoNome: string; passos: string[] };
+function encontrarProcesso(nomeServico: string | null | undefined, catalogo: ProcessoServico[]): ProcessoServico | null {
+  const nome = (nomeServico || "").toLowerCase().trim();
+  if (!nome) return null;
+  return catalogo.find((item) => item.servicoNome.trim() && nome.includes(item.servicoNome.toLowerCase().trim())) || null;
+}
+
+// Cronômetro do card de tarefa — persiste no mesmo campo que o cronômetro do
+// chat (clientes.perfil_operacional.chatTimer, via saveChatTimer), mas com UI
+// e lógica próprias e mais simples (sem os avisos automáticos do chat), pra
+// não mexer naquele fluxo já existente.
+function TarefaCronometro({
+  clientId,
+  initialElapsedSeconds,
+  initialRunning,
+}: {
+  clientId: string;
+  initialElapsedSeconds: number;
+  initialRunning: boolean;
+}) {
+  const [running, setRunning] = useState(initialRunning);
+  const [elapsed, setElapsed] = useState(initialElapsedSeconds);
+  const tickRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const saveRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    setRunning(initialRunning);
+    setElapsed(initialElapsedSeconds);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [clientId]);
+
+  useEffect(() => {
+    if (running) {
+      tickRef.current = setInterval(() => setElapsed((value) => value + 1), 1000);
+      saveRef.current = setInterval(() => {
+        void saveChatTimer({ clientId, elapsedSeconds: elapsed, running: true });
+      }, 15000);
+    }
+    return () => {
+      if (tickRef.current) clearInterval(tickRef.current);
+      if (saveRef.current) clearInterval(saveRef.current);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [running, clientId]);
+
+  function persist(nextElapsed: number, nextRunning: boolean) {
+    void saveChatTimer({ clientId, elapsedSeconds: nextElapsed, running: nextRunning });
+  }
+
+  const formatted = elapsed >= 3600
+    ? `${String(Math.floor(elapsed / 3600)).padStart(2, "0")}:${String(Math.floor((elapsed % 3600) / 60)).padStart(2, "0")}:${String(elapsed % 60).padStart(2, "0")}`
+    : `${String(Math.floor(elapsed / 60)).padStart(2, "0")}:${String(elapsed % 60).padStart(2, "0")}`;
+
+  return (
+    <div className="tarefa-cronometro">
+      <Clock3 size={16} />
+      <strong>{formatted}</strong>
+      {running ? (
+        <Button className="secondary compact" onClick={() => { setRunning(false); persist(elapsed, false); }}>
+          <Pause size={13} /> Pausar
+        </Button>
+      ) : (
+        <Button className="secondary compact" onClick={() => { setRunning(true); persist(elapsed, true); }}>
+          <Play size={13} /> Iniciar
+        </Button>
+      )}
+      <Button
+        className="secondary compact"
+        onClick={() => { setRunning(false); setElapsed(0); persist(0, false); }}
+      >
+        <RotateCcw size={13} /> Zerar
+      </Button>
+    </div>
+  );
+}
+
 export function AcompanhamentoIntegralView({
   data = emptyOperationsData,
   clientsData = emptyClientsData,
@@ -9798,6 +9962,96 @@ export function AcompanhamentoIntegralView({
   const [tab, setTab] = useState(tabsByView.acompanhamento[0]);
   const [detalhes, setDetalhes] = useState<ExpressItem | null>(null);
   const [assignees, setAssignees] = useState<Array<{id:string;name:string}>>([]);
+  // Card de tarefa (modal `detalhes`): checklist local (espelha
+  // clientes.checklist, semeado ao abrir o card) e formulário compacto de
+  // "finalizar e entregar", que reaproveita deliverServiceDocument.
+  const [taskChecklist, setTaskChecklist] = useState<Record<string, boolean>>({});
+  const [taskDeliverForm, setTaskDeliverForm] = useState({ title: "", note: "" });
+  const [taskDeliverFile, setTaskDeliverFile] = useState<File | null>(null);
+  const [taskDeliverPending, setTaskDeliverPending] = useState(false);
+  const processosServicos = (data.settings.find((item) => item.chave === "processos_servicos")?.valor as ProcessoServico[] | undefined) || [];
+  const triagemCatalogoPainel = mesclarCatalogoServicos(CATALOGO_PADRAO);
+  useEffect(() => {
+    if (!detalhes) return;
+    const cliente = clientsData.clients.find((item) => item.id === detalhes.cliente_ref);
+    setTaskChecklist((cliente?.checklist as Record<string, boolean>) || {});
+    setTaskDeliverForm({ title: "", note: "" });
+    setTaskDeliverFile(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [detalhes?.id]);
+  function toggleTaskChecklistItem(label: string) {
+    if (!detalhes) return;
+    const next = { ...taskChecklist, [label]: !taskChecklist[label] };
+    setTaskChecklist(next);
+    void persistClientChecklist({ clientId: detalhes.cliente_ref, checklist: next });
+  }
+  function aplicarProcessoPadrao(processo: ProcessoServico) {
+    if (!detalhes) return;
+    const next = { ...taskChecklist };
+    processo.passos.forEach((passo) => {
+      if (!(passo in next)) next[passo] = false;
+    });
+    setTaskChecklist(next);
+    void persistClientChecklist({ clientId: detalhes.cliente_ref, checklist: next });
+  }
+  async function finalizarEEntregar() {
+    if (!detalhes) return;
+    if (!taskDeliverFile || !taskDeliverForm.title.trim()) {
+      feedback("Preencha o título e escolha o arquivo.");
+      return;
+    }
+    if (taskDeliverFile.size > 15 * 1024 * 1024) {
+      feedback("O arquivo deve ter no máximo 15 MB.");
+      return;
+    }
+    setTaskDeliverPending(true);
+    const supabase = createBrowserClient();
+    if (!supabase) {
+      feedback("Conexão indisponível.");
+      setTaskDeliverPending(false);
+      return;
+    }
+    const safeName = taskDeliverFile.name.normalize("NFKD").replace(/[^a-zA-Z0-9._-]/g, "_").slice(-120);
+    const path = `${detalhes.cliente_ref}/${Date.now()}_${safeName}`;
+    try {
+      const { error: storageError } = await supabase.storage
+        .from("documentos")
+        .upload(path, taskDeliverFile, { contentType: taskDeliverFile.type || "application/octet-stream", upsert: false });
+      if (storageError) throw storageError;
+      const { data: doc, error: recordError } = await supabase
+        .from("documentos")
+        .insert({
+          cliente_ref: detalhes.cliente_ref,
+          file_name: taskDeliverFile.name,
+          mime: taskDeliverFile.type,
+          size_bytes: taskDeliverFile.size,
+          storage_path: path,
+          uploaded_by: "contador",
+        })
+        .select("id")
+        .single();
+      if (recordError || !doc) throw recordError;
+      const result = await deliverServiceDocument({
+        clientId: detalhes.cliente_ref,
+        documentId: doc.id,
+        title: taskDeliverForm.title,
+        atendimentoExpressId: detalhes.id,
+        note: taskDeliverForm.note,
+      });
+      if (!result.ok) {
+        feedback(result.message);
+        return;
+      }
+      await moveExpress(detalhes.id, "concluido");
+      feedback("Documento entregue e atendimento concluído.");
+      setDetalhes(null);
+      window.location.reload();
+    } catch {
+      feedback("Não foi possível finalizar a entrega agora.");
+    } finally {
+      setTaskDeliverPending(false);
+    }
+  }
   const [novoModal, setNovoModal] = useState(false);
   const [novoPending, setNovoPending] = useState(false);
   const [novoForm, setNovoForm] = useState({
@@ -10147,6 +10401,17 @@ export function AcompanhamentoIntegralView({
                         timeStyle: "short",
                       }).format(new Date(item.prazo_conclusao_em))}
                     </small>
+                    <button
+                      type="button"
+                      className="kanban-item-abrir"
+                      onMouseDown={(event) => event.stopPropagation()}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        setDetalhes(item);
+                      }}
+                    >
+                      <ArrowUpRight size={13} /> Abrir tarefa
+                    </button>
                     <label className="kanban-assignee">
                       <span>Responsável</span>
                       <select
@@ -10233,83 +10498,225 @@ export function AcompanhamentoIntegralView({
         })}
       </div>
       )}
-      {detalhes && (
-        <div className="dialog-backdrop" onMouseDown={(event) => event.target === event.currentTarget && setDetalhes(null)}>
-          <Card className="fila-detalhes-dialog" role="dialog" aria-modal="true">
-            <div className="dialog-head">
-              <div>
-                <h2>{clientName(detalhes.cliente_ref)}</h2>
-                <p>{detalhes.assunto || detalhes.servico_id || `Express #${detalhes.id}`}</p>
+      {detalhes && (() => {
+        const clienteAtual = clientsData.clients.find((item) => item.id === detalhes.cliente_ref);
+        const triagemAtual = clientsData.triages
+          .filter((t) => t.cliente_ref === detalhes.cliente_ref)
+          .sort((a, b) => (b.created_at || "").localeCompare(a.created_at || ""))[0];
+        const assuntoTriagem: TriagemAssunto | null = triagemAtual?.assunto ? acharAssunto(triagemCatalogoPainel, triagemAtual.assunto) : null;
+        const respostasTriagem = (triagemAtual?.respostas as Record<string, string>) || {};
+        const nomeServicoAtual = detalhes.servico_id ? data.services.find((s) => s.id === detalhes.servico_id)?.name || null : null;
+        const processoSugerido = encontrarProcesso(nomeServicoAtual || detalhes.assunto, processosServicos);
+        const checklistEntries = Object.entries(taskChecklist);
+        const concluidos = checklistEntries.filter(([, v]) => v).length;
+        const perfilOperacional = (clienteAtual?.perfil_operacional as { chatTimer?: { elapsedSeconds?: number; running?: boolean; updatedAt?: string } } | null) || null;
+        const timerData = perfilOperacional?.chatTimer;
+        const elapsedBase = timerData?.running && timerData.updatedAt
+          ? (timerData.elapsedSeconds || 0) + Math.max(0, Math.floor((Date.now() - new Date(timerData.updatedAt).getTime()) / 1000))
+          : timerData?.elapsedSeconds || 0;
+        const endereco = clienteAtual
+          ? [clienteAtual.endereco, clienteAtual.numero, clienteAtual.bairro, clienteAtual.cidade, clienteAtual.estado].filter(Boolean).join(", ")
+          : "";
+
+        return (
+          <div className="dialog-backdrop" onMouseDown={(event) => event.target === event.currentTarget && setDetalhes(null)}>
+            <Card className="fila-detalhes-dialog tarefa-dialog" role="dialog" aria-modal="true">
+              <div className="dialog-head">
+                <div>
+                  <h2>{clientName(detalhes.cliente_ref)}</h2>
+                  <p>{nomeServicoAtual || detalhes.assunto || `Express #${detalhes.id}`}</p>
+                </div>
+                <Button className="icon ghost" onClick={() => setDetalhes(null)}>
+                  <X size={18} />
+                </Button>
               </div>
-              <Button className="icon ghost" onClick={() => setDetalhes(null)}>
-                <X size={18} />
-              </Button>
-            </div>
-            <div className="dossier-body">
-              <div className="team-profile-stats">
-                <div>
-                  <strong>{integralStages.find((stage) => stage.express === detalhes.status)?.label || detalhes.status}</strong>
-                  <small>Status atual</small>
+              <div className="dossier-body tarefa-body">
+                <div className="team-profile-stats">
+                  <div>
+                    <strong>{integralStages.find((stage) => stage.express === detalhes.status)?.label || detalhes.status}</strong>
+                    <small>Status atual</small>
+                  </div>
+                  <div>
+                    <strong>{formatDataHora(detalhes.contratado_em)}</strong>
+                    <small>Contratado em</small>
+                  </div>
+                  <div>
+                    <strong>{formatDataHora(detalhes.prazo_conclusao_em)}</strong>
+                    <small>Prazo final</small>
+                  </div>
                 </div>
-                <div>
-                  <strong>{formatDataHora(detalhes.contratado_em)}</strong>
-                  <small>Contratado em</small>
+
+                <TarefaCronometro
+                  key={detalhes.id}
+                  clientId={detalhes.cliente_ref}
+                  initialElapsedSeconds={elapsedBase}
+                  initialRunning={Boolean(timerData?.running)}
+                />
+
+                <div className="tarefa-secao">
+                  <h3>Etapa do atendimento</h3>
+                  <select
+                    disabled={moving === `e-${detalhes.id}`}
+                    value={detalhes.status}
+                    onChange={(event) => {
+                      const nextStatus = event.target.value;
+                      void moveExpress(detalhes.id, nextStatus).then((ok) => {
+                        if (ok) setDetalhes((value) => (value ? { ...value, status: nextStatus } : value));
+                      });
+                    }}
+                  >
+                    {integralStages
+                      .filter((option): option is typeof option & { express: string } => Boolean(option.express))
+                      .map((option) => (
+                        <option key={option.express} value={option.express}>
+                          {option.label}
+                        </option>
+                      ))}
+                    <option value="cancelado">Cancelado</option>
+                  </select>
                 </div>
-                <div>
-                  <strong>{formatDataHora(detalhes.prazo_conclusao_em)}</strong>
-                  <small>Prazo final</small>
+
+                <div className="tarefa-secao">
+                  <h3>Perfil do cliente</h3>
+                  <div className="tarefa-perfil-grid">
+                    <span>{clienteAtual?.email || "sem e-mail cadastrado"}</span>
+                    <span>{clienteAtual?.phone || "sem telefone cadastrado"}</span>
+                    <span>{clienteAtual?.cpf || "sem CPF/CNPJ cadastrado"}</span>
+                    <span>{endereco || "sem endereço cadastrado"}</span>
+                    {clienteAtual?.regime_tributario && <span>Regime: {clienteAtual.regime_tributario}</span>}
+                  </div>
+                  {clienteAtual?.observacoes && <p className="tarefa-observacoes">{clienteAtual.observacoes}</p>}
+                </div>
+
+                <div className="tarefa-secao">
+                  <h3>Pedido do cliente</h3>
+                  {triagemAtual ? (
+                    <>
+                      <p><strong>{assuntoTriagem?.titulo || triagemAtual.assunto || "Assunto não informado"}</strong></p>
+                      {triagemAtual.descricao && <p className="tarefa-observacoes">{triagemAtual.descricao}</p>}
+                      {assuntoTriagem?.perguntas?.length ? (
+                        <dl className="tarefa-triagem-respostas">
+                          {assuntoTriagem.perguntas.map((p) => (
+                            <div key={p.id}>
+                              <dt>{p.label}</dt>
+                              <dd>{respostasTriagem[p.id] || "—"}</dd>
+                            </div>
+                          ))}
+                        </dl>
+                      ) : null}
+                    </>
+                  ) : (
+                    <EmptyState>Nenhuma triagem enviada ainda.</EmptyState>
+                  )}
+                </div>
+
+                <div className="tarefa-secao">
+                  <h3>
+                    Checklist do processo
+                    {checklistEntries.length > 0 ? ` (${concluidos}/${checklistEntries.length})` : ""}
+                  </h3>
+                  {checklistEntries.length > 0 && (
+                    <div className="tarefa-progress-bar">
+                      <div style={{ width: `${Math.round((concluidos / checklistEntries.length) * 100)}%` }} />
+                    </div>
+                  )}
+                  {processoSugerido && processoSugerido.passos.some((passo) => !(passo in taskChecklist)) && (
+                    <Button className="secondary compact" onClick={() => aplicarProcessoPadrao(processoSugerido)}>
+                      Usar modelo padrão ({processoSugerido.passos.length} passos)
+                    </Button>
+                  )}
+                  <div className="dossier-checklist">
+                    {checklistEntries.map(([label, checked]) => (
+                      <label key={label} className={checked ? "checked" : ""}>
+                        <input type="checkbox" checked={checked} onChange={() => toggleTaskChecklistItem(label)} />
+                        <span>{label}</span>
+                      </label>
+                    ))}
+                    {!checklistEntries.length && <EmptyState>Nenhum passo ainda — use o modelo padrão ou cadastre em Configurações.</EmptyState>}
+                  </div>
+                </div>
+
+                <div className="tarefa-secao">
+                  <h3>Documentos enviados pelo cliente</h3>
+                  <div className="client-document-list">
+                    {data.documents
+                      .filter((doc) => doc.cliente_ref === detalhes.cliente_ref)
+                      .map((doc) => (
+                        <a key={doc.id} href={`/api/documents/${doc.id}`} target="_blank" rel="noreferrer">
+                          <FileText size={16} />
+                          <span>
+                            <strong>{doc.file_name}</strong>
+                            <small>
+                              {doc.mime || "Arquivo"}
+                              {doc.size_bytes ? ` · ${Math.ceil(doc.size_bytes / 1024)} KB` : ""}
+                            </small>
+                          </span>
+                          <ArrowUpRight size={15} />
+                        </a>
+                      ))}
+                    {!data.documents.some((doc) => doc.cliente_ref === detalhes.cliente_ref) && (
+                      <EmptyState>Nenhum documento enviado ainda.</EmptyState>
+                    )}
+                  </div>
+                </div>
+
+                <div className="tarefa-secao">
+                  <h3>Finalizar e entregar documento</h3>
+                  <div className="form-grid">
+                    <label className="full">
+                      Título do documento
+                      <Input
+                        value={taskDeliverForm.title}
+                        onChange={(event) => setTaskDeliverForm((value) => ({ ...value, title: event.target.value }))}
+                        placeholder={nomeServicoAtual || "Ex.: DECORE — Comprovação de Renda"}
+                      />
+                    </label>
+                    <label className="full">
+                      Arquivo (PDF, PNG ou JPEG)
+                      <input
+                        type="file"
+                        accept="application/pdf,image/png,image/jpeg"
+                        onChange={(event) => setTaskDeliverFile(event.target.files?.[0] || null)}
+                      />
+                    </label>
+                    <label className="full">
+                      Observação para o cliente (opcional)
+                      <textarea
+                        value={taskDeliverForm.note}
+                        onChange={(event) => setTaskDeliverForm((value) => ({ ...value, note: event.target.value }))}
+                        rows={2}
+                      />
+                    </label>
+                  </div>
                 </div>
               </div>
-              {(() => {
-                const cliente = clientsData.clients.find((item) => item.id === detalhes.cliente_ref);
-                return (
-                  <p className="fila-detalhes-contato">
-                    {cliente?.email || "sem e-mail cadastrado"} · {cliente?.phone || "sem telefone cadastrado"}
-                  </p>
-                );
-              })()}
-              <h3>Documentos enviados pelo cliente</h3>
-              <div className="client-document-list">
-                {data.documents
-                  .filter((doc) => doc.cliente_ref === detalhes.cliente_ref)
-                  .map((doc) => (
-                    <a key={doc.id} href={`/api/documents/${doc.id}`} target="_blank" rel="noreferrer">
-                      <FileText size={16} />
-                      <span>
-                        <strong>{doc.file_name}</strong>
-                        <small>
-                          {doc.mime || "Arquivo"}
-                          {doc.size_bytes ? ` · ${Math.ceil(doc.size_bytes / 1024)} KB` : ""}
-                        </small>
-                      </span>
-                      <ArrowUpRight size={15} />
-                    </a>
-                  ))}
-                {!data.documents.some((doc) => doc.cliente_ref === detalhes.cliente_ref) && (
-                  <EmptyState>Nenhum documento enviado ainda.</EmptyState>
+              <div className="dialog-actions">
+                <Button className="secondary" onClick={() => setDetalhes(null)}>
+                  Fechar
+                </Button>
+                {detalhes.status === "aguardando_triagem" && (
+                  <Button
+                    className="secondary"
+                    disabled={moving === `e-${detalhes.id}`}
+                    onClick={() => {
+                      const item = detalhes;
+                      setDetalhes(null);
+                      iniciarExpress(item);
+                    }}
+                  >
+                    <Play size={14} />
+                    <span>Iniciar no chat</span>
+                  </Button>
                 )}
+                <Button className="orange-action" onClick={() => void finalizarEEntregar()} disabled={taskDeliverPending}>
+                  <Send size={14} />
+                  <span>{taskDeliverPending ? "Entregando…" : "Finalizar e entregar"}</span>
+                </Button>
               </div>
-            </div>
-            <div className="dialog-actions">
-              <Button className="secondary" onClick={() => setDetalhes(null)}>
-                Fechar
-              </Button>
-              <Button
-                className="orange-action"
-                disabled={moving === `e-${detalhes.id}`}
-                onClick={() => {
-                  const item = detalhes;
-                  setDetalhes(null);
-                  iniciarExpress(item);
-                }}
-              >
-                <Play size={14} />
-                <span>Iniciar atendimento</span>
-              </Button>
-            </div>
-          </Card>
-        </div>
-      )}
+            </Card>
+          </div>
+        );
+      })()}
     </div>
   );
 }

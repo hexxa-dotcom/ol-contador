@@ -34,6 +34,22 @@
   --radius-panel: 24px;
   --radius: var(--radius-soft);
   --shadow: 0 1px 3px rgba(15, 23, 42, .05), 0 8px 24px rgba(15, 23, 42, .04);
+
+  /* Tokens semânticos de superfície, texto e borda */
+  --bg-app: #F2ECE4;
+  --bg-surface: #FAF7F2;
+  --bg-surface-elevated: #ffffff;
+  --bg-surface-subtle: #f8fafc;
+  --bg-surface-hover: #f1f5f9;
+  --bg-surface-active: #ffffff;
+  --bg-input: #ffffff;
+  --text-primary: #0f172a;
+  --text-secondary: #334155;
+  --text-muted: #64748b;
+  --text-placeholder: #94a3b8;
+  --border-subtle: rgba(15, 23, 42, 0.07);
+  --border-default: rgba(34, 49, 47, 0.15);
+  --border-strong: rgba(15, 23, 42, 0.28);
 }
 
 * { box-sizing: border-box; }
@@ -47,7 +63,43 @@ button { cursor: pointer; }
 button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 3px solid rgba(15, 23, 42, .18); outline-offset: 2px; }
 
 .app-shell { height: 100vh; max-height: 100vh; overflow: hidden; display: flex; gap: 14px; padding: 8px 14px 14px; background-color: var(--background); box-sizing: border-box; }
-.app-shell.dark-mode { --foreground: #f8fafc; --muted-foreground: #a8b3c4; --border: rgba(255,255,255,.13); min-height: 100vh; background: radial-gradient(circle at 12% 10%,rgba(71,85,105,.26),transparent 34%), #0f172a; color: var(--foreground); }
+.app-shell.dark-mode,
+.dark-mode {
+  --background: #0b1120;
+  --foreground: #f8fafc;
+  --card: #131d2e;
+  --card-border: rgba(255, 255, 255, 0.1);
+  --muted: rgba(255, 255, 255, 0.06);
+  --muted-foreground: #94a3b8;
+  --border: rgba(255, 255, 255, 0.12);
+  --chat-line: rgba(255, 255, 255, 0.12);
+  --glass-surface: rgba(22, 32, 50, 0.85);
+  --glass-border: rgba(255, 255, 255, 0.12);
+  --pill-track: rgba(255, 255, 255, 0.06);
+  --pill-active: rgba(255, 255, 255, 0.14);
+  --shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
+
+  --bg-app: #0b1120;
+  --bg-surface: #131d2e;
+  --bg-surface-elevated: #1e293b;
+  --bg-surface-subtle: #0f172a;
+  --bg-surface-hover: rgba(255, 255, 255, 0.08);
+  --bg-surface-active: rgba(255, 255, 255, 0.14);
+  --bg-input: rgba(15, 23, 42, 0.8);
+  --text-primary: #f8fafc;
+  --text-secondary: #cbd5e1;
+  --text-muted: #94a3b8;
+  --text-placeholder: #64748b;
+  --border-subtle: rgba(255, 255, 255, 0.08);
+  --border-default: rgba(255, 255, 255, 0.12);
+  --border-strong: rgba(255, 255, 255, 0.22);
+}
+
+.app-shell.dark-mode {
+  min-height: 100vh;
+  background: radial-gradient(circle at 12% 10%, rgba(30, 41, 59, 0.45), transparent 38%), #0b1120;
+  color: var(--foreground);
+}
 .dark-mode .card, .dark-mode .settings-card, .dark-mode .table-wrap, .dark-mode .mail-list, .dark-mode .mail-thread { border-color: rgba(255,255,255,.13); background: rgba(30,41,59,.76); color: #f8fafc; }
 .dark-mode .input, .dark-mode select, .dark-mode textarea { border-color: rgba(255,255,255,.14); background: rgba(15,23,42,.66); color: #f8fafc; }
 .dark-mode .sidebar nav button { color: #a8b3c4; }
@@ -5835,6 +5887,32 @@ tr:hover td { background: #f8fafc; }
 .fila-detalhes-contato { margin: 0 0 16px; font-size: 11.5px; color: var(--muted-foreground); }
 .fila-detalhes-dialog h3 { margin: 0 0 10px; font-size: 12px; }
 
+/* Card de tarefa (modal de detalhes do atendimento, expandido pra caber
+   cronômetro, checklist, triagem, perfil e entrega no mesmo lugar). */
+.tarefa-dialog { width: min(720px, 100%); }
+.tarefa-body { display: flex; flex-direction: column; gap: 18px; }
+.tarefa-secao { padding-top: 16px; border-top: 1px solid var(--border); }
+.tarefa-secao:first-child { padding-top: 0; border-top: 0; }
+.tarefa-secao h3 { margin: 0 0 10px; font-size: 12px; }
+.tarefa-cronometro { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: var(--radius-card); background: #f8fafc; border: 1px solid #e2e8f0; }
+.tarefa-cronometro strong { font-size: 15px; font-variant-numeric: tabular-nums; min-width: 52px; }
+.tarefa-cronometro .button { margin-left: 0; }
+.tarefa-cronometro .button:last-child { margin-left: auto; }
+.tarefa-perfil-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 16px; font-size: 11.5px; color: var(--muted-foreground); }
+.tarefa-observacoes { margin: 8px 0 0; font-size: 12px; color: #475569; white-space: pre-wrap; }
+.tarefa-triagem-respostas { margin: 10px 0 0; display: flex; flex-direction: column; gap: 8px; }
+.tarefa-triagem-respostas > div { display: flex; flex-direction: column; gap: 2px; }
+.tarefa-triagem-respostas dt { font-size: 10.5px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: .03em; }
+.tarefa-triagem-respostas dd { margin: 0; font-size: 12.5px; color: #0f172a; }
+.tarefa-progress-bar { height: 6px; margin-bottom: 10px; border-radius: 999px; background: #e2e8f0; overflow: hidden; }
+.tarefa-progress-bar > div { height: 100%; background: var(--primary); transition: width .2s ease; }
+.button.compact { min-height: 30px; padding: 0 12px; font-size: 11px; }
+.kanban-item-abrir { align-self: stretch; display: flex; align-items: center; justify-content: center; gap: 5px; min-height: 26px; padding: 0 8px; border: 1px solid var(--border); border-radius: var(--radius-pill); background: #ffffff; color: #0f172a; font-size: 10px; font-weight: 700; cursor: pointer; }
+.kanban-item-abrir:hover { background: var(--muted); }
+.settings-hint { margin: 0 0 16px; font-size: 11.5px; color: var(--muted-foreground); max-width: 720px; }
+.processos-servicos-list { display: flex; flex-direction: column; gap: 14px; }
+.processo-servico-item { padding: 14px 16px; border-radius: var(--radius-card); background: #f8fafc; border: 1px solid #e2e8f0; display: flex; flex-direction: column; gap: 10px; }
+
 .kanban { display: grid; grid-template-columns: repeat(5,minmax(210px,1fr)); gap: 11px; overflow-x: auto; padding-bottom: 8px; }
 .kanban-column { min-height: 460px; border: 1px solid var(--glass-border); border-radius: var(--radius-card); background: rgba(255,255,255,.58); box-shadow: 0 12px 28px rgba(15,23,42,.065), inset 0 1px 0 rgba(255,255,255,.85); backdrop-filter: blur(16px) saturate(140%); -webkit-backdrop-filter: blur(16px) saturate(140%); }
 .kanban-title { min-height: 52px; padding: 10px 12px; display: flex; align-items: center; gap: 7px; border-bottom: 1px solid var(--border); font-size: 11px; }
@@ -8632,6 +8710,8 @@ tr:hover td { background: #f8fafc; }
   .form-grid { grid-template-columns: 1fr; }
   .form-grid .full { grid-column: auto; }
   .form-actions { align-items: stretch; flex-direction: column; }
+  .tarefa-perfil-grid { grid-template-columns: 1fr; }
+  .tarefa-cronometro { flex-wrap: wrap; }
   .agenda-summary { grid-template-columns: 1fr; }
   .records-list article { align-items: flex-start; flex-wrap: wrap; }
   .table-tools { align-items: stretch; flex-direction: column; }
