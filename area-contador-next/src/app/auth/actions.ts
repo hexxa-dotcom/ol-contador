@@ -636,7 +636,11 @@ export async function deliverServiceDocument(input: {
       cliente_cpf: client.cpf,
       titulo: title,
       tipo_relatorio: "documento",
-      formato: "documento",
+      // "formato" tem CHECK constraint no banco (só aceita os valores do
+      // laudo narrativo antigo) — "essencial" aqui é só um valor válido
+      // qualquer, não influencia a entrega de documento (que não gera PDF
+      // a partir de formato/narrativa, ver ReportList em client-views.tsx).
+      formato: "essencial",
       status: "entregue",
       entregue_em: now,
       entregue_por: userId,
